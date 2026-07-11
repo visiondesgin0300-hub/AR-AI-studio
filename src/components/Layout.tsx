@@ -198,10 +198,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
       <div className="flex-1 flex flex-col min-w-0 relative h-full">
         {/* Top Header - Ultra Clean Institutional */}
-        <header className="h-24 bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl border-b border-slate-200/60 dark:border-white/5 px-10 flex items-center justify-between z-40 sticky top-0">
+        <header className="h-24 bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl border-b border-slate-200/60 dark:border-white/5 px-3 sm:px-6 lg:px-10 flex items-center justify-between z-40 sticky top-0 gap-2">
           <div className="flex-1 hidden md:block"></div>
-          
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-1 -my-1">
             {/* Language Toggle */}
             <motion.button 
               whileHover={{ scale: 1.1 }}
