@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, MoveUp, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, MoveUp, ShieldCheck, User as UserIcon, ScanLine } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
+import * as THREE from 'three';
+import { ArToolkitSource, ArToolkitContext, ArMarkerControls } from '@ar-js-org/ar.js/three.js/build/ar-threex.mjs';
+import { getMarkerForShelf, MARKER_PHYSICAL_SIZE_METERS } from '../lib/arMarkers';
 
 import { Book } from '../types';
 
@@ -15,142 +18,192 @@ interface ArViewProps {
 }
 
 function ArView({ book, onClose }: ArViewProps) {
-  const videoRef = React.useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
-  const [distance, setDistance] = useState(4.2);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [distance, setDistance] = useState<number | null>(null);
+  const [markerFound, setMarkerFound] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { t, dir } = useLanguage();
 
   useEffect(() => {
-    async function setupCamera() {
-      try {
-        const s = await navigator.mediaDevices.getUserMedia({ 
-          video: { facingMode: 'environment' }, 
-          audio: false 
-        });
-        setStream(s);
-        if (videoRef.current) {
-          videoRef.current.srcObject = s;
-        }
-      } catch (err) {
-        console.error("Camera access denied:", err);
+    const container = containerRef.current;
+    if (!container) return;
+
+    const markerValue = getMarkerForShelf(book.shelf);
+    if (markerValue === undefined) {
+      setError(t('markerNotConfigured'));
+      return;
+    }
+
+    let disposed = false;
+    let rafId = 0;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setClearColor(0x000000, 0);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    Object.assign(renderer.domElement.style, {
+      position: 'absolute',
+      inset: '0',
+      width: '100%',
+      height: '100%',
+      zIndex: '5',
+    });
+    container.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.Camera();
+    scene.add(camera);
+
+    // Real 3D anchor rendered exactly where the physical shelf marker is detected
+    const markerRoot = new THREE.Group();
+    scene.add(markerRoot);
+
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.5, 0.04, 16, 48),
+      new THREE.MeshBasicMaterial({ color: 0xd9b310, transparent: true, opacity: 0.85 })
+    );
+    ring.rotation.x = Math.PI / 2;
+    markerRoot.add(ring);
+
+    const cone = new THREE.Mesh(
+      new THREE.ConeGeometry(0.15, 0.4, 24),
+      new THREE.MeshBasicMaterial({ color: 0xd9b310 })
+    );
+    cone.position.y = 0.4;
+    markerRoot.add(cone);
+
+    const arToolkitSource = new ArToolkitSource({
+      sourceType: 'webcam',
+      sourceWidth: 640,
+      sourceHeight: 480,
+    });
+
+    const arToolkitContext = new ArToolkitContext({
+      cameraParametersUrl: '/ar/camera_para.dat',
+      detectionMode: 'mono_and_matrix',
+      matrixCodeType: '3x3',
+      canvasWidth: 640,
+      canvasHeight: 480,
+    });
+
+    function resize() {
+      arToolkitSource.onResizeElement();
+      arToolkitSource.copyElementSizeTo(renderer.domElement);
+      if (arToolkitContext.arController !== null) {
+        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
       }
     }
-    setupCamera();
 
-    const interval = setInterval(() => {
-      setDistance(prev => Math.max(0.5, prev - 0.05));
-    }, 1000);
+    arToolkitSource.init(
+      () => {
+        if (disposed) return;
+        window.setTimeout(resize, 300);
+        const videoEl = document.getElementById('arjs-video');
+        if (videoEl && container) {
+          Object.assign(videoEl.style, {
+            position: 'absolute',
+            inset: '0',
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            zIndex: '0',
+            marginLeft: '0',
+            marginTop: '0',
+          });
+          container.insertBefore(videoEl, container.firstChild);
+        }
+      },
+      (err: { name: string; message: string }) => {
+        if (!disposed) setError(t('cameraAccessError', { error: err.message || err.name || '' }));
+      }
+    );
+
+    window.addEventListener('resize', resize);
+
+    arToolkitContext.init(() => {
+      camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+    });
+
+    const markerControls = new ArMarkerControls(arToolkitContext, markerRoot, {
+      type: 'barcode',
+      barcodeValue: markerValue,
+      changeMatrixMode: 'modelViewMatrix',
+      size: MARKER_PHYSICAL_SIZE_METERS,
+    });
+    void markerControls;
+
+    const pos = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const scale = new THREE.Vector3();
+
+    function animate() {
+      rafId = requestAnimationFrame(animate);
+      if (arToolkitSource.ready) {
+        arToolkitContext.update(arToolkitSource.domElement);
+      }
+      if (markerRoot.visible) {
+        markerRoot.matrix.decompose(pos, quat, scale);
+        setDistance(pos.length());
+        setMarkerFound(true);
+      } else {
+        setMarkerFound(false);
+      }
+      renderer.render(scene, camera);
+    }
+    animate();
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+      disposed = true;
+      cancelAnimationFrame(rafId);
+      window.removeEventListener('resize', resize);
+      arToolkitContext.dispose();
+      arToolkitSource.dispose();
+      renderer.dispose();
+      if (renderer.domElement.parentElement) {
+        renderer.domElement.parentElement.removeChild(renderer.domElement);
       }
-      clearInterval(interval);
     };
-  }, []);
+  }, [book.shelf, t]);
 
   return (
-    <motion.div 
+    <motion.div
+      ref={containerRef}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       className="relative w-full h-full bg-black overflow-hidden font-sans"
     >
-      {/* Camera Feed */}
-      <video 
-        ref={videoRef} 
-        autoPlay 
-        playsInline 
-        className="absolute inset-0 w-full h-full object-cover opacity-80 scale-110"
-      />
-
       {/* Futuristic HUD Scanning Grid */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+      <div className="absolute inset-0 pointer-events-none overflow-hidden z-[6]">
         <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(217,179,16,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(217,179,16,0.1) 1px, transparent 1px)', backgroundSize: '100px 100px' }}></div>
-        
-        {/* Scanning Line */}
-        <motion.div 
-          animate={{ top: ['0%', '100%'] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-          className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent/50 to-transparent shadow-[0_0_15px_rgba(217,179,16,0.5)] z-20"
-        />
+
+        {/* Scanning Line - only while the real marker hasn't been detected yet */}
+        {!markerFound && !error && (
+          <motion.div
+            animate={{ top: ['0%', '100%'] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+            className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent/50 to-transparent shadow-[0_0_15px_rgba(217,179,16,0.5)] z-20"
+          />
+        )}
       </div>
 
-      {/* AR Overlay - Navigation Path */}
-      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
-         <svg className="w-full h-full" viewBox="0 0 400 800">
-            <motion.path 
-              d="M 200,800 Q 200,600 300,500 T 200,200"
-              fill="none"
-              stroke="#D9B310"
-              strokeWidth="60"
-              strokeLinecap="round"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 0.1 }}
-              transition={{ duration: 2 }}
-            />
-            <motion.path 
-              d="M 200,800 Q 200,600 300,500 T 200,200"
-              fill="none"
-              stroke="#D9B310"
-              strokeWidth="4"
-              strokeDasharray="20 15"
-              initial={{ pathLength: 0 }}
-              animate={{ pathLength: 1, strokeDashoffset: [0, -70] }}
-              transition={{ 
-                pathLength: { duration: 1 },
-                strokeDashoffset: { duration: 2, repeat: Infinity, ease: "linear" }
-              }}
-            />
+      {/* Searching prompt - shown until the physical shelf marker is actually recognized */}
+      {!markerFound && !error && (
+        <div className="absolute inset-0 z-[6] flex flex-col items-center justify-center pointer-events-none gap-6 text-center px-10">
+          <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+            <ScanLine className="w-16 h-16 text-accent" />
+          </motion.div>
+          <p className="text-white font-black text-sm uppercase tracking-widest">{t('scanningForMarker')}</p>
+          <p className="text-white/60 font-bold text-xs">{t('pointCameraAtShelfLabel', { shelf: book.shelf ?? '' })}</p>
+        </div>
+      )}
 
-            {/* Moving Directional Arrows on Path */}
-            {[0, 0.2, 0.4, 0.6, 0.8].map((offset, i) => (
-              <motion.g key={i}>
-                <motion.path
-                  d="M -15,15 L 0,0 L 15,15"
-                  fill="none"
-                  stroke="#D9B310"
-                  strokeWidth="6"
-                  strokeLinecap="round"
-                >
-                  <animateMotion 
-                    dur="4s" 
-                    repeatCount="indefinite" 
-                    path="M 200,800 Q 200,600 300,500 T 200,200" 
-                    keyPoints={`${offset};${Math.min(offset + 0.2, 1)}`}
-                    keyTimes="0;1"
-                    calcMode="linear"
-                    rotate="auto"
-                  />
-                  <animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite" begin={`${i * 0.8}s`} />
-                </motion.path>
-              </motion.g>
-            ))}
-            
-            {/* Destination Hologram Area */}
-            <motion.g
-              initial={{ scale: 0, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: 1 }}
-            >
-              <circle cx="200" cy="200" r="100" fill="url(#destRadial)" className="opacity-40" />
-              <motion.circle 
-                cx="200" cy="200" r="60" 
-                stroke="#D9B310" strokeWidth="2" fill="none"
-                animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-                transition={{ duration: 2, repeat: Infinity }}
-              />
-              <MapPin className="text-accent w-24 h-24" x="152" y="110" />
-              
-              <defs>
-                <radialGradient id="destRadial">
-                  <stop offset="0%" stopColor="#D9B310" stopOpacity="0.4" />
-                  <stop offset="100%" stopColor="#D9B310" stopOpacity="0" />
-                </radialGradient>
-              </defs>
-            </motion.g>
-         </svg>
-      </div>
+      {/* Camera / marker access error */}
+      {error && (
+        <div className="absolute inset-0 z-[6] flex items-center justify-center pointer-events-none px-10">
+          <p className="text-white font-black text-sm text-center">{error}</p>
+        </div>
+      )}
 
       {/* AR HUD Elements - Top Bar */}
       <div className={cn("absolute top-10 left-8 right-8 z-20 flex justify-between items-start pointer-events-none", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
@@ -167,9 +220,9 @@ function ArView({ book, onClose }: ArViewProps) {
             
             <div className={cn("glass-panel px-6 py-4 bg-white/5 border-white/20 backdrop-blur-xl flex flex-col justify-center gap-1 shadow-[0_0_30px_rgba(0,0,0,0.5)]", dir === 'rtl' ? 'text-right' : 'text-left')}>
                <div className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t('accuracy')}</div>
-               <div className="text-sm font-black text-emerald-400 flex items-center gap-2">
+               <div className={cn("text-sm font-black flex items-center gap-2", markerFound ? "text-emerald-400" : "text-white/40")}>
                  <ShieldCheck className="w-4 h-4" />
-                 ٩٩.٩٪
+                 {markerFound ? t('markerLocked') : t('scanningForMarker')}
                </div>
             </div>
          </div>
@@ -208,8 +261,8 @@ function ArView({ book, onClose }: ArViewProps) {
                
                <div className={cn("flex items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                   <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
-                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div>
-                    <span className="text-xs font-black text-white">{t('distanceMeters', { distance: distance.toFixed(1) })}</span>
+                    <div className={cn("w-2 h-2 rounded-full", markerFound ? "bg-emerald-500 animate-ping" : "bg-white/30")}></div>
+                    <span className="text-xs font-black text-white">{t('distanceMeters', { distance: distance !== null ? distance.toFixed(1) : '--' })}</span>
                   </div>
                   <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
                     <Compass className="w-4 h-4 text-accent" />
@@ -227,7 +280,7 @@ function ArView({ book, onClose }: ArViewProps) {
                     <MoveUp className="w-8 h-8" />
                  </div>
                </motion.div>
-               <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] whitespace-nowrap">{distance < 1 ? t('reachedDestination') : t('advanceForward')}</span>
+               <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] whitespace-nowrap">{distance !== null && distance < 1 ? t('reachedDestination') : t('advanceForward')}</span>
             </div>
          </motion.div>
       </div>
