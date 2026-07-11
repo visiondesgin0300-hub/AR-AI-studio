@@ -53,6 +53,18 @@ function ArView({ book, onClose }: ArViewProps) {
     let arToolkitSource: InstanceType<typeof ArToolkitSource> | null = null;
     let resize = () => {};
 
+    // Last-resort safety net: catches errors AR.js throws inside its own async
+    // callbacks (camera-ready, context-ready), which run after this effect's
+    // synchronous try/catch has already exited and would otherwise go uncaught.
+    const onUnexpectedError = (event: ErrorEvent | PromiseRejectionEvent) => {
+      if (disposed) return;
+      const reason = 'reason' in event ? event.reason : event.error;
+      const message = reason instanceof Error ? reason.message : String(reason ?? 'unknown error');
+      setError(t('arSetupFailed', { error: message }));
+    };
+    window.addEventListener('error', onUnexpectedError);
+    window.addEventListener('unhandledrejection', onUnexpectedError);
+
     try {
       renderer.setClearColor(0x000000, 0);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -116,20 +128,24 @@ function ArView({ book, onClose }: ArViewProps) {
       source.init(
         () => {
           if (disposed) return;
-          window.setTimeout(resize, 300);
-          const videoEl = document.getElementById('arjs-video');
-          if (videoEl && container) {
-            Object.assign(videoEl.style, {
-              position: 'absolute',
-              inset: '0',
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              zIndex: '0',
-              marginLeft: '0',
-              marginTop: '0',
-            });
-            container.insertBefore(videoEl, container.firstChild);
+          try {
+            window.setTimeout(resize, 300);
+            const videoEl = document.getElementById('arjs-video');
+            if (videoEl && container) {
+              Object.assign(videoEl.style, {
+                position: 'absolute',
+                inset: '0',
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                zIndex: '0',
+                marginLeft: '0',
+                marginTop: '0',
+              });
+              container.insertBefore(videoEl, container.firstChild);
+            }
+          } catch (err) {
+            setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
           }
         },
         (err: { name: string; message: string }) => {
@@ -140,7 +156,12 @@ function ArView({ book, onClose }: ArViewProps) {
       window.addEventListener('resize', resize);
 
       context.init(() => {
-        camera.projectionMatrix.copy(context.getProjectionMatrix());
+        if (disposed) return;
+        try {
+          camera.projectionMatrix.copy(context.getProjectionMatrix());
+        } catch (err) {
+          setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
+        }
       });
 
       new ArMarkerControls(context, markerRoot, {
@@ -182,6 +203,8 @@ function ArView({ book, onClose }: ArViewProps) {
       disposed = true;
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', resize);
+      window.removeEventListener('error', onUnexpectedError);
+      window.removeEventListener('unhandledrejection', onUnexpectedError);
       arToolkitContext?.dispose();
       arToolkitSource?.dispose();
       renderer.dispose();
