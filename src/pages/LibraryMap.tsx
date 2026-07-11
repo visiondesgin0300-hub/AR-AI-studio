@@ -34,130 +34,151 @@ function ArView({ book, onClose }: ArViewProps) {
       return;
     }
 
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError(t('cameraUnsupported'));
+      return;
+    }
+
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    } catch {
+      setError(t('webglUnsupported'));
+      return;
+    }
+
     let disposed = false;
     let rafId = 0;
+    let arToolkitContext: InstanceType<typeof ArToolkitContext> | null = null;
+    let arToolkitSource: InstanceType<typeof ArToolkitSource> | null = null;
+    let resize = () => {};
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setClearColor(0x000000, 0);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    Object.assign(renderer.domElement.style, {
-      position: 'absolute',
-      inset: '0',
-      width: '100%',
-      height: '100%',
-      zIndex: '5',
-    });
-    container.appendChild(renderer.domElement);
+    try {
+      renderer.setClearColor(0x000000, 0);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      Object.assign(renderer.domElement.style, {
+        position: 'absolute',
+        inset: '0',
+        width: '100%',
+        height: '100%',
+        zIndex: '5',
+      });
+      container.appendChild(renderer.domElement);
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.Camera();
-    scene.add(camera);
+      const scene = new THREE.Scene();
+      const camera = new THREE.Camera();
+      scene.add(camera);
 
-    // Real 3D anchor rendered exactly where the physical shelf marker is detected
-    const markerRoot = new THREE.Group();
-    scene.add(markerRoot);
+      // Real 3D anchor rendered exactly where the physical shelf marker is detected
+      const markerRoot = new THREE.Group();
+      scene.add(markerRoot);
 
-    const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(0.5, 0.04, 16, 48),
-      new THREE.MeshBasicMaterial({ color: 0xd9b310, transparent: true, opacity: 0.85 })
-    );
-    ring.rotation.x = Math.PI / 2;
-    markerRoot.add(ring);
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.5, 0.04, 16, 48),
+        new THREE.MeshBasicMaterial({ color: 0xd9b310, transparent: true, opacity: 0.85 })
+      );
+      ring.rotation.x = Math.PI / 2;
+      markerRoot.add(ring);
 
-    const cone = new THREE.Mesh(
-      new THREE.ConeGeometry(0.15, 0.4, 24),
-      new THREE.MeshBasicMaterial({ color: 0xd9b310 })
-    );
-    cone.position.y = 0.4;
-    markerRoot.add(cone);
+      const cone = new THREE.Mesh(
+        new THREE.ConeGeometry(0.15, 0.4, 24),
+        new THREE.MeshBasicMaterial({ color: 0xd9b310 })
+      );
+      cone.position.y = 0.4;
+      markerRoot.add(cone);
 
-    const arToolkitSource = new ArToolkitSource({
-      sourceType: 'webcam',
-      sourceWidth: 640,
-      sourceHeight: 480,
-    });
+      arToolkitSource = new ArToolkitSource({
+        sourceType: 'webcam',
+        sourceWidth: 640,
+        sourceHeight: 480,
+      });
 
-    const arToolkitContext = new ArToolkitContext({
-      cameraParametersUrl: '/ar/camera_para.dat',
-      detectionMode: 'mono_and_matrix',
-      matrixCodeType: '3x3',
-      canvasWidth: 640,
-      canvasHeight: 480,
-    });
+      arToolkitContext = new ArToolkitContext({
+        cameraParametersUrl: '/ar/camera_para.dat',
+        detectionMode: 'mono_and_matrix',
+        matrixCodeType: '3x3',
+        canvasWidth: 640,
+        canvasHeight: 480,
+      });
 
-    function resize() {
-      arToolkitSource.onResizeElement();
-      arToolkitSource.copyElementSizeTo(renderer.domElement);
-      if (arToolkitContext.arController !== null) {
-        arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
-      }
-    }
+      const source = arToolkitSource;
+      const context = arToolkitContext;
 
-    arToolkitSource.init(
-      () => {
-        if (disposed) return;
-        window.setTimeout(resize, 300);
-        const videoEl = document.getElementById('arjs-video');
-        if (videoEl && container) {
-          Object.assign(videoEl.style, {
-            position: 'absolute',
-            inset: '0',
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            zIndex: '0',
-            marginLeft: '0',
-            marginTop: '0',
-          });
-          container.insertBefore(videoEl, container.firstChild);
+      resize = () => {
+        source.onResizeElement();
+        source.copyElementSizeTo(renderer.domElement);
+        if (context.arController !== null) {
+          source.copyElementSizeTo(context.arController.canvas);
         }
-      },
-      (err: { name: string; message: string }) => {
-        if (!disposed) setError(t('cameraAccessError', { error: err.message || err.name || '' }));
-      }
-    );
+      };
 
-    window.addEventListener('resize', resize);
+      source.init(
+        () => {
+          if (disposed) return;
+          window.setTimeout(resize, 300);
+          const videoEl = document.getElementById('arjs-video');
+          if (videoEl && container) {
+            Object.assign(videoEl.style, {
+              position: 'absolute',
+              inset: '0',
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              zIndex: '0',
+              marginLeft: '0',
+              marginTop: '0',
+            });
+            container.insertBefore(videoEl, container.firstChild);
+          }
+        },
+        (err: { name: string; message: string }) => {
+          if (!disposed) setError(t('cameraAccessError', { error: err.message || err.name || '' }));
+        }
+      );
 
-    arToolkitContext.init(() => {
-      camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
-    });
+      window.addEventListener('resize', resize);
 
-    const markerControls = new ArMarkerControls(arToolkitContext, markerRoot, {
-      type: 'barcode',
-      barcodeValue: markerValue,
-      changeMatrixMode: 'modelViewMatrix',
-      size: MARKER_PHYSICAL_SIZE_METERS,
-    });
-    void markerControls;
+      context.init(() => {
+        camera.projectionMatrix.copy(context.getProjectionMatrix());
+      });
 
-    const pos = new THREE.Vector3();
-    const quat = new THREE.Quaternion();
-    const scale = new THREE.Vector3();
+      new ArMarkerControls(context, markerRoot, {
+        type: 'barcode',
+        barcodeValue: markerValue,
+        changeMatrixMode: 'modelViewMatrix',
+        size: MARKER_PHYSICAL_SIZE_METERS,
+      });
 
-    function animate() {
-      rafId = requestAnimationFrame(animate);
-      if (arToolkitSource.ready) {
-        arToolkitContext.update(arToolkitSource.domElement);
-      }
-      if (markerRoot.visible) {
-        markerRoot.matrix.decompose(pos, quat, scale);
-        setDistance(pos.length());
-        setMarkerFound(true);
-      } else {
-        setMarkerFound(false);
-      }
-      renderer.render(scene, camera);
+      const pos = new THREE.Vector3();
+      const quat = new THREE.Quaternion();
+      const scale = new THREE.Vector3();
+
+      const animate = () => {
+        rafId = requestAnimationFrame(animate);
+        if (source.ready) {
+          context.update(source.domElement);
+        }
+        if (markerRoot.visible) {
+          markerRoot.matrix.decompose(pos, quat, scale);
+          setDistance(pos.length());
+          setMarkerFound(true);
+        } else {
+          setMarkerFound(false);
+        }
+        renderer.render(scene, camera);
+      };
+      animate();
+    } catch (err) {
+      setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
     }
-    animate();
 
     return () => {
       disposed = true;
       cancelAnimationFrame(rafId);
       window.removeEventListener('resize', resize);
-      arToolkitContext.dispose();
-      arToolkitSource.dispose();
+      arToolkitContext?.dispose();
+      arToolkitSource?.dispose();
       renderer.dispose();
       if (renderer.domElement.parentElement) {
         renderer.domElement.parentElement.removeChild(renderer.domElement);
