@@ -1,0 +1,668 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, MoveUp, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { MOCK_BOOKS } from '../data/mockData';
+import { cn } from '../lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
+import { useLanguage } from '../hooks/useLanguage';
+
+import { Book } from '../types';
+
+interface ArViewProps {
+  book: Book;
+  onClose: () => void;
+  key?: string | number;
+}
+
+function ArView({ book, onClose }: ArViewProps) {
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [distance, setDistance] = useState(4.2);
+  const { t, dir } = useLanguage();
+
+  useEffect(() => {
+    async function setupCamera() {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: 'environment' }, 
+          audio: false 
+        });
+        setStream(s);
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+        }
+      } catch (err) {
+        console.error("Camera access denied:", err);
+      }
+    }
+    setupCamera();
+
+    const interval = setInterval(() => {
+      setDistance(prev => Math.max(0.5, prev - 0.05));
+    }, 1000);
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      clearInterval(interval);
+    };
+  }, []);
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="relative w-full h-full bg-black overflow-hidden font-sans"
+    >
+      {/* Camera Feed */}
+      <video 
+        ref={videoRef} 
+        autoPlay 
+        playsInline 
+        className="absolute inset-0 w-full h-full object-cover opacity-80 scale-110"
+      />
+
+      {/* Futuristic HUD Scanning Grid */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(rgba(217,179,16,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(217,179,16,0.1) 1px, transparent 1px)', backgroundSize: '100px 100px' }}></div>
+        
+        {/* Scanning Line */}
+        <motion.div 
+          animate={{ top: ['0%', '100%'] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+          className="absolute left-0 w-full h-1 bg-gradient-to-r from-transparent via-accent/50 to-transparent shadow-[0_0_15px_rgba(217,179,16,0.5)] z-20"
+        />
+      </div>
+
+      {/* AR Overlay - Navigation Path */}
+      <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
+         <svg className="w-full h-full" viewBox="0 0 400 800">
+            <motion.path 
+              d="M 200,800 Q 200,600 300,500 T 200,200"
+              fill="none"
+              stroke="#D9B310"
+              strokeWidth="60"
+              strokeLinecap="round"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{ pathLength: 1, opacity: 0.1 }}
+              transition={{ duration: 2 }}
+            />
+            <motion.path 
+              d="M 200,800 Q 200,600 300,500 T 200,200"
+              fill="none"
+              stroke="#D9B310"
+              strokeWidth="4"
+              strokeDasharray="20 15"
+              initial={{ pathLength: 0 }}
+              animate={{ pathLength: 1, strokeDashoffset: [0, -70] }}
+              transition={{ 
+                pathLength: { duration: 1 },
+                strokeDashoffset: { duration: 2, repeat: Infinity, ease: "linear" }
+              }}
+            />
+
+            {/* Moving Directional Arrows on Path */}
+            {[0, 0.2, 0.4, 0.6, 0.8].map((offset, i) => (
+              <motion.g key={i}>
+                <motion.path
+                  d="M -15,15 L 0,0 L 15,15"
+                  fill="none"
+                  stroke="#D9B310"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                >
+                  <animateMotion 
+                    dur="4s" 
+                    repeatCount="indefinite" 
+                    path="M 200,800 Q 200,600 300,500 T 200,200" 
+                    keyPoints={`${offset};${Math.min(offset + 0.2, 1)}`}
+                    keyTimes="0;1"
+                    calcMode="linear"
+                    rotate="auto"
+                  />
+                  <animate attributeName="opacity" values="0;1;0" dur="4s" repeatCount="indefinite" begin={`${i * 0.8}s`} />
+                </motion.path>
+              </motion.g>
+            ))}
+            
+            {/* Destination Hologram Area */}
+            <motion.g
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 1 }}
+            >
+              <circle cx="200" cy="200" r="100" fill="url(#destRadial)" className="opacity-40" />
+              <motion.circle 
+                cx="200" cy="200" r="60" 
+                stroke="#D9B310" strokeWidth="2" fill="none"
+                animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <MapPin className="text-accent w-24 h-24" x="152" y="110" />
+              
+              <defs>
+                <radialGradient id="destRadial">
+                  <stop offset="0%" stopColor="#D9B310" stopOpacity="0.4" />
+                  <stop offset="100%" stopColor="#D9B310" stopOpacity="0" />
+                </radialGradient>
+              </defs>
+            </motion.g>
+         </svg>
+      </div>
+
+      {/* AR HUD Elements - Top Bar */}
+      <div className={cn("absolute top-10 left-8 right-8 z-20 flex justify-between items-start pointer-events-none", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+         <div className={cn("flex gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+            <div className={cn("glass-panel p-5 bg-white/5 border-white/20 backdrop-blur-xl flex items-center gap-5 shadow-[0_0_30px_rgba(0,0,0,0.5)]", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
+               <div className="w-12 h-12 bg-accent rounded-2xl flex items-center justify-center text-primary shadow-[0_0_20px_rgba(217,179,16,0.3)]">
+                  <Navigation className={cn("w-6 h-6 animate-pulse", dir === 'rtl' ? 'rotate-180' : '')} />
+               </div>
+               <div>
+                  <div className="text-[10px] font-black text-accent uppercase tracking-[0.2em] mb-1">{t('effectiveGuidance')}</div>
+                  <div className="text-lg font-black text-white">{t('headTowardsShelf', { shelf: book.shelf })}</div>
+               </div>
+            </div>
+            
+            <div className={cn("glass-panel px-6 py-4 bg-white/5 border-white/20 backdrop-blur-xl flex flex-col justify-center gap-1 shadow-[0_0_30px_rgba(0,0,0,0.5)]", dir === 'rtl' ? 'text-right' : 'text-left')}>
+               <div className="text-[9px] font-black text-white/40 uppercase tracking-widest">{t('accuracy')}</div>
+               <div className="text-sm font-black text-emerald-400 flex items-center gap-2">
+                 <ShieldCheck className="w-4 h-4" />
+                 ٩٩.٩٪
+               </div>
+            </div>
+         </div>
+
+         <button 
+           onClick={onClose}
+           className="p-5 bg-primary/20 hover:bg-primary border-white/20 backdrop-blur-xl rounded-[1.5rem] text-white pointer-events-auto transition-all shadow-2xl active:scale-90"
+         >
+            <X className="w-7 h-7" />
+         </button>
+      </div>
+
+      {/* AR HUD - Bottom Floating Card */}
+      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-2xl pointer-events-none">
+         <motion.div 
+           initial={{ y: 50, opacity: 0 }}
+           animate={{ y: 0, opacity: 1 }}
+           className={cn("glass-panel p-8 bg-black/40 border-white/30 backdrop-blur-3xl flex items-center gap-10 shadow-[0_50px_100px_rgba(0,0,0,0.8)] rounded-[3rem]", dir === 'rtl' ? 'flex-row-reverse text-right font-sans' : 'flex-row text-left font-sans')}
+         >
+            <div className="relative shrink-0">
+               <img src={book.coverUrl} className="w-20 h-32 object-cover rounded-2xl shadow-2xl border-2 border-white/30" alt="" referrerPolicy="no-referrer" />
+               <div className={cn("absolute -top-3 bg-accent text-primary w-10 h-10 rounded-full flex items-center justify-center border-4 border-black/40 font-black text-xs shadow-xl font-mono", dir === 'rtl' ? '-left-3' : '-right-3')}>
+                 AR
+               </div>
+            </div>
+
+            <div className="flex-1 space-y-4">
+               <div>
+                  <div className="text-[10px] font-black text-accent uppercase tracking-[0.3em] mb-2">{t('targetBook')}</div>
+                  <h4 className="text-white font-black text-2xl leading-tight tracking-tight">{book.title}</h4>
+                  <div className="text-xs font-bold text-white/50 uppercase mt-1 tracking-widest leading-relaxed flex items-center gap-2">
+                    <UserIcon className="w-3.5 h-3.5" />
+                    {book.author}
+                  </div>
+               </div>
+               
+               <div className={cn("flex items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+                    <div className="w-2 h-2 bg-emerald-500 rounded-full animate-ping"></div>
+                    <span className="text-xs font-black text-white">{t('distanceMeters', { distance: distance.toFixed(1) })}</span>
+                  </div>
+                  <div className="flex items-center gap-3 bg-white/5 px-4 py-2 rounded-xl border border-white/10">
+                    <Compass className="w-4 h-4 text-accent" />
+                    <span className="text-xs font-black text-white">{t('bookHall', { section: book.section })}</span>
+                  </div>
+               </div>
+            </div>
+
+            <div className={cn("flex flex-col items-center justify-center gap-3 py-6 px-10 border-white/10", dir === 'rtl' ? 'border-l' : 'border-r')}>
+               <motion.div
+                 animate={{ y: [0, -15, 0], scale: [1, 1.2, 1] }}
+                 transition={{ duration: 1.5, repeat: Infinity }}
+               >
+                 <div className="w-16 h-16 bg-accent rounded-[2rem] flex items-center justify-center text-primary shadow-[0_0_40px_rgba(217,179,16,0.3)]">
+                    <MoveUp className="w-8 h-8" />
+                 </div>
+               </motion.div>
+               <span className="text-[9px] font-black text-white uppercase tracking-[0.2em] whitespace-nowrap">{distance < 1 ? t('reachedDestination') : t('advanceForward')}</span>
+            </div>
+         </motion.div>
+      </div>
+
+      {/* Floating HUD Telemetry Particles */}
+      {[...Array(15)].map((_, i) => (
+        <motion.div
+           key={i}
+           className="absolute pointer-events-none"
+           initial={{ 
+             x: Math.random() * window.innerWidth, 
+             y: Math.random() * window.innerHeight,
+             opacity: 0,
+             scale: 0.5
+           }}
+           animate={{ 
+             y: [null, -200],
+             opacity: [0, 0.4, 0],
+             scale: [0.5, 1, 0.5]
+           }}
+           transition={{ 
+             duration: 3 + Math.random() * 5, 
+             repeat: Infinity,
+             delay: Math.random() * 5
+           }}
+        >
+           <div className="w-1 h-1 bg-accent/40 rounded-full shadow-[0_0_5px_#D9B310]"></div>
+        </motion.div>
+      ))}
+
+      {/* Corners UI Decor */}
+      <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-accent/20"></div>
+      <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-accent/20"></div>
+      <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-accent/20"></div>
+      <div className="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-accent/20"></div>
+    </motion.div>
+  );
+}
+
+export function LibraryMap() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { t, language, dir } = useLanguage();
+  const [selectedBook, setSelectedBook] = useState<string | null>(null);
+  const [showPath, setShowPath] = useState(false);
+  const [isArMode, setIsArMode] = useState(false);
+
+  const [activeTab, setActiveTab] = useState<'map' | 'sections'>('map');
+  const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+
+  // Simulated real-time occupancy data
+  const occupancyData = useMemo(() => {
+    return {
+      'A-1': Math.floor(Math.random() * 100),
+      'A-2': Math.floor(Math.random() * 100),
+      'B-1': Math.floor(Math.random() * 100),
+      'B-2': Math.floor(Math.random() * 100),
+      'C-1': Math.floor(Math.random() * 100),
+      'C-2': Math.floor(Math.random() * 100),
+      'D-1': Math.floor(Math.random() * 100),
+      'D-2': Math.floor(Math.random() * 100),
+    };
+  }, []);
+
+  useEffect(() => {
+    if (location.state?.bookId) {
+      setSelectedBook(location.state.bookId);
+      setShowPath(true);
+    }
+  }, [location.state]);
+
+  const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
+
+  const sections = [
+    { id: 'A', name: t('naturalSciences'), icon: '🧪', subjects: [t('physics'), t('chemistry'), t('biology')], color: 'bg-blue-500', occupancy: t('quiet') },
+    { id: 'B', name: t('engineeringAndTech'), icon: '⚙️', subjects: [t('mechEngineering'), t('ai'), t('software')], color: 'bg-orange-500', occupancy: t('activeOccupancy') },
+    { id: 'C', name: t('artsAndCrafts'), icon: '🎨', subjects: [t('arabicLit'), t('graphicDesign'), t('philosophy')], color: 'bg-purple-500', occupancy: t('mediumOccupancy') },
+    { id: 'D', name: t('humanities'), icon: '📚', subjects: [t('history'), t('sociology'), t('geography')], color: 'bg-green-500', occupancy: t('quiet') }
+  ];
+
+  const cells = [
+    { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' }, { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' },
+    { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' }, { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' }
+  ];
+
+  const getPathData = () => {
+    if (!bookData) return "";
+    const shelf = bookData.shelf;
+    const paths: Record<string, string> = {
+      'A-1': "M 300,450 L 300,350 L 100,350 L 100,100",
+      'A-2': "M 300,450 L 300,350 L 250,350 L 250,100",
+      'B-1': "M 300,450 L 300,350 L 400,350 L 400,100",
+      'B-2': "M 300,450 L 300,350 L 550,350 L 550,100",
+      'C-1': "M 300,450 L 300,350 L 100,350 L 100,250",
+      'D-1': "M 300,450 L 300,350 L 550,350 L 550,250",
+    };
+    return paths[shelf] || "M 300,450 L 300,200";
+  };
+
+  return (
+    <div className={cn("h-full flex flex-col gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
+      {/* Dynamic Header */}
+      <div className={cn("flex flex-col md:flex-row items-center justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10", dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row')}>
+        <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
+          <div className={cn("flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+            <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center text-accent">
+              <MapIcon className="w-6 h-6" />
+            </div>
+            <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{t('smartNavSystem')}</span>
+          </div>
+          <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('knowledgeCampusMap')}</h1>
+          <p className="text-slate-400 dark:text-slate-500 font-bold mt-2 leading-relaxed">{t('navAccuratelyDesc')}</p>
+        </div>
+
+        <div className={cn("flex flex-col sm:flex-row items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+          <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5">
+             <button 
+               onClick={() => { setActiveTab('map'); setIsArMode(false); }}
+               className={cn(
+                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3", 
+                 activeTab === 'map' && !isArMode ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
+               )}
+             >
+               <MapPin className="w-4 h-4" />
+               {t('digitalView')}
+             </button>
+             <button 
+               onClick={() => { setActiveTab('sections'); setIsArMode(false); }}
+               className={cn(
+                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3", 
+                 activeTab === 'sections' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
+               )}
+             >
+               <Box className="w-4 h-4" />
+               {t('mainSections')}
+             </button>
+          </div>
+
+          {bookData && (
+            <button 
+              onClick={() => setIsArMode(true)}
+              className="px-8 py-4 bg-primary text-white rounded-2xl text-xs font-black flex items-center gap-3 shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all group"
+            >
+               <Camera className="w-5 h-5 group-hover:animate-pulse" />
+               <span>{t('enterArMode')}</span>
+               <div className="flex items-center gap-1">
+                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                 <span className="text-[9px] text-emerald-400 opacity-80 uppercase">{t('activeStatus')}</span>
+               </div>
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className={cn("flex flex-col xl:flex-row gap-10 flex-1 min-h-0", dir === 'rtl' ? 'xl:flex-row-reverse' : 'xl:flex-row')}>
+        {/* Map Visualization Zone */}
+        <div className={cn(
+          "flex-1 official-card relative overflow-hidden min-h-[650px] p-0 transition-all duration-500",
+          isArMode ? "bg-black border-0" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20"
+        )}>
+          {/* Blueprint Grid Overlay */}
+          {!isArMode && ( activeTab === 'map' && (
+            <div className="absolute inset-0 z-0 pointer-events-none">
+              <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#0B3C5D 1px, transparent 1px), linear-gradient(90deg, #0B3C5D 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+              <div className="absolute inset-0 opacity-[0.01] dark:opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#0B3C5D 1px, transparent 1px), linear-gradient(90deg, #0B3C5D 1px, transparent 1px)', backgroundSize: '200px 200px' }} />
+              
+              {/* Compass Rose Decoration */}
+              <div className={cn("absolute bottom-12 opacity-5 scale-150 text-primary dark:text-white", dir === 'rtl' ? 'left-12' : 'right-12')}>
+                 <Compass className="w-48 h-48" />
+              </div>
+            </div>
+          ))}
+
+          <AnimatePresence mode="wait">
+            {isArMode ? (
+              <ArView key="ar" book={bookData!} onClose={() => setIsArMode(false)} />
+            ) : activeTab === 'map' ? (
+              <motion.div 
+                key="map"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="relative z-10 w-full h-full p-12 flex flex-col"
+              >
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 flex-1">
+                    {cells.map((cell) => {
+                      const section = sections.find(s => s.id === cell.section);
+                      const isDestination = bookData?.shelf === cell.id;
+                      const occupancy = occupancyData[cell.id as keyof typeof occupancyData];
+                      const isHovered = hoveredCell === cell.id;
+
+                      return (
+                        <motion.div 
+                          key={cell.id}
+                          onHoverStart={() => setHoveredCell(cell.id)}
+                          onHoverEnd={() => setHoveredCell(null)}
+                          className={cn(
+                            "relative flex flex-col items-center justify-center rounded-[3rem] border-2 transition-all duration-500 cursor-pointer group",
+                            isDestination 
+                              ? "bg-accent/5 dark:bg-accent/10 border-accent shadow-[0_30px_70px_rgba(217,179,16,0.2)] z-20 scale-105" 
+                              : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-slate-800 hover:border-primary/20 dark:hover:border-accent/20",
+                            isHovered && !isDestination && "shadow-2xl shadow-black/5 dark:shadow-black/20 scale-[1.02]"
+                          )}
+                        >
+                          {/* Live Occupancy Badge */}
+                          <div className={cn("absolute top-6 flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-full shadow-sm border border-slate-100 dark:border-white/5", dir === 'rtl' ? 'left-8' : 'right-8')}>
+                             <div className={cn("w-1.5 h-1.5 rounded-full", occupancy > 70 ? "bg-red-500" : occupancy > 40 ? "bg-amber-500" : "bg-emerald-500")}></div>
+                             <span className="text-[9px] font-black text-slate-500 dark:text-slate-400">{occupancy}%</span>
+                          </div>
+
+                          <div className="relative z-10 flex flex-col items-center gap-6 p-8 text-center">
+                            <div className={cn(
+                              "w-16 h-16 rounded-[2rem] flex items-center justify-center text-2xl transition-all duration-500 shadow-lg",
+                              isDestination ? "bg-accent text-primary scale-110" : "bg-white dark:bg-slate-700 text-slate-300 dark:text-slate-400"
+                            )}>
+                               {section?.icon}
+                            </div>
+                            
+                            <div className="space-y-1">
+                               <div className="text-[10px] font-black text-primary/40 dark:text-white/30 uppercase tracking-[0.2em]">{section?.name}</div>
+                               <div className="text-xl font-black text-primary dark:text-white">{t('shelfId', { id: cell.id })}</div>
+                            </div>
+
+                            {isDestination && (
+                              <motion.div 
+                                initial={{ y: 10, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                className={cn("bg-primary text-accent px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
+                              >
+                                <Navigation className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
+                                {t('currentDestination')}
+                              </motion.div>
+                            )}
+                          </div>
+
+                          {/* Decorative Section Color Tab */}
+                          <div className={cn("absolute bottom-0 inset-x-12 h-1.5 rounded-t-full transition-all group-hover:h-3", section?.color, isDestination && "opacity-100", !isDestination && "opacity-20")} />
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Enhanced Entrance Visual */}
+                  <div className="mt-16 relative flex justify-center">
+                     <div className="absolute bottom-full mb-8 h-20 w-px bg-gradient-to-t from-slate-200 dark:from-white/10 to-transparent" />
+                     <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 px-12 py-4 rounded-full text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-[0.4em] shadow-inner text-center">
+                        {t('mainGatePhaseOne')}
+                     </div>
+                  </div>
+
+                  {/* Path Visualization SVG */}
+                  {showPath && bookData && (
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 600 500">
+                      <defs>
+                        <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                          <stop offset="0%" stopColor="#0B3C5D" stopOpacity="0" />
+                          <stop offset="50%" stopColor="#D9B310" stopOpacity="0.5" />
+                          <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
+                        </linearGradient>
+                         <filter id="glow">
+                          <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      <motion.path 
+                        d={getPathData()}
+                        stroke="url(#pathGradient)"
+                        strokeWidth="12"
+                        strokeDasharray="20 15"
+                        fill="none"
+                        strokeLinecap="round"
+                        filter="url(#glow)"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.5, ease: "easeInOut" }}
+                      />
+                      <motion.circle r="12" fill="#D9B310" stroke="white" strokeWidth="4">
+                        <animateMotion dur="4s" repeatCount="indefinite" path={getPathData()} />
+                      </motion.circle>
+                    </svg>
+                  )}
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="sections"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="grid grid-cols-1 md:grid-cols-2 gap-10 p-12"
+              >
+                 {sections.map(section => (
+                   <div key={section.id} className={cn("official-card p-10 flex flex-col justify-between group hover:border-primary/20 dark:hover:border-accent/20 transition-all cursor-pointer bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                      <div className={cn("flex items-start justify-between", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                         <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center text-5xl group-hover:scale-110 transition-transform duration-500">
+                            {section.icon}
+                         </div>
+                         <div className={cn(dir === 'rtl' ? 'text-left' : 'text-right')}>
+                            <span className="text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest block mb-1">{t('shelfShort')} {section.id}</span>
+                            <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{section.name}</h3>
+                         </div>
+                      </div>
+
+                      <div className="mt-8 space-y-6">
+                         <div className={cn("flex flex-wrap gap-2", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                            {section.subjects.map(s => (
+                              <span key={s} className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 rounded-xl border border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-slate-700 hover:text-primary dark:hover:text-white transition-all">
+                                {s}
+                              </span>
+                            ))}
+                         </div>
+                         
+                         <div className={cn("flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                            <div className={cn("flex items-center gap-3", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                               <div className={cn("w-3 h-3 rounded-full", section.occupancy === t('quiet') ? "bg-emerald-500" : section.occupancy === t('activeOccupancy') ? "bg-amber-500" : "bg-blue-500")} />
+                               <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{section.occupancy} {language === 'ar' ? 'الآن' : 'Now'}</span>
+                            </div>
+                            <button className={cn("text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest flex items-center gap-2 group-hover:text-accent dark:group-hover:text-white transition-colors", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                                {t('previewShelves')}
+                                <ChevronRight className={cn("w-4 h-4", dir === 'rtl' ? 'rotate-180' : '')} />
+                            </button>
+                         </div>
+                      </div>
+                   </div>
+                 ))}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Sidebar Intelligence */}
+        <div className="w-full xl:w-[450px] flex flex-col gap-8">
+          {bookData ? (
+            <motion.div 
+              initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="official-card p-12 bg-primary dark:bg-slate-950 text-white border-0 shadow-[0_50px_100px_rgba(11,60,93,0.3)] dark:shadow-[0_50px_100px_rgba(0,0,0,0.5)] overflow-hidden relative"
+            >
+              <div className={cn("absolute top-0 w-64 h-64 bg-accent/10 rounded-full blur-[100px] -mt-32", dir === 'rtl' ? 'left-0 -ml-32' : 'right-0 -mr-32')} />
+              
+              <div className="relative z-10 space-y-12 bg-[#cfc2c2] dark:bg-slate-900/60 p-8 rounded-[2rem] text-primary dark:text-white backdrop-blur-md border border-white/5 dark:border-white/10">
+                 <div className="flex justify-center">
+                    <div className="relative group">
+                       <img 
+                          src={bookData.coverUrl} 
+                          className="w-48 h-72 object-cover rounded-[1.5rem] shadow-[0_30px_60px_rgba(0,0,0,0.5)] border-4 border-white/10 dark:border-white/5" 
+                          alt="" 
+                          referrerPolicy="no-referrer"
+                        />
+                       <div className={cn("absolute -bottom-6 w-16 h-16 bg-accent rounded-3xl flex items-center justify-center text-primary shadow-2xl border-4 border-primary dark:border-slate-950", dir === 'rtl' ? '-left-6' : '-right-6')}>
+                          <Navigation className={cn("w-7 h-7", dir === 'rtl' ? 'rotate-180' : '')} />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="text-center space-y-4">
+                    <div className="text-[10px] font-black text-primary/40 dark:text-white/30 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
+                    <h2 className="text-3xl font-black leading-tight tracking-tight text-primary dark:text-white drop-shadow-sm">{bookData.title}</h2>
+                    <p className="text-primary/70 dark:text-white/60 font-bold uppercase text-[12px] tracking-widest flex items-center justify-center gap-2">
+                       <UserIcon className="w-4 h-4" />
+                       {bookData.author}
+                    </p>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white/40 dark:bg-black/20 border border-primary/10 dark:border-white/5 p-6 rounded-3xl text-center backdrop-blur-md">
+                       <div className="text-[10px] font-black text-primary/50 dark:text-white/40 uppercase tracking-widest mb-2 opacity-70 leading-relaxed">{t('digitalView')} ({t('shelfShort')})</div>
+                       <div className="text-3xl font-black text-primary dark:text-white">{bookData.shelf}</div>
+                    </div>
+                    <div className="bg-white/40 dark:bg-black/20 border border-primary/10 dark:border-white/5 p-6 rounded-3xl text-center backdrop-blur-md">
+                       <div className="text-[10px] font-black text-primary/50 dark:text-white/40 uppercase tracking-widest mb-2 opacity-70 leading-relaxed">{t('bookHall', { section: '' })}</div>
+                       <div className="text-3xl font-black text-primary dark:text-white">{bookData.section}</div>
+                    </div>
+                 </div>
+
+                 <div className="space-y-4 pt-4">
+                    <button 
+                      onClick={() => navigate(`/book/${bookData.id}`)}
+                      className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-lg shadow-accent/20 transition-all active:scale-95"
+                    >
+                       <span>{t('viewReferenceData')}</span>
+                    </button>
+                    <button 
+                      onClick={() => { setSelectedBook(null); setShowPath(false); }}
+                      className="w-full py-4 text-primary/80 dark:text-white/60 hover:text-red-500 dark:hover:text-red-400 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                    >
+                       <X className="w-4 h-4" />
+                       {t('cancelActiveNavigation')}
+                    </button>
+                 </div>
+              </div>
+            </motion.div>
+          ) : (
+            <div className="official-card p-16 flex flex-col items-center justify-center text-center gap-10 min-h-[500px] border-dashed border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl shadow-black/5 dark:shadow-black/20">
+               <div className="relative">
+                  <div className="w-32 h-32 bg-slate-50 dark:bg-slate-800 rounded-[3.5rem] flex items-center justify-center text-slate-200 dark:text-slate-700">
+                     <Compass className="w-16 h-16" />
+                  </div>
+                  <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    className="absolute -inset-4 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[4rem]"
+                  />
+               </div>
+               
+               <div className="space-y-4">
+                  <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('searchReferenceFirst')}</h3>
+                  <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed px-4">
+                    {t('unifiedSearchDesc')}
+                  </p>
+               </div>
+
+               <button 
+                onClick={() => navigate('/')}
+                className="w-full py-6 rounded-[2.5rem] border-2 border-primary dark:border-accent text-primary dark:text-accent font-black text-xs uppercase tracking-[0.3em] hover:bg-primary dark:hover:bg-accent hover:text-white dark:hover:text-primary transition-all active:scale-95 shadow-lg shadow-black/5"
+               >
+                 {t('searchInIndex')}
+               </button>
+
+               <div className={cn("flex items-center gap-8 pt-8 border-t border-slate-100 dark:border-white/5 w-full justify-center", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <div className="text-center">
+                    <div className="text-lg font-black text-primary dark:text-white tracking-tighter">١٥٠ألف+</div>
+                    <div className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase leading-relaxed">{t('indexedBooks')}</div>
+                  </div>
+                  <div className="w-px h-10 bg-slate-100 dark:bg-white/5" />
+                  <div className="text-center">
+                    <div className="text-lg font-black text-emerald-500 tracking-tighter">{language === 'ar' ? 'مباشر' : 'Live'}</div>
+                    <div className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase leading-relaxed">{t('shelfUpdates')}</div>
+                  </div>
+               </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
