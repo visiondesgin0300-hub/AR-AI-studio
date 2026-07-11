@@ -3,7 +3,7 @@ import { Language, translations } from '../lib/translations';
 
 interface LanguageContextType {
   language: Language;
-  t: (key: string) => string;
+  t: (key: string, params?: Record<string, string | number>) => string;
   toggleLanguage: () => void;
   dir: 'rtl' | 'ltr';
 }
@@ -26,10 +26,10 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     setLanguage(prev => (prev === 'ar' ? 'en' : 'ar'));
   };
 
-  const t = (key: string): string => {
+  const t = (key: string, params?: Record<string, string | number>): string => {
     const keys = key.split('.');
     let current: any = translations[language];
-    
+
     for (const k of keys) {
       if (current[k] === undefined) {
         console.warn(`Translation key not found: ${key}`);
@@ -37,7 +37,14 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       }
       current = current[k];
     }
-    
+
+    if (params) {
+      return Object.entries(params).reduce(
+        (text, [paramKey, value]) => text.replace(`{${paramKey}}`, String(value)),
+        current as string
+      );
+    }
+
     return current;
   };
 
