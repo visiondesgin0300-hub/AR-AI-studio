@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<title>ملصقات رموز الأرفف - AR</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: Tahoma, Arial, sans-serif;
+    margin: 0;
+    padding: 24px;
+    background: #f1f5f9;
+    color: #0f172a;
+  }
+  .instructions {
+    max-width: 760px;
+    margin: 0 auto 32px;
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px 28px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    line-height: 1.9;
+  }
+  .instructions h1 { font-size: 20px; margin: 0 0 12px; }
+  .instructions code { background: #eef2ff; padding: 2px 6px; border-radius: 4px; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 24px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .marker-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    break-inside: avoid;
+  }
+  .marker-card img {
+    width: 12cm;
+    aspect-ratio: 1 / 1;
+    max-width: 100%;
+    height: auto;
+    image-rendering: pixelated;
+    border: 1px solid #e2e8f0;
+  }
+  .shelf-label {
+    font-weight: bold;
+    font-size: 16px;
+    margin-top: 10px;
+  }
+  .book-title {
+    font-size: 12px;
+    color: #475569;
+    margin-top: 2px;
+  }
+  .marker-id {
+    font-size: 11px;
+    color: #94a3b8;
+    margin-top: 4px;
+  }
+  @media print {
+    body { background: #fff; padding: 0; }
+    .no-print { display: none !important; }
+    .grid { gap: 12px; }
+    .marker-card { box-shadow: none; border: 1px dashed #cbd5e1; page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="instructions no-print">
+    <h1>تعليمات الطباعة</h1>
+    <p>
+      هذه الصفحة تحتوي على 23 ملصق رمز باركود (AR.js Matrix Code 3x3) الرسمية من
+      حزمة ARToolKit، كل واحد مربوط برف مكتبة محدد في <code>src/lib/arMarkers.ts</code>.
+    </p>
+    <p>
+      اطبع الصفحة (Ctrl/Cmd + P) — كل رمز مضبوط ليُطبع بمقاس <b>12×12 سم</b> فعلياً
+      (نفس القيمة المحددة في <code>MARKER_PHYSICAL_SIZE_METERS</code>). قصّ كل ملصق
+      والصقه على الرف المطابق المكتوب تحته.
+    </p>
+    <p>
+      إذا احتجت مقاساً مختلفاً، عدّل <code>MARKER_PHYSICAL_SIZE_METERS</code> في الكود
+      ليطابق المقاس الفعلي الذي طبعته، وإلا ستكون المسافة المحسوبة في وضع AR غير دقيقة.
+    </p>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const SHELVES = [
+      { shelf: 'A-1', marker: 0,  book: 'أساسيات الفيزياء الحديثة' },
+      { shelf: 'A-2', marker: 1,  book: 'ميكانيكا الكم للجميع' },
+      { shelf: 'A-3', marker: 2,  book: 'الكون الأنيق' },
+      { shelf: 'A-4', marker: 3,  book: 'تاريخ موجز للزمن' },
+      { shelf: 'A-5', marker: 4,  book: 'الفيزياء الكلاسيكية' },
+      { shelf: 'B-2', marker: 5,  book: 'مبادئ الهندسة المدنية' },
+      { shelf: 'B-3', marker: 6,  book: 'الذكاء الاصطناعي في حياتنا' },
+      { shelf: 'B-4', marker: 7,  book: 'هندسة البرمجيات المعاصرة' },
+      { shelf: 'B-5', marker: 8,  book: 'الإلكترونيات الرقمية' },
+      { shelf: 'B-6', marker: 9,  book: 'هندسة الروبوتات' },
+      { shelf: 'C-1', marker: 10, book: 'علم النفس السلوكي' },
+      { shelf: 'C-2', marker: 11, book: 'الذكاء العاطفي' },
+      { shelf: 'C-3', marker: 12, book: 'لغة الجسد' },
+      { shelf: 'C-4', marker: 13, book: 'قوة العادات' },
+      { shelf: 'C-5', marker: 14, book: 'التفكير السريع والبطيء' },
+      { shelf: 'D-1', marker: 15, book: 'مقدمة في علم الاجتماع' },
+      { shelf: 'D-2', marker: 16, book: 'أساسيات الاقتصاد' },
+      { shelf: 'D-3', marker: 17, book: 'تاريخ الفلسفة اليونانية' },
+      { shelf: 'D-4', marker: 18, book: 'إدارة الوقت والإنتاجية' },
+      { shelf: 'D-5', marker: 19, book: 'فن الخطابة والإقناع' },
+      { shelf: 'E-1', marker: 20, book: 'مبادئ محركات الاحتراق الداخلي' },
+      { shelf: 'E-2', marker: 21, book: 'صيانة السيارات الحديثة' },
+      { shelf: 'E-3', marker: 22, book: 'تكنولوجيا محركات الهايبرد' },
+    ];
+
+    const grid = document.getElementById('grid');
+    for (const { shelf, marker, book } of SHELVES) {
+      const card = document.createElement('div');
+      card.className = 'marker-card';
+      card.innerHTML = `
+        <img src="marker-${marker}.png" alt="marker ${marker}" />
+        <div class="shelf-label">رف ${shelf}</div>
+        <div class="book-title">${book}</div>
+        <div class="marker-id">Marker ID: ${marker}</div>
+      `;
+      grid.appendChild(card);
+    }
+  </script>
+</body>
+</html>
