@@ -155,18 +155,23 @@ function ArView({ book, onClose }: ArViewProps) {
       const scale = new THREE.Vector3();
 
       const animate = () => {
-        rafId = requestAnimationFrame(animate);
-        if (source.ready) {
-          context.update(source.domElement);
+        if (disposed) return;
+        try {
+          if (source.ready) {
+            context.update(source.domElement);
+          }
+          if (markerRoot.visible) {
+            markerRoot.matrix.decompose(pos, quat, scale);
+            setDistance(pos.length());
+            setMarkerFound(true);
+          } else {
+            setMarkerFound(false);
+          }
+          renderer.render(scene, camera);
+          rafId = requestAnimationFrame(animate);
+        } catch (err) {
+          setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
         }
-        if (markerRoot.visible) {
-          markerRoot.matrix.decompose(pos, quat, scale);
-          setDistance(pos.length());
-          setMarkerFound(true);
-        } else {
-          setMarkerFound(false);
-        }
-        renderer.render(scene, camera);
       };
       animate();
     } catch (err) {
