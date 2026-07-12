@@ -262,7 +262,7 @@ export function MyBooks({ user }: MyBooksProps) {
                      cursor={{ fill: 'transparent' }}
                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', backgroundColor: 'var(--tooltip-bg)' }}
                   />
-                  <Bar dataKey="value" radius={[10, 10, 0, 0]} layout="vertical">
+                  <Bar dataKey="value" radius={[10, 10, 0, 0]}>
                     {categoryStats.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'var(--chart-primary)' : 'var(--chart-secondary)'} />
                     ))}
