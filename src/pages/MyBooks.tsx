@@ -234,8 +234,8 @@ export function MyBooks({ user }: MyBooksProps) {
                 <AreaChart data={READING_ACTIVITY} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorPages" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#0B3C5D" stopOpacity={0.1}/>
-                      <stop offset="95%" stopColor="#0B3C5D" stopOpacity={0}/>
+                      <stop offset="5%" stopColor="#004C6D" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#004C6D" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <Tooltip 
