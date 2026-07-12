@@ -1,12 +1,17 @@
 // Maps each physical library shelf to a printed AR.js 3x3 barcode marker (values 0-63).
-// Print each marker at MARKER_PHYSICAL_SIZE_METERS and stick it to the labeled shelf so the
-// AR camera view can recognize it and compute a real distance/position from the live video feed.
+// Print each marker (public/ar/markers/marker-<id>.png, or the print sheet at
+// public/ar/markers/print-sheet.html) at MARKER_PHYSICAL_SIZE_METERS and stick it to the
+// labeled shelf so the AR camera view can recognize it and compute a real distance/position
+// from the live video feed.
 //
-// Generate the matching marker images at:
-// https://ar-js-org.github.io/AR.js/three.js/examples/marker-training/examples/generator.html
-// (choose "Barcode Markers" and enter the numeric value listed below for each shelf)
+// IMPORTANT: the marker image only contains the black-bordered pattern itself. ARToolKit's
+// detector requires a plain white "quiet zone" margin around it — verified empirically that
+// detection fails 100% of the time with no margin, and succeeds reliably once the white
+// border on each side is at least ~30% of the marker's own width. The print sheet already
+// bakes this margin in; if printing marker-<id>.png directly, leave a comparable white
+// border around it yourself.
 
-export const MARKER_PHYSICAL_SIZE_METERS = 0.12; // 12cm x 12cm printed marker
+export const MARKER_PHYSICAL_SIZE_METERS = 0.08; // 8cm x 8cm printed marker (excluding the white quiet-zone margin)
 
 export const SHELF_MARKERS: Record<string, number> = {
   'A-1': 0,
