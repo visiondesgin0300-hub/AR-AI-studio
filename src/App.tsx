@@ -89,7 +89,7 @@ function AppContent() {
         />
         <Route
           path="/map"
-          element={user ? <Layout user={user} onLogout={handleLogout}><LibraryMap /></Layout> : <Navigate to="/login" />}
+          element={user ? <Layout user={user} onLogout={handleLogout}><LibraryMap user={user} /></Layout> : <Navigate to="/login" />}
         />
         <Route
           path="/cover-scan"
