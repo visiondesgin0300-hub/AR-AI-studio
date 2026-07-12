@@ -427,8 +427,8 @@ export function AdminDashboard() {
                               <AreaChart data={WEEKLY_DATA} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                                  <defs>
                                     <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                       <stop offset="5%" stopColor="#0B3C5D" stopOpacity={0.1}/>
-                                       <stop offset="95%" stopColor="#0B3C5D" stopOpacity={0}/>
+                                       <stop offset="5%" stopColor="#004C6D" stopOpacity={0.1}/>
+                                       <stop offset="95%" stopColor="#004C6D" stopOpacity={0}/>
                                     </linearGradient>
                                  </defs>
                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={window.matchMedia('(prefers-color-scheme: dark)').matches ? '#334155' : '#f1f5f9'} />
@@ -442,7 +442,7 @@ export function AdminDashboard() {
                                  <YAxis hide />
                                  <Tooltip 
                                    contentStyle={{ 
-                                     backgroundColor: '#0B3C5D', 
+                                     backgroundColor: '#004C6D', 
                                      border: 'none', 
                                      borderRadius: '16px',
                                      padding: '16px',
@@ -457,7 +457,7 @@ export function AdminDashboard() {
                                  <Area 
                                    type="monotone" 
                                    dataKey="value" 
-                                   stroke="#0B3C5D" 
+                                   stroke="#004C6D" 
                                    strokeWidth={4}
                                    fillOpacity={1} 
                                    fill="url(#colorValue)" 
@@ -486,7 +486,7 @@ export function AdminDashboard() {
                                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none' }} />
                                    <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={24}>
                                       {CATEGORY_DATA.map((entry, index) => (
-                                         <Cell key={`cell-${index}`} fill={['#0B3C5D', '#10b981', '#f59e0b', '#94a3b8'][index % 4]} />
+                                         <Cell key={`cell-${index}`} fill={['#004C6D', '#10b981', '#f59e0b', '#94a3b8'][index % 4]} />
                                       ))}
                                    </Bar>
                                 </BarChart>

@@ -531,8 +531,8 @@ export function LibraryMap() {
           {/* Blueprint Grid Overlay */}
           {!isArMode && ( activeTab === 'map' && (
             <div className="absolute inset-0 z-0 pointer-events-none">
-              <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#0B3C5D 1px, transparent 1px), linear-gradient(90deg, #0B3C5D 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-              <div className="absolute inset-0 opacity-[0.01] dark:opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#0B3C5D 1px, transparent 1px), linear-gradient(90deg, #0B3C5D 1px, transparent 1px)', backgroundSize: '200px 200px' }} />
+              <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+              <div className="absolute inset-0 opacity-[0.01] dark:opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '200px 200px' }} />
               
               {/* Compass Rose Decoration */}
               <div className={cn("absolute bottom-12 opacity-5 scale-150 text-primary dark:text-white", dir === 'rtl' ? 'left-12' : 'right-12')}>
@@ -623,7 +623,7 @@ export function LibraryMap() {
                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 600 500">
                       <defs>
                         <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#0B3C5D" stopOpacity="0" />
+                          <stop offset="0%" stopColor="#004C6D" stopOpacity="0" />
                           <stop offset="50%" stopColor="#D9B310" stopOpacity="0.5" />
                           <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
                         </linearGradient>
@@ -709,7 +709,7 @@ export function LibraryMap() {
             >
               <div className={cn("absolute top-0 w-64 h-64 bg-accent/10 rounded-full blur-[100px] -mt-32", dir === 'rtl' ? 'left-0 -ml-32' : 'right-0 -mr-32')} />
               
-              <div className="relative z-10 space-y-12 bg-[#cfc2c2] dark:bg-slate-900/60 p-8 rounded-[2rem] text-primary dark:text-white backdrop-blur-md border border-white/5 dark:border-white/10">
+              <div className="relative z-10 space-y-12 bg-white/10 dark:bg-slate-900/60 p-8 rounded-[2rem] text-white backdrop-blur-md border border-white/5 dark:border-white/10">
                  <div className="flex justify-center">
                     <div className="relative group">
                        <img 

@@ -24,22 +24,17 @@ export function Landing() {
     )}>
       {/* Faint blueprint grid, consistent with the rest of the app */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#0B3C5D 1px, transparent 1px), linear-gradient(90deg, #0B3C5D 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
+        <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
       </div>
 
       <header className="relative z-10 px-8 py-6">
-        <div className={cn("max-w-7xl mx-auto flex items-center justify-between", dir === 'rtl' ? 'flex-row' : 'flex-row-reverse')}>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className={cn("flex items-center gap-3", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-            <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-              <Brain className="text-accent w-6 h-6" />
+            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
+              <Brain className="text-accent w-5 h-5" />
             </div>
-            <div>
-              <div className="text-lg font-black text-primary dark:text-white tracking-tight leading-tight">
-                {language === 'ar' ? 'المكتبة المعززة' : 'Augmented Library'}
-              </div>
-              <div className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">
-                {language === 'ar' ? 'بوابة المعرفة' : 'Knowledge Portal'}
-              </div>
+            <div className="font-display text-lg font-bold text-primary dark:text-white tracking-tight leading-tight">
+              {language === 'ar' ? 'المكتبة المعززة' : 'ARLibrary'}
             </div>
           </div>
 
@@ -58,9 +53,11 @@ export function Landing() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="text-5xl md:text-7xl font-black text-primary dark:text-white tracking-tighter leading-[1.1] mb-8"
+          className="font-display max-w-4xl text-4xl md:text-6xl font-bold text-primary dark:text-white tracking-tight leading-[1.15] mb-6"
         >
-          {language === 'ar' ? 'المكتبة المعززة' : 'Augmented Library'}
+          {language === 'ar'
+            ? 'تصفح المعرفة الأكاديمية مع المكتبة المعززة'
+            : 'Navigate Academic Knowledge with ARLibrary'}
         </motion.h1>
 
         <motion.p
@@ -69,9 +66,7 @@ export function Landing() {
           transition={{ duration: 0.6, delay: 0.1 }}
           className="max-w-2xl text-base md:text-lg text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-12"
         >
-          {language === 'ar'
-            ? 'استخدم كاميرا هاتفك للتجول في أروقة المكتبة. سيوفر لك النظام مسارات رقمية دقيقة تظهر مباشرة على شاشتك لترشدك إلى المرفق والرف الذي يحتوي على كتابك المفضل، مع معلومات تفصيلية تظهر في الوقت الحقيقي.'
-            : "Use your phone's camera to navigate the library halls. The system provides precise digital paths shown directly on your screen, guiding you to the facility and shelf holding your favorite book, with detailed information in real time."}
+          {language === 'ar' ? 'مرحباً بك في المكتبة المعززة' : 'Welcome to the AR Library'}
         </motion.p>
 
         <motion.div
@@ -85,15 +80,15 @@ export function Landing() {
             className="flex items-center gap-2.5 bg-accent text-primary px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all"
           >
             <HelpCircle className="w-5 h-5" />
-            {language === 'ar' ? 'دليل الاستخدام' : 'Usage Guide'}
+            {language === 'ar' ? 'دليل الاستخدام' : 'User Guide'}
           </button>
 
           <button
             onClick={() => navigate('/login')}
             className="flex items-center gap-2.5 bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
           >
+            {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
             {dir === 'rtl' ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
-            {language === 'ar' ? 'ابدأ رحلتك المعرفية' : 'Start Your Knowledge Journey'}
           </button>
         </motion.div>
       </main>
