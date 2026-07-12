@@ -35,9 +35,9 @@ export function Dashboard({ user }: DashboardProps) {
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      books = books.filter(b =>
-        b.title.toLowerCase().includes(q) ||
-        b.author.toLowerCase().includes(q) ||
+      books = books.filter(b => 
+        b.title.toLowerCase().includes(q) || 
+        b.author.toLowerCase().includes(q) || 
         b.description.toLowerCase().includes(q)
       );
     }
@@ -48,7 +48,7 @@ export function Dashboard({ user }: DashboardProps) {
   const recommendationCategories = Array.from(new Set(
     MOCK_BOOKS.filter(b => user.borrowedBooks.includes(b.id)).map(b => b.category)
   ));
-
+  
   const recommendations = MOCK_BOOKS
     .filter(b => !user.borrowedBooks.includes(b.id))
     .filter(b => recommendationCategories.length > 0 ? recommendationCategories.includes(b.category) : true)
@@ -66,30 +66,31 @@ export function Dashboard({ user }: DashboardProps) {
     });
 
   return (
-    <div className="neu-surface rounded-[3rem] p-6 md:p-12 space-y-16 max-w-6xl mx-auto mb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
       {/* Deadline Alert Banner */}
       {urgentDeadline && (
-        <motion.div
+        <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="neu-raised p-6 flex flex-col md:flex-row items-center justify-between gap-6 mb-[-2rem]"
+          className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group mb-[-2rem]"
         >
-          <div className="flex items-center gap-6">
-            <div className="neu-raised w-14 h-14 flex items-center justify-center text-red-500 shrink-0">
-               <AlertCircle className="w-7 h-7" />
+          <div className={cn("absolute top-0 w-32 h-full bg-red-100/50 dark:bg-red-900/30 skew-x-12 transition-transform duration-700", dir === 'rtl' ? 'right-0 translate-x-16 group-hover:translate-x-12' : 'left-0 -translate-x-16 group-hover:-translate-x-12')}></div>
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="w-14 h-14 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-red-200 dark:shadow-none animate-pulse">
+               <AlertCircle className="w-8 h-8" />
             </div>
             <div className="space-y-1 text-right ltr:text-left">
-               <h4 className="text-lg font-black text-slate-600 dark:text-slate-200 leading-tight">{t('deadlineAlert')}</h4>
-               <p className="text-sm font-bold text-slate-400 dark:text-slate-400">
-                 {language === 'ar'
+               <h4 className="text-lg font-black text-red-900 dark:text-red-100 leading-tight">{t('deadlineAlert')}</h4>
+               <p className="text-sm font-bold text-red-700/70 dark:text-red-200/60">
+                 {language === 'ar' 
                   ? `يجب إرجاع كتاب "${urgentDeadline.title}" خلال ٣ أيام لتجنب الغرامات.`
                   : `Book "${urgentDeadline.title}" must be returned within 3 days to avoid fines.`}
                </p>
             </div>
           </div>
-          <button
+          <button 
             onClick={() => navigate('/my-books')}
-            className="neu-btn px-8 py-3 text-red-500 text-xs font-black uppercase tracking-widest whitespace-nowrap"
+            className="bg-red-600 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200 relative z-10 whitespace-nowrap"
           >
             {t('viewMyBooksStatus')}
           </button>
@@ -97,19 +98,24 @@ export function Dashboard({ user }: DashboardProps) {
       )}
 
       {/* Institutional Hero Section */}
-      <section className="neu-raised p-8 md:p-12">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-10">
+      <section className="relative rounded-[2rem] overflow-hidden bg-primary dark:bg-slate-950 text-white p-12 shadow-2xl">
+        <div className={cn("absolute top-0 w-1/3 h-full bg-gradient-to-l from-white/10 to-transparent", dir === 'rtl' ? 'right-0' : 'left-0 rotate-180')}></div>
+        <div className={cn("absolute -bottom-24 w-64 h-64 bg-accent/20 dark:bg-accent/10 rounded-full blur-[100px]", dir === 'rtl' ? '-left-24' : '-right-24')}></div>
+        
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-10">
           <div className="max-w-xl space-y-6">
-            <div className="neu-raised inline-flex items-center gap-2 px-4 py-2">
-               <Star className="w-4 h-4 text-slate-400 fill-slate-400" />
-               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{t('smartPortal')}</span>
+            <div className="inline-flex items-center gap-2 bg-white/10 dark:bg-accent/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 dark:border-accent/20">
+               <Star className="w-4 h-4 text-accent fill-accent" />
+               <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t('smartPortal')}</span>
             </div>
-            <h2 className="text-4xl font-black tracking-tight leading-tight text-slate-600 dark:text-slate-200">{t('welcomeUser').replace('{name}', user.name)}</h2>
-            <p className="text-slate-400 dark:text-slate-400 text-lg font-medium leading-relaxed">{t('heroSubtitle')}</p>
-
+            <h2 className="text-4xl font-black tracking-tight leading-tight">{t('welcomeUser').replace('{name}', user.name)}</h2>
+            <p className="text-white/70 dark:text-white/60 text-lg font-medium leading-relaxed">{t('heroSubtitle')}</p>
+            
             <div className="flex flex-wrap gap-4 mt-8">
-              <div className="relative group max-w-md flex-1 min-w-[280px]">
-                <Search className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6 z-10", dir === 'rtl' ? 'right-6' : 'left-6')} />
+              <div 
+                className="relative group max-w-md flex-1 min-w-[280px]"
+              >
+                <Search className={cn("absolute top-1/2 -translate-y-1/2 text-primary w-6 h-6 z-10", dir === 'rtl' ? 'right-6' : 'left-6')} />
                 <input
                   type="text"
                   placeholder={t('searchPlaceholderMain')}
@@ -121,12 +127,12 @@ export function Dashboard({ user }: DashboardProps) {
                       el.scrollIntoView({ behavior: 'smooth' });
                     }
                   }}
-                  className={cn("neu-pressed w-full py-5 bg-transparent text-slate-600 dark:text-slate-200 text-base font-bold transition-all focus:outline-none", dir === 'rtl' ? 'pr-16 pl-6' : 'pl-16 pr-6')}
+                  className={cn("w-full py-5 bg-white text-primary rounded-2xl text-base font-bold transition-all shadow-xl shadow-black/10 focus:outline-none focus:ring-2 focus:ring-accent", dir === 'rtl' ? 'pr-16 pl-6' : 'pl-16 pr-6')}
                 />
                 {searchQuery && (
-                  <button
+                  <button 
                     onClick={() => setSearchQuery('')}
-                    className="neu-btn absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 p-1 text-xs font-black z-20 w-7 h-7 flex items-center justify-center"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-1 bg-slate-100 rounded-full text-xs font-black z-20"
                   >
                     ✕
                   </button>
@@ -135,40 +141,40 @@ export function Dashboard({ user }: DashboardProps) {
 
               <div
                 onClick={() => navigate('/search')}
-                className="neu-btn p-4 flex items-center gap-4 cursor-pointer shrink-0"
+                className="bg-accent/20 backdrop-blur-md border border-accent/30 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-accent/30 transition-all group shrink-0"
               >
-                <div className="neu-raised w-12 h-12 flex items-center justify-center text-slate-500">
+                <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center text-primary shadow-lg shadow-accent/20 group-hover:scale-110 transition-transform">
                   <Sparkles className="w-6 h-6" />
                 </div>
                 <div className="text-right ltr:text-left">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{t('new')}</div>
-                  <div className="text-xs font-black text-slate-600 dark:text-slate-200">{t('searchBooks')}</div>
+                  <div className="text-[10px] font-black text-accent uppercase tracking-widest leading-none mb-1">{t('new')}</div>
+                  <div className="text-xs font-black text-white">{t('searchBooks')}</div>
                 </div>
               </div>
 
               <div
                 onClick={() => navigate('/cover-scan')}
-                className="neu-btn p-4 flex items-center gap-4 cursor-pointer shrink-0"
+                className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-white/20 transition-all group shrink-0"
               >
-                <div className="neu-raised w-12 h-12 flex items-center justify-center text-slate-500">
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
                   <Camera className="w-6 h-6" />
                 </div>
                 <div className="text-right ltr:text-left">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">AR</div>
-                  <div className="text-xs font-black text-slate-600 dark:text-slate-200">{t('scanCoverAction')}</div>
+                  <div className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-1">AR</div>
+                  <div className="text-xs font-black text-white">{t('scanCoverAction')}</div>
                 </div>
               </div>
             </div>
           </div>
-
+          
           <div className="hidden lg:block w-72 h-72 relative">
-             <div className="neu-raised absolute inset-0 rotate-6"></div>
-             <div className="neu-raised absolute inset-0 -rotate-3"></div>
+             <div className="absolute inset-0 bg-white/5 rounded-[3rem] rotate-6 border border-white/10"></div>
+             <div className="absolute inset-0 bg-white/5 rounded-[3rem] -rotate-3 border border-white/10"></div>
              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="neu-raised flex p-4">
-                   <BookOpen className="w-20 h-20 text-slate-400" />
-                   <div className="w-px h-20 bg-slate-300/50 dark:bg-white/10 mx-4"></div>
-                   <Brain className="w-20 h-20 text-slate-500" />
+                <div className="flex bg-white/5 p-4 rounded-3xl backdrop-blur-md">
+                   <BookOpen className="w-20 h-20 text-accent opacity-80" />
+                   <div className="w-px h-20 bg-white/20 mx-4"></div>
+                   <Brain className="w-20 h-20 text-white opacity-80" />
                 </div>
              </div>
           </div>
@@ -176,36 +182,41 @@ export function Dashboard({ user }: DashboardProps) {
       </section>
 
       {/* Luxury Badges Cabinet Section */}
-      <section className="neu-raised p-8 md:p-10">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+      <section className="glass-panel p-8 md:p-10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-2xl relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--grid-color) 2px, transparent 0)', backgroundSize: '30px 30px' }}></div>
+        
+        {/* Glowing orb behind section */}
+        <div className={cn("absolute w-64 h-64 rounded-full bg-accent/5 dark:bg-accent/10 blur-3xl pointer-events-none -top-10", dir === 'rtl' ? '-left-10' : '-right-10')} />
+        
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 relative z-10">
           <div className="flex items-center gap-4">
-            <div className="neu-raised w-12 h-12 flex items-center justify-center text-slate-500">
-              <Award className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-lg shadow-accent/5">
+              <Award className="w-6 h-6 animate-pulse" />
             </div>
             <div className="space-y-1">
-              <h3 className="text-2xl font-black text-slate-600 dark:text-slate-200 tracking-tight leading-none">{t('royalBadgesCabinet')}</h3>
+              <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight leading-none">{t('royalBadgesCabinet')}</h3>
               <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">{t('achievementRecord')}</p>
             </div>
           </div>
           <button
             onClick={() => navigate('/my-books?tab=badges')}
-            className="neu-btn px-6 py-3 text-slate-500 text-xs font-black uppercase tracking-widest whitespace-nowrap self-start md:self-auto"
+            className="px-6 py-3 bg-[#99d6ea]/15 hover:bg-[#99d6ea]/25 text-[#004C6D] dark:text-[#99d6ea] border border-[#99d6ea]/25 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap self-start md:self-auto"
           >
             {language === 'ar' ? 'عرض الخزانة كاملة' : 'View Full Cabinet'}
           </button>
         </div>
 
-        <BadgesCabinet user={user} variant="neu" />
+        <BadgesCabinet user={user} />
       </section>
 
       {/* Smart Recommendations Section */}
       <section className="space-y-10">
         <div className="flex items-center gap-4">
-          <div className="neu-raised w-12 h-12 flex items-center justify-center text-slate-500">
+          <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-lg shadow-accent/5">
             <Sparkles className="w-6 h-6" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-2xl font-black text-slate-600 dark:text-slate-200 tracking-tight">{t('smartRecommendations')}</h3>
+            <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('smartRecommendations')}</h3>
             <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">{t('recsSubtitle')}</p>
           </div>
         </div>
@@ -219,28 +230,37 @@ export function Dashboard({ user }: DashboardProps) {
                transition={{ delay: idx * 0.1, duration: 0.5 }}
                viewport={{ once: true }}
              >
-               <Link
+               <Link 
                  to={`/book/${book.id}`}
-                 className="neu-raised group block overflow-hidden p-4 space-y-4 transition-transform hover:scale-[1.02] active:scale-95"
+                 className="group relative block aspect-[16/9] md:aspect-[16/10] bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/5 dark:shadow-none border border-slate-100 dark:border-white/5 transition-all hover:scale-[1.02] active:scale-95"
                >
-                 <div className="aspect-[16/10] rounded-[1.25rem] overflow-hidden relative">
-                    <img
-                      src={book.coverUrl}
+                 <div className="absolute inset-0">
+                    <img 
+                      src={book.coverUrl} 
                       alt={book.title}
                       className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                       referrerPolicy="no-referrer"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-primary/95 dark:from-slate-950/95 via-primary/50 dark:via-slate-950/50 to-transparent"></div>
                  </div>
-
-                 <div className="space-y-2 px-2 pb-2">
+                 
+                 <div className="absolute inset-x-0 bottom-0 p-8 space-y-4">
                     <div className="flex items-center gap-2">
-                       <span className="neu-pressed px-3 py-1 text-[9px] font-black text-slate-500 uppercase">{t('smartSuggestion')}</span>
-                       <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</span>
+                       <span className="px-3 py-1 bg-accent rounded-lg text-[9px] font-black text-primary uppercase">{t('smartSuggestion')}</span>
+                       <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</span>
                     </div>
                     <div className="space-y-1">
-                       <h4 className="text-lg font-black text-slate-600 dark:text-slate-200 leading-tight group-hover:text-slate-800 dark:group-hover:text-white transition-colors line-clamp-2">{book.title}</h4>
-                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{book.author}</span>
+                       <h4 className="text-lg font-black text-white leading-tight group-hover:text-accent transition-colors line-clamp-2">{book.title}</h4>
+                       <div className="flex items-center gap-2">
+                          <div className="w-4 h-px bg-accent/50"></div>
+                          <span className="text-[10px] font-bold text-white/40 uppercase tracking-wide">{book.author}</span>
+                       </div>
                     </div>
+                 </div>
+                 
+                 {/* Decorative elements */}
+                 <div className={cn("absolute top-6 p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 opacity-0 group-hover:opacity-100 transition-all", dir === 'rtl' ? 'left-6' : 'right-6')}>
+                    <ChevronRight className="w-5 h-5 text-white rtl-flip" />
                  </div>
                </Link>
              </motion.div>
@@ -251,12 +271,12 @@ export function Dashboard({ user }: DashboardProps) {
       {/* Categories Explorer */}
       <section id="explore-collections" className="space-y-8 scroll-mt-24">
         <div className="flex flex-col items-center text-center space-y-2">
-           <h3 className="text-2xl font-black text-slate-600 dark:text-slate-200 tracking-tight">{t('exploreCollections')}</h3>
-           <div className="neu-pressed w-12 h-1.5 rounded-full mx-auto"></div>
+           <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('exploreCollections')}</h3>
+           <div className="w-12 h-1.5 bg-accent rounded-full mx-auto"></div>
            <p className="text-slate-400 dark:text-slate-500 text-xs font-bold uppercase tracking-widest pt-2">{t('categoriesSubtitle')}</p>
         </div>
 
-        <motion.div
+        <motion.div 
           initial="hidden"
           animate="visible"
           variants={{
@@ -279,10 +299,10 @@ export function Dashboard({ user }: DashboardProps) {
                }}
                onClick={() => setSelectedCategory(cat)}
                className={cn(
-                 "px-8 py-4 text-xs font-black uppercase tracking-widest transition-all",
-                 selectedCategory === cat
-                   ? "neu-pressed text-slate-700 dark:text-white"
-                   : "neu-btn text-slate-400 dark:text-slate-500"
+                 "px-8 py-4 rounded-2xl text-xs font-black uppercase tracking-widest transition-all border shadow-sm",
+                 selectedCategory === cat 
+                   ? "bg-primary dark:bg-slate-800 text-white dark:text-accent border-primary dark:border-accent shadow-xl shadow-primary/20 dark:shadow-none scale-105" 
+                   : "bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-white/5 hover:border-accent hover:text-primary dark:hover:text-accent"
                )}
              >
                {categoryTranslationMap[cat] || cat}
@@ -298,21 +318,25 @@ export function Dashboard({ user }: DashboardProps) {
               animate={{ opacity: 1, y: 0 }}
               key={book.id}
             >
-              <Link
-                to={`/book/${book.id}`}
-                className="neu-raised group overflow-hidden flex flex-col h-full p-4"
+              <Link 
+                to={`/book/${book.id}`} 
+                className="official-card group overflow-hidden flex flex-col h-full bg-white dark:bg-slate-900 transition-all hover:shadow-2xl"
               >
-                <div className="aspect-[3/4] relative overflow-hidden rounded-[1.25rem]">
-                  <img
-                    src={book.coverUrl}
+                <div className="aspect-[3/4] relative overflow-hidden bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                  <img 
+                    src={book.coverUrl} 
                     alt={book.title}
-                    className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110"
+                    className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:rotate-1"
                     referrerPolicy="no-referrer"
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-primary/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className={cn("absolute top-4 bg-white/10 dark:bg-black/20 backdrop-blur-md p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 border border-white/20 dark:border-white/10", dir === 'rtl' ? 'right-4' : 'left-4')}>
+                    <BookOpen className="w-4 h-4 text-white" />
+                  </div>
                 </div>
-                <div className="pt-4 px-2 pb-2 space-y-2">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</div>
-                  <h4 className="font-black text-slate-600 dark:text-slate-200 group-hover:text-slate-800 dark:group-hover:text-white transition-colors text-sm leading-tight line-clamp-1">{book.title}</h4>
+                <div className="p-6 space-y-2">
+                  <div className="text-[10px] font-black text-secondary dark:text-accent uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</div>
+                  <h4 className="font-black text-primary dark:text-white group-hover:text-accent transition-colors text-sm leading-tight line-clamp-1">{book.title}</h4>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">{book.author}</p>
                 </div>
               </Link>
@@ -326,32 +350,32 @@ export function Dashboard({ user }: DashboardProps) {
         <div className="lg:col-span-2 space-y-8">
           <div className="flex justify-between items-center px-1">
              <div className="space-y-1">
-                <h3 className="text-2xl font-black text-slate-600 dark:text-slate-200 tracking-tight">{t('bestInCatalog')}</h3>
-                <div className="neu-pressed w-12 h-1.5 rounded-full"></div>
+                <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('bestInCatalog')}</h3>
+                <div className="w-12 h-1.5 bg-accent rounded-full"></div>
              </div>
-             <button className="text-slate-400 text-xs font-black uppercase tracking-widest hover:text-slate-600 dark:hover:text-slate-200 transition-colors flex items-center gap-2">
+             <button className="text-secondary dark:text-accent/80 text-xs font-black uppercase tracking-widest hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-2">
                 {t('viewMore')} <ChevronRight className="w-4 h-4 rtl-flip" />
              </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {mostRead.map((book) => (
-              <Link
-                to={`/book/${book.id}`}
+              <Link 
+                to={`/book/${book.id}`} 
                 key={book.id}
-                className="neu-raised group flex h-32 overflow-hidden p-3 gap-3"
+                className="official-card group flex h-32 bg-white dark:bg-slate-900 transition-all hover:border-primary/20 dark:hover:border-accent/20 overflow-hidden"
               >
-                <div className="w-24 h-full relative overflow-hidden shrink-0 rounded-[1rem]">
-                  <img
-                    src={book.coverUrl}
+                <div className={cn("w-24 h-full relative overflow-hidden shrink-0 border-slate-50 dark:border-white/5", dir === 'rtl' ? 'border-l' : 'border-r')}>
+                  <img 
+                    src={book.coverUrl} 
                     alt={book.title}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform"
                     referrerPolicy="no-referrer"
                   />
                 </div>
-                <div className="flex flex-col justify-center gap-1 min-w-0">
+                <div className="p-4 flex flex-col justify-center gap-1">
                   <div className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t('shelfItem')} {book.shelf}</div>
-                  <h4 className="font-black text-slate-600 dark:text-slate-200 text-xs leading-tight line-clamp-2 uppercase">{book.title}</h4>
+                  <h4 className="font-black text-primary dark:text-white text-xs leading-tight line-clamp-2 uppercase">{book.title}</h4>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">{book.author}</p>
                 </div>
               </Link>
@@ -361,33 +385,33 @@ export function Dashboard({ user }: DashboardProps) {
 
         <div className="space-y-8">
           <div className="space-y-1">
-             <h3 className="text-2xl font-black text-slate-600 dark:text-slate-200 tracking-tight">{t('achievementsHistory')}</h3>
-             <div className="neu-pressed w-12 h-1.5 rounded-full"></div>
+             <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('achievementsHistory')}</h3>
+             <div className="w-12 h-1.5 bg-secondary dark:bg-accent rounded-full"></div>
           </div>
           <div className="space-y-4">
-             <div className="neu-raised p-6 flex flex-col items-center text-center gap-4">
-                <div className="neu-raised w-16 h-16 rounded-full flex items-center justify-center text-slate-500">
+             <div className="official-card p-6 flex flex-col items-center text-center gap-4 group hover:border-accent/40 transition-colors bg-white dark:bg-slate-900">
+                <div className="w-16 h-16 rounded-full bg-accent/5 dark:bg-accent/10 flex items-center justify-center text-accent ring-8 ring-accent/5">
                    <Clock className="w-8 h-8" />
                 </div>
                 <div>
-                   <div className="text-xs font-black text-slate-500 uppercase tracking-[0.2em] mb-1">{t('totalLearningTime')}</div>
-                   <div className="text-3xl font-black text-slate-600 dark:text-slate-200">
+                   <div className="text-xs font-black text-primary dark:text-accent uppercase tracking-[0.2em] mb-1">{t('totalLearningTime')}</div>
+                   <div className="text-3xl font-black text-primary dark:text-white">
                      {language === 'ar' ? '١٤٢' : '142'} {t('hoursShort')}
                    </div>
                 </div>
              </div>
-
-             <div className="neu-raised p-6 flex items-center gap-6">
+             
+             <div className="official-card p-6 flex items-center gap-6 bg-white dark:bg-slate-900">
                 <div className="flex-1 space-y-3">
                    <div className="flex justify-between items-center">
                      <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('levelProgress')}</span>
-                     <span className="text-xs font-black text-slate-500">{language === 'ar' ? '٧٤٪' : '74%'}</span>
+                     <span className="text-xs font-black text-accent">{language === 'ar' ? '٧٤٪' : '74%'}</span>
                    </div>
-                   <div className="neu-pressed w-full h-3 overflow-hidden p-0.5">
-                      <motion.div
+                   <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <motion.div 
                         initial={{ width: 0 }}
                         animate={{ width: "74%" }}
-                        className="h-full bg-slate-400/70 dark:bg-slate-500/70 rounded-full"
+                        className="h-full bg-accent"
                       />
                    </div>
                 </div>
