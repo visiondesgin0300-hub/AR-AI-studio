@@ -39,16 +39,9 @@ function ArView({ book, onClose }: ArViewProps) {
       return;
     }
 
-    let renderer: THREE.WebGLRenderer;
-    try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    } catch {
-      setError(t('webglUnsupported'));
-      return;
-    }
-
     let disposed = false;
     let rafId = 0;
+    let renderer: THREE.WebGLRenderer | null = null;
     let arToolkitContext: InstanceType<typeof ArToolkitContext> | null = null;
     let arToolkitSource: InstanceType<typeof ArToolkitSource> | null = null;
     let resize = () => {};
@@ -65,139 +58,170 @@ function ArView({ book, onClose }: ArViewProps) {
     window.addEventListener('error', onUnexpectedError);
     window.addEventListener('unhandledrejection', onUnexpectedError);
 
-    try {
-      renderer.setClearColor(0x000000, 0);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      Object.assign(renderer.domElement.style, {
-        position: 'absolute',
-        inset: '0',
-        width: '100%',
-        height: '100%',
-        zIndex: '5',
-      });
-      container.appendChild(renderer.domElement);
+    async function setup() {
+      // AR.js only ever requests facingMode:"environment" as a soft hint, which
+      // some Android tablets ignore and default to the front camera anyway.
+      // Probe for the real rear camera's deviceId first and pin to it explicitly.
+      let rearCameraId: string | undefined;
+      try {
+        const probeStream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { exact: 'environment' } },
+        });
+        probeStream.getTracks().forEach((track) => track.stop());
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        rearCameraId = devices.find(
+          (d) => d.kind === 'videoinput' && /back|rear|environment/i.test(d.label)
+        )?.deviceId;
+      } catch {
+        // No distinguishable rear camera via exact match; fall back to AR.js's
+        // own default (non-exact) "environment" request below.
+      }
+      if (disposed) return;
 
-      const scene = new THREE.Scene();
-      const camera = new THREE.Camera();
-      scene.add(camera);
+      let webglRenderer: THREE.WebGLRenderer;
+      try {
+        webglRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      } catch {
+        setError(t('webglUnsupported'));
+        return;
+      }
+      renderer = webglRenderer;
 
-      // Real 3D anchor rendered exactly where the physical shelf marker is detected
-      const markerRoot = new THREE.Group();
-      scene.add(markerRoot);
+      try {
+        webglRenderer.setClearColor(0x000000, 0);
+        webglRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        webglRenderer.setSize(window.innerWidth, window.innerHeight);
+        Object.assign(webglRenderer.domElement.style, {
+          position: 'absolute',
+          inset: '0',
+          width: '100%',
+          height: '100%',
+          zIndex: '5',
+        });
+        container.appendChild(webglRenderer.domElement);
 
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.5, 0.04, 16, 48),
-        new THREE.MeshBasicMaterial({ color: 0xd9b310, transparent: true, opacity: 0.85 })
-      );
-      ring.rotation.x = Math.PI / 2;
-      markerRoot.add(ring);
+        const scene = new THREE.Scene();
+        const camera = new THREE.Camera();
+        scene.add(camera);
 
-      const cone = new THREE.Mesh(
-        new THREE.ConeGeometry(0.15, 0.4, 24),
-        new THREE.MeshBasicMaterial({ color: 0xd9b310 })
-      );
-      cone.position.y = 0.4;
-      markerRoot.add(cone);
+        // Real 3D anchor rendered exactly where the physical shelf marker is detected
+        const markerRoot = new THREE.Group();
+        scene.add(markerRoot);
 
-      arToolkitSource = new ArToolkitSource({
-        sourceType: 'webcam',
-        sourceWidth: 640,
-        sourceHeight: 480,
-      });
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(0.5, 0.04, 16, 48),
+          new THREE.MeshBasicMaterial({ color: 0xd9b310, transparent: true, opacity: 0.85 })
+        );
+        ring.rotation.x = Math.PI / 2;
+        markerRoot.add(ring);
 
-      arToolkitContext = new ArToolkitContext({
-        cameraParametersUrl: '/ar/camera_para.dat',
-        detectionMode: 'mono_and_matrix',
-        matrixCodeType: '3x3',
-        canvasWidth: 640,
-        canvasHeight: 480,
-      });
+        const cone = new THREE.Mesh(
+          new THREE.ConeGeometry(0.15, 0.4, 24),
+          new THREE.MeshBasicMaterial({ color: 0xd9b310 })
+        );
+        cone.position.y = 0.4;
+        markerRoot.add(cone);
 
-      const source = arToolkitSource;
-      const context = arToolkitContext;
+        const source = new ArToolkitSource({
+          sourceType: 'webcam',
+          sourceWidth: 640,
+          sourceHeight: 480,
+          deviceId: rearCameraId ?? null,
+        });
+        arToolkitSource = source;
 
-      resize = () => {
-        source.onResizeElement();
-        source.copyElementSizeTo(renderer.domElement);
-        if (context.arController !== null) {
-          source.copyElementSizeTo(context.arController.canvas);
-        }
-      };
+        const context = new ArToolkitContext({
+          cameraParametersUrl: '/ar/camera_para.dat',
+          detectionMode: 'mono_and_matrix',
+          matrixCodeType: '3x3',
+          canvasWidth: 640,
+          canvasHeight: 480,
+        });
+        arToolkitContext = context;
 
-      source.init(
-        () => {
+        resize = () => {
+          source.onResizeElement();
+          source.copyElementSizeTo(webglRenderer.domElement);
+          if (context.arController !== null) {
+            source.copyElementSizeTo(context.arController.canvas);
+          }
+        };
+
+        source.init(
+          () => {
+            if (disposed) return;
+            try {
+              window.setTimeout(resize, 300);
+              const videoEl = document.getElementById('arjs-video');
+              if (videoEl && container) {
+                Object.assign(videoEl.style, {
+                  position: 'absolute',
+                  inset: '0',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  zIndex: '0',
+                  marginLeft: '0',
+                  marginTop: '0',
+                });
+                container.insertBefore(videoEl, container.firstChild);
+              }
+            } catch (err) {
+              setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
+            }
+          },
+          (err: { name: string; message: string }) => {
+            if (!disposed) setError(t('cameraAccessError', { error: err.message || err.name || '' }));
+          }
+        );
+
+        window.addEventListener('resize', resize);
+
+        context.init(() => {
           if (disposed) return;
           try {
-            window.setTimeout(resize, 300);
-            const videoEl = document.getElementById('arjs-video');
-            if (videoEl && container) {
-              Object.assign(videoEl.style, {
-                position: 'absolute',
-                inset: '0',
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-                zIndex: '0',
-                marginLeft: '0',
-                marginTop: '0',
-              });
-              container.insertBefore(videoEl, container.firstChild);
-            }
+            camera.projectionMatrix.copy(context.getProjectionMatrix());
           } catch (err) {
             setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
           }
-        },
-        (err: { name: string; message: string }) => {
-          if (!disposed) setError(t('cameraAccessError', { error: err.message || err.name || '' }));
-        }
-      );
+        });
 
-      window.addEventListener('resize', resize);
+        new ArMarkerControls(context, markerRoot, {
+          type: 'barcode',
+          barcodeValue: markerValue,
+          changeMatrixMode: 'modelViewMatrix',
+          size: MARKER_PHYSICAL_SIZE_METERS,
+        });
 
-      context.init(() => {
-        if (disposed) return;
-        try {
-          camera.projectionMatrix.copy(context.getProjectionMatrix());
-        } catch (err) {
-          setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
-        }
-      });
+        const pos = new THREE.Vector3();
+        const quat = new THREE.Quaternion();
+        const scale = new THREE.Vector3();
 
-      new ArMarkerControls(context, markerRoot, {
-        type: 'barcode',
-        barcodeValue: markerValue,
-        changeMatrixMode: 'modelViewMatrix',
-        size: MARKER_PHYSICAL_SIZE_METERS,
-      });
-
-      const pos = new THREE.Vector3();
-      const quat = new THREE.Quaternion();
-      const scale = new THREE.Vector3();
-
-      const animate = () => {
-        if (disposed) return;
-        try {
-          if (source.ready) {
-            context.update(source.domElement);
+        const animate = () => {
+          if (disposed) return;
+          try {
+            if (source.ready) {
+              context.update(source.domElement);
+            }
+            if (markerRoot.visible) {
+              markerRoot.matrix.decompose(pos, quat, scale);
+              setDistance(pos.length());
+              setMarkerFound(true);
+            } else {
+              setMarkerFound(false);
+            }
+            webglRenderer.render(scene, camera);
+            rafId = requestAnimationFrame(animate);
+          } catch (err) {
+            setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
           }
-          if (markerRoot.visible) {
-            markerRoot.matrix.decompose(pos, quat, scale);
-            setDistance(pos.length());
-            setMarkerFound(true);
-          } else {
-            setMarkerFound(false);
-          }
-          renderer.render(scene, camera);
-          rafId = requestAnimationFrame(animate);
-        } catch (err) {
-          setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
-        }
-      };
-      animate();
-    } catch (err) {
-      setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
+        };
+        animate();
+      } catch (err) {
+        setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
+      }
     }
+    setup();
 
     return () => {
       disposed = true;
@@ -207,8 +231,8 @@ function ArView({ book, onClose }: ArViewProps) {
       window.removeEventListener('unhandledrejection', onUnexpectedError);
       arToolkitContext?.dispose();
       arToolkitSource?.dispose();
-      renderer.dispose();
-      if (renderer.domElement.parentElement) {
+      renderer?.dispose();
+      if (renderer?.domElement.parentElement) {
         renderer.domElement.parentElement.removeChild(renderer.domElement);
       }
     };
