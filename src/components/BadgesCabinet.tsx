@@ -8,6 +8,7 @@ import { useLanguage } from '../hooks/useLanguage';
 
 interface BadgesCabinetProps {
   user: User;
+  variant?: 'default' | 'neu';
 }
 
 const badgeIcons = [
@@ -19,9 +20,10 @@ const badgeIcons = [
   { id: 'مستكشف', icon: Compass, color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20' },
 ];
 
-export function BadgesCabinet({ user }: BadgesCabinetProps) {
+export function BadgesCabinet({ user, variant = 'default' }: BadgesCabinetProps) {
   const { t } = useLanguage();
   const earnedBadges = getEarnedBadges(user);
+  const isNeu = variant === 'neu';
 
   const badgeTranslationMap: Record<string, { title: string; desc: string }> = {
     'باحث': { title: t('badgeResearcher'), desc: t('badgeResearcherDesc') },
@@ -44,18 +46,28 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
             key={badge.id}
             whileHover={isEarned ? { scale: 1.05, y: -4 } : {}}
             className={cn(
-              'p-5 rounded-2xl border flex flex-col items-center text-center justify-center gap-4 transition-all relative overflow-hidden',
-              isEarned
-                ? 'bg-white dark:bg-slate-900 border-accent/20 shadow-md shadow-accent/5'
-                : 'bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-white/5 opacity-40 grayscale'
+              'p-5 flex flex-col items-center text-center justify-center gap-4 transition-all relative overflow-hidden',
+              isNeu
+                ? cn('rounded-[1.75rem]', isEarned ? 'neu-raised' : 'neu-pressed opacity-50')
+                : cn(
+                    'rounded-2xl border',
+                    isEarned
+                      ? 'bg-white dark:bg-slate-900 border-accent/20 shadow-md shadow-accent/5'
+                      : 'bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-white/5 opacity-40 grayscale'
+                  )
             )}
           >
             <div
               className={cn(
-                'w-14 h-14 rounded-full flex items-center justify-center border transition-all',
-                isEarned
-                  ? 'text-accent bg-accent/10 border-accent/20 shadow-inner group-hover:scale-110'
-                  : 'text-slate-300 dark:text-slate-700 bg-slate-100/50 dark:bg-slate-800/50 border-slate-100 dark:border-white/5'
+                'w-14 h-14 rounded-full flex items-center justify-center transition-all',
+                isNeu
+                  ? cn(isEarned ? 'neu-raised text-slate-500' : 'neu-pressed text-slate-400')
+                  : cn(
+                      'border',
+                      isEarned
+                        ? 'text-accent bg-accent/10 border-accent/20 shadow-inner group-hover:scale-110'
+                        : 'text-slate-300 dark:text-slate-700 bg-slate-100/50 dark:bg-slate-800/50 border-slate-100 dark:border-white/5'
+                    )
               )}
             >
               <IconComponent className="w-6 h-6" />
@@ -64,7 +76,9 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
               <div
                 className={cn(
                   'text-xs font-black uppercase',
-                  isEarned ? 'text-primary dark:text-white' : 'text-slate-400 dark:text-slate-600'
+                  isNeu
+                    ? isEarned ? 'text-slate-600 dark:text-slate-300' : 'text-slate-400 dark:text-slate-600'
+                    : isEarned ? 'text-primary dark:text-white' : 'text-slate-400 dark:text-slate-600'
                 )}
               >
                 {translation?.title}
