@@ -23,9 +23,10 @@
   }
   .instructions h1 { font-size: 20px; margin: 0 0 12px; }
   .instructions code { background: #eef2ff; padding: 2px 6px; border-radius: 4px; }
+  .instructions strong { color: #b91c1c; }
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
     gap: 24px;
     max-width: 1100px;
     margin: 0 auto;
@@ -38,11 +39,17 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     break-inside: avoid;
   }
+  /* The white space here IS the required "quiet zone" the detector needs around the
+     marker — it must stay plain white with nothing else drawn inside it. Percentage
+     padding is relative to this element's own width, so it scales with the marker. */
+  .marker-frame {
+    background: #fff;
+    padding: 28%;
+  }
   .marker-card img {
-    width: 12cm;
+    display: block;
+    width: 100%;
     aspect-ratio: 1 / 1;
-    max-width: 100%;
-    height: auto;
     image-rendering: pixelated;
     border: 1px solid #e2e8f0;
   }
@@ -64,8 +71,9 @@
   @media print {
     body { background: #fff; padding: 0; }
     .no-print { display: none !important; }
-    .grid { gap: 12px; }
+    .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; }
     .marker-card { box-shadow: none; border: 1px dashed #cbd5e1; page-break-inside: avoid; }
+    .marker-frame img { width: 8cm; }
   }
 </style>
 </head>
@@ -78,13 +86,14 @@
       حزمة ARToolKit، كل واحد مربوط برف مكتبة محدد في <code>src/lib/arMarkers.ts</code>.
     </p>
     <p>
-      اطبع الصفحة (Ctrl/Cmd + P) — كل رمز مضبوط ليُطبع بمقاس <b>12×12 سم</b> فعلياً
-      (نفس القيمة المحددة في <code>MARKER_PHYSICAL_SIZE_METERS</code>). قصّ كل ملصق
-      والصقه على الرف المطابق المكتوب تحته.
+      اطبع الصفحة (Ctrl/Cmd + P) — كل رمز مضبوط ليُطبع بمقاس <b>8×8 سم</b> فعلياً
+      (نفس القيمة المحددة في <code>MARKER_PHYSICAL_SIZE_METERS</code>).
     </p>
     <p>
-      إذا احتجت مقاساً مختلفاً، عدّل <code>MARKER_PHYSICAL_SIZE_METERS</code> في الكود
-      ليطابق المقاس الفعلي الذي طبعته، وإلا ستكون المسافة المحسوبة في وضع AR غير دقيقة.
+      <strong>مهم جداً:</strong> الهامش الأبيض الواسع المحيط بكل رمز ليس تزييناً —
+      المكتشف يحتاج هذه "المنطقة الهادئة" البيضاء الفارغة لتمييز حدود الرمز، وتم
+      التأكد تجريبياً أن الرصد يفشل 100% بدونها. عند القص، **اترك الهامش الأبيض كاملاً
+      حول الرمز ولا تقصّ ملاصقاً لحدوده السوداء**.
     </p>
   </div>
 
@@ -122,7 +131,9 @@
       const card = document.createElement('div');
       card.className = 'marker-card';
       card.innerHTML = `
-        <img src="marker-${marker}.png" alt="marker ${marker}" />
+        <div class="marker-frame">
+          <img src="marker-${marker}.png" alt="marker ${marker}" />
+        </div>
         <div class="shelf-label">رف ${shelf}</div>
         <div class="book-title">${book}</div>
         <div class="marker-id">Marker ID: ${marker}</div>
