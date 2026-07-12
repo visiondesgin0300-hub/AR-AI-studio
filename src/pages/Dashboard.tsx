@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Map as MapIcon, BookOpen, Clock, ChevronRight, Star, Brain, AlertCircle, Sparkles, Award, Zap, Trophy, Lightbulb, Compass } from 'lucide-react';
+import { Search, Map as MapIcon, BookOpen, Clock, ChevronRight, Star, Brain, AlertCircle, Sparkles, Award, Zap, Trophy, Lightbulb, Compass, Camera } from 'lucide-react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
@@ -165,7 +165,7 @@ export function Dashboard({ user }: DashboardProps) {
                 )}
               </div>
 
-              <div 
+              <div
                 onClick={() => navigate('/search')}
                 className="bg-accent/20 backdrop-blur-md border border-accent/30 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-accent/30 transition-all group shrink-0"
               >
@@ -175,6 +175,19 @@ export function Dashboard({ user }: DashboardProps) {
                 <div className="text-right ltr:text-left">
                   <div className="text-[10px] font-black text-accent uppercase tracking-widest leading-none mb-1">{t('new')}</div>
                   <div className="text-xs font-black text-white">{t('searchBooks')}</div>
+                </div>
+              </div>
+
+              <div
+                onClick={() => navigate('/cover-scan')}
+                className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-white/20 transition-all group shrink-0"
+              >
+                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <div className="text-right ltr:text-left">
+                  <div className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-1">AR</div>
+                  <div className="text-xs font-black text-white">{t('scanCoverAction')}</div>
                 </div>
               </div>
             </div>
