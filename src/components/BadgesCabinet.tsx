@@ -11,12 +11,12 @@ interface BadgesCabinetProps {
 }
 
 const badgeIcons = [
+  { id: 'مستكشف', icon: Compass, color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20' },
   { id: 'باحث', icon: Search, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
   { id: 'متميز', icon: Star, color: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20' },
   { id: 'قارئ نشط', icon: Zap, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
   { id: 'قارئ الشهر', icon: Trophy, color: 'text-purple-500 bg-purple-500/10 border-purple-500/20' },
   { id: 'ملهم', icon: Lightbulb, color: 'text-orange-500 bg-orange-500/10 border-orange-500/20' },
-  { id: 'مستكشف', icon: Compass, color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20' },
 ];
 
 export function BadgesCabinet({ user }: BadgesCabinetProps) {
