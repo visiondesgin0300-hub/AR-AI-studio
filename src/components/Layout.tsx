@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, Search, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages } from 'lucide-react';
 import { User } from '../types';
-import { cn } from '../lib/utils';
+import { cn, getUserLevel } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useTheme } from '../hooks/useTheme';
@@ -156,7 +156,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             <div className="flex justify-between items-center text-[10px] font-black tracking-wide text-white/60 uppercase">
               <span className="flex items-center gap-1 text-[#99d6ea]">
                 <Award className="w-3.5 h-3.5 text-accent animate-bounce" />
-                {language === 'ar' ? `المستوى ${Math.floor((user.points || 450) / 100) + 1}` : `Level ${Math.floor((user.points || 450) / 100) + 1}`}
+                {language === 'ar' ? `المستوى ${getUserLevel(user.points || 450)}` : `Level ${getUserLevel(user.points || 450)}`}
               </span>
               <span className="text-accent">{(user.points || 450) % 100}/100 XP</span>
             </div>

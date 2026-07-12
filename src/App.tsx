@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -18,23 +18,29 @@ import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
 
-function AppContent() {
-  const [user, setUser] = useState<User | null>(null);
-  const { dir } = useLanguage();
-
-  // Check for stored user on mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem('library_user');
-    if (storedUser) {
-      let parsedUser = JSON.parse(storedUser);
-      // Migration for name change in demo
-      if (parsedUser.name === 'بدر الرئيسي') {
-        parsedUser.name = 'فاطمة المعمري';
-        localStorage.setItem('library_user', JSON.stringify(parsedUser));
-      }
-      setUser(parsedUser);
+// Read the stored user synchronously (not in a useEffect) so protected routes
+// never see a false "not logged in" state on the very first render — that
+// false state was enough for <Navigate> to redirect away before the real
+// user loaded, breaking direct links/refreshes to any page but "/".
+function loadStoredUser(): User | null {
+  const storedUser = localStorage.getItem('library_user');
+  if (!storedUser) return null;
+  try {
+    const parsedUser = JSON.parse(storedUser);
+    // Migration for name change in demo
+    if (parsedUser.name === 'بدر الرئيسي') {
+      parsedUser.name = 'فاطمة المعمري';
+      localStorage.setItem('library_user', JSON.stringify(parsedUser));
     }
-  }, []);
+    return parsedUser;
+  } catch {
+    return null;
+  }
+}
+
+function AppContent() {
+  const [user, setUser] = useState<User | null>(loadStoredUser);
+  const { dir } = useLanguage();
 
   const handleLogin = (userData: User) => {
     setUser(userData);

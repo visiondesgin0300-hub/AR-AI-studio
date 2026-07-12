@@ -5,7 +5,7 @@ export const translations = {
     // General
     dir: 'rtl',
     appName: 'المكتبة المعززة الذكية',
-    appSubtitle: 'Smart Knowledge Portal',
+    appSubtitle: 'بوابة المعرفة الذكية',
     search: 'بحث',
     map: 'خريطة',
     myBooks: 'كتبي',

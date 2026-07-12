@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, getUserLevel } from '../lib/utils';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell, AreaChart, Area 
@@ -175,7 +175,7 @@ export function MyBooks({ user }: MyBooksProps) {
               <div className="flex items-center gap-3 mb-1">
                 <h2 className="text-4xl md:text-5xl font-black tracking-tight">{user.name}</h2>
                 <div className="bg-accent text-primary px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-xl">
-                  {t('level')} {Math.floor(user.points / 100)}
+                  {t('level')} {getUserLevel(user.points)}
                 </div>
               </div>
               <p className="text-white/60 flex items-center gap-2 font-bold text-sm">
