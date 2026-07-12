@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -17,6 +17,10 @@ import { Landing } from './pages/Landing';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
+
+// Lazy-loaded: pulls in mind-ar + tensorflow.js, a multi-MB dependency that
+// should only load for users who actually open the cover-scan camera.
+const CoverScan = lazy(() => import('./pages/CoverScan').then((m) => ({ default: m.CoverScan })));
 
 // Read the stored user synchronously (not in a useEffect) so protected routes
 // never see a false "not logged in" state on the very first render — that
@@ -83,11 +87,23 @@ function AppContent() {
           path="/book/:id" 
           element={user ? <Layout user={user} onLogout={handleLogout}><BookDetails user={user} /></Layout> : <Navigate to="/login" />} 
         />
-        <Route 
-          path="/map" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><LibraryMap /></Layout> : <Navigate to="/login" />} 
+        <Route
+          path="/map"
+          element={user ? <Layout user={user} onLogout={handleLogout}><LibraryMap /></Layout> : <Navigate to="/login" />}
         />
-        <Route 
+        <Route
+          path="/cover-scan"
+          element={
+            user ? (
+              <Suspense fallback={<div className="fixed inset-0 z-50 bg-black" />}>
+                <CoverScan />
+              </Suspense>
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+        <Route
           path="/my-books" 
           element={user ? <Layout user={user} onLogout={handleLogout}><MyBooks user={user} /></Layout> : <Navigate to="/login" />} 
         />
