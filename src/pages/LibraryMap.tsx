@@ -104,23 +104,30 @@ function ArView({ book, onClose }: ArViewProps) {
         const camera = new THREE.Camera();
         scene.add(camera);
 
-        // Real 3D anchor rendered exactly where the physical shelf marker is detected
+        // AR.js toggles markerRoot.visible off on any single frame it fails to
+        // redetect the marker, which happens routinely (lighting, hand shake,
+        // camera noise) even while genuinely "locked on". Track it separately
+        // in a display group so the ring doesn't flicker on every dropped frame.
         const markerRoot = new THREE.Group();
         scene.add(markerRoot);
+
+        const displayGroup = new THREE.Group();
+        displayGroup.visible = false;
+        scene.add(displayGroup);
 
         const ring = new THREE.Mesh(
           new THREE.TorusGeometry(0.5, 0.04, 16, 48),
           new THREE.MeshBasicMaterial({ color: 0xd9b310, transparent: true, opacity: 0.85 })
         );
         ring.rotation.x = Math.PI / 2;
-        markerRoot.add(ring);
+        displayGroup.add(ring);
 
         const cone = new THREE.Mesh(
           new THREE.ConeGeometry(0.15, 0.4, 24),
           new THREE.MeshBasicMaterial({ color: 0xd9b310 })
         );
         cone.position.y = 0.4;
-        markerRoot.add(cone);
+        displayGroup.add(cone);
 
         const source = new ArToolkitSource({
           sourceType: 'webcam',
@@ -193,9 +200,10 @@ function ArView({ book, onClose }: ArViewProps) {
           size: MARKER_PHYSICAL_SIZE_METERS,
         });
 
-        const pos = new THREE.Vector3();
-        const quat = new THREE.Quaternion();
-        const scale = new THREE.Vector3();
+        // How many consecutive dropped frames to tolerate before actually
+        // treating the marker as lost (roughly half a second at 60fps).
+        const LOST_GRACE_FRAMES = 30;
+        let lostFrames = LOST_GRACE_FRAMES + 1;
 
         const animate = () => {
           if (disposed) return;
@@ -204,10 +212,16 @@ function ArView({ book, onClose }: ArViewProps) {
               context.update(source.domElement);
             }
             if (markerRoot.visible) {
-              markerRoot.matrix.decompose(pos, quat, scale);
-              setDistance(pos.length());
+              lostFrames = 0;
+              displayGroup.position.copy(markerRoot.position);
+              displayGroup.quaternion.copy(markerRoot.quaternion);
+              displayGroup.visible = true;
+              setDistance(markerRoot.position.length());
               setMarkerFound(true);
+            } else if (lostFrames <= LOST_GRACE_FRAMES) {
+              lostFrames += 1;
             } else {
+              displayGroup.visible = false;
               setMarkerFound(false);
             }
             webglRenderer.render(scene, camera);
