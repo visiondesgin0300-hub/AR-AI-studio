@@ -198,17 +198,23 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 relative h-full">
-        {/* Top Header - Ultra Clean Institutional */}
-        <header className="h-24 bg-white/60 dark:bg-slate-900/60 backdrop-blur-3xl border-b border-slate-200/60 dark:border-white/5 px-3 sm:px-6 lg:px-10 flex items-center justify-between z-40 sticky top-0 gap-2">
-          <div className="flex-1 hidden md:block"></div>
+        {/* Top Header - Welcome banner */}
+        <header className="relative h-24 overflow-hidden bg-gradient-to-r from-primary via-[#01354C] to-primary dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-3 sm:px-6 lg:px-10 flex items-center justify-between z-40 sticky top-0 gap-2">
+          <div className={cn("absolute -top-10 w-40 h-40 bg-accent/10 rounded-full blur-3xl pointer-events-none", dir === 'rtl' ? '-right-10' : '-left-10')} />
 
-          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-1 -my-1">
+          <div className="flex-1 min-w-0 relative z-10 hidden md:block">
+            <h1 className="text-lg lg:text-xl font-black text-white tracking-tight truncate">
+              {t('welcomeUser').replace('{name}', user.name)}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-4 overflow-x-auto no-scrollbar py-1 -my-1 relative z-10">
             {/* Language Toggle */}
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={toggleLanguage}
-              className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-300 border border-slate-100 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 hover:border-slate-200 dark:hover:border-white/20 transition-all flex items-center gap-2"
+              className="p-3 rounded-2xl bg-white/10 text-white/80 border border-white/15 hover:bg-white/20 hover:border-white/25 transition-all flex items-center gap-2"
             >
               <Languages className="w-5 h-5 text-accent" />
               <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">
@@ -217,11 +223,11 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             </motion.button>
 
             {/* Theme Toggle */}
-            <motion.button 
+            <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={toggleTheme}
-              className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-400 dark:text-slate-300 border border-slate-100 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700 hover:border-slate-200 dark:hover:border-white/20 transition-all relative overflow-hidden"
+              className="p-3 rounded-2xl bg-white/10 text-white/80 border border-white/15 hover:bg-white/20 hover:border-white/25 transition-all relative overflow-hidden"
               title={theme === 'light' ? 'الوضع الداكن' : 'الوضع الفاتح'}
             >
               <motion.div
@@ -249,13 +255,13 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
             {/* Notification Bell */}
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowNotifications(!showNotifications)}
                 className={cn(
                   "p-3 rounded-2xl transition-all relative border",
-                  showNotifications 
-                    ? "bg-accent text-primary border-accent shadow-lg shadow-accent/20" 
-                    : "bg-slate-50 text-slate-400 border-slate-100 hover:bg-white hover:border-slate-200"
+                  showNotifications
+                    ? "bg-accent text-primary border-accent shadow-lg shadow-accent/20"
+                    : "bg-white/10 text-white/80 border-white/15 hover:bg-white/20 hover:border-white/25"
                 )}
               >
                 <Bell className="w-5 h-5" />
@@ -362,34 +368,45 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             {/* Premium Header Stat Capsules */}
             <div className="flex gap-3 items-center">
               {/* Borrowed Books Stat */}
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -2, scale: 1.02 }}
-                className="flex items-center gap-3 px-4.5 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-default"
+                className="flex items-center gap-3 px-4.5 py-2 bg-white/10 border border-white/15 rounded-2xl shadow-sm hover:bg-white/20 transition-all cursor-default"
               >
-                <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-primary/20 flex items-center justify-center text-primary dark:text-[#99d6ea]">
+                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-[#99d6ea]">
                   <BookOpen className="w-4 h-4 font-bold" />
                 </div>
                 <div>
-                  <div className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider">{t('borrowed')}</div>
-                  <div className="text-sm font-black text-primary dark:text-[#99d6ea] leading-none mt-0.5">{user.borrowedBooks.length}</div>
+                  <div className="text-[8px] font-black text-white/50 uppercase tracking-wider">{t('borrowed')}</div>
+                  <div className="text-sm font-black text-[#99d6ea] leading-none mt-0.5">{user.borrowedBooks.length}</div>
                 </div>
               </motion.div>
 
               {/* Experience points Stat with a gold medal flare */}
-              <motion.div 
+              <motion.div
                 whileHover={{ y: -2, scale: 1.02 }}
-                className="flex items-center gap-3 px-4.5 py-2 bg-[#D7C826]/10 dark:bg-[#D7C826]/5 border border-[#D7C826]/20 rounded-2xl shadow-sm hover:shadow-md transition-all cursor-default"
+                className="flex items-center gap-3 px-4.5 py-2 bg-accent/15 border border-accent/25 rounded-2xl shadow-sm hover:bg-accent/25 transition-all cursor-default"
               >
-                <div className="w-8 h-8 rounded-xl bg-[#D7C826] flex items-center justify-center text-primary shadow-lg shadow-[#D7C826]/20">
+                <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center text-primary shadow-lg shadow-accent/20">
                   <Award className="w-4 h-4 font-bold" />
                 </div>
                 <div>
-                  <div className="text-[8px] font-black text-primary/60 dark:text-accent/65 uppercase tracking-wider">{t('experiencePoints')}</div>
-                  <div className="text-sm font-black text-primary dark:text-accent leading-none mt-0.5">
-                    {user.points || 450} <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400">XP</span>
+                  <div className="text-[8px] font-black text-accent/70 uppercase tracking-wider">{t('experiencePoints')}</div>
+                  <div className="text-sm font-black text-accent leading-none mt-0.5">
+                    {user.points || 450} <span className="text-[9px] font-bold text-white/60">XP</span>
                   </div>
                 </div>
               </motion.div>
+            </div>
+
+            {/* Decorative brand mark */}
+            <div className="hidden lg:block relative w-14 h-14 shrink-0">
+              <div className="absolute inset-0 bg-white/5 rounded-2xl rotate-6 border border-white/10" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="flex bg-white/10 p-2 rounded-xl backdrop-blur-md gap-1">
+                  <BookOpen className="w-5 h-5 text-accent" />
+                  <Brain className="w-5 h-5 text-white/80" />
+                </div>
+              </div>
             </div>
           </div>
         </header>
