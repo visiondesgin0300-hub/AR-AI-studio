@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, HelpCircle, Camera } from 'lucide-react';
+import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera } from 'lucide-react';
 import { User } from '../types';
 import { cn, getUserLevel } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -25,11 +25,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const navItems = [
     { icon: Home, label: t('dashboard'), path: '/' },
     { icon: Camera, label: t('arHubFabLabel'), path: '/ar' },
-    { icon: Search, label: t('searchBooks'), path: '/search' },
     { icon: Map, label: t('libraryMap'), path: '/map' },
     { icon: BookOpen, label: t('readingHistory'), path: '/my-books' },
-    { icon: Award, label: t('royalBadgesCabinet'), path: '/my-books?tab=badges' },
-    { icon: HelpCircle, label: t('helpCenter'), path: '/help' },
   ];
 
   if (user.role === 'admin') {

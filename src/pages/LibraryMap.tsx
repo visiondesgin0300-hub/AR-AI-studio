@@ -1,19 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Search as SearchIcon, Trophy, Clock, Sparkles } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Search as SearchIcon } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
-import { BadgesCabinet } from '../components/BadgesCabinet';
 
-import { User } from '../types';
-
-interface LibraryMapProps {
-  user: User;
-}
-
-export function LibraryMap({ user }: LibraryMapProps) {
+export function LibraryMap() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, language, dir } = useLanguage();
@@ -145,50 +138,6 @@ export function LibraryMap({ user }: LibraryMapProps) {
               {t('facilitiesComingSoon')}
             </div>
           )}
-
-          <div className="text-center space-y-2 max-w-xl mx-auto">
-            <span className="inline-block px-4 py-1.5 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
-              {t('xpPointsGuideEyebrow')}
-            </span>
-            <h4 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('knowledgeXpBadgesGuide')}</h4>
-            <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('knowledgeXpBadgesGuideDesc')}</p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-6 max-w-xl mx-auto">
-            <div className="official-card p-6 flex flex-col items-center text-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
-                <Trophy className="w-6 h-6" />
-              </div>
-              <div className="text-2xl font-black text-primary dark:text-white">{user.points} <span className="text-[11px] text-slate-400">KXP</span></div>
-              <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-relaxed">{t('totalExperiencePoints')}</div>
-            </div>
-            <div className="official-card p-6 flex flex-col items-center text-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-secondary to-sky-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
-                <Clock className="w-6 h-6" />
-              </div>
-              <div className="text-2xl font-black text-primary dark:text-white">45 <span className="text-[11px] text-slate-400">{t('minutesShort')}</span></div>
-              <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-relaxed">{t('knowledgeLearningTimeToday')}</div>
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigate('/my-books?tab=badges')}
-            className="w-full py-4 bg-slate-900 dark:bg-accent text-white dark:text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
-          >
-            <Sparkles className="w-4 h-4" />
-            {t('viewInteractiveXpBadgesGuide')}
-          </button>
-
-          <div className="space-y-6">
-            <div className="text-center space-y-2 max-w-xl mx-auto">
-              <span className="inline-block px-4 py-1.5 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
-                {t('earnedBadgesEyebrow')}
-              </span>
-              <h4 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('informationCognitiveBadgesChest')}</h4>
-              <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('informationCognitiveBadgesChestDesc')}</p>
-            </div>
-            <BadgesCabinet user={user} badgeIds={['مستكشف', 'باحث', 'متميز']} />
-          </div>
         </div>
       )}
 

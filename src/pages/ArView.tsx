@@ -369,37 +369,6 @@ export function ArView({ book, onClose }: ArViewProps) {
          </motion.div>
       </div>
 
-      {/* Floating HUD Telemetry Particles */}
-      {[...Array(15)].map((_, i) => (
-        <motion.div
-           key={i}
-           className="absolute pointer-events-none"
-           initial={{
-             x: Math.random() * window.innerWidth,
-             y: Math.random() * window.innerHeight,
-             opacity: 0,
-             scale: 0.5
-           }}
-           animate={{
-             y: [null, -200],
-             opacity: [0, 0.4, 0],
-             scale: [0.5, 1, 0.5]
-           }}
-           transition={{
-             duration: 3 + Math.random() * 5,
-             repeat: Infinity,
-             delay: Math.random() * 5
-           }}
-        >
-           <div className="w-1 h-1 bg-accent/40 rounded-full shadow-[0_0_5px_#D9B310]"></div>
-        </motion.div>
-      ))}
-
-      {/* Corners UI Decor */}
-      <div className="absolute top-4 left-4 w-12 h-12 border-t-4 border-l-4 border-accent/20"></div>
-      <div className="absolute top-4 right-4 w-12 h-12 border-t-4 border-r-4 border-accent/20"></div>
-      <div className="absolute bottom-4 left-4 w-12 h-12 border-b-4 border-l-4 border-accent/20"></div>
-      <div className="absolute bottom-4 right-4 w-12 h-12 border-b-4 border-r-4 border-accent/20"></div>
     </motion.div>
   );
 }
