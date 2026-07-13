@@ -7,17 +7,20 @@ import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 
+const BORROW_XP_REWARD = 15;
+
 interface BookDetailsProps {
   user: User;
+  onUpdateUser: (updater: (current: User) => User) => void;
 }
 
-export function BookDetails({ user }: BookDetailsProps) {
+export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [isBorrowedLocally, setIsBorrowedLocally] = useState(false);
+  const [justBorrowed, setJustBorrowed] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
   const { t, dir, language } = useLanguage();
-  
+
   const book = MOCK_BOOKS.find(b => b.id === id);
 
   const categoryTranslationMap: Record<string, string> = {
@@ -38,16 +41,22 @@ export function BookDetails({ user }: BookDetailsProps) {
     );
   }
 
-  const isAvailable = book.status === 'available' && !isBorrowedLocally;
+  const alreadyBorrowed = user.borrowedBooks.includes(book.id);
+  const isAvailable = book.status === 'available' && !alreadyBorrowed && !justBorrowed;
 
   const handleBorrow = () => {
     if (!isAvailable) return;
-    setIsBorrowedLocally(true);
-    // In a real app we'd update state/db
+    onUpdateUser((current) => ({
+      ...current,
+      borrowedBooks: current.borrowedBooks.includes(book.id)
+        ? current.borrowedBooks
+        : [...current.borrowedBooks, book.id],
+      points: current.points + BORROW_XP_REWARD,
+    }));
+    setJustBorrowed(true);
     setTimeout(() => {
-        alert(t('borrowSuccess'));
-        navigate('/my-books');
-    }, 500);
+      navigate('/my-books');
+    }, 1400);
   };
 
   return (
@@ -81,7 +90,7 @@ export function BookDetails({ user }: BookDetailsProps) {
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
-            {!isAvailable && (
+            {!isAvailable && !(alreadyBorrowed || justBorrowed) && (
                <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4">
                   <div className="bg-red-500 text-white px-5 py-2.5 rounded-full font-black text-sm flex items-center gap-2 shadow-xl">
                      <AlertCircle className="w-5 h-5" />
@@ -90,12 +99,16 @@ export function BookDetails({ user }: BookDetailsProps) {
                </div>
             )}
           </div>
-          
+
           <div className="mt-8 glass-panel p-4 w-full flex flex-col gap-4 bg-white/40 dark:bg-slate-900/40">
              <div className="flex items-center justify-between text-xs font-bold px-2">
                 <span className="text-gray-400 dark:text-gray-500">{t('bookStatus')}</span>
-                <span className={cn(isAvailable ? "text-green-600 dark:text-green-400" : "text-red-500")}>
-                  {isAvailable ? t('availableForBorrow') : t('borrowedCurrently')}
+                <span className={cn(
+                  isAvailable ? "text-green-600 dark:text-green-400"
+                  : (alreadyBorrowed || justBorrowed) ? "text-secondary dark:text-secondary"
+                  : "text-red-500"
+                )}>
+                  {isAvailable ? t('availableForBorrow') : (alreadyBorrowed || justBorrowed) ? t('borrowedByYou') : t('borrowedCurrently')}
                 </span>
              </div>
              <div className="h-px bg-gray-200/50 dark:bg-white/5 w-full"></div>
@@ -169,18 +182,28 @@ export function BookDetails({ user }: BookDetailsProps) {
 
           {/* Action Bar */}
           <div className="flex flex-col sm:flex-row gap-4 pt-6">
-            <button 
+            <button
               onClick={handleBorrow}
               disabled={!isAvailable}
               className={cn(
                 "flex-1 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-xl active:scale-95",
-                isAvailable 
-                  ? "bg-primary dark:bg-accent text-white dark:text-primary hover:bg-primary/95 dark:hover:brightness-110 shadow-primary/30 dark:shadow-accent/20" 
+                justBorrowed
+                  ? "bg-green-600 text-white shadow-green-600/30"
+                  : isAvailable
+                  ? "bg-primary dark:bg-accent text-white dark:text-primary hover:bg-primary/95 dark:hover:brightness-110 shadow-primary/30 dark:shadow-accent/20"
                   : "bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-500 cursor-not-allowed"
               )}
             >
               <CheckCircle2 className="w-6 h-6" />
-              <span>{isAvailable ? t('borrowNowAction') : t('notAvailableNow')}</span>
+              <span>
+                {justBorrowed
+                  ? t('borrowSuccess')
+                  : isAvailable
+                  ? t('borrowNowAction')
+                  : alreadyBorrowed
+                  ? t('borrowedByYou')
+                  : t('notAvailableNow')}
+              </span>
             </button>
             <button 
               onClick={() => navigate('/map', { state: { bookId: book.id } })}
