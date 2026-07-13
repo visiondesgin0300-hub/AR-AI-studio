@@ -130,8 +130,8 @@ export function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div className={cn("min-h-screen flex items-center justify-center p-4 md:p-8 bg-[#99d6ea] dark:bg-slate-950 relative overflow-hidden font-sans", dir === 'rtl' ? 'text-right' : 'text-left')}>
-      
+    <div className={cn("min-h-screen flex items-center justify-center p-4 md:p-8 bg-bg-light dark:bg-slate-950 relative overflow-hidden font-sans", dir === 'rtl' ? 'text-right' : 'text-left')}>
+
       {/* LANGUAGE SWITCHER */}
       <div className={cn("absolute top-6 z-20", dir === 'rtl' ? 'left-6' : 'right-6')}>
         <button
@@ -156,35 +156,12 @@ export function Login({ onLogin }: LoginProps) {
         </button>
       </div>
 
-      {/* BACKGROUND DECORATIVE GLOWS AND SKY ELEMENTS */}
-      {/* ☀️ Beautiful Concentric Sun RIngs in Upper Corner */}
-      <div className="absolute top-[-40px] right-[-40px] w-64 h-64 rounded-full bg-[#D7C826]/10 dark:bg-[#D7C826]/5 pointer-events-none" />
-      <div className="absolute top-[-10px] right-[-10px] w-40 h-40 rounded-full bg-[#D7C826]/20 dark:bg-[#D7C826]/10 blur-xl pointer-events-none" />
-
-      {/* ☁️ Delicate Floating Clouds */}
-      <div className="absolute top-16 left-[15%] w-32 h-10 bg-white/40 dark:bg-white/5 rounded-full blur-[2px] pointer-events-none animate-pulse" />
-      <div className="absolute top-12 left-[18%] w-16 h-16 bg-white/45 dark:bg-white/5 rounded-full blur-[1px] pointer-events-none pr-1" />
-      
-      <div className="absolute bottom-20 right-[15%] w-28 h-8 bg-white/40 dark:bg-white/5 rounded-full blur-[2px] pointer-events-none" />
-      <div className="absolute bottom-16 right-[17%] w-12 h-12 bg-white/45 dark:bg-white/5 rounded-full blur-[1px] pointer-events-none" />
-
-      {/* ⭐ Star/Sparkle accents */}
-      <div className="absolute top-1/4 right-[10%] opacity-50 dark:opacity-30 pointer-events-none animate-bounce">
-        <Sparkles className="w-6 h-6 text-[#D7C826]" />
-      </div>
-      <div className="absolute bottom-1/4 left-[10%] opacity-40 dark:opacity-25 pointer-events-none animate-pulse">
-        <Sparkles className="w-5 h-5 text-white" />
-      </div>
-
-      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#99d6ea]/30 dark:bg-[#004C6D]/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#D7C826]/10 dark:bg-[#D7C826]/5 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* LOG IN CARD WITH RE-WORKED CLEAN BRANDING AND PALETTE */}
-      <motion.div 
+      {/* LOG IN CARD */}
+      <motion.div
         initial={{ opacity: 0, y: 25 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
-        className="max-w-xl w-full p-6 md:p-12 relative z-10 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-white/60 dark:border-white/5 shadow-2xl shadow-slate-900/10 rounded-3xl"
+        className="official-card max-w-xl w-full p-6 md:p-12 relative z-10 bg-white dark:bg-slate-900"
       >
         {/* Header Branding */}
         <div className="text-center mb-8">

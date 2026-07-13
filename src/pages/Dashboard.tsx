@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Map as MapIcon, BookOpen, Clock, ChevronRight, Star, Brain, AlertCircle, Sparkles, Award, Camera } from 'lucide-react';
+import { Search, Map as MapIcon, BookOpen, Clock, ChevronRight, Star, AlertCircle, Sparkles, Award, Camera } from 'lucide-react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
@@ -97,98 +97,74 @@ export function Dashboard({ user }: DashboardProps) {
         </motion.div>
       )}
 
-      {/* Institutional Hero Section */}
-      <section className="relative rounded-[2rem] overflow-hidden bg-primary dark:bg-slate-950 text-white p-12 shadow-2xl">
-        <div className={cn("absolute top-0 w-1/3 h-full bg-gradient-to-l from-white/10 to-transparent", dir === 'rtl' ? 'right-0' : 'left-0 rotate-180')}></div>
-        <div className={cn("absolute -bottom-24 w-64 h-64 bg-accent/20 dark:bg-accent/10 rounded-full blur-[100px]", dir === 'rtl' ? '-left-24' : '-right-24')}></div>
-        
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-10">
-          <div className="max-w-xl space-y-6">
-            <div className="inline-flex items-center gap-2 bg-white/10 dark:bg-accent/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 dark:border-accent/20">
-               <Star className="w-4 h-4 text-accent fill-accent" />
-               <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t('smartPortal')}</span>
-            </div>
-            <h2 className="text-4xl font-black tracking-tight leading-tight">{t('welcomeUser').replace('{name}', user.name)}</h2>
-            <p className="text-white/70 dark:text-white/60 text-lg font-medium leading-relaxed">{t('heroSubtitle')}</p>
-            
-            <div className="flex flex-wrap gap-4 mt-8">
-              <div 
-                className="relative group max-w-md flex-1 min-w-[280px]"
-              >
-                <Search className={cn("absolute top-1/2 -translate-y-1/2 text-primary w-6 h-6 z-10", dir === 'rtl' ? 'right-6' : 'left-6')} />
-                <input
-                  type="text"
-                  placeholder={t('searchPlaceholderMain')}
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    const el = document.getElementById('explore-collections');
-                    if (el) {
-                      el.scrollIntoView({ behavior: 'smooth' });
-                    }
-                  }}
-                  className={cn("w-full py-5 bg-white text-primary rounded-2xl text-base font-bold transition-all shadow-xl shadow-black/10 focus:outline-none focus:ring-2 focus:ring-accent", dir === 'rtl' ? 'pr-16 pl-6' : 'pl-16 pr-6')}
-                />
-                {searchQuery && (
-                  <button 
-                    onClick={() => setSearchQuery('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-1 bg-slate-100 rounded-full text-xs font-black z-20"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-
-              <div
-                onClick={() => navigate('/search')}
-                className="bg-accent/20 backdrop-blur-md border border-accent/30 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-accent/30 transition-all group shrink-0"
-              >
-                <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center text-primary shadow-lg shadow-accent/20 group-hover:scale-110 transition-transform">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <div className="text-right ltr:text-left">
-                  <div className="text-[10px] font-black text-accent uppercase tracking-widest leading-none mb-1">{t('new')}</div>
-                  <div className="text-xs font-black text-white">{t('searchBooks')}</div>
-                </div>
-              </div>
-
-              <div
-                onClick={() => navigate('/ar')}
-                className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-white/20 transition-all group shrink-0"
-              >
-                <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">
-                  <Camera className="w-6 h-6" />
-                </div>
-                <div className="text-right ltr:text-left">
-                  <div className="text-[10px] font-black text-white/60 uppercase tracking-widest leading-none mb-1">AR</div>
-                  <div className="text-xs font-black text-white">{t('scanCoverAction')}</div>
-                </div>
-              </div>
-            </div>
+      {/* Hero Section */}
+      <section className="official-card p-12 bg-white dark:bg-slate-900">
+        <div className="max-w-xl space-y-6">
+          <div className="inline-flex items-center gap-2 bg-primary/5 dark:bg-accent/10 px-4 py-2 rounded-full border border-primary/10 dark:border-accent/20">
+             <Star className="w-4 h-4 text-accent fill-accent" />
+             <span className="text-[10px] font-black text-primary dark:text-accent uppercase tracking-[0.2em]">{t('smartPortal')}</span>
           </div>
-          
-          <div className="hidden lg:block w-72 h-72 relative">
-             <div className="absolute inset-0 bg-white/5 rounded-[3rem] rotate-6 border border-white/10"></div>
-             <div className="absolute inset-0 bg-white/5 rounded-[3rem] -rotate-3 border border-white/10"></div>
-             <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex bg-white/5 p-4 rounded-3xl backdrop-blur-md">
-                   <BookOpen className="w-20 h-20 text-accent opacity-80" />
-                   <div className="w-px h-20 bg-white/20 mx-4"></div>
-                   <Brain className="w-20 h-20 text-white opacity-80" />
-                </div>
-             </div>
+          <h2 className="text-4xl font-black text-primary dark:text-white tracking-tight leading-tight">{t('welcomeUser').replace('{name}', user.name)}</h2>
+          <p className="text-slate-400 dark:text-slate-500 text-lg font-medium leading-relaxed">{t('heroSubtitle')}</p>
+
+          <div className="flex flex-wrap gap-4 mt-8">
+            <div className="relative group max-w-md flex-1 min-w-[280px]">
+              <Search className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6 z-10", dir === 'rtl' ? 'right-6' : 'left-6')} />
+              <input
+                type="text"
+                placeholder={t('searchPlaceholderMain')}
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  const el = document.getElementById('explore-collections');
+                  if (el) {
+                    el.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
+                className={cn("w-full py-5 bg-slate-50 dark:bg-slate-800 text-primary dark:text-white rounded-2xl text-base font-bold transition-all border border-slate-100 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-accent", dir === 'rtl' ? 'pr-16 pl-6' : 'pl-16 pr-6')}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-1 bg-slate-100 rounded-full text-xs font-black z-20"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+
+            <div
+              onClick={() => navigate('/search')}
+              className="bg-accent/10 border border-accent/20 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-accent/20 transition-all group shrink-0"
+            >
+              <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <div className="text-right ltr:text-left">
+                <div className="text-[10px] font-black text-accent uppercase tracking-widest leading-none mb-1">{t('new')}</div>
+                <div className="text-xs font-black text-primary dark:text-white">{t('searchBooks')}</div>
+              </div>
+            </div>
+
+            <div
+              onClick={() => navigate('/ar')}
+              className="bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-primary/10 dark:hover:bg-white/10 transition-all group shrink-0"
+            >
+              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white group-hover:scale-110 transition-transform">
+                <Camera className="w-6 h-6" />
+              </div>
+              <div className="text-right ltr:text-left">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">AR</div>
+                <div className="text-xs font-black text-primary dark:text-white">{t('scanCoverAction')}</div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Luxury Badges Cabinet Section */}
-      <section className="glass-panel p-8 md:p-10 bg-white/70 dark:bg-slate-900/60 backdrop-blur-md rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-2xl relative overflow-hidden">
-        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--grid-color) 2px, transparent 0)', backgroundSize: '30px 30px' }}></div>
-        
-        {/* Glowing orb behind section */}
-        <div className={cn("absolute w-64 h-64 rounded-full bg-accent/5 dark:bg-accent/10 blur-3xl pointer-events-none -top-10", dir === 'rtl' ? '-left-10' : '-right-10')} />
-        
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 relative z-10">
+      {/* Badges Cabinet Section */}
+      <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-lg shadow-accent/5">
               <Award className="w-6 h-6 animate-pulse" />
