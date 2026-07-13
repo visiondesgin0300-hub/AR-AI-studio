@@ -14,6 +14,7 @@ import { MyBooks } from './pages/MyBooks';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Search } from './pages/Search';
 import { Landing } from './pages/Landing';
+import { HelpCenter } from './pages/HelpCenter';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -111,9 +112,13 @@ function AppContent() {
           path="/admin" 
           element={user ? <Layout user={user} onLogout={handleLogout}><AdminDashboard /></Layout> : <Navigate to="/login" />} 
         />
-        <Route 
-          path="/search" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Search /></Layout> : <Navigate to="/login" />} 
+        <Route
+          path="/search"
+          element={user ? <Layout user={user} onLogout={handleLogout}><Search /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/help"
+          element={user ? <Layout user={user} onLogout={handleLogout}><HelpCenter /></Layout> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
