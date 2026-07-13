@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Search, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, HelpCircle } from 'lucide-react';
+import { Home, Search, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, HelpCircle, Camera } from 'lucide-react';
 import { User } from '../types';
 import { cn, getUserLevel } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -24,6 +24,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
   const navItems = [
     { icon: Home, label: t('dashboard'), path: '/' },
+    { icon: Camera, label: t('arHubFabLabel'), path: '/ar' },
     { icon: Search, label: t('searchBooks'), path: '/search' },
     { icon: Map, label: t('libraryMap'), path: '/map' },
     { icon: BookOpen, label: t('readingHistory'), path: '/my-books' },
@@ -196,6 +197,24 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
           </button>
         </div>
       </aside>
+
+      {/* Persistent AR entry point - AR is the app's primary interface, so it
+          stays one tap away from anywhere, not buried inside a single page. */}
+      <motion.button
+        onClick={() => navigate('/ar')}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.92 }}
+        className={cn(
+          "fixed z-40 bottom-28 lg:bottom-10 flex items-center gap-3 pl-4 pr-5 py-4 rounded-full bg-accent text-primary shadow-[0_15px_40px_rgba(217,179,16,0.45)] group",
+          dir === 'rtl' ? 'left-5 lg:left-10' : 'right-5 lg:right-10'
+        )}
+      >
+        <span className="absolute inset-0 rounded-full bg-accent animate-ping opacity-30 pointer-events-none" />
+        <Camera className="w-5 h-5 relative z-10" />
+        <span className="hidden sm:inline text-[11px] font-black uppercase tracking-widest relative z-10">
+          {t('arHubFabLabel')}
+        </span>
+      </motion.button>
 
       <div className="flex-1 flex flex-col min-w-0 relative h-full">
         {/* Top Header - Welcome banner */}
