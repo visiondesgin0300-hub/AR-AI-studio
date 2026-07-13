@@ -38,72 +38,26 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
       "flex h-screen w-full overflow-hidden bg-bg-light dark:bg-bg-dark transition-all duration-700",
       dir === 'rtl' ? 'flex-row' : 'flex-row'
     )}>
-      {/* Dynamic Background Elements */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
-        <motion.div 
-          animate={{ 
-            scale: theme === 'light' ? 1 : 1.2,
-            opacity: theme === 'light' ? 0.3 : 0.1,
-            x: theme === 'light' ? 0 : 100,
-            y: theme === 'light' ? -50 : -200,
-            rotate: theme === 'light' ? 0 : 45
-          }}
-          transition={{ duration: 1.5, ease: "easeInOut" }}
-          className="absolute -top-[10%] -right-[10%] w-[60%] h-[60%] bg-primary/20 dark:bg-accent/10 rounded-full blur-[120px]"
-        />
-        <motion.div 
-          animate={{ 
-            scale: theme === 'light' ? 1 : 1.5,
-            opacity: theme === 'light' ? 0.2 : 0.4,
-            x: theme === 'light' ? 0 : -200,
-            y: theme === 'light' ? 50 : 250,
-            rotate: theme === 'light' ? 0 : -45
-          }}
-          transition={{ duration: 1.5, ease: "easeInOut" }}
-          className="absolute -bottom-[20%] -left-[10%] w-[70%] h-[70%] bg-accent/20 dark:bg-primary/30 rounded-full blur-[150px]"
-        />
-        
-        {/* Subtler procedural beams in dark mode */}
-        <AnimatePresence>
-          {theme === 'dark' && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 0.4 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0"
-            >
-               <div className="absolute top-1/4 left-1/4 w-[1px] h-[500px] bg-gradient-to-b from-transparent via-accent/20 to-transparent rotate-45 blur-sm"></div>
-               <div className="absolute bottom-1/4 right-1/4 w-[1px] h-[500px] bg-gradient-to-b from-transparent via-primary/30 to-transparent rotate-45 blur-sm"></div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* Desktop Sidebar (Ultra-Attractive Gradient and Glassmorphic Theme) */}
+      {/* Desktop Sidebar (light theme: white surface, navy text, gold accents) */}
       <aside className={cn(
         "hidden lg:flex w-72 flex-col flex-shrink-0 z-50 relative overflow-hidden transition-all duration-500",
-        "bg-gradient-to-b from-[#004C6D] via-[#01354C] to-[#002233] text-white",
-        dir === 'rtl' ? 'border-l border-white/10 shadow-[-10px_0_30px_rgba(0,0,0,0.15)]' : 'border-r border-white/10 shadow-[10px_0_30px_rgba(0,0,0,0.15)]'
+        "bg-white dark:bg-slate-950 text-primary dark:text-white",
+        dir === 'rtl' ? 'border-l border-slate-100 dark:border-white/5' : 'border-r border-slate-100 dark:border-white/5'
       )}>
-        {/* Glowing Decorative Orbs inside Sidebar */}
-        <div className="absolute top-0 left-0 w-32 h-32 bg-accent/10 rounded-full blur-2xl pointer-events-none" />
-        <div className="absolute bottom-40 right-0 w-24 h-24 bg-[#99d6ea]/10 rounded-full blur-xl pointer-events-none" />
-        <div className="absolute inset-0 bg-black/10 pointer-events-none" />
-        
         {/* Brand Header */}
-        <div className="p-8 relative z-10 border-b border-white/5 bg-black/5">
+        <div className="p-8 relative z-10 border-b border-slate-100 dark:border-white/5">
           <div className="flex items-center gap-3.5 mb-2 justify-start">
              <div className="flex items-center group cursor-pointer">
-                <div className={cn("w-9 h-9 bg-accent flex items-center justify-center text-primary shadow-lg shadow-accent/30 hover:scale-105 transition-transform", dir === 'rtl' ? 'rounded-r-xl' : 'rounded-l-xl')}>
+                <div className={cn("w-9 h-9 bg-primary flex items-center justify-center text-accent shadow-sm hover:scale-105 transition-transform", dir === 'rtl' ? 'rounded-r-xl' : 'rounded-l-xl')}>
                    <BookOpen className="w-5 h-5 font-black" />
                 </div>
-                <div className={cn("w-9 h-9 bg-white/10 flex items-center justify-center text-accent shadow-lg backdrop-blur-md hover:scale-105 transition-transform", dir === 'rtl' ? 'rounded-l-xl' : 'rounded-r-xl')}>
-                   <Brain className="w-5 h-5 font-black animate-pulse" />
+                <div className={cn("w-9 h-9 bg-accent flex items-center justify-center text-primary shadow-sm hover:scale-105 transition-transform", dir === 'rtl' ? 'rounded-l-xl' : 'rounded-r-xl')}>
+                   <Brain className="w-5 h-5 font-black" />
                 </div>
              </div>
-             <span className="text-xl font-black tracking-widest uppercase italic bg-gradient-to-r from-white via-slate-150 to-accent bg-clip-text text-transparent">{t('appName')}</span>
+             <span className="text-xl font-black tracking-widest uppercase italic text-primary dark:text-white">{t('appName')}</span>
           </div>
-          <div className={cn("text-[10px] font-black text-[#99d6ea]/60 tracking-[0.25em] uppercase leading-none mt-1 outline-none", dir === 'rtl' ? 'ml-1' : 'mr-1')}>
+          <div className={cn("text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-[0.25em] uppercase leading-none mt-1 outline-none", dir === 'rtl' ? 'ml-1' : 'mr-1')}>
             {t('appSubtitle')}
           </div>
         </div>
@@ -111,83 +65,82 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         {/* Navigation Section */}
         <nav className="mt-6 flex-1 relative z-10 px-4 space-y-2">
           {navItems.map((item) => {
-            const isActive = item.path.includes('?') 
+            const isActive = item.path.includes('?')
               ? (location.pathname === item.path.split('?')[0] && location.search === '?' + item.path.split('?')[1])
               : (location.pathname === item.path && !location.search);
             const Icon = item.icon;
             return (
-              <Link 
+              <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "group flex items-center gap-4 px-5 py-4 rounded-2xl cursor-pointer transition-all duration-300 relative overflow-hidden",
-                  isActive 
-                    ? "bg-gradient-to-r from-accent/15 to-accent/5 border border-accent/25 text-accent shadow-[0_4px_20px_rgba(215,200,38,0.15)]" 
-                    : "hover:bg-white/5 text-white/60 hover:text-white"
+                  "group flex items-center gap-4 px-5 py-4 rounded-2xl cursor-pointer transition-all duration-300 relative",
+                  isActive
+                    ? "bg-accent/10 text-primary dark:text-accent"
+                    : "hover:bg-slate-50 dark:hover:bg-white/5 text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white"
                 )}
               >
-                {/* Active side-border glow */}
+                {/* Active side-border accent */}
                 {isActive && (
                   <div className={cn(
-                    "absolute top-0 bottom-0 w-1 bg-gradient-to-b from-accent to-secondary", 
+                    "absolute top-0 bottom-0 w-1 bg-accent rounded-full",
                     dir === 'rtl' ? 'left-0' : 'right-0'
                   )} />
                 )}
-                
-                <Icon className={cn("w-5 h-5 transition-all duration-300", isActive ? "scale-110 text-accent rotate-3" : "group-hover:text-accent group-hover:scale-105")} />
+
+                <Icon className={cn("w-5 h-5 transition-all duration-300", isActive ? "scale-110 text-accent" : "group-hover:text-accent group-hover:scale-105")} />
                 <span className="font-bold text-xs uppercase tracking-widest transition-colors duration-300">{item.label}</span>
-                
+
                 {isActive && (
-                  <motion.div 
+                  <motion.div
                     layoutId="activeIndicator"
-                    className={cn("w-1.5 h-1.5 bg-accent rounded-full shadow-[0_0_12px_rgba(215,200,38,1)]", dir === 'rtl' ? 'mr-auto' : 'ml-auto')}
+                    className={cn("w-1.5 h-1.5 bg-accent rounded-full", dir === 'rtl' ? 'mr-auto' : 'ml-auto')}
                   />
                 )}
               </Link>
             );
           })}
         </nav>
-        
+
         {/* User Card & Gamification Panel */}
-        <div className="p-6 relative z-10 border-t border-white/5 bg-black/20 backdrop-blur-md">
+        <div className="p-6 relative z-10 border-t border-slate-100 dark:border-white/5">
           {/* Gamified Level Indicator */}
           <div className="mb-4 space-y-1.5 px-1.5">
-            <div className="flex justify-between items-center text-[10px] font-black tracking-wide text-white/60 uppercase">
-              <span className="flex items-center gap-1 text-[#99d6ea]">
-                <Award className="w-3.5 h-3.5 text-accent animate-bounce" />
+            <div className="flex justify-between items-center text-[10px] font-black tracking-wide text-slate-400 dark:text-slate-500 uppercase">
+              <span className="flex items-center gap-1 text-primary dark:text-accent">
+                <Award className="w-3.5 h-3.5 text-accent" />
                 {language === 'ar' ? `المستوى ${getUserLevel(user.points || 450)}` : `Level ${getUserLevel(user.points || 450)}`}
               </span>
-              <span className="text-accent">{(user.points || 450) % 100}/100 XP</span>
+              <span className="text-primary dark:text-accent">{(user.points || 450) % 100}/100 XP</span>
             </div>
-            <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden p-[1px] border border-white/10 shadow-inner">
-              <motion.div 
+            <div className="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
+              <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${(user.points || 450) % 100}%` }}
                 transition={{ duration: 1.2, ease: "easeOut" }}
-                className="h-full bg-gradient-to-r from-accent via-[#99d6ea] to-sky-400 rounded-full" 
+                className="h-full bg-accent rounded-full"
               />
             </div>
           </div>
 
-          <div className="flex items-center gap-3.5 mb-5 p-3 rounded-2xl bg-white/5 border border-white/5 hover:border-white/10 transition-all duration-300 group">
-             <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-accent to-[#99d6ea] p-0.5 flex items-center justify-center text-primary relative overflow-hidden shrink-0 shadow-lg shadow-black/15">
-                <div className="absolute inset-0 bg-[#004C6D] rounded-[10px] group-hover:scale-95 transition-transform" />
-                <UserIcon className="w-5 h-5 text-accent relative z-10 group-hover:scale-110 transition-transform" />
+          <div className="flex items-center gap-3.5 mb-5 p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-accent/20 transition-all duration-300 group">
+             <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-accent relative overflow-hidden shrink-0 shadow-sm">
+                <UserIcon className="w-5 h-5 relative z-10 group-hover:scale-110 transition-transform" />
              </div>
              <div className="overflow-hidden flex-1">
-                <div className="text-xs font-black text-white truncate uppercase tracking-tight group-hover:text-accent transition-colors">
+                <div className="text-xs font-black text-primary dark:text-white truncate uppercase tracking-tight group-hover:text-accent transition-colors">
                   {user.name}
                 </div>
-                <div className="text-[9px] font-bold text-[#99d6ea] uppercase tracking-widest leading-none mt-1.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
+                <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-1.5 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
                   {t('academicResearcher')}
                 </div>
              </div>
           </div>
 
-          <button 
+          <button
             onClick={onLogout}
-            className="w-full py-3.5 rounded-2xl text-white/40 hover:text-white hover:bg-red-500/10 hover:border-red-500/20 flex items-center justify-center gap-2.5 transition-all duration-300 text-[10px] font-black tracking-[0.2em] uppercase border border-white/5 cursor-pointer"
+            className="w-full py-3.5 rounded-2xl text-slate-400 dark:text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 flex items-center justify-center gap-2.5 transition-all duration-300 text-[10px] font-black tracking-[0.2em] uppercase border border-slate-100 dark:border-white/5 cursor-pointer"
           >
             <LogOut className="w-4 h-4 rtl-flip" />
             <span>{t('logout')}</span>

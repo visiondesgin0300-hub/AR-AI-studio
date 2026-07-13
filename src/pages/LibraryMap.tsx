@@ -1,12 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Search as SearchIcon } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Search as SearchIcon, Trophy, Clock, Sparkles } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
+import { BadgesCabinet } from '../components/BadgesCabinet';
+import { User } from '../types';
 
-export function LibraryMap() {
+interface LibraryMapProps {
+  user: User;
+}
+
+export function LibraryMap({ user }: LibraryMapProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, language, dir } = useLanguage();
@@ -138,6 +144,50 @@ export function LibraryMap() {
               {t('facilitiesComingSoon')}
             </div>
           )}
+
+          <div className="text-center space-y-2 max-w-xl mx-auto">
+            <span className="inline-block px-4 py-1.5 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
+              {t('xpPointsGuideEyebrow')}
+            </span>
+            <h4 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('knowledgeXpBadgesGuide')}</h4>
+            <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('knowledgeXpBadgesGuideDesc')}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 max-w-xl mx-auto">
+            <div className="flex flex-col items-center text-center gap-2 p-6">
+              <div className="w-12 h-12 rounded-2xl bg-accent/15 flex items-center justify-center text-accent">
+                <Trophy className="w-6 h-6" />
+              </div>
+              <div className="text-2xl font-black text-primary dark:text-white">{user.points} <span className="text-[11px] text-slate-400">KXP</span></div>
+              <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-relaxed">{t('totalExperiencePoints')}</div>
+            </div>
+            <div className="flex flex-col items-center text-center gap-2 p-6">
+              <div className="w-12 h-12 rounded-2xl bg-secondary/20 flex items-center justify-center text-secondary">
+                <Clock className="w-6 h-6" />
+              </div>
+              <div className="text-2xl font-black text-primary dark:text-white">45 <span className="text-[11px] text-slate-400">{t('minutesShort')}</span></div>
+              <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-relaxed">{t('knowledgeLearningTimeToday')}</div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/my-books?tab=badges')}
+            className="w-full py-4 bg-primary dark:bg-accent text-white dark:text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" />
+            {t('viewInteractiveXpBadgesGuide')}
+          </button>
+
+          <div className="space-y-6">
+            <div className="text-center space-y-2 max-w-xl mx-auto">
+              <span className="inline-block px-4 py-1.5 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
+                {t('earnedBadgesEyebrow')}
+              </span>
+              <h4 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('informationCognitiveBadgesChest')}</h4>
+              <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('informationCognitiveBadgesChestDesc')}</p>
+            </div>
+            <BadgesCabinet user={user} badgeIds={['مستكشف', 'باحث', 'متميز']} />
+          </div>
         </div>
       )}
 
@@ -369,58 +419,56 @@ export function LibraryMap() {
         {/* Sidebar Intelligence */}
         <div className="w-full xl:w-[450px] flex flex-col gap-8">
           {bookData ? (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="rounded-[2rem] p-12 bg-primary dark:bg-slate-950 text-white shadow-[0_50px_100px_rgba(11,60,93,0.3)] dark:shadow-[0_50px_100px_rgba(0,0,0,0.5)] overflow-hidden relative"
+              className="official-card p-8 bg-white dark:bg-slate-900"
             >
-              <div className={cn("absolute top-0 w-64 h-64 bg-accent/10 rounded-full blur-[100px] -mt-32", dir === 'rtl' ? 'left-0 -ml-32' : 'right-0 -mr-32')} />
-
-              <div className="relative z-10 space-y-12 bg-white/10 dark:bg-slate-900/60 p-8 rounded-[2rem] text-white backdrop-blur-md border border-white/5 dark:border-white/10">
+              <div className="space-y-10">
                  <div className="flex justify-center">
                     <div className="relative group">
                        <img
                           src={bookData.coverUrl}
-                          className="w-48 h-72 object-cover rounded-[1.5rem] shadow-[0_30px_60px_rgba(0,0,0,0.5)] border-4 border-white/10 dark:border-white/5"
+                          className="w-48 h-72 object-cover rounded-[1.5rem] shadow-lg border border-slate-100 dark:border-white/10"
                           alt=""
                           referrerPolicy="no-referrer"
                         />
-                       <div className={cn("absolute -bottom-6 w-16 h-16 bg-accent rounded-3xl flex items-center justify-center text-primary shadow-2xl border-4 border-primary dark:border-slate-950", dir === 'rtl' ? '-left-6' : '-right-6')}>
+                       <div className={cn("absolute -bottom-6 w-16 h-16 bg-accent rounded-3xl flex items-center justify-center text-primary shadow-lg border-4 border-white dark:border-slate-900", dir === 'rtl' ? '-left-6' : '-right-6')}>
                           <Navigation className={cn("w-7 h-7", dir === 'rtl' ? 'rotate-180' : '')} />
                        </div>
                     </div>
                  </div>
 
                  <div className="text-center space-y-4">
-                    <div className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
-                    <h2 className="text-3xl font-black leading-tight tracking-tight text-white drop-shadow-sm">{bookData.title}</h2>
-                    <p className="text-white/60 font-bold uppercase text-[12px] tracking-widest flex items-center justify-center gap-2">
+                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
+                    <h2 className="text-3xl font-black leading-tight tracking-tight text-primary dark:text-white">{bookData.title}</h2>
+                    <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[12px] tracking-widest flex items-center justify-center gap-2">
                        <UserIcon className="w-4 h-4" />
                        {bookData.author}
                     </p>
                  </div>
 
                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white/10 border border-white/10 p-6 rounded-3xl text-center backdrop-blur-md">
-                       <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2 opacity-70 leading-relaxed">{t('digitalView')} ({t('shelfShort')})</div>
-                       <div className="text-3xl font-black text-white">{bookData.shelf}</div>
+                    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
+                       <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 leading-relaxed">{t('digitalView')} ({t('shelfShort')})</div>
+                       <div className="text-3xl font-black text-primary dark:text-white">{bookData.shelf}</div>
                     </div>
-                    <div className="bg-white/10 border border-white/10 p-6 rounded-3xl text-center backdrop-blur-md">
-                       <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-2 opacity-70 leading-relaxed">{t('bookHall', { section: '' })}</div>
-                       <div className="text-3xl font-black text-white">{bookData.section}</div>
+                    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
+                       <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 leading-relaxed">{t('bookHall', { section: '' })}</div>
+                       <div className="text-3xl font-black text-primary dark:text-white">{bookData.section}</div>
                     </div>
                  </div>
 
                  <div className="space-y-4 pt-4">
                     <button
                       onClick={() => navigate(`/book/${bookData.id}`)}
-                      className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-lg shadow-accent/20 transition-all active:scale-95"
+                      className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95"
                     >
                        <span>{t('viewReferenceData')}</span>
                     </button>
                     <button
                       onClick={() => { setSelectedBook(null); setShowPath(false); }}
-                      className="w-full py-4 text-white/60 hover:text-red-400 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                      className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                     >
                        <X className="w-4 h-4" />
                        {t('cancelActiveNavigation')}

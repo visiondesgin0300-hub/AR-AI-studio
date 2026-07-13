@@ -9,7 +9,7 @@
   --color-secondary: #99d6ea;    /* HEX: 99d6ea (Custom Light Cyan-Blue) */
   --color-accent: #D7C826;       /* HEX: D7C826 (Pantone 611 C Olive Gold-Yellow) */
   --color-glass: rgba(255, 255, 255, 0.85);
-  --color-bg-light: #E5E1E6;     /* HEX: E5E1E6 (Pantone 663 C Soft Off-White) */
+  --color-bg-light: #F5F7F8;     /* Light, near-white page background */
   --color-bg-dark: #020617;
 }
 
