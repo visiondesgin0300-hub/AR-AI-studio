@@ -57,6 +57,15 @@ function AppContent() {
     localStorage.removeItem('library_user');
   };
 
+  const handleUpdateUser = (updater: (current: User) => User) => {
+    setUser((current) => {
+      if (!current) return current;
+      const updated = updater(current);
+      localStorage.setItem('library_user', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
     <div dir={dir} className="min-h-screen bg-[#F5F7FA] font-sans transition-all duration-500">
       <Routes>
@@ -84,9 +93,9 @@ function AppContent() {
           path="/landing" 
           element={<Landing />} 
         />
-        <Route 
-          path="/book/:id" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><BookDetails user={user} /></Layout> : <Navigate to="/login" />} 
+        <Route
+          path="/book/:id"
+          element={user ? <Layout user={user} onLogout={handleLogout}><BookDetails user={user} onUpdateUser={handleUpdateUser} /></Layout> : <Navigate to="/login" />}
         />
         <Route
           path="/map"
