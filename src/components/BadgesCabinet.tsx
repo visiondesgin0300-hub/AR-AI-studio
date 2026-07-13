@@ -60,15 +60,20 @@ export function BadgesCabinet({ user, badgeIds }: BadgesCabinetProps) {
                 : 'bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-white/5 opacity-40 grayscale'
             )}
           >
-            <div
-              className={cn(
-                'w-14 h-14 rounded-full flex items-center justify-center border transition-all',
-                isEarned
-                  ? 'text-accent bg-accent/10 border-accent/20 shadow-inner group-hover:scale-110'
-                  : 'text-slate-300 dark:text-slate-700 bg-slate-100/50 dark:bg-slate-800/50 border-slate-100 dark:border-white/5'
+            <div className="relative">
+              <div
+                className={cn(
+                  'w-14 h-14 rounded-full flex items-center justify-center border transition-all',
+                  isEarned
+                    ? 'text-accent bg-accent/10 border-accent/20 shadow-inner group-hover:scale-110'
+                    : 'text-slate-300 dark:text-slate-700 bg-slate-100/50 dark:bg-slate-800/50 border-slate-100 dark:border-white/5'
+                )}
+              >
+                <IconComponent className="w-6 h-6" />
+              </div>
+              {isEarned && (
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 rounded-full bg-accent border-2 border-white dark:border-slate-900" />
               )}
-            >
-              <IconComponent className="w-6 h-6" />
             </div>
             <div className="space-y-1">
               <div
