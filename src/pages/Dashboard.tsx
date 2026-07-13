@@ -153,7 +153,7 @@ export function Dashboard({ user }: DashboardProps) {
               </div>
 
               <div
-                onClick={() => navigate('/cover-scan')}
+                onClick={() => navigate('/ar')}
                 className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-white/20 transition-all group shrink-0"
               >
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-white shadow-lg group-hover:scale-110 transition-transform">

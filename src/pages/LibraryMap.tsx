@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Search as SearchIcon, Trophy, Clock, Sparkles } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -8,11 +8,6 @@ import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 
 import { User } from '../types';
-
-// Lazy-loaded: pulls in three.js + AR.js, a multi-MB dependency that should
-// only load once a user actually enters AR mode for a shelf, not on every
-// visit to the map page.
-const ArView = lazy(() => import('./ArView').then((m) => ({ default: m.ArView })));
 
 interface LibraryMapProps {
   user: User;
@@ -24,7 +19,6 @@ export function LibraryMap({ user }: LibraryMapProps) {
   const { t, language, dir } = useLanguage();
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [showPath, setShowPath] = useState(false);
-  const [isArMode, setIsArMode] = useState(false);
 
   const [activeTab, setActiveTab] = useState<'map' | 'sections'>('map');
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
@@ -130,7 +124,7 @@ export function LibraryMap({ user }: LibraryMapProps) {
             </button>
 
             <button
-              onClick={() => navigate('/cover-scan')}
+              onClick={() => navigate('/ar')}
               className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
             >
               <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent pointer-events-none" />
@@ -213,20 +207,20 @@ export function LibraryMap({ user }: LibraryMapProps) {
 
         <div className={cn("flex flex-col sm:flex-row items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
           <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5">
-             <button 
-               onClick={() => { setActiveTab('map'); setIsArMode(false); }}
+             <button
+               onClick={() => setActiveTab('map')}
                className={cn(
-                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3", 
-                 activeTab === 'map' && !isArMode ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
+                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
+                 activeTab === 'map' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
                )}
              >
                <MapPin className="w-4 h-4" />
                {t('digitalView')}
              </button>
-             <button 
-               onClick={() => { setActiveTab('sections'); setIsArMode(false); }}
+             <button
+               onClick={() => setActiveTab('sections')}
                className={cn(
-                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3", 
+                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
                  activeTab === 'sections' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
                )}
              >
@@ -236,8 +230,8 @@ export function LibraryMap({ user }: LibraryMapProps) {
           </div>
 
           {bookData && (
-            <button 
-              onClick={() => setIsArMode(true)}
+            <button
+              onClick={() => navigate('/ar', { state: { book: bookData } })}
               className="px-8 py-4 bg-primary text-white rounded-2xl text-xs font-black flex items-center gap-3 shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all group"
             >
                <Camera className="w-5 h-5 group-hover:animate-pulse" />
@@ -253,29 +247,22 @@ export function LibraryMap({ user }: LibraryMapProps) {
 
       <div className={cn("flex flex-col xl:flex-row gap-10 flex-1 min-h-0", dir === 'rtl' ? 'xl:flex-row-reverse' : 'xl:flex-row')}>
         {/* Map Visualization Zone */}
-        <div className={cn(
-          "flex-1 official-card relative overflow-hidden min-h-[650px] p-0 transition-all duration-500",
-          isArMode ? "bg-black border-0" : "bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20"
-        )}>
+        <div className="flex-1 official-card relative overflow-hidden min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
           {/* Blueprint Grid Overlay */}
-          {!isArMode && ( activeTab === 'map' && (
+          {activeTab === 'map' && (
             <div className="absolute inset-0 z-0 pointer-events-none">
               <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
               <div className="absolute inset-0 opacity-[0.01] dark:opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '200px 200px' }} />
-              
+
               {/* Compass Rose Decoration */}
               <div className={cn("absolute bottom-12 opacity-5 scale-150 text-primary dark:text-white", dir === 'rtl' ? 'left-12' : 'right-12')}>
                  <Compass className="w-48 h-48" />
               </div>
             </div>
-          ))}
+          )}
 
           <AnimatePresence mode="wait">
-            {isArMode ? (
-              <Suspense fallback={<div key="ar-loading" className="w-full h-full bg-black" />}>
-                <ArView key="ar" book={bookData!} onClose={() => setIsArMode(false)} />
-              </Suspense>
-            ) : activeTab === 'map' ? (
+            {activeTab === 'map' ? (
               <motion.div 
                 key="map"
                 initial={{ opacity: 0 }}

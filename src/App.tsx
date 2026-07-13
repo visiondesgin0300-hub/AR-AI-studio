@@ -19,9 +19,10 @@ import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
 
-// Lazy-loaded: pulls in mind-ar + tensorflow.js, a multi-MB dependency that
-// should only load for users who actually open the cover-scan camera.
-const CoverScan = lazy(() => import('./pages/CoverScan').then((m) => ({ default: m.CoverScan })));
+// Lazy-loaded: pulls in mind-ar + tensorflow.js + three.js + AR.js, several
+// multi-MB dependencies that should only load once a user actually opens the
+// unified AR experience, not on every page visit.
+const ArHub = lazy(() => import('./pages/ArHub').then((m) => ({ default: m.ArHub })));
 
 // Read the stored user synchronously (not in a useEffect) so protected routes
 // never see a false "not logged in" state on the very first render — that
@@ -102,11 +103,11 @@ function AppContent() {
           element={user ? <Layout user={user} onLogout={handleLogout}><LibraryMap user={user} /></Layout> : <Navigate to="/login" />}
         />
         <Route
-          path="/cover-scan"
+          path="/ar"
           element={
             user ? (
               <Suspense fallback={<div className="fixed inset-0 z-50 bg-black" />}>
-                <CoverScan />
+                <ArHub />
               </Suspense>
             ) : (
               <Navigate to="/login" />
