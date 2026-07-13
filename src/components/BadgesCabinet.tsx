@@ -8,6 +8,8 @@ import { useLanguage } from '../hooks/useLanguage';
 
 interface BadgesCabinetProps {
   user: User;
+  /** When provided, shows only these badge ids (in this order) instead of the full catalog. */
+  badgeIds?: string[];
 }
 
 const badgeIcons = [
@@ -19,9 +21,12 @@ const badgeIcons = [
   { id: 'ملهم', icon: Lightbulb, color: 'text-orange-500 bg-orange-500/10 border-orange-500/20' },
 ];
 
-export function BadgesCabinet({ user }: BadgesCabinetProps) {
+export function BadgesCabinet({ user, badgeIds }: BadgesCabinetProps) {
   const { t } = useLanguage();
   const earnedBadges = getEarnedBadges(user);
+  const displayedBadges = badgeIds
+    ? badgeIds.map((id) => badgeIcons.find((b) => b.id === id)).filter((b): b is typeof badgeIcons[number] => b !== undefined)
+    : badgeIcons;
 
   const badgeTranslationMap: Record<string, { title: string; desc: string }> = {
     'باحث': { title: t('badgeResearcher'), desc: t('badgeResearcherDesc') },
@@ -33,8 +38,13 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
   };
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6 relative z-10">
-      {badgeIcons.map((badge) => {
+    <div
+      className={cn(
+        'grid gap-6 relative z-10',
+        displayedBadges.length <= 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'
+      )}
+    >
+      {displayedBadges.map((badge) => {
         const isEarned = earnedBadges.includes(badge.id);
         const translation = badgeTranslationMap[badge.id];
         const IconComponent = badge.icon;
