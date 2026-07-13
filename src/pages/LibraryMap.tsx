@@ -424,7 +424,6 @@ export function LibraryMap({ user }: LibraryMapProps) {
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
 
   const [resourceTab, setResourceTab] = useState<'shelves' | 'facilities'>('shelves');
-  const [mapSearchQuery, setMapSearchQuery] = useState('');
 
   // Simulated real-time occupancy data
   const occupancyData = useMemo(() => {
@@ -448,27 +447,6 @@ export function LibraryMap({ user }: LibraryMapProps) {
   }, [location.state]);
 
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
-
-  const recommendationCategories = useMemo(() => Array.from(new Set(
-    MOCK_BOOKS.filter(b => user.borrowedBooks.includes(b.id)).map(b => b.category)
-  )), [user.borrowedBooks]);
-
-  const mapRecommendations = useMemo(() => {
-    if (mapSearchQuery.trim()) {
-      const q = mapSearchQuery.toLowerCase();
-      return MOCK_BOOKS.filter(b =>
-        b.title.toLowerCase().includes(q) ||
-        b.author.toLowerCase().includes(q) ||
-        (b.category ?? '').toLowerCase().includes(q)
-      ).slice(0, 3);
-    }
-    return MOCK_BOOKS
-      .filter(b => !user.borrowedBooks.includes(b.id))
-      .filter(b => recommendationCategories.length > 0 ? recommendationCategories.includes(b.category) : true)
-      .slice(0, 3);
-  }, [mapSearchQuery, recommendationCategories, user.borrowedBooks]);
-
-  const MATCH_PERCENTS = [98, 94, 91];
 
   const sections = [
     { id: 'A', name: t('naturalSciences'), icon: '🧪', subjects: [t('physics'), t('chemistry'), t('biology')], color: 'bg-blue-500', occupancy: t('quiet') },
@@ -505,127 +483,73 @@ export function LibraryMap({ user }: LibraryMapProps) {
           <div className="text-center space-y-3 max-w-2xl mx-auto">
             <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('augmentedLibraryMap')}</h1>
             <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
-            <div className="flex justify-center gap-3 pt-2">
-              <button
-                onClick={() => setResourceTab('shelves')}
-                className={cn(
-                  "px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2",
-                  resourceTab === 'shelves' ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-primary dark:hover:text-slate-200"
-                )}
-              >
-                <BookOpen className="w-4 h-4" />
-                {t('libraryResourcesShelves')}
-              </button>
-              <button
-                onClick={() => setResourceTab('facilities')}
-                className={cn(
-                  "px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2",
-                  resourceTab === 'facilities' ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-primary dark:hover:text-slate-200"
-                )}
-              >
-                <Compass className="w-4 h-4" />
-                {t('libraryFacilities')}
-              </button>
-            </div>
           </div>
 
-          {resourceTab === 'facilities' ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <button
+              onClick={() => navigate('/search')}
+              className="official-card p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
+            >
+              <div className="w-14 h-14 bg-primary/10 dark:bg-accent/10 rounded-2xl flex items-center justify-center text-primary dark:text-accent">
+                <SearchIcon className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-black text-primary dark:text-white tracking-tight">{t('smartSearchCard')}</h3>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('smartSearchCardDesc')}</p>
+            </button>
+
+            <button
+              onClick={() => setResourceTab(resourceTab === 'facilities' ? 'shelves' : 'facilities')}
+              className={cn(
+                "official-card p-8 flex flex-col items-center text-center gap-3 shadow-sm hover:shadow-xl transition-all",
+                resourceTab === 'facilities'
+                  ? "bg-primary dark:bg-slate-950 border-primary text-white"
+                  : "bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 hover:border-accent dark:hover:border-accent"
+              )}
+            >
+              <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center", resourceTab === 'facilities' ? "bg-white/10 text-white" : "bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent")}>
+                <Compass className="w-6 h-6" />
+              </div>
+              <h3 className={cn("text-sm font-black tracking-tight", resourceTab === 'facilities' ? "text-white" : "text-primary dark:text-white")}>{t('libraryFacilities')}</h3>
+              <p className={cn("text-[11px] font-bold leading-relaxed", resourceTab === 'facilities' ? "text-white/60" : "text-slate-400 dark:text-slate-500")}>{t('libraryFacilitiesCardDesc')}</p>
+            </button>
+
+            <button
+              onClick={() => navigate('/cover-scan')}
+              className="official-card p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
+            >
+              <div className="w-14 h-14 bg-primary/10 dark:bg-accent/10 rounded-2xl flex items-center justify-center text-primary dark:text-accent">
+                <Camera className="w-6 h-6" />
+              </div>
+              <h3 className="text-sm font-black text-primary dark:text-white tracking-tight">{t('smartBookCoverScannerCard')}</h3>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('smartBookCoverScannerCardDesc')}</p>
+            </button>
+          </div>
+
+          {resourceTab === 'facilities' && (
             <div className="official-card p-16 text-center text-slate-400 dark:text-slate-500 font-bold bg-white dark:bg-slate-900 border-dashed border-slate-200 dark:border-white/10">
               {t('facilitiesComingSoon')}
             </div>
-          ) : (
-            <>
-              <div className="official-card p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
-                <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-                  <BookOpen className="w-8 h-8" />
-                </div>
-                <div className="space-y-2 max-w-lg">
-                  <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{t('searchForBookFirst')}</h3>
-                  <p className="text-slate-400 dark:text-slate-500 font-bold text-sm leading-relaxed">{t('searchForBookFirstDesc')}</p>
-                </div>
-                <div className="relative w-full max-w-xl">
-                  <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-primary w-5 h-5", dir === 'rtl' ? 'right-5' : 'left-5')} />
-                  <input
-                    type="text"
-                    value={mapSearchQuery}
-                    onChange={(e) => setMapSearchQuery(e.target.value)}
-                    placeholder={t('searchByBookPlaceholder')}
-                    className={cn(
-                      "w-full py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent",
-                      dir === 'rtl' ? 'pr-14 pl-5 text-right' : 'pl-14 pr-5 text-left'
-                    )}
-                  />
-                </div>
-              </div>
-
-              {mapRecommendations.length > 0 && (
-                <div className="space-y-6">
-                  <div className="text-center space-y-2 max-w-xl mx-auto">
-                    <h4 className="text-lg font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
-                      <Sparkles className="w-4 h-4 text-accent" />
-                      {t('recommendedFeaturedSources')}
-                    </h4>
-                    <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('recommendedFeaturedSourcesDesc')}</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {mapRecommendations.map((book, idx) => (
-                      <div
-                        key={book.id}
-                        onClick={() => { setSelectedBook(book.id); setShowPath(true); }}
-                        className="official-card p-5 space-y-4 cursor-pointer bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all"
-                      >
-                        <div className={cn("flex items-center justify-between", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                          <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-1 rounded-lg uppercase tracking-widest">
-                            {MATCH_PERCENTS[idx] ?? 90}% {t('matchLabel')}
-                          </span>
-                        </div>
-                        <div className={cn("flex gap-4", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
-                          <img
-                            src={book.coverUrl}
-                            alt={book.title}
-                            className="w-16 h-20 object-cover rounded-xl shrink-0"
-                            referrerPolicy="no-referrer"
-                          />
-                          <div className="min-w-0 space-y-1">
-                            <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2">{book.title}</h5>
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{book.author}</p>
-                          </div>
-                        </div>
-                        <div className={cn("flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                          <span className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-bold">
-                            <MapPin className="w-3.5 h-3.5 text-primary/60 dark:text-accent" />
-                            {t('shelfItem')} {book.shelf}
-                          </span>
-                          <span className="flex items-center gap-1 text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest">
-                            {t('instantNav')}
-                            <ChevronRight className={cn("w-3.5 h-3.5", dir === 'rtl' ? 'rotate-180' : '')} />
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
           )}
 
-          <div className="rounded-[2rem] p-10 bg-primary dark:bg-slate-950 text-white shadow-2xl shadow-primary/20 dark:shadow-black/40 flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className={cn("space-y-2 max-w-md", dir === 'rtl' ? 'text-right' : 'text-left')}>
-              <h4 className="text-xl font-black tracking-tight">{t('knowledgeXpBadgesGuide')}</h4>
-              <p className="text-white/60 font-bold text-xs leading-relaxed">{t('knowledgeXpBadgesGuideDesc')}</p>
+          <div className="text-center space-y-2 max-w-xl mx-auto">
+            <h4 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('knowledgeXpBadgesGuide')}</h4>
+            <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('knowledgeXpBadgesGuideDesc')}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 max-w-xl mx-auto">
+            <div className="official-card p-6 flex flex-col items-center text-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent to-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
+                <Trophy className="w-6 h-6" />
+              </div>
+              <div className="text-2xl font-black text-primary dark:text-white">{user.points} <span className="text-[11px] text-slate-400">KXP</span></div>
+              <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-relaxed">{t('totalExperiencePoints')}</div>
             </div>
-            <div className="flex items-center gap-4 shrink-0">
-              <div className="bg-white/10 border border-white/10 rounded-2xl p-4 text-center min-w-[130px]">
-                <Trophy className="w-5 h-5 text-accent mx-auto mb-2" />
-                <div className="text-xl font-black">{user.points} <span className="text-[10px] text-white/50">KXP</span></div>
-                <div className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1 leading-relaxed">{t('totalExperiencePoints')}</div>
+            <div className="official-card p-6 flex flex-col items-center text-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-secondary to-sky-500 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+                <Clock className="w-6 h-6" />
               </div>
-              <div className="bg-white/10 border border-white/10 rounded-2xl p-4 text-center min-w-[130px]">
-                <Clock className="w-5 h-5 text-secondary mx-auto mb-2" />
-                <div className="text-xl font-black">45 <span className="text-[10px] text-white/50">{t('minutesShort')}</span></div>
-                <div className="text-[9px] font-black text-white/40 uppercase tracking-widest mt-1 leading-relaxed">{t('knowledgeLearningTimeToday')}</div>
-              </div>
+              <div className="text-2xl font-black text-primary dark:text-white">45 <span className="text-[11px] text-slate-400">{t('minutesShort')}</span></div>
+              <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-relaxed">{t('knowledgeLearningTimeToday')}</div>
             </div>
           </div>
 

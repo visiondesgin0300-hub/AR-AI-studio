@@ -6,7 +6,7 @@ import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
 
 export function Landing() {
-  const { dir, language, toggleLanguage } = useLanguage();
+  const { dir, language, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const [showGuide, setShowGuide] = useState(false);
 
@@ -76,22 +76,28 @@ export function Landing() {
           className={cn("flex flex-wrap items-center justify-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
         >
           <button
-            onClick={() => setShowGuide(true)}
-            className="flex items-center gap-2.5 bg-accent text-primary px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all"
-          >
-            <HelpCircle className="w-5 h-5" />
-            {language === 'ar' ? 'دليل الاستخدام' : 'User Guide'}
-          </button>
-
-          <button
             onClick={() => navigate('/login')}
             className="flex items-center gap-2.5 bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
           >
             {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
             {dir === 'rtl' ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
           </button>
+
+          <button
+            onClick={() => setShowGuide(true)}
+            className="flex items-center gap-2.5 bg-accent text-primary px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            <HelpCircle className="w-5 h-5" />
+            {language === 'ar' ? 'دليل الاستخدام' : 'User Guide'}
+          </button>
         </motion.div>
       </main>
+
+      <footer className="relative z-10 px-8 pb-8">
+        <p className={cn("text-[9px] text-slate-350 dark:text-slate-600 font-bold uppercase tracking-widest max-w-7xl mx-auto", dir === 'rtl' ? 'text-right' : 'text-left')}>
+          {t('copyright')}
+        </p>
+      </footer>
 
       <AnimatePresence>
         {showGuide && (

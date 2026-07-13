@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowRight, 
-  ArrowLeft, 
-  Search as SearchIcon, 
-  Map as MapIcon, 
+import {
+  ArrowRight,
+  ArrowLeft,
+  Search as SearchIcon,
+  Map as MapIcon,
   BookOpen,
   GraduationCap,
   ShieldAlert,
@@ -15,7 +15,9 @@ import {
   Sparkles,
   UserCheck,
   Globe,
-  User as UserIcon
+  User as UserIcon,
+  UserPlus,
+  Compass
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MOCK_USERS } from '../data/mockData';
@@ -35,11 +37,27 @@ export function Login({ onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  
+  const [showCreateAccountNotice, setShowCreateAccountNotice] = useState(false);
+
   const navigate = useNavigate();
 
   // Get matching mock users for quick access based on selected role
   const quickAccessProfiles = MOCK_USERS.filter(u => u.role === role);
+
+  const handleGuestAccess = () => {
+    const guestUser: User = {
+      id: `guest_${Date.now()}`,
+      name: language === 'ar' ? 'ضيف' : 'Guest',
+      email: 'guest@arlibrary.demo',
+      role: 'student',
+      borrowedBooks: [],
+      totalReadCount: 0,
+      points: 0,
+      badges: [],
+    };
+    onLogin(guestUser);
+    navigate('/');
+  };
 
   const handleProfileClick = (profile: User) => {
     setEmail(profile.email);
@@ -116,13 +134,25 @@ export function Login({ onLogin }: LoginProps) {
       
       {/* LANGUAGE SWITCHER */}
       <div className={cn("absolute top-6 z-20", dir === 'rtl' ? 'left-6' : 'right-6')}>
-        <button 
+        <button
           type="button"
           onClick={toggleLanguage}
           className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-750 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
         >
           <Globe className="w-3.5 h-3.5 text-[#D7C826] animate-spin-slow" />
           <span>{language === 'ar' ? 'English' : 'العربية'}</span>
+        </button>
+      </div>
+
+      {/* BACK AS GUEST */}
+      <div className={cn("absolute top-6 z-20", dir === 'rtl' ? 'right-6' : 'left-6')}>
+        <button
+          type="button"
+          onClick={handleGuestAccess}
+          className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-750 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
+        >
+          {dir === 'rtl' ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
+          <span>{t('backAsGuest')}</span>
         </button>
       </div>
 
@@ -293,6 +323,39 @@ export function Login({ onLogin }: LoginProps) {
             )}
           </button>
         </form>
+
+        {/* Create account / guest access links */}
+        <div className="mt-6 space-y-3 text-center">
+          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+            <span>{t('noAccountPrompt')} </span>
+            <button
+              type="button"
+              onClick={() => setShowCreateAccountNotice(true)}
+              className="inline-flex items-center gap-1.5 text-[#004C6D] dark:text-[#D7C826] font-black hover:underline cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              {t('createNewAccount')}
+            </button>
+          </div>
+          {showCreateAccountNotice && (
+            <motion.p
+              initial={{ opacity: 0, y: -4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-[10px] font-bold text-slate-400 dark:text-slate-500"
+            >
+              {t('createAccountComingSoon')}
+            </motion.p>
+          )}
+          <button
+            type="button"
+            onClick={handleGuestAccess}
+            className="inline-flex items-center gap-1.5 text-xs font-black text-slate-500 dark:text-slate-400 hover:text-[#004C6D] dark:hover:text-[#D7C826] transition-colors cursor-pointer"
+          >
+            <Compass className="w-3.5 h-3.5" />
+            {t('enterAsGuestExplore')}
+            {dir === 'rtl' ? <ArrowLeft className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
+          </button>
+        </div>
 
         {/* Quick Demo Access Options */}
         <div className="mt-8 pt-6 border-t border-slate-150/60 dark:border-white/5">
