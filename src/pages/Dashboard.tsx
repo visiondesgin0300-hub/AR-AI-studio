@@ -21,6 +21,7 @@ export function Dashboard({ user }: DashboardProps) {
   const categories: string[] = Array.from(new Set(MOCK_BOOKS.map(b => b.category)));
   const [selectedCategory, setSelectedCategory] = React.useState(categories[0]);
   const [searchQuery, setSearchQuery] = React.useState('');
+  const [resourceTab, setResourceTab] = React.useState<'shelves' | 'facilities'>('shelves');
 
   const categoryTranslationMap: Record<string, string> = {
     'فيزياء': t('physics'),
@@ -86,15 +87,21 @@ export function Dashboard({ user }: DashboardProps) {
         <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
         <div className="flex justify-center gap-3 pt-2">
           <button
-            onClick={() => navigate('/map')}
-            className="px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2 bg-primary text-white shadow-lg shadow-primary/20"
+            onClick={() => setResourceTab('shelves')}
+            className={cn(
+              "px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2",
+              resourceTab === 'shelves' ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-primary dark:hover:text-slate-200"
+            )}
           >
             <BookOpen className="w-4 h-4" />
             {t('libraryResourcesShelves')}
           </button>
           <button
-            onClick={() => navigate('/map', { state: { tab: 'facilities' } })}
-            className="px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2 bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-primary dark:hover:text-slate-200"
+            onClick={() => setResourceTab('facilities')}
+            className={cn(
+              "px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2",
+              resourceTab === 'facilities' ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-primary dark:hover:text-slate-200"
+            )}
           >
             <Compass className="w-4 h-4" />
             {t('libraryFacilities')}
@@ -104,7 +111,13 @@ export function Dashboard({ user }: DashboardProps) {
 
       {/* Search prompt + results: kept in a single card so results read as a
           direct response to the search box above them, not a separate,
-          disconnected section further down the page. */}
+          disconnected section further down the page. Toggling to Facilities
+          swaps this same card in place instead of navigating away. */}
+      {resourceTab === 'facilities' ? (
+        <div className="official-card p-16 text-center text-slate-400 dark:text-slate-500 font-bold bg-white dark:bg-slate-900 border-dashed border-slate-200 dark:border-white/10">
+          {t('facilitiesComingSoon')}
+        </div>
+      ) : (
       <section className="official-card p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
         <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
           <BookOpen className="w-8 h-8" />
@@ -174,6 +187,7 @@ export function Dashboard({ user }: DashboardProps) {
           </div>
         )}
       </section>
+      )}
 
       {/* Weekly Achievements Summary + Badges Chest */}
       <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900 space-y-10">
