@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Users, VolumeX, Monitor, Printer } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -79,6 +79,13 @@ export function Dashboard({ user }: DashboardProps) {
     { day: t('friday'), value: 65 },
   ], [t]);
 
+  const FACILITIES = [
+    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), status: 'available' as const },
+    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), status: 'available' as const },
+    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), status: 'busy' as const },
+    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), status: 'available' as const },
+  ];
+
   return (
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
       {/* Title + resource shortcuts */}
@@ -114,8 +121,31 @@ export function Dashboard({ user }: DashboardProps) {
           disconnected section further down the page. Toggling to Facilities
           swaps this same card in place instead of navigating away. */}
       {resourceTab === 'facilities' ? (
-        <div className="official-card p-16 text-center text-slate-400 dark:text-slate-500 font-bold bg-white dark:bg-slate-900 border-dashed border-slate-200 dark:border-white/10">
-          {t('facilitiesComingSoon')}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {FACILITIES.map((facility) => (
+            <div
+              key={facility.name}
+              className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900"
+            >
+              <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
+                <facility.icon className="w-6 h-6" />
+              </div>
+              <div className={cn("flex-1 min-w-0 space-y-1", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-black text-primary dark:text-white text-sm leading-tight">{facility.name}</h4>
+                  <span className={cn(
+                    "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                    facility.status === 'available'
+                      ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                      : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                  )}>
+                    {facility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
       <section className="official-card p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
