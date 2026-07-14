@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search } from 'lucide-react';
+import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle } from 'lucide-react';
 import { User } from '../types';
 import { cn, getUserLevel } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -225,6 +225,18 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 <Sun className="w-5 h-5 text-accent" />
               </motion.div>
               <div className="w-5 h-5 opacity-0"></div> {/* Spacer */}
+            </motion.button>
+
+            {/* Help Center - always one tap away, since students hitting a
+                snag shouldn't have to hunt for support in a submenu. */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => navigate('/help')}
+              title={t('helpCenter')}
+              className="p-3 rounded-2xl bg-white/10 text-white/80 border border-white/15 hover:bg-white/20 hover:border-white/25 transition-all"
+            >
+              <HelpCircle className="w-5 h-5" />
             </motion.button>
 
             {/* Notification Bell */}
