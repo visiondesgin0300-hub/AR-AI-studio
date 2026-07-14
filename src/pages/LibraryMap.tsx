@@ -37,6 +37,9 @@ export function LibraryMap() {
       setSelectedBook(location.state.bookId);
       setShowPath(true);
     }
+    if (location.state?.tab === 'facilities') {
+      setResourceTab('facilities');
+    }
   }, [location.state]);
 
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
