@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, AlertCircle, Sparkles, Compass, MapPin } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -78,49 +78,8 @@ export function Dashboard({ user }: DashboardProps) {
     { day: t('friday'), value: 65 },
   ], [t]);
 
-  // Check for urgent book deadlines (3 days or less)
-  const urgentDeadline = MOCK_BOOKS
-    .filter(b => user.borrowedBooks.includes(b.id))
-    .find(b => {
-      const borrowDate = new Date(2024, 3, parseInt(b.id) * 5);
-      const returnDate = new Date(borrowDate.getTime() + 14 * 24 * 60 * 60 * 1000);
-      const now = new Date(2024, 3, 22);
-      const daysLeft = Math.ceil((returnDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-      return daysLeft <= 3 && daysLeft > 0;
-    });
-
   return (
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
-      {/* Deadline Alert Banner */}
-      {urgentDeadline && (
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 p-6 rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden group mb-[-2rem]"
-        >
-          <div className={cn("absolute top-0 w-32 h-full bg-red-100/50 dark:bg-red-900/30 skew-x-12 transition-transform duration-700", dir === 'rtl' ? 'right-0 translate-x-16 group-hover:translate-x-12' : 'left-0 -translate-x-16 group-hover:-translate-x-12')}></div>
-          <div className="flex items-center gap-6 relative z-10">
-            <div className="w-14 h-14 bg-red-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-red-200 dark:shadow-none animate-pulse">
-               <AlertCircle className="w-8 h-8" />
-            </div>
-            <div className="space-y-1 text-right ltr:text-left">
-               <h4 className="text-lg font-black text-red-900 dark:text-red-100 leading-tight">{t('deadlineAlert')}</h4>
-               <p className="text-sm font-bold text-red-700/70 dark:text-red-200/60">
-                 {language === 'ar' 
-                  ? `يجب إرجاع كتاب "${urgentDeadline.title}" خلال ٣ أيام لتجنب الغرامات.`
-                  : `Book "${urgentDeadline.title}" must be returned within 3 days to avoid fines.`}
-               </p>
-            </div>
-          </div>
-          <button 
-            onClick={() => navigate('/my-books')}
-            className="bg-red-600 text-white px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-700 transition-all shadow-lg shadow-red-200 relative z-10 whitespace-nowrap"
-          >
-            {t('viewMyBooksStatus')}
-          </button>
-        </motion.div>
-      )}
-
       {/* Title + resource shortcuts */}
       <div className="text-center space-y-3 max-w-2xl mx-auto">
         <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('augmentedLibraryMap')}</h1>
