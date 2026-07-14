@@ -167,8 +167,8 @@ export function Dashboard({ user }: DashboardProps) {
           ))}
         </div>
       ) : (
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-      <section className="official-card p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
+      <div className="flex flex-col lg:flex-row gap-10 items-start">
+      <section className="official-card flex-1 w-full p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
         <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
           <BookOpen className="w-8 h-8" />
         </div>
@@ -238,10 +238,10 @@ export function Dashboard({ user }: DashboardProps) {
         )}
       </section>
 
-      {/* Compact shelf map, shown side by side with the search box so a
-          student can see live occupancy while typing rather than needing to
-          jump to the full library map page. */}
-      <div className="official-card p-6 bg-white dark:bg-slate-900">
+      {/* Compact shelf map, kept as its own distinct card next to the search
+          box so a student can see live occupancy while typing rather than
+          needing to jump to the full library map page. */}
+      <div className="official-card flex-1 w-full p-6 bg-white dark:bg-slate-900">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {cells.map((cell) => {
             const section = sections.find(s => s.id === cell.section);
