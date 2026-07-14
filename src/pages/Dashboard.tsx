@@ -86,6 +86,25 @@ export function Dashboard({ user }: DashboardProps) {
     { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), status: 'available' as const },
   ];
 
+  const sections = [
+    { id: 'A', name: t('naturalSciences'), icon: '🧪', color: 'bg-blue-500' },
+    { id: 'B', name: t('engineeringAndTech'), icon: '⚙️', color: 'bg-orange-500' },
+    { id: 'C', name: t('artsAndCrafts'), icon: '🎨', color: 'bg-purple-500' },
+    { id: 'D', name: t('humanities'), icon: '📚', color: 'bg-green-500' },
+  ];
+
+  const cells = [
+    { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' }, { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' },
+    { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' }, { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' },
+  ];
+
+  const occupancyData = React.useMemo(() => {
+    return {
+      'A-1': 60, 'A-2': 25, 'B-1': 86, 'B-2': 23,
+      'C-1': 78, 'C-2': 97, 'D-1': 54, 'D-2': 0,
+    };
+  }, []);
+
   return (
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
       {/* Title + resource shortcuts */}
@@ -148,6 +167,7 @@ export function Dashboard({ user }: DashboardProps) {
           ))}
         </div>
       ) : (
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
       <section className="official-card p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
         <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
           <BookOpen className="w-8 h-8" />
@@ -217,6 +237,43 @@ export function Dashboard({ user }: DashboardProps) {
           </div>
         )}
       </section>
+
+      {/* Compact shelf map, shown side by side with the search box so a
+          student can see live occupancy while typing rather than needing to
+          jump to the full library map page. */}
+      <div className="official-card p-6 bg-white dark:bg-slate-900">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {cells.map((cell) => {
+            const section = sections.find(s => s.id === cell.section);
+            const occupancy = occupancyData[cell.id as keyof typeof occupancyData];
+            return (
+              <div
+                key={cell.id}
+                onClick={() => navigate('/map')}
+                className="relative flex flex-col items-center justify-center rounded-[2rem] border-2 border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800 hover:border-primary/20 dark:hover:border-accent/20 transition-all duration-300 cursor-pointer group py-6 px-2"
+              >
+                <div className={cn("absolute top-3 flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2 py-1 rounded-full shadow-sm border border-slate-100 dark:border-white/5", dir === 'rtl' ? 'left-3' : 'right-3')}>
+                  <div className={cn("w-1.5 h-1.5 rounded-full", occupancy > 70 ? "bg-red-500" : occupancy > 40 ? "bg-amber-500" : "bg-emerald-500")}></div>
+                  <span className="text-[8px] font-black text-slate-500 dark:text-slate-400">{occupancy}%</span>
+                </div>
+
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-white dark:bg-slate-700 shadow-md">
+                    {section?.icon}
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-[8px] font-black text-primary/40 dark:text-white/30 uppercase tracking-widest leading-tight">{section?.name}</div>
+                    <div className="text-sm font-black text-primary dark:text-white">{t('shelfId', { id: cell.id })}</div>
+                  </div>
+                </div>
+
+                <div className={cn("absolute bottom-0 inset-x-6 h-1 rounded-t-full opacity-20 group-hover:opacity-100 transition-all", section?.color)} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      </div>
       )}
 
       {/* Weekly Achievements Summary + Badges Chest */}
