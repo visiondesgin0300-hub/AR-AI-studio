@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Map as MapIcon, BookOpen, Clock, ChevronRight, Star, AlertCircle, Sparkles, Award, Camera, Navigation, Trophy } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, AlertCircle, Sparkles, Compass, MapPin } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -50,11 +50,23 @@ export function Dashboard({ user }: DashboardProps) {
     MOCK_BOOKS.filter(b => user.borrowedBooks.includes(b.id)).map(b => b.category)
   ));
   
-  const recommendations = MOCK_BOOKS
-    .filter(b => !user.borrowedBooks.includes(b.id))
-    .filter(b => recommendationCategories.length > 0 ? recommendationCategories.includes(b.category) : true)
-    .slice(0, 3);
-  const MATCH_SCORES = [91, 84, 84];
+  const [mapSearchQuery, setMapSearchQuery] = React.useState('');
+
+  const recommendations = React.useMemo(() => {
+    if (mapSearchQuery.trim()) {
+      const q = mapSearchQuery.toLowerCase();
+      return MOCK_BOOKS.filter(b =>
+        b.title.toLowerCase().includes(q) ||
+        b.author.toLowerCase().includes(q) ||
+        (b.category ?? '').toLowerCase().includes(q)
+      ).slice(0, 3);
+    }
+    return MOCK_BOOKS
+      .filter(b => !user.borrowedBooks.includes(b.id))
+      .filter(b => recommendationCategories.length > 0 ? recommendationCategories.includes(b.category) : true)
+      .slice(0, 3);
+  }, [mapSearchQuery, recommendationCategories, user.borrowedBooks]);
+  const MATCH_SCORES = [98, 94, 91];
 
   const WEEKLY_ACTIVITY = React.useMemo(() => [
     { day: t('saturday'), value: 40 },
@@ -109,113 +121,102 @@ export function Dashboard({ user }: DashboardProps) {
         </motion.div>
       )}
 
-      {/* Hero Section */}
-      <section className="official-card p-12 bg-white dark:bg-slate-900">
-        <div className="max-w-xl space-y-6">
-          <div className="inline-flex items-center gap-2 bg-primary/5 dark:bg-accent/10 px-4 py-2 rounded-full border border-primary/10 dark:border-accent/20">
-             <Star className="w-4 h-4 text-accent fill-accent" />
-             <span className="text-[10px] font-black text-primary dark:text-accent uppercase tracking-[0.2em]">{t('smartPortal')}</span>
-          </div>
-          <h2 className="text-4xl font-black text-primary dark:text-white tracking-tight leading-tight">{t('welcomeUser').replace('{name}', user.name)}</h2>
-          <p className="text-slate-400 dark:text-slate-500 text-lg font-medium leading-relaxed">{t('heroSubtitle')}</p>
+      {/* Title + resource shortcuts */}
+      <div className="text-center space-y-3 max-w-2xl mx-auto">
+        <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('augmentedLibraryMap')}</h1>
+        <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
+        <div className="flex justify-center gap-3 pt-2">
+          <button
+            onClick={() => navigate('/map')}
+            className="px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2 bg-primary text-white shadow-lg shadow-primary/20"
+          >
+            <BookOpen className="w-4 h-4" />
+            {t('libraryResourcesShelves')}
+          </button>
+          <button
+            onClick={() => navigate('/map')}
+            className="px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2 bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-primary dark:hover:text-slate-200"
+          >
+            <Compass className="w-4 h-4" />
+            {t('libraryFacilities')}
+          </button>
+        </div>
+      </div>
 
-          <div className="flex flex-wrap gap-4 mt-8">
-            <div className="relative group max-w-md flex-1 min-w-[280px]">
-              <Search className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 w-6 h-6 z-10", dir === 'rtl' ? 'right-6' : 'left-6')} />
-              <input
-                type="text"
-                placeholder={t('searchPlaceholderMain')}
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  const el = document.getElementById('explore-collections');
-                  if (el) {
-                    el.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
-                className={cn("w-full py-5 bg-slate-50 dark:bg-slate-800 text-primary dark:text-white rounded-2xl text-base font-bold transition-all border border-slate-100 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-accent", dir === 'rtl' ? 'pr-16 pl-6' : 'pl-16 pr-6')}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-1 bg-slate-100 rounded-full text-xs font-black z-20"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-
-            <div
-              onClick={() => navigate('/search')}
-              className="bg-accent/10 border border-accent/20 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-accent/20 transition-all group shrink-0"
-            >
-              <div className="w-12 h-12 bg-accent rounded-xl flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <div className="text-right ltr:text-left">
-                <div className="text-[10px] font-black text-accent uppercase tracking-widest leading-none mb-1">{t('new')}</div>
-                <div className="text-xs font-black text-primary dark:text-white">{t('searchBooks')}</div>
-              </div>
-            </div>
-
-            <div
-              onClick={() => navigate('/ar')}
-              className="bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-primary/10 dark:hover:bg-white/10 transition-all group shrink-0"
-            >
-              <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white group-hover:scale-110 transition-transform">
-                <Camera className="w-6 h-6" />
-              </div>
-              <div className="text-right ltr:text-left">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">AR</div>
-                <div className="text-xs font-black text-primary dark:text-white">{t('scanCoverAction')}</div>
-              </div>
-            </div>
-          </div>
+      {/* Search prompt */}
+      <section className="official-card p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
+        <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+          <BookOpen className="w-8 h-8" />
+        </div>
+        <div className="space-y-2 max-w-lg">
+          <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{t('searchForBookFirst')}</h3>
+          <p className="text-slate-400 dark:text-slate-500 font-bold text-sm leading-relaxed">{t('searchForBookFirstDesc')}</p>
+        </div>
+        <div className="relative w-full max-w-xl">
+          <Search className={cn("absolute top-1/2 -translate-y-1/2 text-primary w-5 h-5", dir === 'rtl' ? 'right-5' : 'left-5')} />
+          <input
+            type="text"
+            value={mapSearchQuery}
+            onChange={(e) => setMapSearchQuery(e.target.value)}
+            placeholder={t('searchByBookPlaceholder')}
+            className={cn(
+              "w-full py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent",
+              dir === 'rtl' ? 'pr-14 pl-5 text-right' : 'pl-14 pr-5 text-left'
+            )}
+          />
         </div>
       </section>
 
       {/* Recommended & Featured Sources for Instant Navigation */}
-      <section className="space-y-8">
-        <div className="text-center space-y-2 max-w-xl mx-auto">
-          <h3 className="text-lg font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4 text-accent" />
-            {t('recommendedFeaturedSources')}
-          </h3>
-          <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('recommendedFeaturedSourcesDesc')}</p>
-        </div>
+      {recommendations.length > 0 && (
+        <section className="space-y-6">
+          <div className="text-center space-y-2 max-w-xl mx-auto">
+            <h4 className="text-lg font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
+              <Sparkles className="w-4 h-4 text-accent" />
+              {t('recommendedFeaturedSources')}
+            </h4>
+            <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('recommendedFeaturedSourcesDesc')}</p>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {recommendations.map((book, idx) => (
-            <motion.div
-              key={book.id}
-              initial={{ opacity: 0, y: 10 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ delay: idx * 0.1, duration: 0.4 }}
-              viewport={{ once: true }}
-              className="official-card p-5 bg-white dark:bg-slate-900 flex flex-col gap-4"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</span>
-                <span className="px-2.5 py-1 bg-accent/15 text-accent rounded-lg text-[9px] font-black">{MATCH_SCORES[idx] ?? 80}% {t('matchLabel')}</span>
-              </div>
-              <div className="flex items-center gap-4">
-                <img src={book.coverUrl} alt={book.title} className="w-14 h-20 object-cover rounded-xl shrink-0" referrerPolicy="no-referrer" />
-                <div className="min-w-0 space-y-1">
-                  <h4 className="font-black text-primary dark:text-white text-sm leading-tight line-clamp-2">{book.title}</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">{book.author}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {recommendations.map((book, idx) => (
+              <div
+                key={book.id}
+                onClick={() => navigate('/map', { state: { bookId: book.id } })}
+                className="official-card p-5 space-y-4 cursor-pointer bg-white dark:bg-slate-900 hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all"
+              >
+                <div className={cn("flex items-center justify-between", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-1 rounded-lg uppercase tracking-widest">
+                    {MATCH_SCORES[idx] ?? 90}% {t('matchLabel')}
+                  </span>
+                </div>
+                <div className={cn("flex gap-4", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
+                  <img
+                    src={book.coverUrl}
+                    alt={book.title}
+                    className="w-16 h-20 object-cover rounded-xl shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="min-w-0 space-y-1">
+                    <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2">{book.title}</h5>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{book.author}</p>
+                  </div>
+                </div>
+                <div className={cn("flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <span className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-bold">
+                    <MapPin className="w-3.5 h-3.5 text-primary/60 dark:text-accent" />
+                    {t('shelfItem')} {book.shelf}
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest">
+                    {t('instantNav')}
+                    <ChevronRight className={cn("w-3.5 h-3.5", dir === 'rtl' ? 'rotate-180' : '')} />
+                  </span>
                 </div>
               </div>
-              <button
-                onClick={() => navigate('/map', { state: { bookId: book.id } })}
-                className="w-full py-2.5 bg-primary/5 dark:bg-white/5 text-primary dark:text-accent rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-1.5"
-              >
-                <Navigation className="w-3 h-3" />
-                {t('instantNav')}
-              </button>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Weekly Achievements Summary + Badges Chest */}
       <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900 space-y-10">
