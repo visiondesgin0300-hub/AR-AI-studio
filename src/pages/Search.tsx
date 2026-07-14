@@ -221,6 +221,88 @@ export function Search() {
             </div>
           </div>
 
+          {/* Smart Search Insights - only meaningful once there are actual
+              results to analyze, so it sits directly above them instead of
+              a persistent sidebar card with a permanently-disabled button. */}
+          {filteredBooks.length > 0 && (
+            <div className="p-6 bg-gradient-to-l from-[#004C6D] to-[#01354c] dark:from-slate-900 dark:to-slate-950 text-white rounded-3xl shadow-xl shadow-[#004C6D]/15 border border-white/10 relative overflow-hidden">
+              <div className="absolute top-[-40px] right-[-40px] w-48 h-48 rounded-full bg-[#D7C826]/10 blur-xl pointer-events-none" />
+
+              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-6 justify-between">
+                <div className="space-y-2 flex-1">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/15">
+                    <Sparkles className="w-3.5 h-3.5 text-[#D7C826]" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-[#D7C826]">{language === 'ar' ? 'محلل الفهرس الموحد' : 'Unified Index AI'}</span>
+                  </div>
+                  <h3 className="text-lg font-black tracking-tight">
+                    {language === 'ar' ? 'تحليلات البحث الذكية' : 'Smart Search Insights'}
+                  </h3>
+                  <p className="text-xs text-white/80 leading-relaxed font-semibold max-w-xl">
+                    {language === 'ar'
+                      ? 'بناءً على نتائج تصفيتك الحالية، يستطيع نموذج الذكاء الاصطناعي تركيب أهم 3 كتب وتقديم ملخص يربطها بموضوع بحثك مباشرة.'
+                      : 'Based on current search filters, our AI synthesizer creates a quick academic report drawing pathways across the top matches.'}
+                  </p>
+                </div>
+
+                <button
+                  onClick={handleGenerateInsights}
+                  disabled={isGeneratingInsights}
+                  className="shrink-0 px-8 py-4 bg-[#D7C826] text-[#004C6D] font-black text-xs uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2.5 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-lg shadow-black/10"
+                >
+                  {isGeneratingInsights ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 animate-spin text-primary" />
+                      <span>{t('searching')}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4 text-[#004C6D]" />
+                      <span>{language === 'ar' ? 'توليد تقرير وربط أكاديمي' : 'Analyze Core Insights'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <AnimatePresence>
+                {(aiInsights || isGeneratingInsights || insightsError) && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="relative z-10 mt-6 pt-6 border-t border-white/10 space-y-4"
+                  >
+                    {isGeneratingInsights && (
+                      <div className="space-y-2 text-center py-4 bg-white/5 rounded-2xl border border-white/5">
+                        <div className="w-6 h-6 border-2 border-[#D7C826] border-t-transparent rounded-full animate-spin mx-auto" />
+                        <span className="text-[10px] font-black text-white/60 block animate-pulse uppercase tracking-widest">
+                          {t('analyzingResultsDeeply')}
+                        </span>
+                      </div>
+                    )}
+
+                    {insightsError && (
+                      <div className="p-4 bg-red-950/40 text-red-300 rounded-2xl border border-red-900/50 text-xs font-semibold leading-relaxed">
+                        {insightsError}
+                      </div>
+                    )}
+
+                    {aiInsights && !isGeneratingInsights && (
+                      <div className="p-5 bg-white/5 rounded-2xl border border-white/10 text-xs leading-relaxed space-y-3 shadow-inner text-white">
+                        <div className="flex items-center gap-1.5 font-black text-[#D7C826] border-b border-white/5 pb-2 uppercase tracking-wide text-[10px]">
+                          <BookOpen className="w-4 h-4" />
+                          <span>{t('smartSummaryTopResults')}</span>
+                        </div>
+                        <p className="whitespace-pre-wrap font-medium text-white/90">
+                          {aiInsights}
+                        </p>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )}
+
           {/* Results section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
@@ -308,85 +390,8 @@ export function Search() {
 
         </div>
 
-        {/* Right Column: AI Assistant for Research Grounding */}
+        {/* Right Column: Guidance */}
         <div className="space-y-6">
-          <div className="p-6 bg-gradient-to-b from-[#004C6D] to-[#01354c] text-white rounded-3xl shadow-xl shadow-[#004C6D]/15 border border-white/10 space-y-6 relative overflow-hidden dark:from-slate-900 dark:to-slate-950">
-            {/* Elegant Background Grid / Circle Accent */}
-            <div className="absolute top-[-40px] right-[-40px] w-48 h-48 rounded-full bg-[#D7C826]/10 blur-xl pointer-events-none" />
-            
-            <div className="space-y-2 relative z-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/15">
-                <Sparkles className="w-3.5 h-3.5 text-[#D7C826]" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-[#D7C826]">{language === 'ar' ? 'محلل الفهرس الموحد' : 'Unified Index AI'}</span>
-              </div>
-              <h3 className="text-xl font-black tracking-tight mt-3">
-                {language === 'ar' ? 'تحليلات البحث الذكية' : 'Smart Search Insights'}
-              </h3>
-              <p className="text-xs text-white/80 leading-relaxed font-semibold">
-                {language === 'ar' 
-                  ? 'بناءً على نتائج تصفيتك الحالية، يستطيع نموذج الذكاء الاصطناعي تركيب أهم 3 كتب، تقديم ملخص للمهتمين المشتركين وربطها بموضوع تخصصك مباشرة.'
-                  : 'Based on current search filters, our AI synthesizer creates a quick academic report drawing pathways across the top matches.'}
-              </p>
-            </div>
-
-            <button
-              onClick={handleGenerateInsights}
-              disabled={isGeneratingInsights || filteredBooks.length === 0}
-              className="w-full py-4.5 bg-[#D7C826] text-[#004C6D] font-black text-xs uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2.5 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-lg shadow-black/10 relative z-10"
-            >
-              {isGeneratingInsights ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-primary" />
-                  <span>{t('searching')}</span>
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4 text-[#004C6D]" />
-                  <span>{language === 'ar' ? 'توليد تقرير وربط أكاديمي' : 'Analyze Core Insights'}</span>
-                </>
-              )}
-            </button>
-
-            {/* Simulated report if no real key, otherwise real response */}
-            <AnimatePresence>
-              {(aiInsights || isGeneratingInsights || insightsError) && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="pt-6 border-t border-white/10 space-y-4"
-                >
-                  {isGeneratingInsights && (
-                    <div className="space-y-2 text-center py-4 bg-white/5 rounded-2xl border border-white/5">
-                      <div className="w-6 h-6 border-2 border-[#D7C826] border-t-transparent rounded-full animate-spin mx-auto" />
-                      <span className="text-[10px] font-black text-white/60 block animate-pulse uppercase tracking-widest">
-                        {t('analyzingResultsDeeply')}
-                      </span>
-                    </div>
-                  )}
-
-                  {insightsError && (
-                    <div className="p-4 bg-red-950/40 text-red-300 rounded-2xl border border-red-900/50 text-xs font-semibold leading-relaxed">
-                      {insightsError}
-                    </div>
-                  )}
-
-                  {aiInsights && !isGeneratingInsights && (
-                    <div className="p-5 bg-white/5 rounded-2xl border border-white/10 text-xs leading-relaxed space-y-3 shadow-inner text-white">
-                      <div className="flex items-center gap-1.5 font-black text-[#D7C826] border-b border-white/5 pb-2 uppercase tracking-wide text-[10px]">
-                        <BookOpen className="w-4 h-4" />
-                        <span>{t('smartSummaryTopResults')}</span>
-                      </div>
-                      <p className="whitespace-pre-wrap font-medium text-white/90">
-                        {aiInsights}
-                      </p>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
           {/* Guidelines info card */}
           <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 rounded-3xl space-y-4 shadow-sm text-xs font-semibold text-slate-500 leading-relaxed">
             <h4 className="font-black text-sm text-primary dark:text-white flex items-center gap-2">

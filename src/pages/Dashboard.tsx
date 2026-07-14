@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, Map as MapIcon, BookOpen, Clock, ChevronRight, Star, AlertCircle, Sparkles, Award, Camera } from 'lucide-react';
+import { Search, Map as MapIcon, BookOpen, Clock, ChevronRight, Star, AlertCircle, Sparkles, Award, Camera, Navigation, Trophy } from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
@@ -53,6 +54,17 @@ export function Dashboard({ user }: DashboardProps) {
     .filter(b => !user.borrowedBooks.includes(b.id))
     .filter(b => recommendationCategories.length > 0 ? recommendationCategories.includes(b.category) : true)
     .slice(0, 3);
+  const MATCH_SCORES = [91, 84, 84];
+
+  const WEEKLY_ACTIVITY = React.useMemo(() => [
+    { day: t('saturday'), value: 40 },
+    { day: t('sunday'), value: 30 },
+    { day: t('monday'), value: 60 },
+    { day: t('tuesday'), value: 45 },
+    { day: t('wednesday'), value: 70 },
+    { day: t('thursday'), value: 90 },
+    { day: t('friday'), value: 65 },
+  ], [t]);
 
   // Check for urgent book deadlines (3 days or less)
   const urgentDeadline = MOCK_BOOKS
@@ -162,85 +174,89 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
       </section>
 
-      {/* Badges Cabinet Section */}
-      <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-lg shadow-accent/5">
-              <Award className="w-6 h-6 animate-pulse" />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight leading-none">{t('royalBadgesCabinet')}</h3>
-              <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">{t('achievementRecord')}</p>
-            </div>
-          </div>
-          <button
-            onClick={() => navigate('/my-books?tab=badges')}
-            className="px-6 py-3 bg-[#99d6ea]/15 hover:bg-[#99d6ea]/25 text-[#004C6D] dark:text-[#99d6ea] border border-[#99d6ea]/25 rounded-xl text-xs font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 cursor-pointer whitespace-nowrap self-start md:self-auto"
-          >
-            {language === 'ar' ? 'عرض الخزانة كاملة' : 'View Full Cabinet'}
-          </button>
+      {/* Recommended & Featured Sources for Instant Navigation */}
+      <section className="space-y-8">
+        <div className="text-center space-y-2 max-w-xl mx-auto">
+          <h3 className="text-lg font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
+            <Sparkles className="w-4 h-4 text-accent" />
+            {t('recommendedFeaturedSources')}
+          </h3>
+          <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('recommendedFeaturedSourcesDesc')}</p>
         </div>
 
-        <BadgesCabinet user={user} />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {recommendations.map((book, idx) => (
+            <motion.div
+              key={book.id}
+              initial={{ opacity: 0, y: 10 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.1, duration: 0.4 }}
+              viewport={{ once: true }}
+              className="official-card p-5 bg-white dark:bg-slate-900 flex flex-col gap-4"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</span>
+                <span className="px-2.5 py-1 bg-accent/15 text-accent rounded-lg text-[9px] font-black">{MATCH_SCORES[idx] ?? 80}% {t('matchLabel')}</span>
+              </div>
+              <div className="flex items-center gap-4">
+                <img src={book.coverUrl} alt={book.title} className="w-14 h-20 object-cover rounded-xl shrink-0" referrerPolicy="no-referrer" />
+                <div className="min-w-0 space-y-1">
+                  <h4 className="font-black text-primary dark:text-white text-sm leading-tight line-clamp-2">{book.title}</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">{book.author}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/map', { state: { bookId: book.id } })}
+                className="w-full py-2.5 bg-primary/5 dark:bg-white/5 text-primary dark:text-accent rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/10 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-1.5"
+              >
+                <Navigation className="w-3 h-3" />
+                {t('instantNav')}
+              </button>
+            </motion.div>
+          ))}
+        </div>
       </section>
 
-      {/* Smart Recommendations Section */}
-      <section className="space-y-10">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center text-accent shadow-lg shadow-accent/5">
-            <Sparkles className="w-6 h-6" />
-          </div>
+      {/* Weekly Achievements Summary + Badges Chest */}
+      <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900 space-y-10">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('smartRecommendations')}</h3>
-            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">{t('recsSubtitle')}</p>
+            <h3 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('weeklyAchievementsSummary')}</h3>
+            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em]">{t('weeklyAchievementsSummaryDesc')}</p>
+          </div>
+          <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 flex items-center gap-4">
+            <span>{t('totalTimeSpentLabel')}: {language === 'ar' ? '٦' : '6'} {t('hoursShort')} {language === 'ar' ? '٤٠' : '40'} {t('minutesShort')}</span>
+            <span className="text-accent">{t('totalPointsEarnedLabel')}: +{user.points} KXP</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-           {recommendations.map((book, idx) => (
-             <motion.div
-               key={book.id}
-               initial={{ opacity: 0, scale: 0.95 }}
-               whileInView={{ opacity: 1, scale: 1 }}
-               transition={{ delay: idx * 0.1, duration: 0.5 }}
-               viewport={{ once: true }}
-             >
-               <Link 
-                 to={`/book/${book.id}`}
-                 className="group relative block aspect-[16/9] md:aspect-[16/10] bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-black/5 dark:shadow-none border border-slate-100 dark:border-white/5 transition-all hover:scale-[1.02] active:scale-95"
-               >
-                 <div className="absolute inset-0">
-                    <img 
-                      src={book.coverUrl} 
-                      alt={book.title}
-                      className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-primary/95 dark:from-slate-950/95 via-primary/50 dark:via-slate-950/50 to-transparent"></div>
-                 </div>
-                 
-                 <div className="absolute inset-x-0 bottom-0 p-8 space-y-4">
-                    <div className="flex items-center gap-2">
-                       <span className="px-3 py-1 bg-accent rounded-lg text-[9px] font-black text-primary uppercase">{t('smartSuggestion')}</span>
-                       <span className="text-[9px] font-black text-white/50 uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</span>
-                    </div>
-                    <div className="space-y-1">
-                       <h4 className="text-lg font-black text-white leading-tight group-hover:text-accent transition-colors line-clamp-2">{book.title}</h4>
-                       <div className="flex items-center gap-2">
-                          <div className="w-4 h-px bg-accent/50"></div>
-                          <span className="text-[10px] font-bold text-white/40 uppercase tracking-wide">{book.author}</span>
-                       </div>
-                    </div>
-                 </div>
-                 
-                 {/* Decorative elements */}
-                 <div className={cn("absolute top-6 p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 opacity-0 group-hover:opacity-100 transition-all", dir === 'rtl' ? 'left-6' : 'right-6')}>
-                    <ChevronRight className="w-5 h-5 text-white rtl-flip" />
-                 </div>
-               </Link>
-             </motion.div>
-           ))}
+        <div className="h-48 w-full -mx-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={WEEKLY_ACTIVITY} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+              <defs>
+                <linearGradient id="weeklyActivityFill" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#99d6ea" stopOpacity={0.4} />
+                  <stop offset="100%" stopColor="#99d6ea" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-100 dark:text-white/5" />
+              <XAxis dataKey="day" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+              <YAxis hide />
+              <Tooltip contentStyle={{ borderRadius: 12, border: 'none', fontSize: 11, fontWeight: 700 }} />
+              <Area type="monotone" dataKey="value" stroke="#99d6ea" strokeWidth={3} fill="url(#weeklyActivityFill)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="space-y-6">
+          <div className="text-center space-y-2 max-w-xl mx-auto">
+            <span className="inline-block px-4 py-1.5 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
+              {t('earnedBadgesEyebrow')}
+            </span>
+            <h4 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('informationCognitiveBadgesChest')}</h4>
+            <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('informationCognitiveBadgesChestDesc')}</p>
+          </div>
+          <BadgesCabinet user={user} badgeIds={['مستكشف', 'باحث', 'متميز']} />
         </div>
       </section>
 
