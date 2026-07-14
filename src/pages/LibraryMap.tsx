@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Search as SearchIcon } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Search as SearchIcon, Users, VolumeX, Monitor, Printer } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -43,6 +43,13 @@ export function LibraryMap() {
   }, [location.state]);
 
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
+
+  const FACILITIES = [
+    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), status: 'available' as const },
+    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), status: 'available' as const },
+    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), status: 'busy' as const },
+    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), status: 'available' as const },
+  ];
 
   const sections = [
     { id: 'A', name: t('naturalSciences'), icon: '🧪', subjects: [t('physics'), t('chemistry'), t('biology')], color: 'bg-blue-500', occupancy: t('quiet') },
@@ -137,8 +144,31 @@ export function LibraryMap() {
           </div>
 
           {resourceTab === 'facilities' && (
-            <div className="official-card p-16 text-center text-slate-400 dark:text-slate-500 font-bold bg-white dark:bg-slate-900 border-dashed border-slate-200 dark:border-white/10">
-              {t('facilitiesComingSoon')}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {FACILITIES.map((facility) => (
+                <div
+                  key={facility.name}
+                  className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900"
+                >
+                  <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
+                    <facility.icon className="w-6 h-6" />
+                  </div>
+                  <div className={cn("flex-1 min-w-0 space-y-1", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                    <div className="flex items-center justify-between gap-2">
+                      <h4 className="font-black text-primary dark:text-white text-sm leading-tight">{facility.name}</h4>
+                      <span className={cn(
+                        "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                        facility.status === 'available'
+                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                          : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                      )}>
+                        {facility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
