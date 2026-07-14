@@ -670,7 +670,7 @@ export const translations = {
     viewDetails: 'Book Details',
     goToShelf: 'Go to Shelf',
     arHubFabLabel: 'Augmented Reality',
-    augmentedLibraryMap: 'Augmented Library Map',
+    augmentedLibraryMap: 'ARLibrary',
     augmentedLibraryMapDesc: 'Explore resource shelves, facilities and interactive services with our smart path tracing system.',
     libraryResourcesShelves: 'Library Resources Shelves',
     libraryFacilities: 'Library Facilities',
