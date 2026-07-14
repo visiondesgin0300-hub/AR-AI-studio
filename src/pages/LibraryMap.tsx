@@ -45,10 +45,10 @@ export function LibraryMap() {
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
 
   const FACILITIES = [
-    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), status: 'available' as const },
-    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), status: 'available' as const },
-    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), status: 'busy' as const },
-    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), status: 'available' as const },
+    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), location: t('facilityLocationGroupStudy'), status: 'available' as const },
+    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), location: t('facilityLocationSilentZone'), status: 'available' as const },
+    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), location: t('facilityLocationComputerLab'), status: 'busy' as const },
+    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), location: t('facilityLocationPrinting'), status: 'available' as const },
   ];
 
   const sections = [
@@ -166,6 +166,10 @@ export function LibraryMap() {
                       </span>
                     </div>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
+                    <div className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent">
+                      <MapPin className="w-3.5 h-3.5" />
+                      <span>{facility.location}</span>
+                    </div>
                   </div>
                 </div>
               ))}

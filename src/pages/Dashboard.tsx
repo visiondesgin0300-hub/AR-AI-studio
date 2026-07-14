@@ -80,10 +80,10 @@ export function Dashboard({ user }: DashboardProps) {
   ], [t]);
 
   const FACILITIES = [
-    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), status: 'available' as const },
-    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), status: 'available' as const },
-    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), status: 'busy' as const },
-    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), status: 'available' as const },
+    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), location: t('facilityLocationGroupStudy'), status: 'available' as const },
+    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), location: t('facilityLocationSilentZone'), status: 'available' as const },
+    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), location: t('facilityLocationComputerLab'), status: 'busy' as const },
+    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), location: t('facilityLocationPrinting'), status: 'available' as const },
   ];
 
   const sections = [
@@ -144,7 +144,8 @@ export function Dashboard({ user }: DashboardProps) {
           {FACILITIES.map((facility) => (
             <div
               key={facility.name}
-              className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900"
+              onClick={() => navigate('/map', { state: { tab: 'facilities' } })}
+              className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900 cursor-pointer hover:border-accent dark:hover:border-accent transition-all"
             >
               <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
                 <facility.icon className="w-6 h-6" />
@@ -162,6 +163,10 @@ export function Dashboard({ user }: DashboardProps) {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
+                <div className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent">
+                  <MapPin className="w-3.5 h-3.5" />
+                  <span>{facility.location}</span>
+                </div>
               </div>
             </div>
           ))}
