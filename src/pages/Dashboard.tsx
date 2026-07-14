@@ -163,10 +163,16 @@ export function Dashboard({ user }: DashboardProps) {
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
-                <div className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/map', { state: { tab: 'facilities' } });
+                  }}
+                  className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent hover:text-primary dark:hover:text-white hover:underline cursor-pointer"
+                >
                   <MapPin className="w-3.5 h-3.5" />
                   <span>{facility.location}</span>
-                </div>
+                </button>
               </div>
             </div>
           ))}
