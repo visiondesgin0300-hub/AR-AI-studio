@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search as SearchIcon, Sparkles, BookOpen, MapPin, Tag, RefreshCw, Layers, Compass, HelpCircle } from 'lucide-react';
+import { Search as SearchIcon, Sparkles, BookOpen, MapPin, Tag, RefreshCw, Compass, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -119,11 +119,8 @@ export function Search() {
       </div>
 
       {/* Main Search Panel */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        
-        {/* Left/Main Column: Input, suggestions, filters & list */}
-        <div className="lg:col-span-2 space-y-6">
-          
+      <div className="space-y-6">
+
           {/* Main search bar */}
           <div className="relative group shadow-xl shadow-black/[0.03] rounded-3xl">
             <SearchIcon className={cn("absolute top-1/2 -translate-y-1/2 text-primary w-6 h-6 z-10", dir === 'rtl' ? 'right-6' : 'left-6')} />
@@ -389,24 +386,6 @@ export function Search() {
           </div>
 
         </div>
-
-        {/* Right Column: Guidance */}
-        <div className="space-y-6">
-          {/* Guidelines info card */}
-          <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 rounded-3xl space-y-4 shadow-sm text-xs font-semibold text-slate-500 leading-relaxed">
-            <h4 className="font-black text-sm text-primary dark:text-white flex items-center gap-2">
-              <Layers className="w-4 h-4 text-accent" />
-              <span>{language === 'ar' ? 'ملاحظة الفهرسة الذكية' : 'Smart Cataloging Note'}</span>
-            </h4>
-            <p>
-              {language === 'ar'
-                ? 'الفهرس يعتمد على خريطة فيزيائية ثلاثية الأبعاد تنظم الرفوف والأقسام. من خلال العثور على موقع الرف، يمكنك الانتقال بنقرة واحدة لخارطة المكتبة لتحديد المسار الأقصر للوصول للكتاب.'
-                : 'The unified library indexing coordinates each book directly on a physical 3D spatial map, allowing seamless path-tracking once your search has succeeded.'}
-            </p>
-          </div>
-        </div>
-
-      </div>
 
     </div>
   );

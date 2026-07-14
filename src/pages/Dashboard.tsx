@@ -167,6 +167,7 @@ export function Dashboard({ user }: DashboardProps) {
           ))}
         </div>
       ) : (
+      <>
       <div className="flex flex-col lg:flex-row gap-10 items-start">
       <section className="official-card flex-1 w-full p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
         <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
@@ -189,53 +190,6 @@ export function Dashboard({ user }: DashboardProps) {
             )}
           />
         </div>
-
-        {recommendations.length > 0 && (
-          <div className="w-full pt-6 mt-2 border-t border-slate-100 dark:border-white/5 space-y-6">
-            <h4 className="text-sm font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
-              <Sparkles className="w-4 h-4 text-accent" />
-              {mapSearchQuery.trim() ? t('searchResults') : t('recommendedFeaturedSources')}
-            </h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left rtl:text-right">
-              {recommendations.map((book, idx) => (
-                <div
-                  key={book.id}
-                  onClick={() => navigate(`/book/${book.id}`)}
-                  className="official-card p-5 space-y-4 cursor-pointer bg-white dark:bg-slate-900 hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all"
-                >
-                <div className={cn("flex items-center justify-between", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-1 rounded-lg uppercase tracking-widest">
-                    {MATCH_SCORES[idx] ?? 90}% {t('matchLabel')}
-                  </span>
-                </div>
-                <div className={cn("flex gap-4", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
-                  <img
-                    src={book.coverUrl}
-                    alt={book.title}
-                    className="w-16 h-20 object-cover rounded-xl shrink-0"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="min-w-0 space-y-1">
-                    <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2">{book.title}</h5>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{book.author}</p>
-                  </div>
-                </div>
-                <div className={cn("flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                  <span className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-bold">
-                    <MapPin className="w-3.5 h-3.5 text-primary/60 dark:text-accent" />
-                    {t('shelfItem')} {book.shelf}
-                  </span>
-                  <span className="flex items-center gap-1 text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest">
-                    {t('viewDetails')}
-                    <ChevronRight className={cn("w-3.5 h-3.5", dir === 'rtl' ? 'rotate-180' : '')} />
-                  </span>
-                </div>
-              </div>
-              ))}
-            </div>
-          </div>
-        )}
       </section>
 
       {/* Compact shelf map, kept as its own distinct card next to the search
@@ -274,6 +228,54 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
       </div>
       </div>
+
+      {recommendations.length > 0 && (
+        <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
+          <h4 className="text-sm font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
+            <Sparkles className="w-4 h-4 text-accent" />
+            {mapSearchQuery.trim() ? t('searchResults') : t('recommendedFeaturedSources')}
+          </h4>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left rtl:text-right">
+            {recommendations.map((book, idx) => (
+              <div
+                key={book.id}
+                onClick={() => navigate(`/book/${book.id}`)}
+                className="official-card p-5 space-y-4 cursor-pointer bg-white dark:bg-slate-900 hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all"
+              >
+                <div className={cn("flex items-center justify-between", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-1 rounded-lg uppercase tracking-widest">
+                    {MATCH_SCORES[idx] ?? 90}% {t('matchLabel')}
+                  </span>
+                </div>
+                <div className={cn("flex gap-4", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
+                  <img
+                    src={book.coverUrl}
+                    alt={book.title}
+                    className="w-16 h-20 object-cover rounded-xl shrink-0"
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="min-w-0 space-y-1">
+                    <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2">{book.title}</h5>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{book.author}</p>
+                  </div>
+                </div>
+                <div className={cn("flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <span className="flex items-center gap-1.5 text-[10px] text-slate-400 dark:text-slate-500 font-bold">
+                    <MapPin className="w-3.5 h-3.5 text-primary/60 dark:text-accent" />
+                    {t('shelfItem')} {book.shelf}
+                  </span>
+                  <span className="flex items-center gap-1 text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest">
+                    {t('viewDetails')}
+                    <ChevronRight className={cn("w-3.5 h-3.5", dir === 'rtl' ? 'rotate-180' : '')} />
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+      </>
       )}
 
       {/* Weekly Achievements Summary + Badges Chest */}
