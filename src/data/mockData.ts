@@ -292,6 +292,6 @@ export const MOCK_USERS: User[] = [
     borrowedBooks: [],
     totalReadCount: 20,
     points: 800,
-    badges: ['باحث', 'متميز', 'قارئ الشهر']
+    badges: ['باحث', 'متميز', 'مستكشف']
   }
 ];

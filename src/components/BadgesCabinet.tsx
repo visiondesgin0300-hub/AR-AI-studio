@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Star, Zap, Trophy, Lightbulb, Compass } from 'lucide-react';
+import { Search, Star, Compass } from 'lucide-react';
 import { motion } from 'motion/react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
@@ -8,43 +8,27 @@ import { useLanguage } from '../hooks/useLanguage';
 
 interface BadgesCabinetProps {
   user: User;
-  /** When provided, shows only these badge ids (in this order) instead of the full catalog. */
-  badgeIds?: string[];
 }
 
 const badgeIcons = [
   { id: 'مستكشف', icon: Compass, color: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20' },
   { id: 'باحث', icon: Search, color: 'text-blue-500 bg-blue-500/10 border-blue-500/20' },
   { id: 'متميز', icon: Star, color: 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20' },
-  { id: 'قارئ نشط', icon: Zap, color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20' },
-  { id: 'قارئ الشهر', icon: Trophy, color: 'text-purple-500 bg-purple-500/10 border-purple-500/20' },
-  { id: 'ملهم', icon: Lightbulb, color: 'text-orange-500 bg-orange-500/10 border-orange-500/20' },
 ];
 
-export function BadgesCabinet({ user, badgeIds }: BadgesCabinetProps) {
+export function BadgesCabinet({ user }: BadgesCabinetProps) {
   const { t } = useLanguage();
   const earnedBadges = getEarnedBadges(user);
-  const displayedBadges = badgeIds
-    ? badgeIds.map((id) => badgeIcons.find((b) => b.id === id)).filter((b): b is typeof badgeIcons[number] => b !== undefined)
-    : badgeIcons;
 
   const badgeTranslationMap: Record<string, { title: string; desc: string }> = {
     'باحث': { title: t('badgeResearcher'), desc: t('badgeResearcherDesc') },
     'متميز': { title: t('badgeDistinguished'), desc: t('badgeDistinguishedDesc') },
-    'قارئ نشط': { title: t('badgeActiveReader'), desc: t('badgeActiveReaderDesc') },
-    'قارئ الشهر': { title: t('badgeReaderOfMonth'), desc: t('badgeReaderOfMonthDesc') },
-    'ملهم': { title: t('badgeInspirational'), desc: t('badgeInspirationalDesc') },
     'مستكشف': { title: t('badgeExplorer'), desc: t('badgeExplorerDesc') },
   };
 
   return (
-    <div
-      className={cn(
-        'grid gap-6 relative z-10',
-        displayedBadges.length <= 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'
-      )}
-    >
-      {displayedBadges.map((badge) => {
+    <div className="grid gap-6 relative z-10 grid-cols-1 sm:grid-cols-3">
+      {badgeIcons.map((badge) => {
         const isEarned = earnedBadges.includes(badge.id);
         const translation = badgeTranslationMap[badge.id];
         const IconComponent = badge.icon;
