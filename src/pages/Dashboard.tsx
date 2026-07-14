@@ -93,7 +93,7 @@ export function Dashboard({ user }: DashboardProps) {
             {t('libraryResourcesShelves')}
           </button>
           <button
-            onClick={() => navigate('/map')}
+            onClick={() => navigate('/map', { state: { tab: 'facilities' } })}
             className="px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2 bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-primary dark:hover:text-slate-200"
           >
             <Compass className="w-4 h-4" />
@@ -102,7 +102,9 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
       </div>
 
-      {/* Search prompt */}
+      {/* Search prompt + results: kept in a single card so results read as a
+          direct response to the search box above them, not a separate,
+          disconnected section further down the page. */}
       <section className="official-card p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
         <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
           <BookOpen className="w-8 h-8" />
@@ -124,26 +126,21 @@ export function Dashboard({ user }: DashboardProps) {
             )}
           />
         </div>
-      </section>
 
-      {/* Recommended & Featured Sources for Instant Navigation */}
-      {recommendations.length > 0 && (
-        <section className="space-y-6">
-          <div className="text-center space-y-2 max-w-xl mx-auto">
-            <h4 className="text-lg font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
+        {recommendations.length > 0 && (
+          <div className="w-full pt-6 mt-2 border-t border-slate-100 dark:border-white/5 space-y-6">
+            <h4 className="text-sm font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
               <Sparkles className="w-4 h-4 text-accent" />
-              {t('recommendedFeaturedSources')}
+              {mapSearchQuery.trim() ? t('searchResults') : t('recommendedFeaturedSources')}
             </h4>
-            <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('recommendedFeaturedSourcesDesc')}</p>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {recommendations.map((book, idx) => (
-              <div
-                key={book.id}
-                onClick={() => navigate('/map', { state: { bookId: book.id } })}
-                className="official-card p-5 space-y-4 cursor-pointer bg-white dark:bg-slate-900 hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all"
-              >
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left rtl:text-right">
+              {recommendations.map((book, idx) => (
+                <div
+                  key={book.id}
+                  onClick={() => navigate(`/book/${book.id}`)}
+                  className="official-card p-5 space-y-4 cursor-pointer bg-white dark:bg-slate-900 hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all"
+                >
                 <div className={cn("flex items-center justify-between", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                   <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-1 rounded-lg uppercase tracking-widest">
                     {MATCH_SCORES[idx] ?? 90}% {t('matchLabel')}
@@ -167,15 +164,16 @@ export function Dashboard({ user }: DashboardProps) {
                     {t('shelfItem')} {book.shelf}
                   </span>
                   <span className="flex items-center gap-1 text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest">
-                    {t('instantNav')}
+                    {t('viewDetails')}
                     <ChevronRight className={cn("w-3.5 h-3.5", dir === 'rtl' ? 'rotate-180' : '')} />
                   </span>
                 </div>
               </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Weekly Achievements Summary + Badges Chest */}
       <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900 space-y-10">
