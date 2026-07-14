@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera } from 'lucide-react';
+import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search } from 'lucide-react';
 import { User } from '../types';
 import { cn, getUserLevel } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -22,10 +22,15 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const { t, toggleLanguage, language, dir } = useLanguage();
 
+  // Ordered to follow the natural user journey: land on the home page, search
+  // for a book, locate it on the map, navigate to it in AR, then track it
+  // among your borrowed books. AR stays reachable here too, in addition to
+  // the always-visible floating AR button, since it's still a primary feature.
   const navItems = [
     { icon: Home, label: t('dashboard'), path: '/' },
-    { icon: Camera, label: t('arHubFabLabel'), path: '/ar' },
+    { icon: Search, label: t('searchBooks'), path: '/search' },
     { icon: Map, label: t('libraryMap'), path: '/map' },
+    { icon: Camera, label: t('arHubFabLabel'), path: '/ar' },
     { icon: BookOpen, label: t('readingHistory'), path: '/my-books' },
   ];
 
