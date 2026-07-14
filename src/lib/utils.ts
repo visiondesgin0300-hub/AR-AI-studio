@@ -12,15 +12,8 @@ export function getUserLevel(points: number): number {
   return Math.floor(points / 100) + 1;
 }
 
-// Single source of truth for which badges a user has earned, shared between
-// the Dashboard's badges cabinet and the library map's badges chest.
+// Single source of truth for which badges a user has earned, shared across
+// the app's badges cabinets.
 export function getEarnedBadges(user: User): string[] {
-  const earnedBadges = [...user.badges];
-  if (user.totalReadCount > 10 && !earnedBadges.includes('قارئ نشط')) {
-    earnedBadges.push('قارئ نشط');
-  }
-  if (user.points > 400 && !earnedBadges.includes('قارئ الشهر')) {
-    earnedBadges.push('قارئ الشهر');
-  }
-  return earnedBadges;
+  return user.badges;
 }

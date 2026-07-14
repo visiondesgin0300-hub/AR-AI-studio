@@ -256,7 +256,7 @@ export function Dashboard({ user }: DashboardProps) {
             <h4 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('informationCognitiveBadgesChest')}</h4>
             <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('informationCognitiveBadgesChestDesc')}</p>
           </div>
-          <BadgesCabinet user={user} badgeIds={['مستكشف', 'باحث', 'متميز']} />
+          <BadgesCabinet user={user} />
         </div>
       </section>
 

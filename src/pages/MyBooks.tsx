@@ -3,13 +3,13 @@ import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { 
   Award, BookOpen, Clock, ChevronLeft, MapPin, Calendar, Heart, Star, 
-  Map as MapIcon, ArrowDown, ArrowUp, Zap, Trophy, Lightbulb, Compass, 
+  Map as MapIcon, ArrowDown, ArrowUp, Zap, Compass,
   Search, TrendingUp, BarChart3, PieChart, Activity, User as UserIcon,
   Navigation
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, getUserLevel } from '../lib/utils';
+import { cn, getUserLevel, getEarnedBadges } from '../lib/utils';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
   ResponsiveContainer, Cell, AreaChart, Area 
@@ -68,9 +68,6 @@ export function MyBooks({ user }: MyBooksProps) {
   const badgeTranslationMap: Record<string, { title: string, desc: string }> = {
     'باحث': { title: t('badgeResearcher'), desc: t('badgeResearcherDesc') },
     'متميز': { title: t('badgeDistinguished'), desc: t('badgeDistinguishedDesc') },
-    'قارئ نشط': { title: t('badgeActiveReader'), desc: t('badgeActiveReaderDesc') },
-    'قارئ الشهر': { title: t('badgeReaderOfMonth'), desc: t('badgeReaderOfMonthDesc') },
-    'ملهم': { title: t('badgeInspirational'), desc: t('badgeInspirationalDesc') },
     'مستكشف': { title: t('badgeExplorer'), desc: t('badgeExplorerDesc') },
   };
 
@@ -110,16 +107,7 @@ export function MyBooks({ user }: MyBooksProps) {
     });
   }, [user.borrowedBooks, sortOrder, language]);
 
-  // Gamification Logic: Award badges dynamically
-  const earnedBadges = [...user.badges];
-  
-  if (user.totalReadCount > 10 && !earnedBadges.includes('قارئ نشط')) {
-    earnedBadges.push('قارئ نشط');
-  }
-  
-  if (user.points > 400 && !earnedBadges.includes('قارئ الشهر')) {
-    earnedBadges.push('قارئ الشهر');
-  }
+  const earnedBadges = getEarnedBadges(user);
 
   const categoryStats = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -505,14 +493,11 @@ export function MyBooks({ user }: MyBooksProps) {
            variants={{
              visible: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
            }}
-           className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-12 lg:gap-16 relative z-10"
+           className="grid grid-cols-1 sm:grid-cols-3 gap-12 lg:gap-16 relative z-10"
          >
             {[
               { id: 'باحث', icon: Search, color: 'bg-blue-500' },
               { id: 'متميز', icon: Star, color: 'bg-yellow-500' },
-              { id: 'قارئ نشط', icon: Zap, color: 'bg-emerald-500' },
-              { id: 'قارئ الشهر', icon: Trophy, color: 'bg-purple-500' },
-              { id: 'ملهم', icon: Lightbulb, color: 'bg-orange-500' },
               { id: 'مستكشف', icon: Compass, color: 'bg-indigo-500' }
             ].map((badge) => {
                const isEarned = earnedBadges.includes(badge.id);
