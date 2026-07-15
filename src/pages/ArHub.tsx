@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { ScanLine, Sparkles, X } from 'lucide-react';
@@ -9,8 +9,13 @@ import { MOCK_BOOKS } from '../data/mockData';
 import { CoverScan } from './CoverScan';
 import { ArView } from './ArView';
 
-const SIMULATION_BOOK = MOCK_BOOKS[0];
 const SIMULATION_DURATION_MS = 2400;
+
+function pickFallbackBook(excludeId: string | null): Book {
+  const pool = MOCK_BOOKS.filter((b) => b.id !== excludeId);
+  const list = pool.length > 0 ? pool : MOCK_BOOKS;
+  return list[Math.floor(Math.random() * list.length)];
+}
 
 export function ArHub() {
   const navigate = useNavigate();
@@ -20,6 +25,7 @@ export function ArHub() {
   const incomingBook = (location.state as { book?: Book } | null)?.book ?? null;
   const [targetBook, setTargetBook] = useState<Book | null>(incomingBook);
   const [isSimulating, setIsSimulating] = useState(false);
+  const lastSimulatedBookId = useRef<string | null>(null);
 
   const handleClose = () => navigate(-1);
 
@@ -28,13 +34,30 @@ export function ArHub() {
   // Camera-free demo: fakes the scan-and-match step, then hands off to the
   // existing step-by-step map navigation instead of the camera-dependent
   // ArView, so a student without a camera or a real book cover can still see
-  // how the smart navigation experience works end to end.
+  // how the smart navigation experience works end to end. The AI picks a
+  // varied book on each run so repeated simulations don't always land on the
+  // same shelf; if the request fails, fall back to a random pick locally.
   useEffect(() => {
     if (!isSimulating) return;
-    const timer = setTimeout(() => {
-      navigate('/map', { state: { bookId: SIMULATION_BOOK.id } });
-    }, SIMULATION_DURATION_MS);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+
+    const minDelay = new Promise<void>((resolve) => setTimeout(resolve, SIMULATION_DURATION_MS));
+    const pickBook = fetch('/api/simulate-scan', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ excludeId: lastSimulatedBookId.current }),
+    })
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error('Server response error'))))
+      .then((data: { bookId?: string }) => MOCK_BOOKS.find((b) => b.id === data.bookId) ?? pickFallbackBook(lastSimulatedBookId.current))
+      .catch(() => pickFallbackBook(lastSimulatedBookId.current));
+
+    Promise.all([pickBook, minDelay]).then(([book]) => {
+      if (cancelled) return;
+      lastSimulatedBookId.current = book.id;
+      navigate('/map', { state: { bookId: book.id } });
+    });
+
+    return () => { cancelled = true; };
   }, [isSimulating, navigate]);
 
   return (

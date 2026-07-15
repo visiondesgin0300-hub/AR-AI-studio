@@ -3,6 +3,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
+import { MOCK_BOOKS } from "./src/data/mockData";
 
 dotenv.config();
 
@@ -38,6 +39,61 @@ app.get("/api/health", (req, res) => {
     hasApiKey: hasKey,
     time: new Date().toISOString()
   });
+});
+
+// AI-picked book for the camera-free AR simulation demo, so each run lands
+// on a varied, realistic destination instead of always the same book.
+app.post("/api/simulate-scan", async (req, res) => {
+  const { excludeId } = req.body || {};
+  const candidates = MOCK_BOOKS.filter((b) => b.id !== excludeId);
+  const pool = candidates.length > 0 ? candidates : MOCK_BOOKS;
+  const pickRandom = () => pool[Math.floor(Math.random() * pool.length)];
+
+  const client = getGeminiClient();
+
+  if (!client) {
+    const book = pickRandom();
+    return res.json({ bookId: book.id, reason: null });
+  }
+
+  try {
+    const catalogue = pool
+      .map((b) => `- id: ${b.id}, title: "${b.title}", author: ${b.author}, category: ${b.category}, shelf: ${b.shelf}`)
+      .join('\n');
+
+    const prompt = `أنت مرشد مكتبة ذكي تُجري محاكاة تجريبية لمسح غلاف كتاب بالواقع المعزز (بدون كاميرا حقيقية).
+اختر كتاباً واحداً متنوعاً من القائمة التالية بحيث تختلف الاختيارات بين مرة وأخرى:
+${catalogue}
+
+أجب بكائن JSON فقط يحتوي على:
+- bookId: معرف الكتاب المختار، يجب أن يطابق أحد المعرفات أعلاه تماماً.
+- reason: جملة قصيرة جداً (أقل من 15 كلمة) بالعربية تشرح سبب اقتراح هذا الكتاب للطالب.`;
+
+    const response = await client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: "أنت مساعد يختار كتباً متنوعة لمحاكاة تجريبية داخل تطبيق مكتبة ذكية.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            bookId: { type: Type.STRING },
+            reason: { type: Type.STRING }
+          },
+          required: ["bookId"]
+        }
+      }
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    const matched = pool.find((b) => b.id === parsed.bookId) || pickRandom();
+    return res.json({ bookId: matched.id, reason: parsed.reason || null });
+  } catch (error: any) {
+    console.error("Gemini Simulate Scan Error:", error);
+    const book = pickRandom();
+    return res.json({ bookId: book.id, reason: null });
+  }
 });
 
 // Books database representation passed to Gemini for grounding
