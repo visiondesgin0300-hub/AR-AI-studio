@@ -104,6 +104,16 @@ export function LibraryMap() {
     t('navStepArrive', { destination: destinationLabel }),
   ] : [];
 
+  // Simulated walking distance: sections further from the main entrance (in
+  // aisle order A -> D) get a larger base distance, with a small offset for
+  // the second shelf in each aisle, so different destinations don't all show
+  // the exact same numbers.
+  const DISTANCE_BY_SECTION: Record<string, number> = { A: 30, B: 45, C: 60, D: 75 };
+  const distanceMeters = destinationShelfId
+    ? (DISTANCE_BY_SECTION[destinationShelfId.split('-')[0]] ?? 45) + (destinationShelfId.endsWith('-2') ? 8 : 0)
+    : 0;
+  const etaMinutes = Math.max(1, Math.round(distanceMeters / 50));
+
   const getPathData = () => {
     if (!destinationShelfId) return "";
     const paths: Record<string, string> = {
@@ -430,8 +440,8 @@ export function LibraryMap() {
                         <div className="flex-1 min-w-0">
                           <h4 className="font-black text-primary dark:text-white text-sm truncate">{destinationLabel}</h4>
                           <div className={cn("flex items-center gap-4 mt-1 text-[10px] font-bold text-slate-400", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                            <span>{t('distanceLabel')}: 45{language === 'ar' ? ' م' : 'm'}</span>
-                            <span>{t('etaLabel')}: 1{language === 'ar' ? ' د' : ' min'}</span>
+                            <span>{t('distanceLabel')}: {distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
+                            <span>{t('etaLabel')}: {etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
                           </div>
                         </div>
                       </div>
