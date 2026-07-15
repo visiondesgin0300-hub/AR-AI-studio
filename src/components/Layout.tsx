@@ -28,9 +28,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   // the always-visible floating AR button, since it's still a primary feature.
   const navItems = [
     { icon: Home, label: t('dashboard'), path: '/' },
-    { icon: Search, label: t('searchBooks'), path: '/search' },
-    { icon: Map, label: t('libraryMap'), path: '/map' },
-    { icon: Camera, label: t('arHubFabLabel'), path: '/ar' },
+    { icon: Search, label: t('smartSearchCard'), path: '/search' },
+    { icon: Map, label: t('libraryFacilities'), path: '/map', state: { tab: 'facilities' } },
     { icon: BookOpen, label: t('readingHistory'), path: '/my-books' },
   ];
 
@@ -78,6 +77,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               <Link
                 key={item.path}
                 to={item.path}
+                state={item.state}
                 className={cn(
                   "group flex items-center gap-4 px-5 py-4 rounded-2xl cursor-pointer transition-all duration-300 relative",
                   isActive
@@ -419,9 +419,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               : (location.pathname === item.path && !location.search);
             const Icon = item.icon;
             return (
-              <Link 
+              <Link
                 key={item.path}
                 to={item.path}
+                state={item.state}
                 className={cn(
                   "flex flex-col items-center gap-1.5 px-3 transition-all duration-300 relative group",
                   isActive ? "text-primary dark:text-accent" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
