@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Camera } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -106,7 +106,7 @@ export function Dashboard({ user }: DashboardProps) {
           <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <button
             onClick={() => navigate('/search')}
             className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
@@ -135,22 +135,6 @@ export function Dashboard({ user }: DashboardProps) {
             <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('libraryFacilitiesCardDesc')}</p>
             <span className={cn("relative text-[10px] font-black uppercase tracking-widest flex items-center gap-1 text-accent", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
               {t('viewFacilitiesLabel')}
-              <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
-            </span>
-          </button>
-
-          <button
-            onClick={() => navigate('/ar')}
-            className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent pointer-events-none" />
-            <div className="relative w-14 h-14 bg-primary/10 dark:bg-accent/10 rounded-2xl flex items-center justify-center text-primary dark:text-accent">
-              <Camera className="w-6 h-6" />
-            </div>
-            <h3 className="relative text-sm font-black text-primary dark:text-white tracking-tight">{t('smartBookCoverScannerCard')}</h3>
-            <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('smartBookCoverScannerCardDesc')}</p>
-            <span className={cn("relative text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-              {t('startScanningLabel')}
               <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
             </span>
           </button>
