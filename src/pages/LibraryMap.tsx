@@ -5,6 +5,7 @@ import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
+import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
 
 interface ManualTarget {
   id: string;
@@ -632,6 +633,13 @@ export function LibraryMap() {
                   </div>
                </div>
             </div>
+          )}
+
+          {destinationShelfId && (
+            <ShelfIdentityPanel
+              shelfId={destinationShelfId}
+              booksOnShelf={MOCK_BOOKS.filter(b => b.shelf === destinationShelfId && b.id !== bookData?.id)}
+            />
           )}
         </div>
       </div>

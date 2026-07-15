@@ -13,11 +13,29 @@ import {
   Send,
   CheckCircle2,
   Clock,
+  ScanLine,
+  Navigation,
+  Sparkles,
+  QrCode,
+  Cpu,
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
 
-type HelpTab = 'faqs' | 'contact' | 'requests';
+type HelpTab = 'faqs' | 'contact' | 'requests' | 'tech';
+
+interface TechStage {
+  icon: React.ComponentType<{ className?: string }>;
+  titleKey: string;
+  descKey: string;
+}
+
+const TECH_STAGES: TechStage[] = [
+  { icon: ScanLine, titleKey: 'techStage1Title', descKey: 'techStage1Desc' },
+  { icon: Navigation, titleKey: 'techStage2Title', descKey: 'techStage2Desc' },
+  { icon: Sparkles, titleKey: 'techStage3Title', descKey: 'techStage3Desc' },
+  { icon: QrCode, titleKey: 'techStage4Title', descKey: 'techStage4Desc' },
+];
 
 interface FaqItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -77,6 +95,7 @@ export function HelpCenter() {
       <div className="flex flex-wrap justify-center gap-3 -mt-4 relative z-10">
         {([
           { id: 'faqs', label: t('faqsGuideTab'), icon: HelpCircle, badge: 0 },
+          { id: 'tech', label: t('aboutTechTab'), icon: Cpu, badge: 0 },
           { id: 'contact', label: t('contactUsTab'), icon: Mail, badge: 0 },
           { id: 'requests', label: t('myRequestsTab'), icon: MessageSquare, badge: MOCK_REQUESTS.length },
         ] as const).map((tab) => (
@@ -191,6 +210,59 @@ export function HelpCenter() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'tech' && (
+        <div className="space-y-10 max-w-3xl mx-auto">
+          <div className="text-center space-y-3">
+            <h2 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('aboutTechHeroTitle')}</h2>
+            <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed max-w-xl mx-auto">{t('aboutTechHeroDesc')}</p>
+          </div>
+
+          <div className="space-y-4">
+            {TECH_STAGES.map((stage, idx) => {
+              const Icon = stage.icon;
+              return (
+                <div
+                  key={stage.titleKey}
+                  className={cn('official-card p-6 flex items-start gap-5 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm', dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}
+                >
+                  <div className="relative shrink-0">
+                    <div className="w-14 h-14 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <span className="absolute -top-2 -end-2 w-6 h-6 rounded-full bg-accent text-primary text-[10px] font-black flex items-center justify-center border-2 border-white dark:border-slate-900">
+                      {idx + 1}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    <h3 className="text-sm font-black text-primary dark:text-white tracking-tight">{t(stage.titleKey)}</h3>
+                    <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">{t(stage.descKey)}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="official-card p-6 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm space-y-4">
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">{t('poweredByLabel')}</span>
+            <div className="flex flex-wrap gap-2.5">
+              {['MindAR', 'AR.js', 'Three.js', 'Google Gemini', 'QR Code'].map((tech) => (
+                <span key={tech} className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 text-[11px] font-black text-slate-600 dark:text-slate-300">
+                  {tech}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/ar')}
+            className="w-full py-5 bg-accent text-primary rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95"
+          >
+            <ScanLine className="w-4 h-4" />
+            {t('startScanningLabel')}
+          </button>
         </div>
       )}
 

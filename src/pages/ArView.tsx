@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Navigation, X, MoveUp, ShieldCheck, User as UserIcon, ScanLine, Compass } from 'lucide-react';
+import { Navigation, X, MoveUp, ShieldCheck, User as UserIcon, ScanLine, Compass, Radar } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
@@ -20,6 +20,7 @@ export function ArView({ book, onClose }: ArViewProps) {
   const [markerFound, setMarkerFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t, dir } = useLanguage();
+  const markerId = getMarkerForShelf(book.shelf);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -318,6 +319,50 @@ export function ArView({ book, onClose }: ArViewProps) {
             <X className="w-7 h-7" />
          </button>
       </div>
+
+      {/* Technical telemetry readout - real tracking data styled as an AR
+          engine HUD, reinforcing that this is a live computer-vision system
+          rather than a static map screenshot. */}
+      {!error && (
+        <div className={cn("absolute top-40 z-20 hidden sm:flex flex-col gap-3 pointer-events-none font-mono", dir === 'rtl' ? 'right-8 items-end text-right' : 'left-8 items-start text-left')}>
+          <div className="flex items-center gap-2 text-accent/80">
+            <Radar className="w-3.5 h-3.5 animate-spin [animation-duration:3s]" />
+            <span className="text-[9px] font-black uppercase tracking-[0.2em]">{t('hudEngineLabel')}</span>
+          </div>
+          <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">{t('hudEngineStatus')}</span>
+
+          <div className="w-8 h-px bg-white/20 my-1" />
+
+          <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">{t('hudTargetMarkerLabel')}</span>
+          <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">#{markerId ?? '--'} · {book.shelf}</span>
+
+          <div className="w-8 h-px bg-white/20 my-1" />
+
+          <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">{t('hudTrackingLabel')}</span>
+          <span className={cn("text-[10px] font-bold uppercase tracking-widest", markerFound ? "text-emerald-400" : "text-white/70")}>
+            {markerFound ? t('hudTrackingLocked') : t('hudTrackingSearching')}
+          </span>
+        </div>
+      )}
+
+      {!error && (
+        <div className={cn("absolute top-40 z-20 hidden sm:flex flex-col gap-3 pointer-events-none font-mono", dir === 'rtl' ? 'left-8 items-start text-left' : 'right-8 items-end text-right')}>
+          <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">{t('hudDistanceVectorLabel')}</span>
+          <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">{distance !== null ? `${distance.toFixed(2)}m` : '--'}</span>
+
+          <div className="w-8 h-px bg-white/20 my-1" />
+
+          <span className="text-[9px] font-black text-white/40 uppercase tracking-[0.2em]">{t('hudMarkerSizeLabel')}</span>
+          <span className="text-[10px] font-bold text-white/70 uppercase tracking-widest">{Math.round(MARKER_PHYSICAL_SIZE_METERS * 100)}cm</span>
+
+          {!markerFound && (
+            <>
+              <div className="w-8 h-px bg-white/20 my-1" />
+              <span className="text-[9px] font-bold text-white/50 normal-case tracking-normal max-w-[160px] leading-relaxed">{t('hudAlignCameraHint')}</span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* AR HUD - Bottom Floating Card */}
       <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 w-[94%] max-w-2xl pointer-events-none">
