@@ -8,8 +8,6 @@ import { useLanguage } from '../hooks/useLanguage';
 
 interface ManualTarget {
   id: string;
-  label: string;
-  sectionName: string;
 }
 
 export function LibraryMap() {
@@ -60,10 +58,9 @@ export function LibraryMap() {
 
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
 
-  const navigateToCell = (cellId: string, label: string) => {
-    const sectionName = sections.find(s => s.id === cellId.split('-')[0])?.name || '';
+  const navigateToCell = (cellId: string) => {
     setSelectedBook(null);
-    setManualTarget({ id: cellId, label, sectionName });
+    setManualTarget({ id: cellId });
     setShowPath(true);
     setResourceTab('shelves');
     setActiveTab('map');
@@ -85,17 +82,18 @@ export function LibraryMap() {
     }
     if (location.state?.facilityName) {
       const match = FACILITIES.find(f => f.name === location.state.facilityName);
-      if (match) navigateToCell(match.cellId, match.name);
+      if (match) navigateToCell(match.cellId);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
   const destinationShelfId = manualTarget?.id || bookData?.shelf || null;
-  const destinationLabel = manualTarget ? manualTarget.label : bookData ? bookData.title : '';
+  const targetFacility = manualTarget ? FACILITIES.find(f => f.cellId === manualTarget.id) : undefined;
+  const destinationLabel = manualTarget
+    ? (targetFacility?.name ?? t('shelfId', { id: manualTarget.id }))
+    : bookData ? bookData.title : '';
   const destinationSectionId = destinationShelfId ? destinationShelfId.split('-')[0] : null;
-  const destinationSectionName = manualTarget
-    ? manualTarget.sectionName
-    : sections.find(s => s.id === destinationSectionId)?.name || '';
+  const destinationSectionName = sections.find(s => s.id === destinationSectionId)?.name || '';
 
   const navigationSteps = destinationShelfId ? [
     t('navStepStart'),
@@ -208,7 +206,7 @@ export function LibraryMap() {
                 {FACILITIES.map((facility) => (
                   <div
                     key={facility.name}
-                    onClick={() => navigateToCell(facility.cellId, facility.name)}
+                    onClick={() => navigateToCell(facility.cellId)}
                     className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900 cursor-pointer hover:border-accent dark:hover:border-accent transition-all"
                   >
                     <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
@@ -228,7 +226,7 @@ export function LibraryMap() {
                       </div>
                       <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigateToCell(facility.cellId, facility.name); }}
+                        onClick={(e) => { e.stopPropagation(); navigateToCell(facility.cellId); }}
                         className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent hover:text-primary dark:hover:text-white hover:underline cursor-pointer"
                       >
                         <MapPin className="w-3.5 h-3.5" />
@@ -261,7 +259,7 @@ export function LibraryMap() {
                           key={cell.id}
                           onHoverStart={() => setHoveredCell(cell.id)}
                           onHoverEnd={() => setHoveredCell(null)}
-                          onClick={() => !bookData && navigateToCell(cell.id, t('shelfId', { id: cell.id }))}
+                          onClick={() => !bookData && navigateToCell(cell.id)}
                           className={cn(
                             "relative flex flex-col items-center justify-center rounded-[3rem] border-2 transition-all duration-500 cursor-pointer group",
                             isDestination 
@@ -370,6 +368,17 @@ export function LibraryMap() {
                         {t('changeRouteLabel')}
                       </button>
                     </div>
+
+                    {/* Hands off to the real camera-based AR guidance; the
+                        dark path here is a simulated preview of that same
+                        route. */}
+                    <button
+                      onClick={() => navigate('/ar', bookData ? { state: { book: bookData } } : undefined)}
+                      title={t('enterArMode')}
+                      className={cn("absolute top-6 z-20 p-3 rounded-full bg-accent text-primary shadow-[0_8px_24px_rgba(217,179,16,0.4)] hover:brightness-110 transition-all active:scale-90", dir === 'rtl' ? 'left-6' : 'right-6')}
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
 
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
                       <defs>
@@ -537,8 +546,8 @@ export function LibraryMap() {
 
                  <div className="text-center space-y-3">
                     <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
-                    <h2 className="text-2xl font-black leading-tight tracking-tight text-primary dark:text-white">{manualTarget.label}</h2>
-                    <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[11px] tracking-widest">{manualTarget.sectionName}</p>
+                    <h2 className="text-2xl font-black leading-tight tracking-tight text-primary dark:text-white">{destinationLabel}</h2>
+                    <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[11px] tracking-widest">{destinationSectionName}</p>
                  </div>
 
                  <div className="space-y-3">
