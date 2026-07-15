@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Users, VolumeX, Monitor, Printer, Camera } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Camera } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -21,7 +21,6 @@ export function Dashboard({ user }: DashboardProps) {
   const categories: string[] = Array.from(new Set(MOCK_BOOKS.map(b => b.category)));
   const [selectedCategory, setSelectedCategory] = React.useState(categories[0]);
   const [searchQuery, setSearchQuery] = React.useState('');
-  const [resourceTab, setResourceTab] = React.useState<'shelves' | 'facilities'>('shelves');
 
   const categoryTranslationMap: Record<string, string> = {
     'فيزياء': t('physics'),
@@ -79,13 +78,6 @@ export function Dashboard({ user }: DashboardProps) {
     { day: t('friday'), value: 65 },
   ], [t]);
 
-  const FACILITIES = [
-    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), location: t('facilityLocationGroupStudy'), status: 'available' as const },
-    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), location: t('facilityLocationSilentZone'), status: 'available' as const },
-    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), location: t('facilityLocationComputerLab'), status: 'busy' as const },
-    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), location: t('facilityLocationPrinting'), status: 'available' as const },
-  ];
-
   const sections = [
     { id: 'A', name: t('naturalSciences'), icon: '🧪', color: 'bg-blue-500' },
     { id: 'B', name: t('engineeringAndTech'), icon: '⚙️', color: 'bg-orange-500' },
@@ -132,20 +124,15 @@ export function Dashboard({ user }: DashboardProps) {
           </button>
 
           <button
-            onClick={() => setResourceTab(resourceTab === 'facilities' ? 'shelves' : 'facilities')}
-            className={cn(
-              "official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 shadow-sm hover:shadow-xl transition-all",
-              resourceTab === 'facilities'
-                ? "bg-primary dark:bg-slate-950 border-primary text-white"
-                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 hover:border-accent dark:hover:border-accent"
-            )}
+            onClick={() => navigate('/map', { state: { tab: 'facilities' } })}
+            className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
           >
-            {resourceTab !== 'facilities' && <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />}
-            <div className={cn("relative w-14 h-14 rounded-2xl flex items-center justify-center", resourceTab === 'facilities' ? "bg-white/10 text-white" : "bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent")}>
+            <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />
+            <div className="relative w-14 h-14 bg-primary/10 dark:bg-accent/10 rounded-2xl flex items-center justify-center text-primary dark:text-accent">
               <Compass className="w-6 h-6" />
             </div>
-            <h3 className={cn("relative text-sm font-black tracking-tight", resourceTab === 'facilities' ? "text-white" : "text-primary dark:text-white")}>{t('libraryFacilities')}</h3>
-            <p className={cn("relative text-[11px] font-bold leading-relaxed", resourceTab === 'facilities' ? "text-white/60" : "text-slate-400 dark:text-slate-500")}>{t('libraryFacilitiesCardDesc')}</p>
+            <h3 className="relative text-sm font-black text-primary dark:text-white tracking-tight">{t('libraryFacilities')}</h3>
+            <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('libraryFacilitiesCardDesc')}</p>
             <span className={cn("relative text-[10px] font-black uppercase tracking-widest flex items-center gap-1 text-accent", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
               {t('viewFacilitiesLabel')}
               <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
@@ -172,48 +159,7 @@ export function Dashboard({ user }: DashboardProps) {
 
       {/* Search prompt + results: kept in a single card so results read as a
           direct response to the search box above them, not a separate,
-          disconnected section further down the page. Toggling to Facilities
-          swaps this same card in place instead of navigating away. */}
-      {resourceTab === 'facilities' ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          {FACILITIES.map((facility) => (
-            <div
-              key={facility.name}
-              onClick={() => navigate('/map', { state: { tab: 'facilities', facilityName: facility.name } })}
-              className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900 cursor-pointer hover:border-accent dark:hover:border-accent transition-all"
-            >
-              <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
-                <facility.icon className="w-6 h-6" />
-              </div>
-              <div className={cn("flex-1 min-w-0 space-y-1", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                <div className="flex items-center justify-between gap-2">
-                  <h4 className="font-black text-primary dark:text-white text-sm leading-tight">{facility.name}</h4>
-                  <span className={cn(
-                    "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider",
-                    facility.status === 'available'
-                      ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
-                      : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
-                  )}>
-                    {facility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate('/map', { state: { tab: 'facilities', facilityName: facility.name } });
-                  }}
-                  className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent hover:text-primary dark:hover:text-white hover:underline cursor-pointer"
-                >
-                  <MapPin className="w-3.5 h-3.5" />
-                  <span>{facility.location}</span>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-      <>
+          disconnected section further down the page. */}
       <div className="flex flex-col lg:flex-row gap-10 items-start">
       <section className="official-card flex-1 w-full p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
         <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
@@ -320,8 +266,6 @@ export function Dashboard({ user }: DashboardProps) {
             ))}
           </div>
         </section>
-      )}
-      </>
       )}
 
       {/* Weekly Achievements Summary + Badges Chest */}
