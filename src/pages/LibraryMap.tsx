@@ -6,12 +6,19 @@ import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 
+interface ManualTarget {
+  id: string;
+  label: string;
+  sectionName: string;
+}
+
 export function LibraryMap() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, language, dir } = useLanguage();
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [showPath, setShowPath] = useState(false);
+  const [manualTarget, setManualTarget] = useState<ManualTarget | null>(null);
 
   const [activeTab, setActiveTab] = useState<'map' | 'sections'>('map');
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
@@ -32,25 +39,6 @@ export function LibraryMap() {
     };
   }, []);
 
-  useEffect(() => {
-    if (location.state?.bookId) {
-      setSelectedBook(location.state.bookId);
-      setShowPath(true);
-    }
-    if (location.state?.tab === 'facilities') {
-      setResourceTab('facilities');
-    }
-  }, [location.state]);
-
-  const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
-
-  const FACILITIES = [
-    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), location: t('facilityLocationGroupStudy'), status: 'available' as const },
-    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), location: t('facilityLocationSilentZone'), status: 'available' as const },
-    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), location: t('facilityLocationComputerLab'), status: 'busy' as const },
-    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), location: t('facilityLocationPrinting'), status: 'available' as const },
-  ];
-
   const sections = [
     { id: 'A', name: t('naturalSciences'), icon: '🧪', subjects: [t('physics'), t('chemistry'), t('biology')], color: 'bg-blue-500', occupancy: t('quiet') },
     { id: 'B', name: t('engineeringAndTech'), icon: '⚙️', subjects: [t('mechEngineering'), t('ai'), t('software')], color: 'bg-orange-500', occupancy: t('activeOccupancy') },
@@ -63,18 +51,69 @@ export function LibraryMap() {
     { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' }, { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' }
   ];
 
+  const FACILITIES = [
+    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), location: t('facilityLocationGroupStudy'), status: 'available' as const, cellId: 'B-2' },
+    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), location: t('facilityLocationSilentZone'), status: 'available' as const, cellId: 'D-1' },
+    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), location: t('facilityLocationComputerLab'), status: 'busy' as const, cellId: 'A-2' },
+    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), location: t('facilityLocationPrinting'), status: 'available' as const, cellId: 'C-1' },
+  ];
+
+  const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
+
+  const navigateToCell = (cellId: string, label: string) => {
+    const sectionName = sections.find(s => s.id === cellId.split('-')[0])?.name || '';
+    setSelectedBook(null);
+    setManualTarget({ id: cellId, label, sectionName });
+    setShowPath(true);
+    setResourceTab('shelves');
+    setActiveTab('map');
+  };
+
+  useEffect(() => {
+    if (location.state?.bookId) {
+      setManualTarget(null);
+      setSelectedBook(location.state.bookId);
+      setShowPath(true);
+    }
+    if (location.state?.tab === 'facilities') {
+      setResourceTab('facilities');
+    }
+    if (location.state?.facilityName) {
+      const match = FACILITIES.find(f => f.name === location.state.facilityName);
+      if (match) navigateToCell(match.cellId, match.name);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
+
+  const destinationShelfId = manualTarget?.id || bookData?.shelf || null;
+  const destinationLabel = manualTarget ? manualTarget.label : bookData ? bookData.title : '';
+  const destinationSectionId = destinationShelfId ? destinationShelfId.split('-')[0] : null;
+  const destinationSectionName = manualTarget
+    ? manualTarget.sectionName
+    : sections.find(s => s.id === destinationSectionId)?.name || '';
+
+  const navigationSteps = destinationShelfId ? [
+    t('navStepStart'),
+    t('navStepAisle'),
+    destinationSectionId === 'A' || destinationSectionId === 'C'
+      ? t('navStepTurnLeft', { section: destinationSectionName })
+      : t('navStepTurnRight', { section: destinationSectionName }),
+    t('navStepArrive', { destination: destinationLabel }),
+  ] : [];
+
   const getPathData = () => {
-    if (!bookData) return "";
-    const shelf = bookData.shelf;
+    if (!destinationShelfId) return "";
     const paths: Record<string, string> = {
       'A-1': "M 300,450 L 300,350 L 100,350 L 100,100",
       'A-2': "M 300,450 L 300,350 L 250,350 L 250,100",
       'B-1': "M 300,450 L 300,350 L 400,350 L 400,100",
       'B-2': "M 300,450 L 300,350 L 550,350 L 550,100",
       'C-1': "M 300,450 L 300,350 L 100,350 L 100,250",
+      'C-2': "M 300,450 L 300,350 L 250,350 L 250,250",
       'D-1': "M 300,450 L 300,350 L 550,350 L 550,250",
+      'D-2': "M 300,450 L 300,350 L 400,350 L 400,250",
     };
-    return paths[shelf] || "M 300,450 L 300,200";
+    return paths[destinationShelfId] || "M 300,450 L 300,200";
   };
 
   return (
@@ -148,7 +187,8 @@ export function LibraryMap() {
               {FACILITIES.map((facility) => (
                 <div
                   key={facility.name}
-                  className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900"
+                  onClick={() => navigateToCell(facility.cellId, facility.name)}
+                  className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900 cursor-pointer hover:border-accent dark:hover:border-accent transition-all"
                 >
                   <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
                     <facility.icon className="w-6 h-6" />
@@ -167,7 +207,7 @@ export function LibraryMap() {
                     </div>
                     <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
                     <button
-                      onClick={() => { setResourceTab('shelves'); setActiveTab('map'); }}
+                      onClick={(e) => { e.stopPropagation(); navigateToCell(facility.cellId, facility.name); }}
                       className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent hover:text-primary dark:hover:text-white hover:underline cursor-pointer"
                     >
                       <MapPin className="w-3.5 h-3.5" />
@@ -262,15 +302,16 @@ export function LibraryMap() {
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-8 flex-1">
                     {cells.map((cell) => {
                       const section = sections.find(s => s.id === cell.section);
-                      const isDestination = bookData?.shelf === cell.id;
+                      const isDestination = destinationShelfId === cell.id;
                       const occupancy = occupancyData[cell.id as keyof typeof occupancyData];
                       const isHovered = hoveredCell === cell.id;
 
                       return (
-                        <motion.div 
+                        <motion.div
                           key={cell.id}
                           onHoverStart={() => setHoveredCell(cell.id)}
                           onHoverEnd={() => setHoveredCell(null)}
+                          onClick={() => !bookData && navigateToCell(cell.id, t('shelfId', { id: cell.id }))}
                           className={cn(
                             "relative flex flex-col items-center justify-center rounded-[3rem] border-2 transition-all duration-500 cursor-pointer group",
                             isDestination 
@@ -326,7 +367,7 @@ export function LibraryMap() {
                   </div>
 
                   {/* Path Visualization SVG */}
-                  {showPath && bookData && (
+                  {showPath && destinationShelfId && (
                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 600 500">
                       <defs>
                         <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -449,6 +490,20 @@ export function LibraryMap() {
                     </div>
                  </div>
 
+                 {navigationSteps.length > 0 && (
+                    <div className="space-y-3 pt-2">
+                       <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
+                       <ol className="space-y-2">
+                          {navigationSteps.map((step, idx) => (
+                            <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                               <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
+                               <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
+                            </li>
+                          ))}
+                       </ol>
+                    </div>
+                 )}
+
                  <div className="space-y-4 pt-4">
                     <button
                       onClick={() => navigate(`/book/${bookData.id}`)}
@@ -464,6 +519,48 @@ export function LibraryMap() {
                        {t('cancelActiveNavigation')}
                     </button>
                  </div>
+              </div>
+            </motion.div>
+          ) : manualTarget ? (
+            <motion.div
+              initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="official-card p-8 bg-white dark:bg-slate-900"
+            >
+              <div className="space-y-8">
+                 <div className="flex justify-center">
+                    <div className="relative">
+                       <div className="w-28 h-28 bg-accent/10 dark:bg-accent/15 rounded-[2.5rem] flex items-center justify-center text-primary dark:text-accent">
+                          <Navigation className={cn("w-12 h-12", dir === 'rtl' ? 'rotate-180' : '')} />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="text-center space-y-3">
+                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
+                    <h2 className="text-2xl font-black leading-tight tracking-tight text-primary dark:text-white">{manualTarget.label}</h2>
+                    <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[11px] tracking-widest">{manualTarget.sectionName}</p>
+                 </div>
+
+                 <div className="space-y-3">
+                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
+                    <ol className="space-y-2">
+                       {navigationSteps.map((step, idx) => (
+                         <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                            <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
+                            <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
+                         </li>
+                       ))}
+                    </ol>
+                 </div>
+
+                 <button
+                   onClick={() => { setManualTarget(null); setShowPath(false); }}
+                   className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                 >
+                    <X className="w-4 h-4" />
+                    {t('cancelActiveNavigation')}
+                 </button>
               </div>
             </motion.div>
           ) : (
@@ -483,6 +580,9 @@ export function LibraryMap() {
                   <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('searchReferenceFirst')}</h3>
                   <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed px-4">
                     {t('unifiedSearchDesc')}
+                  </p>
+                  <p className="text-slate-300 dark:text-slate-600 font-bold text-[11px] leading-relaxed px-4">
+                    {t('navigateToShelfHint')}
                   </p>
                </div>
 

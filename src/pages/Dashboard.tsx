@@ -144,7 +144,7 @@ export function Dashboard({ user }: DashboardProps) {
           {FACILITIES.map((facility) => (
             <div
               key={facility.name}
-              onClick={() => navigate('/map', { state: { tab: 'facilities' } })}
+              onClick={() => navigate('/map', { state: { tab: 'facilities', facilityName: facility.name } })}
               className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900 cursor-pointer hover:border-accent dark:hover:border-accent transition-all"
             >
               <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
@@ -166,7 +166,7 @@ export function Dashboard({ user }: DashboardProps) {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate('/map', { state: { tab: 'facilities' } });
+                    navigate('/map', { state: { tab: 'facilities', facilityName: facility.name } });
                   }}
                   className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent hover:text-primary dark:hover:text-white hover:underline cursor-pointer"
                 >
