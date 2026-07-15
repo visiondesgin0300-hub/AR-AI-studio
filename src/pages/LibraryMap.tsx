@@ -41,7 +41,8 @@ export function LibraryMap() {
     { id: 'A', name: t('naturalSciences'), icon: '🧪', subjects: [t('physics'), t('chemistry'), t('biology')], color: 'bg-blue-500', occupancy: t('quiet') },
     { id: 'B', name: t('engineeringAndTech'), icon: '⚙️', subjects: [t('mechEngineering'), t('ai'), t('software')], color: 'bg-orange-500', occupancy: t('activeOccupancy') },
     { id: 'C', name: t('artsAndCrafts'), icon: '🎨', subjects: [t('arabicLit'), t('graphicDesign'), t('philosophy')], color: 'bg-purple-500', occupancy: t('mediumOccupancy') },
-    { id: 'D', name: t('humanities'), icon: '📚', subjects: [t('history'), t('sociology'), t('geography')], color: 'bg-green-500', occupancy: t('quiet') }
+    { id: 'D', name: t('humanities'), icon: '📚', subjects: [t('history'), t('sociology'), t('geography')], color: 'bg-green-500', occupancy: t('quiet') },
+    { id: 'E', name: t('mechanicalAutomotiveEngineering'), icon: '🚗', subjects: [t('mechEngineering')], color: 'bg-red-500', occupancy: t('quiet') }
   ];
 
   const cells = [
