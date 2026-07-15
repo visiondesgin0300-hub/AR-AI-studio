@@ -159,14 +159,19 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         onClick={() => navigate('/ar')}
         whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.92 }}
+        title={t('arHubFabLabel')}
         className={cn(
           "fixed z-40 bottom-28 lg:bottom-10 flex items-center gap-3 pl-4 pr-5 py-4 rounded-full bg-accent text-primary shadow-[0_15px_40px_rgba(217,179,16,0.45)] group",
           dir === 'rtl' ? 'left-5 lg:left-10' : 'right-5 lg:right-10'
         )}
       >
         <span className="absolute inset-0 rounded-full bg-accent animate-ping opacity-30 pointer-events-none" />
-        <Camera className="w-5 h-5 relative z-10" />
-        <span className="hidden sm:inline text-[11px] font-black uppercase tracking-widest relative z-10">
+        <Camera className="w-5 h-5 relative z-10 shrink-0" />
+        {/* Collapsed to an icon-only circle at rest on desktop (revealed on
+            hover) so this fixed button doesn't permanently cover page
+            content near that corner; stays fully labeled on touch screens
+            where hover isn't available. */}
+        <span className="hidden sm:inline lg:max-w-0 lg:overflow-hidden lg:group-hover:max-w-[220px] whitespace-nowrap text-[11px] font-black uppercase tracking-widest relative z-10 transition-all duration-300">
           {t('arHubFabLabel')}
         </span>
       </motion.button>
@@ -398,7 +403,14 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto pt-10 pb-24 lg:pb-12 px-8 lg:px-12 bg-bg-light dark:bg-bg-dark transition-colors duration-300">
+        <main className={cn(
+          "flex-1 overflow-y-auto pt-10 pb-40 lg:pb-28 px-8 bg-bg-light dark:bg-bg-dark transition-colors duration-300",
+          // Modest extra clearance on whichever side the floating AR button
+          // sits on; the button itself now collapses to an icon-only circle
+          // at rest on desktop (see the button's own comment), so this only
+          // needs to cover that small resting footprint, not the full label.
+          dir === 'rtl' ? 'lg:pl-20 lg:pr-12' : 'lg:pr-20 lg:pl-12'
+        )}>
           <div className="max-w-7xl mx-auto w-full">
             <motion.div
               key={location.pathname}

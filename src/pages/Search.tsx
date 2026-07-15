@@ -28,6 +28,7 @@ export function Search() {
     'فيزياء': language === 'ar' ? 'فيزياء' : 'Physics',
     'هندسة': language === 'ar' ? 'هندسة' : 'Engineering',
     'عام': language === 'ar' ? 'عام' : 'General',
+    'علم نفس': language === 'ar' ? 'علم نفس' : 'Psychology',
     'طب': language === 'ar' ? 'طب' : 'Medicine',
     'أدب': language === 'ar' ? 'أدب' : 'Literature'
   };
