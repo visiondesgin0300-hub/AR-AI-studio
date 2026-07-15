@@ -122,7 +122,7 @@ export const translations = {
     descriptionSuffix: 'يوفر هذا المرجع الأكاديمي تغطية شاملة وأساسية للطلاب المتخصصين، مع التركيز على المفاهيم الجوهرية والتطبيقات العملية التي تطلبها المناهج الجامعية الحديثة. تم اختيار هذا الكتاب بناءً على تقييمات عالية من مستخدمي المنصة السابقين.',
     
     // Search
-    searchBooksTitle: 'البحث الذكي',
+    searchBooksTitle: 'البحث في مصادر المكتبة',
     suggestedResults: 'اقتراحات البحث',
     searching: 'جاري البحث...',
     searchPlaceholderSearch: 'ابحث عن كتاب، مؤلف، أو تخصص...',
@@ -575,7 +575,7 @@ export const translations = {
     descriptionSuffix: 'This academic reference provides comprehensive and essential coverage for specialized students, focusing on core concepts and practical applications required by modern university curricula. This book was selected based on high ratings from previous platform users.',
 
     // Search
-    searchBooksTitle: 'Smart Search',
+    searchBooksTitle: 'Search Library Resources',
     suggestedResults: 'Search Suggestions',
     searching: 'Searching...',
     searchPlaceholderSearch: 'Search for a book, author, or specialty...',
