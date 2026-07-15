@@ -16,8 +16,7 @@ import {
   UserCheck,
   Globe,
   User as UserIcon,
-  UserPlus,
-  Compass
+  UserPlus
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { MOCK_USERS } from '../data/mockData';
@@ -323,15 +322,6 @@ export function Login({ onLogin }: LoginProps) {
               {t('createAccountComingSoon')}
             </motion.p>
           )}
-          <button
-            type="button"
-            onClick={handleGuestAccess}
-            className="inline-flex items-center gap-1.5 text-xs font-black text-slate-500 dark:text-slate-400 hover:text-[#004C6D] dark:hover:text-[#D7C826] transition-colors cursor-pointer"
-          >
-            <Compass className="w-3.5 h-3.5" />
-            {t('enterAsGuestExplore')}
-            {dir === 'rtl' ? <ArrowLeft className="w-3.5 h-3.5" /> : <ArrowRight className="w-3.5 h-3.5" />}
-          </button>
         </div>
 
         {/* Quick Demo Access Options */}

@@ -455,9 +455,17 @@ export function LibraryMap() {
                     </div>
                   </>
                 ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center gap-4 text-white/40 p-12">
-                    <Compass className="w-12 h-12" />
+                  <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 text-white/40 p-12">
+                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
+                      <Compass className="w-10 h-10" />
+                    </div>
                     <p className="text-sm font-bold max-w-xs">{t('selectDestinationFirstLabel')}</p>
+                    <button
+                      onClick={() => navigate('/search')}
+                      className="px-6 py-3 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95"
+                    >
+                      {t('searchNowLabel')}
+                    </button>
                   </div>
                 )}
               </motion.div>
