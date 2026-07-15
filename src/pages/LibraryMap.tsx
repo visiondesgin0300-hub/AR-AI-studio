@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Search as SearchIcon, Users, VolumeX, Monitor, Printer } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Users, VolumeX, Monitor, Printer } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -118,109 +118,6 @@ export function LibraryMap() {
 
   return (
     <div className={cn("h-full flex flex-col gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
-      {/* Pre-selection landing: search + recommended sources + XP/badges guide.
-          Hidden once a book is picked so navigation mode stays uncluttered. */}
-      {!bookData && (
-        <div className="space-y-10 pb-10 border-b border-slate-200 dark:border-white/10">
-          <div className="text-center space-y-3 max-w-2xl mx-auto">
-            <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('augmentedLibraryMap')}</h1>
-            <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <button
-              onClick={() => navigate('/search')}
-              className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
-              <div className="relative w-14 h-14 bg-primary/10 dark:bg-accent/10 rounded-2xl flex items-center justify-center text-primary dark:text-accent">
-                <SearchIcon className="w-6 h-6" />
-              </div>
-              <h3 className="relative text-sm font-black text-primary dark:text-white tracking-tight">{t('smartSearchCard')}</h3>
-              <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('smartSearchCardDesc')}</p>
-              <span className={cn("relative text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                {t('searchNowLabel')}
-                <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
-              </span>
-            </button>
-
-            <button
-              onClick={() => setResourceTab(resourceTab === 'facilities' ? 'shelves' : 'facilities')}
-              className={cn(
-                "official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 shadow-sm hover:shadow-xl transition-all",
-                resourceTab === 'facilities'
-                  ? "bg-primary dark:bg-slate-950 border-primary text-white"
-                  : "bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 hover:border-accent dark:hover:border-accent"
-              )}
-            >
-              {resourceTab !== 'facilities' && <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />}
-              <div className={cn("relative w-14 h-14 rounded-2xl flex items-center justify-center", resourceTab === 'facilities' ? "bg-white/10 text-white" : "bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent")}>
-                <Compass className="w-6 h-6" />
-              </div>
-              <h3 className={cn("relative text-sm font-black tracking-tight", resourceTab === 'facilities' ? "text-white" : "text-primary dark:text-white")}>{t('libraryFacilities')}</h3>
-              <p className={cn("relative text-[11px] font-bold leading-relaxed", resourceTab === 'facilities' ? "text-white/60" : "text-slate-400 dark:text-slate-500")}>{t('libraryFacilitiesCardDesc')}</p>
-              <span className={cn("relative text-[10px] font-black uppercase tracking-widest flex items-center gap-1", resourceTab === 'facilities' ? "text-accent" : "text-accent", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                {t('viewFacilitiesLabel')}
-                <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
-              </span>
-            </button>
-
-            <button
-              onClick={() => navigate('/ar')}
-              className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
-            >
-              <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent pointer-events-none" />
-              <div className="relative w-14 h-14 bg-primary/10 dark:bg-accent/10 rounded-2xl flex items-center justify-center text-primary dark:text-accent">
-                <Camera className="w-6 h-6" />
-              </div>
-              <h3 className="relative text-sm font-black text-primary dark:text-white tracking-tight">{t('smartBookCoverScannerCard')}</h3>
-              <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('smartBookCoverScannerCardDesc')}</p>
-              <span className={cn("relative text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                {t('startScanningLabel')}
-                <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
-              </span>
-            </button>
-          </div>
-
-          {resourceTab === 'facilities' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {FACILITIES.map((facility) => (
-                <div
-                  key={facility.name}
-                  onClick={() => navigateToCell(facility.cellId, facility.name)}
-                  className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900 cursor-pointer hover:border-accent dark:hover:border-accent transition-all"
-                >
-                  <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
-                    <facility.icon className="w-6 h-6" />
-                  </div>
-                  <div className={cn("flex-1 min-w-0 space-y-1", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                    <div className="flex items-center justify-between gap-2">
-                      <h4 className="font-black text-primary dark:text-white text-sm leading-tight">{facility.name}</h4>
-                      <span className={cn(
-                        "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider",
-                        facility.status === 'available'
-                          ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
-                          : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
-                      )}>
-                        {facility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); navigateToCell(facility.cellId, facility.name); }}
-                      className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent hover:text-primary dark:hover:text-white hover:underline cursor-pointer"
-                    >
-                      <MapPin className="w-3.5 h-3.5" />
-                      <span>{facility.location}</span>
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Dynamic Header */}
       <div className={cn("flex flex-col md:flex-row items-center justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10", dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row')}>
         <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
@@ -237,24 +134,34 @@ export function LibraryMap() {
         <div className={cn("flex flex-col sm:flex-row items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
           <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5">
              <button
-               onClick={() => setActiveTab('map')}
+               onClick={() => { setResourceTab('shelves'); setActiveTab('map'); }}
                className={cn(
                  "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
-                 activeTab === 'map' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
+                 resourceTab !== 'facilities' && activeTab === 'map' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
                )}
              >
                <MapPin className="w-4 h-4" />
                {t('digitalView')}
              </button>
              <button
-               onClick={() => setActiveTab('sections')}
+               onClick={() => { setResourceTab('shelves'); setActiveTab('sections'); }}
                className={cn(
                  "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
-                 activeTab === 'sections' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
+                 resourceTab !== 'facilities' && activeTab === 'sections' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
                )}
              >
                <Box className="w-4 h-4" />
                {t('mainSections')}
+             </button>
+             <button
+               onClick={() => setResourceTab('facilities')}
+               className={cn(
+                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
+                 resourceTab === 'facilities' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
+               )}
+             >
+               <Compass className="w-4 h-4" />
+               {t('libraryFacilities')}
              </button>
           </div>
 
@@ -278,7 +185,7 @@ export function LibraryMap() {
         {/* Map Visualization Zone */}
         <div className="flex-1 official-card relative overflow-hidden min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
           {/* Blueprint Grid Overlay */}
-          {activeTab === 'map' && (
+          {activeTab === 'map' && resourceTab !== 'facilities' && (
             <div className="absolute inset-0 z-0 pointer-events-none">
               <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
               <div className="absolute inset-0 opacity-[0.01] dark:opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '200px 200px' }} />
@@ -290,6 +197,44 @@ export function LibraryMap() {
             </div>
           )}
 
+          {resourceTab === 'facilities' ? (
+            <div className="relative z-10 w-full h-full p-12 overflow-y-auto">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                {FACILITIES.map((facility) => (
+                  <div
+                    key={facility.name}
+                    onClick={() => navigateToCell(facility.cellId, facility.name)}
+                    className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900 cursor-pointer hover:border-accent dark:hover:border-accent transition-all"
+                  >
+                    <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
+                      <facility.icon className="w-6 h-6" />
+                    </div>
+                    <div className={cn("flex-1 min-w-0 space-y-1", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                      <div className="flex items-center justify-between gap-2">
+                        <h4 className="font-black text-primary dark:text-white text-sm leading-tight">{facility.name}</h4>
+                        <span className={cn(
+                          "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                          facility.status === 'available'
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                            : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                        )}>
+                          {facility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); navigateToCell(facility.cellId, facility.name); }}
+                        className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent hover:text-primary dark:hover:text-white hover:underline cursor-pointer"
+                      >
+                        <MapPin className="w-3.5 h-3.5" />
+                        <span>{facility.location}</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
           <AnimatePresence mode="wait">
             {activeTab === 'map' ? (
               <motion.div 
@@ -445,6 +390,7 @@ export function LibraryMap() {
               </motion.div>
             )}
           </AnimatePresence>
+          )}
         </div>
 
         {/* Sidebar Intelligence */}
