@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Users, VolumeX, Monitor, Printer } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Users, VolumeX, Monitor, Printer, Camera } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -107,30 +107,65 @@ export function Dashboard({ user }: DashboardProps) {
 
   return (
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
-      {/* Title + resource shortcuts */}
-      <div className="text-center space-y-3 max-w-2xl mx-auto">
-        <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('augmentedLibraryMap')}</h1>
-        <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
-        <div className="flex justify-center gap-3 pt-2">
+      {/* Title + entry-point cards: search, facilities, AR cover scanner */}
+      <div className="space-y-10">
+        <div className="text-center space-y-3 max-w-2xl mx-auto">
+          <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('augmentedLibraryMap')}</h1>
+          <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <button
-            onClick={() => setResourceTab('shelves')}
-            className={cn(
-              "px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2",
-              resourceTab === 'shelves' ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-primary dark:hover:text-slate-200"
-            )}
+            onClick={() => navigate('/search')}
+            className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
           >
-            <BookOpen className="w-4 h-4" />
-            {t('libraryResourcesShelves')}
+            <div className="absolute inset-0 bg-gradient-to-br from-accent/5 to-transparent pointer-events-none" />
+            <div className="relative w-14 h-14 bg-primary/10 dark:bg-accent/10 rounded-2xl flex items-center justify-center text-primary dark:text-accent">
+              <Search className="w-6 h-6" />
+            </div>
+            <h3 className="relative text-sm font-black text-primary dark:text-white tracking-tight">{t('smartSearchCard')}</h3>
+            <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('smartSearchCardDesc')}</p>
+            <span className={cn("relative text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+              {t('searchNowLabel')}
+              <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
+            </span>
           </button>
+
           <button
-            onClick={() => setResourceTab('facilities')}
+            onClick={() => setResourceTab(resourceTab === 'facilities' ? 'shelves' : 'facilities')}
             className={cn(
-              "px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center gap-2",
-              resourceTab === 'facilities' ? "bg-primary text-white shadow-lg shadow-primary/20" : "bg-slate-100 dark:bg-slate-900 text-slate-400 hover:text-primary dark:hover:text-slate-200"
+              "official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 shadow-sm hover:shadow-xl transition-all",
+              resourceTab === 'facilities'
+                ? "bg-primary dark:bg-slate-950 border-primary text-white"
+                : "bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 hover:border-accent dark:hover:border-accent"
             )}
           >
-            <Compass className="w-4 h-4" />
-            {t('libraryFacilities')}
+            {resourceTab !== 'facilities' && <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />}
+            <div className={cn("relative w-14 h-14 rounded-2xl flex items-center justify-center", resourceTab === 'facilities' ? "bg-white/10 text-white" : "bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent")}>
+              <Compass className="w-6 h-6" />
+            </div>
+            <h3 className={cn("relative text-sm font-black tracking-tight", resourceTab === 'facilities' ? "text-white" : "text-primary dark:text-white")}>{t('libraryFacilities')}</h3>
+            <p className={cn("relative text-[11px] font-bold leading-relaxed", resourceTab === 'facilities' ? "text-white/60" : "text-slate-400 dark:text-slate-500")}>{t('libraryFacilitiesCardDesc')}</p>
+            <span className={cn("relative text-[10px] font-black uppercase tracking-widest flex items-center gap-1 text-accent", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+              {t('viewFacilitiesLabel')}
+              <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
+            </span>
+          </button>
+
+          <button
+            onClick={() => navigate('/ar')}
+            className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent pointer-events-none" />
+            <div className="relative w-14 h-14 bg-primary/10 dark:bg-accent/10 rounded-2xl flex items-center justify-center text-primary dark:text-accent">
+              <Camera className="w-6 h-6" />
+            </div>
+            <h3 className="relative text-sm font-black text-primary dark:text-white tracking-tight">{t('smartBookCoverScannerCard')}</h3>
+            <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('smartBookCoverScannerCardDesc')}</p>
+            <span className={cn("relative text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+              {t('startScanningLabel')}
+              <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
+            </span>
           </button>
         </div>
       </div>

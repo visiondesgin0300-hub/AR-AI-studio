@@ -31,7 +31,11 @@
   }
 }
 
-@layer utilities {
+/* .official-card, .glass-panel and .glass-header live in the components
+   layer (not utilities) so that plain Tailwind utility classes applied
+   alongside them on the same element (e.g. bg-primary, text-white for a
+   "selected" state) always win the cascade, regardless of source order. */
+@layer components {
   .official-card {
     @apply bg-white border border-slate-200/60 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] rounded-2xl transition-shadow duration-500;
     .dark & {
@@ -54,7 +58,9 @@
       @apply bg-slate-900/90 border-white/5;
     }
   }
-  
+}
+
+@layer utilities {
   .rtl-flip {
     transform: scaleX(-1);
   }
