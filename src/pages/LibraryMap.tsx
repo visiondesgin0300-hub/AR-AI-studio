@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, ChevronRight, Compass, Camera, X, Box, User as UserIcon, Users, VolumeX, Monitor, Printer } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Users, VolumeX, Monitor, Printer } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -352,46 +352,94 @@ export function LibraryMap() {
                   )}
               </motion.div>
             ) : (
-              <motion.div 
+              <motion.div
                 key="sections"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="grid grid-cols-1 md:grid-cols-2 gap-10 p-12"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="relative w-full h-full min-h-[650px] bg-slate-950 flex flex-col overflow-hidden"
               >
-                 {sections.map(section => (
-                   <div key={section.id} className={cn("official-card p-10 flex flex-col justify-between group hover:border-primary/20 dark:hover:border-accent/20 transition-all cursor-pointer bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                      <div className={cn("flex items-start justify-between", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                         <div className="w-20 h-20 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center text-5xl group-hover:scale-110 transition-transform duration-500">
-                            {section.icon}
-                         </div>
-                         <div className={cn(dir === 'rtl' ? 'text-left' : 'text-right')}>
-                            <span className="text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest block mb-1">{t('shelfShort')} {section.id}</span>
-                            <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{section.name}</h3>
-                         </div>
-                      </div>
+                {destinationShelfId ? (
+                  <>
+                    <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
 
-                      <div className="mt-8 space-y-6">
-                         <div className={cn("flex flex-wrap gap-2", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                            {section.subjects.map(s => (
-                              <span key={s} className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-[11px] font-bold text-slate-500 dark:text-slate-400 rounded-xl border border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-slate-700 hover:text-primary dark:hover:text-white transition-all">
-                                {s}
-                              </span>
-                            ))}
-                         </div>
-                         
-                         <div className={cn("flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                            <div className={cn("flex items-center gap-3", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                               <div className={cn("w-3 h-3 rounded-full", section.occupancy === t('quiet') ? "bg-emerald-500" : section.occupancy === t('activeOccupancy') ? "bg-amber-500" : "bg-blue-500")} />
-                               <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{section.occupancy} {language === 'ar' ? 'الآن' : 'Now'}</span>
-                            </div>
-                            <button className={cn("text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest flex items-center gap-2 group-hover:text-accent dark:group-hover:text-white transition-colors", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                                {t('previewShelves')}
-                                <ChevronRight className={cn("w-4 h-4", dir === 'rtl' ? 'rotate-180' : '')} />
-                            </button>
-                         </div>
+                    <div className={cn("absolute top-6 z-20 flex items-center gap-3", dir === 'rtl' ? 'right-6' : 'left-6')}>
+                      <button
+                        onClick={() => { setManualTarget(null); setSelectedBook(null); setShowPath(false); }}
+                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-xl border border-white/10 transition-all active:scale-95"
+                      >
+                        {t('changeRouteLabel')}
+                      </button>
+                    </div>
+
+                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
+                      <defs>
+                        <linearGradient id="darkPathGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                          <stop offset="0%" stopColor="#D9B310" stopOpacity="0.2" />
+                          <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
+                        </linearGradient>
+                        <filter id="darkGlow">
+                          <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
+                          <feMerge>
+                            <feMergeNode in="coloredBlur" />
+                            <feMergeNode in="SourceGraphic" />
+                          </feMerge>
+                        </filter>
+                      </defs>
+                      <motion.path
+                        d="M 300,460 C 300,380 190,340 210,260 C 230,180 260,140 285,90"
+                        stroke="url(#darkPathGradient)"
+                        strokeWidth="10"
+                        strokeDasharray="4 16"
+                        strokeLinecap="round"
+                        fill="none"
+                        filter="url(#darkGlow)"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.5, ease: 'easeInOut' }}
+                      />
+                      <circle cx="285" cy="90" r="13" fill="#D9B310" stroke="white" strokeWidth="3" />
+                      <motion.circle
+                        cx="285" cy="90" r="13"
+                        stroke="#D9B310" strokeWidth="2" fill="none"
+                        animate={{ r: [13, 32, 13], opacity: [0.7, 0, 0.7] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                    </svg>
+
+                    <div className="absolute top-24 inset-x-0 flex justify-center z-20 px-10">
+                      <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
+                        <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
+                        {t('headTowardsShelf', { shelf: destinationShelfId })}
                       </div>
-                   </div>
-                 ))}
+                    </div>
+
+                    <div className="relative z-20 mt-auto p-6 space-y-3">
+                      <div className={cn("bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 shadow-2xl", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
+                        {bookData && (
+                          <img src={bookData.coverUrl} className="w-14 h-[4.5rem] object-cover rounded-xl shrink-0" alt="" referrerPolicy="no-referrer" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-black text-primary dark:text-white text-sm truncate">{destinationLabel}</h4>
+                          <div className={cn("flex items-center gap-4 mt-1 text-[10px] font-bold text-slate-400", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                            <span>{t('distanceLabel')}: 45{language === 'ar' ? ' م' : 'm'}</span>
+                            <span>{t('etaLabel')}: 1{language === 'ar' ? ' د' : ' min'}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => { if (typeof navigator.vibrate === 'function') { try { navigator.vibrate(80); } catch { /* best-effort */ } } setShowPath(true); }}
+                        className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95"
+                      >
+                        {t('startNavigationLabel')}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center gap-4 text-white/40 p-12">
+                    <Compass className="w-12 h-12" />
+                    <p className="text-sm font-bold max-w-xs">{t('selectDestinationFirstLabel')}</p>
+                  </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
