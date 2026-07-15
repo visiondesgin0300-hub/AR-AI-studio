@@ -91,6 +91,34 @@ export function Landing() {
             {language === 'ar' ? 'دليل الاستخدام' : 'User Guide'}
           </button>
         </motion.div>
+
+        {/* Feature highlights: fills the otherwise empty space below the fold
+            with the app's three core capabilities instead of blank grid
+            background, and gives first-time visitors a preview of what's
+            behind the login wall. */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="grid grid-cols-3 gap-4 md:gap-6 max-w-xl w-full mt-20"
+        >
+          {[
+            { icon: Search, label: t('searchTitle'), desc: language === 'ar' ? 'فهرس ذكي لكل الكتب' : 'Smart catalog search' },
+            { icon: MapIcon, label: t('mapTitle'), desc: language === 'ar' ? 'ملاحة دقيقة للأرفف' : 'Precise shelf wayfinding' },
+            { icon: Camera, label: t('arHubFabLabel'), desc: language === 'ar' ? 'كاميرا تدلك على الطريق' : 'Camera-guided navigation' },
+          ].map((feature, i) => (
+            <div
+              key={i}
+              className="bg-white dark:bg-slate-900 border border-slate-150/60 dark:border-white/5 rounded-2xl p-4 md:p-5 flex flex-col items-center text-center gap-2 shadow-sm shadow-black/[0.03]"
+            >
+              <div className="w-10 h-10 rounded-xl bg-primary/5 dark:bg-accent/10 text-primary dark:text-accent flex items-center justify-center">
+                <feature.icon className="w-5 h-5" />
+              </div>
+              <span className="text-xs font-black text-primary dark:text-white">{feature.label}</span>
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed hidden sm:block">{feature.desc}</span>
+            </div>
+          ))}
+        </motion.div>
       </main>
 
       <footer className="relative z-10 px-8 pb-8">

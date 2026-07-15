@@ -49,23 +49,13 @@ export function Dashboard({ user }: DashboardProps) {
   const recommendationCategories = Array.from(new Set(
     MOCK_BOOKS.filter(b => user.borrowedBooks.includes(b.id)).map(b => b.category)
   ));
-  
-  const [mapSearchQuery, setMapSearchQuery] = React.useState('');
 
   const recommendations = React.useMemo(() => {
-    if (mapSearchQuery.trim()) {
-      const q = mapSearchQuery.toLowerCase();
-      return MOCK_BOOKS.filter(b =>
-        b.title.toLowerCase().includes(q) ||
-        b.author.toLowerCase().includes(q) ||
-        (b.category ?? '').toLowerCase().includes(q)
-      ).slice(0, 3);
-    }
     return MOCK_BOOKS
       .filter(b => !user.borrowedBooks.includes(b.id))
       .filter(b => recommendationCategories.length > 0 ? recommendationCategories.includes(b.category) : true)
       .slice(0, 3);
-  }, [mapSearchQuery, recommendationCategories, user.borrowedBooks]);
+  }, [recommendationCategories, user.borrowedBooks]);
   const MATCH_SCORES = [98, 94, 91];
 
   const WEEKLY_ACTIVITY = React.useMemo(() => [
@@ -78,31 +68,12 @@ export function Dashboard({ user }: DashboardProps) {
     { day: t('friday'), value: 65 },
   ], [t]);
 
-  const sections = [
-    { id: 'A', name: t('naturalSciences'), icon: '🧪', color: 'bg-blue-500' },
-    { id: 'B', name: t('engineeringAndTech'), icon: '⚙️', color: 'bg-orange-500' },
-    { id: 'C', name: t('artsAndCrafts'), icon: '🎨', color: 'bg-purple-500' },
-    { id: 'D', name: t('humanities'), icon: '📚', color: 'bg-green-500' },
-  ];
-
-  const cells = [
-    { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' }, { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' },
-    { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' }, { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' },
-  ];
-
-  const occupancyData = React.useMemo(() => {
-    return {
-      'A-1': 60, 'A-2': 25, 'B-1': 86, 'B-2': 23,
-      'C-1': 78, 'C-2': 97, 'D-1': 54, 'D-2': 0,
-    };
-  }, []);
-
   return (
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
       {/* Title + entry-point cards: search, facilities, AR cover scanner */}
       <div className="space-y-10">
         <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('augmentedLibraryMap')}</h1>
+          <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('augmentedLibraryMap').replace('{name}', user.name)}</h1>
           <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
         </div>
 
@@ -141,75 +112,11 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
       </div>
 
-      {/* Search prompt + results: kept in a single card so results read as a
-          direct response to the search box above them, not a separate,
-          disconnected section further down the page. */}
-      <div className="flex flex-col lg:flex-row gap-10 items-start">
-      <section className="official-card flex-1 w-full p-10 flex flex-col items-center text-center gap-6 bg-white dark:bg-slate-900">
-        <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
-          <BookOpen className="w-8 h-8" />
-        </div>
-        <div className="space-y-2 max-w-lg">
-          <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{t('searchForBookFirst')}</h3>
-          <p className="text-slate-400 dark:text-slate-500 font-bold text-sm leading-relaxed">{t('searchForBookFirstDesc')}</p>
-        </div>
-        <div className="relative w-full max-w-xl">
-          <Search className={cn("absolute top-1/2 -translate-y-1/2 text-primary w-5 h-5", dir === 'rtl' ? 'right-5' : 'left-5')} />
-          <input
-            type="text"
-            value={mapSearchQuery}
-            onChange={(e) => setMapSearchQuery(e.target.value)}
-            placeholder={t('searchByBookPlaceholder')}
-            className={cn(
-              "w-full py-4 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent",
-              dir === 'rtl' ? 'pr-14 pl-5 text-right' : 'pl-14 pr-5 text-left'
-            )}
-          />
-        </div>
-      </section>
-
-      {/* Compact shelf map, kept as its own distinct card next to the search
-          box so a student can see live occupancy while typing rather than
-          needing to jump to the full library map page. */}
-      <div className="official-card flex-1 w-full p-6 bg-white dark:bg-slate-900">
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {cells.map((cell) => {
-            const section = sections.find(s => s.id === cell.section);
-            const occupancy = occupancyData[cell.id as keyof typeof occupancyData];
-            return (
-              <div
-                key={cell.id}
-                onClick={() => navigate('/map')}
-                className="relative flex flex-col items-center justify-center rounded-[2rem] border-2 border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-slate-800/30 hover:bg-white dark:hover:bg-slate-800 hover:border-primary/20 dark:hover:border-accent/20 transition-all duration-300 cursor-pointer group py-6 px-2"
-              >
-                <div className={cn("absolute top-3 flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2 py-1 rounded-full shadow-sm border border-slate-100 dark:border-white/5", dir === 'rtl' ? 'left-3' : 'right-3')}>
-                  <div className={cn("w-1.5 h-1.5 rounded-full", occupancy > 70 ? "bg-red-500" : occupancy > 40 ? "bg-amber-500" : "bg-emerald-500")}></div>
-                  <span className="text-[8px] font-black text-slate-500 dark:text-slate-400">{occupancy}%</span>
-                </div>
-
-                <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-white dark:bg-slate-700 shadow-md">
-                    {section?.icon}
-                  </div>
-                  <div className="space-y-0.5">
-                    <div className="text-[8px] font-black text-primary/40 dark:text-white/30 uppercase tracking-widest leading-tight">{section?.name}</div>
-                    <div className="text-sm font-black text-primary dark:text-white">{t('shelfId', { id: cell.id })}</div>
-                  </div>
-                </div>
-
-                <div className={cn("absolute bottom-0 inset-x-6 h-1 rounded-t-full opacity-20 group-hover:opacity-100 transition-all", section?.color)} />
-              </div>
-            );
-          })}
-        </div>
-      </div>
-      </div>
-
       {recommendations.length > 0 && (
         <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
           <h4 className="text-sm font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
             <Sparkles className="w-4 h-4 text-accent" />
-            {mapSearchQuery.trim() ? t('searchResults') : t('recommendedFeaturedSources')}
+            {t('recommendedFeaturedSources')}
           </h4>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left rtl:text-right">
