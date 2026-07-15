@@ -55,6 +55,7 @@ export function CoverScan({ embedded = false, onMatch, onGoToShelf }: CoverScanP
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [matchedBook, setMatchedBook] = useState<Book | null>(null);
+  const [showManualFallback, setShowManualFallback] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -187,9 +188,21 @@ export function CoverScan({ embedded = false, onMatch, onGoToShelf }: CoverScanP
   }, [t]);
 
   useEffect(() => {
-    if (matchedBook && onMatch) onMatch(matchedBook);
+    if (!matchedBook) return;
+    if (typeof navigator.vibrate === 'function') {
+      try { navigator.vibrate(200); } catch { /* vibration is best-effort */ }
+    }
+    if (onMatch) onMatch(matchedBook);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matchedBook]);
+
+  // If scanning runs for a while with no match, offer a manual-search escape
+  // hatch instead of leaving the user stuck watching an indefinite spinner.
+  useEffect(() => {
+    if (!ready) return;
+    const timer = setTimeout(() => setShowManualFallback(true), 20000);
+    return () => clearTimeout(timer);
+  }, [ready]);
 
   return (
     <div className={cn('overflow-hidden font-sans', embedded ? 'absolute inset-0' : 'fixed inset-0 z-50 bg-black')} dir={dir}>
@@ -225,6 +238,17 @@ export function CoverScan({ embedded = false, onMatch, onGoToShelf }: CoverScanP
             </div>
           )}
           {ready && <p className="text-white/60 font-bold text-xs max-w-xs">{t('pointCameraAtCoverLabel')}</p>}
+          {ready && showManualFallback && (
+            <div className="pointer-events-auto flex flex-col items-center gap-3 pt-2">
+              <p className="text-white/50 font-bold text-[11px] max-w-xs">{t('noMatchFallbackText')}</p>
+              <button
+                onClick={() => navigate('/search')}
+                className="px-6 py-3 bg-white text-primary rounded-2xl text-[11px] font-black uppercase tracking-widest hover:brightness-95 transition-all active:scale-95"
+              >
+                {t('searchManuallyLabel')}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

@@ -67,6 +67,11 @@ export function LibraryMap() {
     setShowPath(true);
     setResourceTab('shelves');
     setActiveTab('map');
+    // Light haptic confirmation that navigation started, so the user doesn't
+    // have to visually double-check the destination was registered.
+    if (typeof navigator.vibrate === 'function') {
+      try { navigator.vibrate(80); } catch { /* vibration is best-effort */ }
+    }
   };
 
   useEffect(() => {
