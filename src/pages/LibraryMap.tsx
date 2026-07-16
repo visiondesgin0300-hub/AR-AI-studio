@@ -121,6 +121,47 @@ export function LibraryMap() {
     : 0;
   const etaMinutes = Math.max(1, Math.round(distanceMeters / 50));
 
+  // Floor guidance reuses the same ground/1st/2nd/3rd floor labels already
+  // used for facility locations, so a shelf destination also tells the
+  // student which floor to head to, not just which aisle.
+  const FLOOR_LABEL_KEY_BY_SECTION: Record<string, string> = {
+    A: 'facilityLocationPrinting',
+    B: 'facilityLocationComputerLab',
+    C: 'facilityLocationGroupStudy',
+    D: 'facilityLocationSilentZone',
+    E: 'facilityLocationPrinting',
+  };
+  const destinationFloorLabel = destinationSectionId ? t(FLOOR_LABEL_KEY_BY_SECTION[destinationSectionId] ?? 'facilityLocationPrinting') : '';
+
+  // Live "walking" simulation: once navigation is active, distance/time and
+  // the current turn-by-turn step count down/advance over a fixed duration
+  // instead of sitting on a single static number the whole time.
+  const [walkProgress, setWalkProgress] = useState(0);
+  useEffect(() => {
+    if (!showPath || !destinationShelfId) {
+      setWalkProgress(0);
+      return;
+    }
+    setWalkProgress(0);
+    const WALK_DURATION_MS = 7000;
+    const startedAt = Date.now();
+    let rafId = 0;
+    const tick = () => {
+      const progress = Math.min((Date.now() - startedAt) / WALK_DURATION_MS, 1);
+      setWalkProgress(progress);
+      if (progress < 1) rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [showPath, destinationShelfId]);
+
+  const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
+  const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
+  const hasArrived = showPath && walkProgress >= 1;
+  const liveStepIndex = navigationSteps.length > 0
+    ? Math.min(navigationSteps.length - 1, Math.floor(walkProgress * navigationSteps.length))
+    : 0;
+
   const getPathData = () => {
     if (!destinationShelfId) return "";
     const paths: Record<string, string> = {
@@ -376,17 +417,20 @@ export function LibraryMap() {
                 {destinationShelfId ? (
                   <>
                     {/* Bookshelf aisle silhouette - stacked "book spine" bars
-                        along both edges, so the dark screen reads as a real
-                        library aisle instead of an empty black void. */}
-                    <svg className="absolute inset-0 w-full h-full opacity-30 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
+                        resting on a wooden plank line along both edges, so
+                        the dark screen reads as a real library aisle lined
+                        with shelved books instead of an empty black void. */}
+                    <svg className="absolute inset-0 w-full h-full opacity-40 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
                       {SHELF_SILHOUETTE_ROWS.map((rowY) => (
                         <g key={rowY}>
                           {SHELF_SPINE_WIDTHS.map((w, i) => (
-                            <rect key={`l-${i}`} x={18 + i * 22} y={rowY} width={w} height={78} rx={2} fill={SHELF_SPINE_COLORS[i % SHELF_SPINE_COLORS.length]} />
+                            <rect key={`l-${i}`} x={18 + i * 22} y={rowY} width={w} height={72} rx={2} fill={SHELF_SPINE_COLORS[i % SHELF_SPINE_COLORS.length]} />
                           ))}
+                          <rect x={14} y={rowY + 72} width={SHELF_SPINE_WIDTHS.length * 22 + 8} height={5} rx={1.5} fill="#8a6d1f" />
                           {SHELF_SPINE_WIDTHS.map((w, i) => (
-                            <rect key={`r-${i}`} x={600 - 18 - (i + 1) * 22} y={rowY} width={w} height={78} rx={2} fill={SHELF_SPINE_COLORS[(i + 2) % SHELF_SPINE_COLORS.length]} />
+                            <rect key={`r-${i}`} x={600 - 18 - (i + 1) * 22} y={rowY} width={w} height={72} rx={2} fill={SHELF_SPINE_COLORS[(i + 2) % SHELF_SPINE_COLORS.length]} />
                           ))}
+                          <rect x={600 - 14 - (SHELF_SPINE_WIDTHS.length * 22 + 8)} y={rowY + 72} width={SHELF_SPINE_WIDTHS.length * 22 + 8} height={5} rx={1.5} fill="#8a6d1f" />
                         </g>
                       ))}
                     </svg>
@@ -461,14 +505,41 @@ export function LibraryMap() {
                         <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
                         {t('headTowardsShelf', { shelf: destinationShelfId })}
                       </div>
+                      {/* Floor guidance, right under the shelf heading, so the
+                          student knows which floor to head to as well. */}
+                      <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/70 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                        <Box className="w-3.5 h-3.5 text-accent/80" />
+                        {destinationFloorLabel}
+                      </div>
                       {/* Distance/ETA surfaced right under the heading so it's
                           visible without scrolling the tall aisle view on a
-                          phone screen. */}
+                          phone screen, and count down live once navigation
+                          starts instead of sitting on one static number. */}
                       <div className="px-5 py-2 rounded-full bg-accent/15 backdrop-blur-xl border border-accent/30 text-accent text-[11px] font-black flex items-center gap-3">
-                        <span>{t('distanceLabel')}: {distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
+                        <span>{t('distanceLabel')}: {showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
                         <span className="w-1 h-1 rounded-full bg-accent/50" />
-                        <span>{t('etaLabel')}: {etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                        <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
                       </div>
+                      {/* Live turn-by-turn instruction, cycling through the
+                          same steps shown in the sidebar as the simulated
+                          walk progresses. */}
+                      {showPath && navigationSteps.length > 0 && (
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={hasArrived ? 'arrived' : liveStepIndex}
+                            initial={{ opacity: 0, y: -6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 6 }}
+                            className={cn(
+                              "px-5 py-2 rounded-full backdrop-blur-xl border text-[11px] font-black flex items-center gap-2 max-w-full",
+                              hasArrived ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" : "bg-white/10 border-white/10 text-white"
+                            )}
+                          >
+                            <MapPin className="w-3.5 h-3.5 shrink-0" />
+                            <span className="truncate">{hasArrived ? t('reachedDestination') : navigationSteps[liveStepIndex]}</span>
+                          </motion.div>
+                        </AnimatePresence>
+                      )}
                     </div>
 
                     <div className="relative z-20 mt-auto p-6 space-y-3">
@@ -479,15 +550,18 @@ export function LibraryMap() {
                         <div className="flex-1 min-w-0">
                           <h4 className="font-black text-primary dark:text-white text-sm truncate">{destinationLabel}</h4>
                           <div className={cn("flex items-center gap-4 mt-1 text-[10px] font-bold text-slate-400", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                            <span>{t('distanceLabel')}: {distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
-                            <span>{t('etaLabel')}: {etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                            <span>{t('distanceLabel')}: {showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
+                            <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
                           </div>
                         </div>
                       </div>
                       {showPath ? (
-                        <div className="w-full py-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          {t('navigationInProgressLabel')}
+                        <div className={cn(
+                          "w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3 transition-colors",
+                          hasArrived ? "bg-emerald-500/25 border border-emerald-500/40 text-emerald-400" : "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400"
+                        )}>
+                          <span className={cn("w-2 h-2 rounded-full bg-emerald-400", !hasArrived && "animate-pulse")} />
+                          {hasArrived ? t('reachedDestination') : t('navigationInProgressLabel')}
                         </div>
                       ) : (
                         <button
