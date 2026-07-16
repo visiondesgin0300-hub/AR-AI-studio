@@ -135,10 +135,15 @@ export function LibraryMap() {
 
   // Live "walking" simulation: once navigation is active, distance/time and
   // the current turn-by-turn step count down/advance over a fixed duration
-  // instead of sitting on a single static number the whole time.
+  // instead of sitting on a single static number the whole time. Gated on
+  // activeTab (not just showPath) because showPath is often already true
+  // before the student ever switches to this tab - e.g. selecting a shelf
+  // on the grid sets it while staying on the "map" tab - so timing the walk
+  // from showPath alone meant it could finish in the background before this
+  // screen was even visible, leaving distance/time stuck at 0 on arrival.
   const [walkProgress, setWalkProgress] = useState(0);
   useEffect(() => {
-    if (!showPath || !destinationShelfId) {
+    if (!showPath || !destinationShelfId || activeTab !== 'sections') {
       setWalkProgress(0);
       return;
     }
@@ -153,7 +158,7 @@ export function LibraryMap() {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [showPath, destinationShelfId]);
+  }, [showPath, destinationShelfId, activeTab]);
 
   const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
