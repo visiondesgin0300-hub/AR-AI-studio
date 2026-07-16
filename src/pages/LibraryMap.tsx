@@ -11,6 +11,11 @@ interface ManualTarget {
   id: string;
 }
 
+const DARK_NAV_PATH_D = 'M 300,460 C 300,380 190,340 210,260 C 230,180 260,140 285,90';
+const SHELF_SILHOUETTE_ROWS = [30, 145, 260, 375];
+const SHELF_SPINE_WIDTHS = [14, 10, 16, 12, 18, 11];
+const SHELF_SPINE_COLORS = ['#0e7490', '#155e75', '#D9B310', '#0891b2', '#164e63', '#0e7490'];
+
 export function LibraryMap() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -370,6 +375,21 @@ export function LibraryMap() {
               >
                 {destinationShelfId ? (
                   <>
+                    {/* Bookshelf aisle silhouette - stacked "book spine" bars
+                        along both edges, so the dark screen reads as a real
+                        library aisle instead of an empty black void. */}
+                    <svg className="absolute inset-0 w-full h-full opacity-30 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
+                      {SHELF_SILHOUETTE_ROWS.map((rowY) => (
+                        <g key={rowY}>
+                          {SHELF_SPINE_WIDTHS.map((w, i) => (
+                            <rect key={`l-${i}`} x={18 + i * 22} y={rowY} width={w} height={78} rx={2} fill={SHELF_SPINE_COLORS[i % SHELF_SPINE_COLORS.length]} />
+                          ))}
+                          {SHELF_SPINE_WIDTHS.map((w, i) => (
+                            <rect key={`r-${i}`} x={600 - 18 - (i + 1) * 22} y={rowY} width={w} height={78} rx={2} fill={SHELF_SPINE_COLORS[(i + 2) % SHELF_SPINE_COLORS.length]} />
+                          ))}
+                        </g>
+                      ))}
+                    </svg>
                     <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
 
                     <div className={cn("absolute top-6 z-20 flex items-center gap-3", dir === 'rtl' ? 'right-6' : 'left-6')}>
@@ -407,7 +427,7 @@ export function LibraryMap() {
                         </filter>
                       </defs>
                       <motion.path
-                        d="M 300,460 C 300,380 190,340 210,260 C 230,180 260,140 285,90"
+                        d={DARK_NAV_PATH_D}
                         stroke="url(#darkPathGradient)"
                         strokeWidth="10"
                         strokeDasharray="4 16"
@@ -418,6 +438,15 @@ export function LibraryMap() {
                         animate={{ pathLength: 1 }}
                         transition={{ duration: 1.5, ease: 'easeInOut' }}
                       />
+                      {/* Once navigation is actively started, a stream of
+                          arrows flows along the same path so the yellow
+                          route visibly indicates the direction of travel
+                          instead of sitting static. */}
+                      {showPath && [0, 1, 2].map((i) => (
+                        <polygon key={i} points="-7,-9 8,0 -7,9" fill="#D9B310" stroke="#01354C" strokeWidth="1">
+                          <animateMotion dur="2.2s" begin={`${i * 0.75}s`} repeatCount="indefinite" rotate="auto" path={DARK_NAV_PATH_D} />
+                        </polygon>
+                      ))}
                       <circle cx="285" cy="90" r="13" fill="#D9B310" stroke="white" strokeWidth="3" />
                       <motion.circle
                         cx="285" cy="90" r="13"
@@ -427,10 +456,18 @@ export function LibraryMap() {
                       />
                     </svg>
 
-                    <div className="absolute top-24 inset-x-0 flex justify-center z-20 px-10">
+                    <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-20 px-10">
                       <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
                         <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
                         {t('headTowardsShelf', { shelf: destinationShelfId })}
+                      </div>
+                      {/* Distance/ETA surfaced right under the heading so it's
+                          visible without scrolling the tall aisle view on a
+                          phone screen. */}
+                      <div className="px-5 py-2 rounded-full bg-accent/15 backdrop-blur-xl border border-accent/30 text-accent text-[11px] font-black flex items-center gap-3">
+                        <span>{t('distanceLabel')}: {distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
+                        <span className="w-1 h-1 rounded-full bg-accent/50" />
+                        <span>{t('etaLabel')}: {etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
                       </div>
                     </div>
 
@@ -447,12 +484,19 @@ export function LibraryMap() {
                           </div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => { if (typeof navigator.vibrate === 'function') { try { navigator.vibrate(80); } catch { /* best-effort */ } } setShowPath(true); }}
-                        className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95"
-                      >
-                        {t('startNavigationLabel')}
-                      </button>
+                      {showPath ? (
+                        <div className="w-full py-4 bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          {t('navigationInProgressLabel')}
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => { if (typeof navigator.vibrate === 'function') { try { navigator.vibrate(80); } catch { /* best-effort */ } } setShowPath(true); }}
+                          className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95"
+                        >
+                          {t('startNavigationLabel')}
+                        </button>
+                      )}
                     </div>
                   </>
                 ) : (
