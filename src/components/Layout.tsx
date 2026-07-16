@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle } from 'lucide-react';
+import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle } from 'lucide-react';
 import { User } from '../types';
 import { cn, getUserLevel } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage';
+import { GuidedTour } from './GuidedTour';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { t, toggleLanguage, language, dir } = useLanguage();
 
@@ -61,8 +63,13 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
              </div>
              <span className="text-xl font-black tracking-widest uppercase italic text-primary dark:text-white">{t('appName')}</span>
           </div>
-          <div className={cn("text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-[0.25em] uppercase leading-none mt-1 outline-none", dir === 'rtl' ? 'ml-1' : 'mr-1')}>
-            {t('appSubtitle')}
+          <div className={cn("flex items-center gap-2 mt-1", dir === 'rtl' ? 'ml-1' : 'mr-1')}>
+            <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-[0.25em] uppercase leading-none outline-none">
+              {t('appSubtitle')}
+            </div>
+            <span className="px-2 py-0.5 rounded-md bg-accent/15 text-accent text-[8px] font-black uppercase tracking-widest">
+              {t('demoVersionBadge')}
+            </span>
           </div>
         </div>
 
@@ -230,6 +237,19 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 <Sun className="w-5 h-5 text-accent" />
               </motion.div>
               <div className="w-5 h-5 opacity-0"></div> {/* Spacer */}
+            </motion.button>
+
+            {/* Guided Tour - a self-driving walkthrough of every core feature,
+                so the app can be presented to an audience without narrating
+                each click manually. */}
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowTour(true)}
+              title={t('guidedTourLabel')}
+              className="p-3 rounded-2xl bg-white/10 text-white/80 border border-white/15 hover:bg-white/20 hover:border-white/25 transition-all"
+            >
+              <PlayCircle className="w-5 h-5" />
             </motion.button>
 
             {/* Help Center - always one tap away, since students hitting a
@@ -465,6 +485,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
           })}
         </nav>
       </div>
+
+      <AnimatePresence>
+        {showTour && <GuidedTour user={user} onClose={() => setShowTour(false)} />}
+      </AnimatePresence>
     </div>
   );
 }
