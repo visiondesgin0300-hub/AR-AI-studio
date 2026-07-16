@@ -119,11 +119,12 @@ export function LibraryMap() {
   const distanceMeters = destinationShelfId
     ? (DISTANCE_BY_SECTION[destinationShelfId.split('-')[0]] ?? 45) + (destinationShelfId.endsWith('-2') ? 8 : 0)
     : 0;
-  const etaMinutes = Math.max(1, Math.round(distanceMeters / 50));
 
   // Floor guidance reuses the same ground/1st/2nd/3rd floor labels already
   // used for facility locations, so a shelf destination also tells the
-  // student which floor to head to, not just which aisle.
+  // student which floor to head to, not just which aisle. The numeric level
+  // also feeds the walking-time estimate below - reaching a higher floor
+  // takes longer than a same-floor stroll, not just a longer flat distance.
   const FLOOR_LABEL_KEY_BY_SECTION: Record<string, string> = {
     A: 'facilityLocationPrinting',
     B: 'facilityLocationComputerLab',
@@ -131,16 +132,27 @@ export function LibraryMap() {
     D: 'facilityLocationSilentZone',
     E: 'facilityLocationPrinting',
   };
+  const FLOOR_LEVEL_BY_SECTION: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, E: 0 };
   const destinationFloorLabel = destinationSectionId ? t(FLOOR_LABEL_KEY_BY_SECTION[destinationSectionId] ?? 'facilityLocationPrinting') : '';
+  const destinationFloorLevel = destinationSectionId ? (FLOOR_LEVEL_BY_SECTION[destinationSectionId] ?? 0) : 0;
+
+  // Walking time: a same-floor walk of ~30-83m realistically takes about a
+  // minute, plus roughly 25 extra seconds per floor climbed by stairs - so
+  // the estimate (and the live countdown below) actually reflects the floor,
+  // not just a flat number regardless of how far up the destination is.
+  const totalWalkSeconds = destinationShelfId
+    ? Math.max(60, Math.round((distanceMeters / 50) * 60) + destinationFloorLevel * 25)
+    : 0;
+  const etaMinutes = Math.max(1, Math.round(totalWalkSeconds / 60));
 
   // Live "walking" simulation: once navigation is active, distance/time and
-  // the current turn-by-turn step count down/advance over a fixed duration
-  // instead of sitting on a single static number the whole time. Gated on
-  // activeTab (not just showPath) because showPath is often already true
-  // before the student ever switches to this tab - e.g. selecting a shelf
-  // on the grid sets it while staying on the "map" tab - so timing the walk
-  // from showPath alone meant it could finish in the background before this
-  // screen was even visible, leaving distance/time stuck at 0 on arrival.
+  // the current turn-by-turn step count down/advance over the estimated walk
+  // duration instead of sitting on a single static number the whole time.
+  // Gated on activeTab (not just showPath) because showPath is often already
+  // true before the student ever switches to this tab - e.g. selecting a
+  // shelf on the grid sets it while staying on the "map" tab - so timing the
+  // walk from showPath alone meant it could finish in the background before
+  // this screen was even visible, leaving distance/time stuck at 0 on arrival.
   const [walkProgress, setWalkProgress] = useState(0);
   useEffect(() => {
     if (!showPath || !destinationShelfId || activeTab !== 'sections') {
@@ -148,7 +160,7 @@ export function LibraryMap() {
       return;
     }
     setWalkProgress(0);
-    const WALK_DURATION_MS = 7000;
+    const WALK_DURATION_MS = totalWalkSeconds * 1000;
     const startedAt = Date.now();
     let rafId = 0;
     const tick = () => {
@@ -158,7 +170,7 @@ export function LibraryMap() {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [showPath, destinationShelfId, activeTab]);
+  }, [showPath, destinationShelfId, activeTab, totalWalkSeconds]);
 
   const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
