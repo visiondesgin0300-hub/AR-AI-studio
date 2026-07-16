@@ -36,6 +36,9 @@ export function Landing() {
             <div className="font-display text-lg font-bold text-primary dark:text-white tracking-tight leading-tight">
               {language === 'ar' ? 'المكتبة المعززة' : 'ARLibrary'}
             </div>
+            <span className="px-2.5 py-1 rounded-lg bg-accent/15 text-accent text-[9px] font-black uppercase tracking-widest">
+              {t('demoVersionBadge')}
+            </span>
           </div>
 
           <button
