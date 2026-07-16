@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ScanLine, Sparkles, X } from 'lucide-react';
+import { ScanLine, Sparkles, X, Cpu } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { Book } from '../types';
@@ -91,7 +91,7 @@ export function ArHub() {
         ) : !targetBook ? (
           <motion.div key="cover" className="absolute inset-0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <CoverScan embedded onMatch={(book) => setTargetBook(book)} onGoToShelf={(book) => setTargetBook(book)} />
-            <div className={cn('absolute bottom-8 z-20 left-0 right-0 flex justify-center px-10 pointer-events-none')}>
+            <div className={cn('absolute bottom-8 z-20 left-0 right-0 flex flex-col items-center gap-3 px-10 pointer-events-none')}>
               <button
                 onClick={startSimulation}
                 className="pointer-events-auto flex flex-col items-center gap-1.5 px-6 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xl text-white transition-all active:scale-95"
@@ -103,6 +103,13 @@ export function ArHub() {
                 <span className="text-[10px] font-bold text-white/60 max-w-xs leading-relaxed">
                   {t('trySimulationDesc')}
                 </span>
+              </button>
+              <button
+                onClick={() => navigate('/ar-lab')}
+                className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-accent/90 hover:bg-accent text-primary text-[11px] font-black uppercase tracking-widest transition-all active:scale-95"
+              >
+                <Cpu className="w-4 h-4" />
+                {t('arLabEntryLabel')}
               </button>
             </div>
           </motion.div>

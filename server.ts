@@ -367,6 +367,48 @@ app.post("/api/summarize-chapter", async (req, res) => {
   }
 });
 
+// AR shelf-scan info window: short academic summary for a single scanned book.
+// Always returns 200 with a usable summary (Gemini when a key is configured,
+// otherwise a composed local one) so the AR demo never shows a broken card.
+app.post("/api/book-insight", async (req, res) => {
+  const { title, author, category, description } = req.body || {};
+  if (!title) {
+    return res.status(400).json({ error: "Missing title" });
+  }
+
+  const localFallback = description
+    ? `${description} يُصنّف هذا المرجع ضمن مجال ${category ?? 'المعارف العامة'}، ويُعد من المصادر الأكاديمية الموصى بها للطلاب والباحثين المهتمين بهذا التخصص.`
+    : `مرجع أكاديمي متخصص في مجال ${category ?? 'المعارف العامة'} للمؤلف ${author ?? 'غير محدد'}، متاح ضمن مقتنيات المكتبة الرقمية.`;
+
+  const client = getGeminiClient();
+  if (!client) {
+    return res.json({ summary: localFallback });
+  }
+
+  try {
+    const prompt = `اكتب خلاصة أكاديمية موجزة جداً (سطران إلى ثلاثة أسطر) باللغة العربية عن الكتاب التالي، تصلح للعرض في نافذة معلومات معزّزة داخل المكتبة:
+    العنوان: ${title}
+    المؤلف: ${author ?? 'غير محدد'}
+    التصنيف: ${category ?? 'عام'}
+    الوصف: ${description ?? ''}
+
+    اجعلها موجزة ومركّزة وتشجّع الطالب على قراءته.`;
+
+    const response = await client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: "أنت أمين مكتبة أكاديمي يكتب خلاصات معرفية موجزة ودقيقة للكتب."
+      }
+    });
+
+    return res.json({ summary: response.text || localFallback });
+  } catch (error: any) {
+    console.error("Gemini Book Insight Error: ", error);
+    return res.json({ summary: localFallback });
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
