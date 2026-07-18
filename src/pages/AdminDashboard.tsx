@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Users, BookOpen, Activity, PlusCircle, Download, Trash2, Edit, X, BarChart3, ListFilter, AlertCircle, Bell, TrendingUp, Search, User as UserIcon, Settings, Clock, ShieldCheck } from 'lucide-react';
 import { ShelfAuditPanel } from '../components/ShelfAuditPanel';
+import { BookCover } from '../components/BookCover';
 import { MOCK_BOOKS, MOCK_USERS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -328,7 +329,7 @@ export function AdminDashboard() {
                                    <tr key={book.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                       <td className="px-6 py-5">
                                          <div className={cn("flex items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                                            <img src={book.coverUrl} className="w-12 h-16 object-cover rounded-xl shadow-md border-2 border-slate-100 dark:border-white/5 shrink-0" alt="" referrerPolicy="no-referrer" />
+                                            <BookCover book={book} className="w-12 h-16 rounded-xl shadow-md border-2 border-slate-100 dark:border-white/5 shrink-0 overflow-hidden" />
                                             <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
                                                <div className="text-xs font-black text-primary dark:text-white truncate max-w-[180px] sm:max-w-[250px] leading-tight">{book.title}</div>
                                                <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold mt-1 uppercase tracking-widest">{book.author}</div>

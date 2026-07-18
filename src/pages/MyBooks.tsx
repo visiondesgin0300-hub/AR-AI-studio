@@ -15,6 +15,7 @@ import {
   ResponsiveContainer, Cell, AreaChart, Area 
 } from 'recharts';
 import { useLanguage } from '../hooks/useLanguage';
+import { BookCover } from '../components/BookCover';
 
 interface MyBooksProps {
   user: User;
@@ -353,12 +354,7 @@ export function MyBooks({ user }: MyBooksProps) {
                   <div className={cn("absolute top-0 w-32 h-32 bg-accent/5 dark:bg-accent/10 rounded-full blur-3xl -mt-16 group-hover/card:bg-accent/10 dark:group-hover/card:bg-accent/20 transition-colors", dir === 'rtl' ? 'right-0 -mr-16' : 'left-0 -ml-16')}></div>
 
                   <div className="w-full md:w-52 h-[340px] md:h-auto rounded-[2.5rem] overflow-hidden shadow-2xl relative shrink-0">
-                    <img 
-                      src={book.coverUrl} 
-                      className="w-full h-full object-cover transition-transform duration-1000 group-hover/card:scale-110" 
-                      alt={book.title} 
-                      referrerPolicy="no-referrer" 
-                    />
+                    <BookCover book={book} className="w-full h-full absolute inset-0" imgClassName="transition-transform duration-1000 group-hover/card:scale-110" />
                     <div className="absolute inset-0 bg-gradient-to-t from-primary/90 dark:from-slate-950/90 via-transparent to-transparent opacity-40 group-hover/card:opacity-20 transition-opacity"></div>
                     
                     <div className={cn("absolute bottom-6 left-6 right-6 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-white/20 dark:border-white/10", dir === 'rtl' ? 'text-right' : 'text-left')}>

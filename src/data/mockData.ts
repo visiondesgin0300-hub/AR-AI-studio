@@ -276,7 +276,8 @@ export const MOCK_BOOKS: Book[] = [
     description: 'يقدّم عالم الفيزياء شون كارول شرحاً واضحاً للمفاهيم الأساسية في الفيزياء الحديثة — من الميكانيكا الكلاسيكية إلى النسبية — مع المعادلات الحقيقية دون تبسيط مخلّ.',
     descriptionEn: 'Physicist Sean Carroll offers a clear, equation-honest guide to the core ideas of modern physics, from classical mechanics to relativity, for the mathematically curious reader.',
     status: 'available',
-    coverUrl: 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?auto=format&fit=crop&w=300&q=80'
+    isbn: '9780593186589',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780593186589-L.jpg'
   },
   {
     id: '25',
@@ -293,7 +294,8 @@ export const MOCK_BOOKS: Book[] = [
     description: 'يستعرض الفيزيائي الحائز على نوبل فرانك فيلتشيك عشرة مبادئ جوهرية تحكم الكون، من المكان والزمان إلى الطاقة والكمّ، برؤية فلسفية وعلمية عميقة.',
     descriptionEn: 'Nobel laureate Frank Wilczek distills ten fundamental principles that govern the universe — space, time, energy, and the quantum — into a profound scientific and philosophical vision.',
     status: 'available',
-    coverUrl: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=300&q=80'
+    isbn: '9780735223790',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780735223790-L.jpg'
   },
   {
     id: '26',
@@ -310,7 +312,8 @@ export const MOCK_BOOKS: Book[] = [
     description: 'تاريخ شامل لأشباه الموصلات وصناعة الرقائق الدقيقة، وكيف تحوّلت إلى محور للصراع الجيوسياسي والاقتصادي بين القوى الكبرى.',
     descriptionEn: 'A sweeping history of the semiconductor and how the microchip became the focal point of geopolitical and economic rivalry among global powers.',
     status: 'available',
-    coverUrl: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=300&q=80'
+    isbn: '9781982172008',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9781982172008-L.jpg'
   },
   {
     id: '27',
@@ -327,7 +330,8 @@ export const MOCK_BOOKS: Book[] = [
     description: 'يحذّر أحد مؤسسي DeepMind من التحولات الجذرية التي ستحدثها موجة الذكاء الاصطناعي والتقنيات الحيوية، ويطرح سبل احتوائها.',
     descriptionEn: 'A DeepMind co-founder warns of the sweeping disruption coming from the wave of AI and synthetic biology, and argues for how it might be contained.',
     status: 'available',
-    coverUrl: 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=300&q=80'
+    isbn: '9780593593950',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780593593950-L.jpg'
   },
   {
     id: '28',
@@ -344,7 +348,8 @@ export const MOCK_BOOKS: Book[] = [
     description: 'يكشف الكتاب عن "الضجيج" — التباين العشوائي غير المرغوب في الأحكام البشرية — وأثره في الطب والقضاء والأعمال، وكيف نقلّله.',
     descriptionEn: 'The book exposes "noise" — the unwanted random variability in human judgment — across medicine, law, and business, and how to reduce it.',
     status: 'available',
-    coverUrl: 'https://images.unsplash.com/photo-1513475382585-d06e58bcb0e0?auto=format&fit=crop&w=300&q=80'
+    isbn: '9780316451406',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780316451406-L.jpg'
   },
   {
     id: '29',
@@ -361,7 +366,8 @@ export const MOCK_BOOKS: Book[] = [
     description: 'يدعو عالم النفس التنظيمي آدم غرانت إلى إعادة التفكير في قناعاتنا وتبنّي عقلية المرونة الذهنية بدل التشبث بالآراء.',
     descriptionEn: 'Organizational psychologist Adam Grant makes the case for rethinking our beliefs and adopting mental flexibility over rigid conviction.',
     status: 'available',
-    coverUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=300&q=80'
+    isbn: '9781984878106',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9781984878106-L.jpg'
   },
   {
     id: '30',
@@ -378,7 +384,8 @@ export const MOCK_BOOKS: Book[] = [
     description: 'يتتبّع المؤرخ يوفال نوح هراري تاريخ شبكات المعلومات من الأساطير القديمة إلى خوارزميات الذكاء الاصطناعي، وأثرها في مصير البشرية.',
     descriptionEn: 'Historian Yuval Noah Harari traces the history of information networks from ancient myths to AI algorithms, and their impact on humanity\'s fate.',
     status: 'available',
-    coverUrl: 'https://images.unsplash.com/photo-1529148482759-b35b25c5f217?auto=format&fit=crop&w=300&q=80'
+    isbn: '9780593734223',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780593734223-L.jpg'
   },
   {
     id: '31',
@@ -395,7 +402,8 @@ export const MOCK_BOOKS: Book[] = [
     description: 'يشرح عالم البيئة فاتسلاف سميل الركائز المادية الحقيقية للحضارة الحديثة — الطاقة والغذاء والمواد — بلغة الأرقام بعيداً عن المبالغات.',
     descriptionEn: 'Scientist Vaclav Smil explains the real material foundations of modern civilization — energy, food, and materials — grounded in data rather than hype.',
     status: 'available',
-    coverUrl: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=300&q=80'
+    isbn: '9780593297063',
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780593297063-L.jpg'
   }
 ];
 

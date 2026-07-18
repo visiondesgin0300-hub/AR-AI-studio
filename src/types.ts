@@ -12,6 +12,7 @@ export interface Book {
   descriptionEn?: string;    // English summary (bilingual display)
   callNumber?: string;       // real LC classification number
   publisher?: string;        // real publisher (used for citations)
+  isbn?: string;             // ISBN-13 (drives the real cover image)
   status?: 'available' | 'borrowed';
   coverUrl?: string;
   genre?: string;

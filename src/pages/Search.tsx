@@ -6,6 +6,7 @@ import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { BookCover } from '../components/BookCover';
 
 export function Search() {
   const { t, dir, language } = useLanguage();
@@ -330,12 +331,7 @@ export function Search() {
 
                       {/* Cover image wrap */}
                       <div className="w-20 h-28 rounded-2xl overflow-hidden shadow-md flex-shrink-0 border border-slate-100 dark:border-white/5 relative bg-slate-50 dark:bg-slate-950">
-                        <img 
-                          src={book.coverUrl} 
-                          alt={book.title} 
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          referrerPolicy="no-referrer"
-                        />
+                        <BookCover book={book} className="w-full h-full" imgClassName="transition-transform duration-500 group-hover:scale-110" />
                       </div>
 
                       {/* Book info content */}
