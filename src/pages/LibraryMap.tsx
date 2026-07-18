@@ -395,7 +395,7 @@ export function LibraryMap() {
                         resting on a wooden plank line along both edges, so
                         the dark screen reads as a real library aisle lined
                         with shelved books instead of an empty black void. */}
-                    <svg className="absolute inset-0 w-full h-full opacity-40 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
+                    <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
                       {SHELF_SILHOUETTE_ROWS.map((rowY) => (
                         <g key={rowY}>
                           {SHELF_SPINE_WIDTHS.map((w, i) => (
