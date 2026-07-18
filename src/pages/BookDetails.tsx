@@ -6,6 +6,7 @@ import { User, Book } from '../types';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
+import { CitationBox } from '../components/CitationBox';
 
 const BORROW_XP_REWARD = 15;
 
@@ -179,6 +180,9 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
               </p>
             </div>
           </div>
+
+          {/* One-tap academic citations (APA/MLA/Chicago/BibTeX) */}
+          <CitationBox book={book} />
 
           {/* Action Bar */}
           <div className="flex flex-col sm:flex-row gap-4 pt-6">

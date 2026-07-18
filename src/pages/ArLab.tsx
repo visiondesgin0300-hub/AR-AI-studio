@@ -6,6 +6,7 @@ import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
 import { getArBookMeta } from '../lib/arCatalog';
+import { CitationBox } from '../components/CitationBox';
 import { Book } from '../types';
 
 // A camera-free "AR shelf scan" simulation: a row of colorful book spines the
@@ -241,6 +242,9 @@ export function ArLab() {
                     <p className="text-[12px] font-semibold text-slate-600 dark:text-slate-300 leading-relaxed">{summary}</p>
                   )}
                 </div>
+
+                {/* One-tap academic citations (APA/MLA/Chicago/BibTeX) */}
+                <CitationBox book={selected} />
 
                 <button
                   onClick={() => navigate('/map', { state: { bookId: selected.id } })}

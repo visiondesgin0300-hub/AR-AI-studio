@@ -66,3 +66,23 @@ export function getArBookMeta(book: Book): ArBookMeta {
     spineColor: SPINE_COLORS[h % SPINE_COLORS.length],
   };
 }
+
+export type CitationStyle = 'APA' | 'MLA' | 'Chicago' | 'BibTeX';
+
+// Deterministic, fully-local academic citations for a book, generated from its
+// own fields plus the derived year/publisher — so the "cite this book" feature
+// always works instantly, no API key or network round-trip required.
+export function getCitations(book: Book): Record<CitationStyle, string> {
+  const meta = getArBookMeta(book);
+  const { year, publisher } = meta;
+  const author = book.author?.trim() || 'مؤلف غير معروف';
+  const title = book.title?.trim() || '';
+  const bibKey = `${(book.author?.split(' ')[0] || 'ref').replace(/[^A-Za-z0-9]/g, '') || 'ref'}${book.id}${year}`;
+
+  return {
+    APA: `${author} (${year}). ${title}. ${publisher}.`,
+    MLA: `${author}. ${title}. ${publisher}, ${year}.`,
+    Chicago: `${author}. ${title}. ${publisher}, ${year}.`,
+    BibTeX: `@book{${bibKey},\n  author    = {${author}},\n  title     = {${title}},\n  year      = {${year}},\n  publisher = {${publisher}}\n}`,
+  };
+}
