@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Search as SearchIcon, Sparkles, BookOpen, MapPin, Tag, RefreshCw, Compass, HelpCircle } from 'lucide-react';
+import { Search as SearchIcon, Sparkles, BookOpen, MapPin, Tag, RefreshCw, Compass, HelpCircle, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
 import { cn } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { LibrarianChat } from '../components/LibrarianChat';
 
 export function Search() {
   const { t, dir, language } = useLanguage();
@@ -17,6 +18,7 @@ export function Search() {
   const [aiInsights, setAiInsights] = useState<string>('');
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
   const [insightsError, setInsightsError] = useState('');
+  const [showLibrarian, setShowLibrarian] = useState(false);
 
   // Settle categories
   const categories = useMemo(() => {
@@ -136,14 +138,29 @@ export function Search() {
               )}
             />
             {query && (
-              <button 
+              <button
                 onClick={() => setQuery('')}
-                className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-2 bg-slate-100 dark:bg-slate-850 rounded-full text-xs font-black z-20 transition-all", dir === 'rtl' ? 'left-6' : 'right-6')}
+                className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-2 bg-slate-100 dark:bg-slate-850 rounded-full text-xs font-black z-20 transition-all", dir === 'rtl' ? 'left-16' : 'right-16')}
               >
                 ✕
               </button>
             )}
           </div>
+
+          {/* Ask the AI Librarian - a conversational shortcut for students who
+              prefer describing what they need over keyword search. */}
+          <button
+            onClick={() => setShowLibrarian(true)}
+            className={cn('flex items-center gap-3 w-full sm:w-auto px-5 py-3 rounded-2xl bg-primary/5 dark:bg-accent/10 border border-primary/10 dark:border-accent/15 text-primary dark:text-accent hover:bg-primary/10 dark:hover:bg-accent/15 transition-all active:scale-[0.98]', dir === 'rtl' ? 'flex-row-reverse text-right' : '')}
+          >
+            <span className="w-9 h-9 rounded-xl bg-primary dark:bg-accent text-white dark:text-primary flex items-center justify-center shrink-0">
+              <MessageCircle className="w-4.5 h-4.5" />
+            </span>
+            <span className="flex flex-col">
+              <span className="text-xs font-black uppercase tracking-widest">{t('askLibrarianLabel')}</span>
+              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500">{t('librarianSubtitle')}</span>
+            </span>
+          </button>
 
           {/* Quick interactive prompts */}
           <div className="flex flex-wrap gap-2 items-center">
@@ -387,6 +404,10 @@ export function Search() {
           </div>
 
         </div>
+
+      <AnimatePresence>
+        {showLibrarian && <LibrarianChat onClose={() => setShowLibrarian(false)} />}
+      </AnimatePresence>
 
     </div>
   );

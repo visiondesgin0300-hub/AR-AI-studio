@@ -37,17 +37,20 @@ export function ArLab() {
   const [selected, setSelected] = useState<Book | null>(null);
   const [scanning, setScanning] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
+  const [keyThemes, setKeyThemes] = useState<string[]>([]);
+  const [recommended, setRecommended] = useState<string[]>([]);
   const [loadingSummary, setLoadingSummary] = useState(false);
 
   const meta = selected ? getArBookMeta(selected) : null;
 
-  // Fetch the AI academic summary whenever a new book is scanned. The endpoint
-  // always resolves with a usable summary (Gemini or a local fallback).
+  // Fetch the academic profile (summary + key themes + recommended reading)
+  // whenever a new book is scanned. The endpoint always resolves with a usable
+  // profile (Gemini or a local fallback).
   useEffect(() => {
-    if (!selected) { setSummary(null); return; }
+    if (!selected) { setSummary(null); setKeyThemes([]); setRecommended([]); return; }
     let cancelled = false;
     setLoadingSummary(true);
-    setSummary(null);
+    setSummary(null); setKeyThemes([]); setRecommended([]);
     fetch('/api/book-insight', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,7 +60,12 @@ export function ArLab() {
       }),
     })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('bad response'))))
-      .then((d: { summary?: string }) => { if (!cancelled) setSummary(d.summary || selected.description); })
+      .then((d: { summary?: string; keyThemes?: string[]; recommendedReading?: string[] }) => {
+        if (cancelled) return;
+        setSummary(d.summary || selected.description);
+        setKeyThemes(d.keyThemes ?? []);
+        setRecommended(d.recommendedReading ?? []);
+      })
       .catch(() => { if (!cancelled) setSummary(selected.description); })
       .finally(() => { if (!cancelled) setLoadingSummary(false); });
     return () => { cancelled = true; };
@@ -240,6 +248,33 @@ export function ArLab() {
                     </div>
                   ) : (
                     <p className="text-[12px] font-semibold text-slate-600 dark:text-slate-300 leading-relaxed">{summary}</p>
+                  )}
+
+                  {keyThemes.length > 0 && (
+                    <div className="pt-1">
+                      <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">{t('keyThemesLabel')}</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {keyThemes.map((theme, i) => (
+                          <span key={i} className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-primary/10 dark:border-accent/10 text-[10px] font-bold text-primary dark:text-accent">
+                            {theme}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {recommended.length > 0 && (
+                    <div className="pt-1">
+                      <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">{t('recommendedReadingLabel')}</div>
+                      <ul className="space-y-1">
+                        {recommended.map((r, i) => (
+                          <li key={i} className={cn('flex items-center gap-2 text-[11px] font-semibold text-slate-600 dark:text-slate-300', dir === 'rtl' ? 'flex-row-reverse text-right' : '')}>
+                            <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+                            <span className="truncate">{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </div>
 

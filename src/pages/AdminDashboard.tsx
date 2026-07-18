@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Users, BookOpen, Activity, PlusCircle, Download, Trash2, Edit, X, BarChart3, ListFilter, AlertCircle, Bell, TrendingUp, Search, User as UserIcon, Settings, Clock } from 'lucide-react';
+import { Users, BookOpen, Activity, PlusCircle, Download, Trash2, Edit, X, BarChart3, ListFilter, AlertCircle, Bell, TrendingUp, Search, User as UserIcon, Settings, Clock, ShieldCheck } from 'lucide-react';
+import { ShelfAuditPanel } from '../components/ShelfAuditPanel';
 import { MOCK_BOOKS, MOCK_USERS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
@@ -9,7 +10,7 @@ import { useLanguage } from '../hooks/useLanguage';
 
 export function AdminDashboard() {
   const { t, dir, language } = useLanguage();
-  const [activeTab, setActiveTab] = useState<'users' | 'books' | 'logs' | 'stats'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'books' | 'audit' | 'logs' | 'stats'>('users');
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [books, setBooks] = useState<Book[]>(MOCK_BOOKS);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -176,6 +177,7 @@ export function AdminDashboard() {
          {[
            { id: 'users', label: t('usersTab'), icon: Users },
            { id: 'books', label: t('libraryTab'), icon: BookOpen },
+           { id: 'audit', label: t('shelfAuditTab'), icon: ShieldCheck },
            { id: 'stats', label: t('statsTab'), icon: BarChart3 },
            { id: 'logs', label: t('logsTab'), icon: Activity },
          ].map((tab) => (
@@ -364,8 +366,19 @@ export function AdminDashboard() {
                   </motion.div>
                )}
 
+               {activeTab === 'audit' && (
+                 <motion.div
+                    key="audit"
+                    initial={{ opacity: 0, x: dir === 'rtl' ? 20 : -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
+                 >
+                   <ShelfAuditPanel />
+                 </motion.div>
+               )}
+
                {activeTab === 'logs' && (
-                 <motion.div 
+                 <motion.div
                     key="logs"
                     initial={{ opacity: 0, x: dir === 'rtl' ? 20 : -20 }}
                     animate={{ opacity: 1, x: 0 }}
