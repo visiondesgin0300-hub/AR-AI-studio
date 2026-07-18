@@ -10,6 +10,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { BookDetails } from './pages/BookDetails';
 import { LibraryMap } from './pages/LibraryMap';
+import { FacilitiesMap } from './pages/FacilitiesMap';
 import { MyBooks } from './pages/MyBooks';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { Search } from './pages/Search';
@@ -102,6 +103,10 @@ function AppContent() {
         <Route
           path="/map"
           element={user ? <Layout user={user} onLogout={handleLogout}><LibraryMap /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/facilities"
+          element={user ? <Layout user={user} onLogout={handleLogout}><FacilitiesMap /></Layout> : <Navigate to="/login" />}
         />
         <Route
           path="/ar"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Users, VolumeX, Monitor, Printer, Search } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -28,7 +28,6 @@ export function LibraryMap() {
   const [activeTab, setActiveTab] = useState<'map' | 'sections'>('map');
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
 
-  const [resourceTab, setResourceTab] = useState<'shelves' | 'facilities'>('shelves');
   const [sidebarSearch, setSidebarSearch] = useState('');
 
   const sidebarSearchResults = useMemo(() => {
@@ -40,8 +39,6 @@ export function LibraryMap() {
       (b.category ?? '').toLowerCase().includes(q)
     ).slice(0, 8);
   }, [sidebarSearch]);
-
-  const [facilitySearch, setFacilitySearch] = useState('');
 
   // Simulated real-time occupancy data
   const occupancyData = useMemo(() => {
@@ -70,30 +67,15 @@ export function LibraryMap() {
     { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' }, { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' }
   ];
 
-  const FACILITIES = [
-    { icon: Users, name: t('facilityGroupStudyRooms'), desc: t('facilityGroupStudyRoomsDesc'), location: t('facilityLocationGroupStudy'), status: 'available' as const, cellId: 'B-2' },
-    { icon: VolumeX, name: t('facilitySilentZone'), desc: t('facilitySilentZoneDesc'), location: t('facilityLocationSilentZone'), status: 'available' as const, cellId: 'D-1' },
-    { icon: Monitor, name: t('facilityComputerLab'), desc: t('facilityComputerLabDesc'), location: t('facilityLocationComputerLab'), status: 'busy' as const, cellId: 'A-2' },
-    { icon: Printer, name: t('facilityPrinting'), desc: t('facilityPrintingDesc'), location: t('facilityLocationPrinting'), status: 'available' as const, cellId: 'C-1' },
-  ];
-
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
 
-  // `fromFacility` routes to the AR-mode wayfinding view instead of the
-  // digital shelf-grid map: a facility (study room, silent zone, ...) is not a
-  // book shelf, so dropping the user onto the "الرف X-Y" occupancy grid was
-  // confusing. Facilities get the dark guided path; shelf-grid clicks keep
-  // showing the path on the grid itself.
-  const navigateToCell = (cellId: string, fromFacility = false) => {
+  const navigateToCell = (cellId: string) => {
     setSelectedBook(null);
     setManualTarget({ id: cellId });
     setShowPath(true);
-    setResourceTab('shelves');
-    setActiveTab(fromFacility ? 'sections' : 'map');
-    // Light haptic confirmation that navigation started, so the user doesn't
-    // have to visually double-check the destination was registered.
+    setActiveTab('map');
     if (typeof navigator.vibrate === 'function') {
-      try { navigator.vibrate(80); } catch { /* vibration is best-effort */ }
+      try { navigator.vibrate(80); } catch { /* best-effort */ }
     }
   };
 
@@ -103,20 +85,12 @@ export function LibraryMap() {
       setSelectedBook(location.state.bookId);
       setShowPath(true);
     }
-    if (location.state?.tab === 'facilities') {
-      setResourceTab('facilities');
-    }
-    if (location.state?.facilityName) {
-      const match = FACILITIES.find(f => f.name === location.state.facilityName);
-      if (match) navigateToCell(match.cellId, true);
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
 
   const destinationShelfId = manualTarget?.id || bookData?.shelf || null;
-  const targetFacility = manualTarget ? FACILITIES.find(f => f.cellId === manualTarget.id) : undefined;
   const destinationLabel = manualTarget
-    ? (targetFacility?.name ?? t('shelfId', { id: manualTarget.id }))
+    ? t('shelfId', { id: manualTarget.id })
     : bookData ? bookData.title : '';
   const destinationSectionId = destinationShelfId ? destinationShelfId.split('-')[0] : null;
   const destinationSectionName = sections.find(s => s.id === destinationSectionId)?.name || '';
@@ -231,34 +205,24 @@ export function LibraryMap() {
         <div className={cn("flex flex-col sm:flex-row items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
           <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5">
              <button
-               onClick={() => { setResourceTab('shelves'); setActiveTab('map'); }}
+               onClick={() => setActiveTab('map')}
                className={cn(
                  "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
-                 resourceTab !== 'facilities' && activeTab === 'map' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
+                 activeTab === 'map' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
                )}
              >
                <MapPin className="w-4 h-4" />
                {t('digitalView')}
              </button>
              <button
-               onClick={() => { setResourceTab('shelves'); setActiveTab('sections'); }}
+               onClick={() => setActiveTab('sections')}
                className={cn(
                  "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
-                 resourceTab !== 'facilities' && activeTab === 'sections' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
+                 activeTab === 'sections' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
                )}
              >
                <Camera className="w-4 h-4" />
                {t('mainSections')}
-             </button>
-             <button
-               onClick={() => setResourceTab('facilities')}
-               className={cn(
-                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
-                 resourceTab === 'facilities' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
-               )}
-             >
-               <Compass className="w-4 h-4" />
-               {t('libraryFacilities')}
              </button>
           </div>
 
@@ -295,173 +259,7 @@ export function LibraryMap() {
           )}
 
           <AnimatePresence mode="wait">
-            {activeTab === 'map' && resourceTab === 'facilities' ? (
-              /* ── Digital Facilities Floor Plan ── */
-              <motion.div
-                key="facilities-map"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="relative w-full h-full min-h-[650px] overflow-hidden bg-slate-50/50 dark:bg-slate-900/50"
-              >
-                {/* SVG floor plan */}
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 520" preserveAspectRatio="xMidYMid meet">
-                  <defs>
-                    <pattern id="floorGrid" width="30" height="30" patternUnits="userSpaceOnUse">
-                      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#e2e8f0" strokeWidth="0.5" className="dark:stroke-white/5" />
-                    </pattern>
-                    <linearGradient id="corridorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#f8fafc" />
-                      <stop offset="100%" stopColor="#f1f5f9" />
-                    </linearGradient>
-                    <filter id="facilityGlow">
-                      <feGaussianBlur stdDeviation="4" result="blur" />
-                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                    </filter>
-                  </defs>
-
-                  {/* Floor grid */}
-                  <rect x="0" y="0" width="600" height="520" fill="url(#floorGrid)" />
-
-                  {/* Building outline */}
-                  <rect x="18" y="18" width="564" height="464" rx="20" fill="white" stroke="#e2e8f0" strokeWidth="2.5" />
-
-                  {/* Main corridors */}
-                  <rect x="255" y="18" width="90" height="464" fill="#f8fafc" />
-                  <rect x="18" y="228" width="564" height="64" fill="#f8fafc" />
-
-                  {/* Corridor center lines */}
-                  <line x1="300" y1="18" x2="300" y2="482" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="6 4" />
-                  <line x1="18" y1="260" x2="582" y2="260" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="6 4" />
-
-                  {/* Section A — top left */}
-                  <rect x="28" y="28" width="217" height="192" rx="12" fill="#eff6ff" stroke="#bfdbfe" strokeWidth="1.5" />
-                  <text x="136" y="110" textAnchor="middle" fontSize="13" fontWeight="900" fill="#1e40af" opacity="0.6">A</text>
-                  <text x="136" y="128" textAnchor="middle" fontSize="9" fontWeight="700" fill="#93c5fd">NATURAL SCIENCES</text>
-                  {[55,70,85,100,115,130].map((x,i) => (
-                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#bfdbfe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-                  {[170,185,200,215,230].map((x,i) => (
-                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#bfdbfe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-
-                  {/* Section B — top right */}
-                  <rect x="355" y="28" width="217" height="192" rx="12" fill="#fff7ed" stroke="#fed7aa" strokeWidth="1.5" />
-                  <text x="463" y="110" textAnchor="middle" fontSize="13" fontWeight="900" fill="#c2410c" opacity="0.6">B</text>
-                  <text x="463" y="128" textAnchor="middle" fontSize="9" fontWeight="700" fill="#fdba74">ENGINEERING & TECH</text>
-                  {[380,395,410,425,440].map((x,i) => (
-                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-                  {[500,515,530,545,560].map((x,i) => (
-                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-
-                  {/* Section C — bottom left */}
-                  <rect x="28" y="300" width="217" height="172" rx="12" fill="#faf5ff" stroke="#d8b4fe" strokeWidth="1.5" />
-                  <text x="136" y="378" textAnchor="middle" fontSize="13" fontWeight="900" fill="#7e22ce" opacity="0.6">C</text>
-                  <text x="136" y="396" textAnchor="middle" fontSize="9" fontWeight="700" fill="#c4b5fd">ARTS & CRAFTS</text>
-                  {[55,70,85,100,115,130].map((x,i) => (
-                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#d8b4fe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-                  {[170,185,200,215,230].map((x,i) => (
-                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#d8b4fe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-
-                  {/* Section D — bottom right */}
-                  <rect x="355" y="300" width="217" height="172" rx="12" fill="#f0fdf4" stroke="#bbf7d0" strokeWidth="1.5" />
-                  <text x="463" y="378" textAnchor="middle" fontSize="13" fontWeight="900" fill="#15803d" opacity="0.6">D</text>
-                  <text x="463" y="396" textAnchor="middle" fontSize="9" fontWeight="700" fill="#86efac">HUMANITIES</text>
-                  {[380,395,410,425,440].map((x,i) => (
-                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#bbf7d0" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-                  {[500,515,530,545,560].map((x,i) => (
-                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#bbf7d0" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-
-                  {/* Entrance */}
-                  <rect x="248" y="478" width="104" height="22" rx="8" fill="#004C6D" />
-                  <text x="300" y="493" textAnchor="middle" fontSize="8" fontWeight="800" fill="white" letterSpacing="1">ENTRANCE</text>
-                  <line x1="300" y1="478" x2="300" y2="464" stroke="#004C6D" strokeWidth="2" />
-
-                  {/* Navigation path to selected facility */}
-                  {manualTarget && (() => {
-                    const paths: Record<string, string> = {
-                      'A-2': 'M 300,478 L 300,260 L 136,260 L 136,125',
-                      'B-2': 'M 300,478 L 300,260 L 463,260 L 463,125',
-                      'C-1': 'M 300,478 L 300,260 L 136,260 L 136,385',
-                      'D-1': 'M 300,478 L 300,260 L 463,260 L 463,385',
-                    };
-                    const d = paths[manualTarget.id];
-                    if (!d) return null;
-                    return (
-                      <>
-                        <motion.path d={d} stroke="#D9B310" strokeWidth="5" strokeDasharray="12 8"
-                          fill="none" strokeLinecap="round"
-                          filter="url(#facilityGlow)"
-                          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                          transition={{ duration: 1.2, ease: 'easeInOut' }}
-                        />
-                        <motion.circle r="8" fill="#D9B310" stroke="white" strokeWidth="3">
-                          <animateMotion dur="3s" repeatCount="indefinite" path={d} />
-                        </motion.circle>
-                      </>
-                    );
-                  })()}
-                </svg>
-
-                {/* Facility markers (HTML overlay) */}
-                {(() => {
-                  const positions: Record<string, { top: string; left?: string; right?: string }> = {
-                    'A-2': { top: '14%', left: '4%' },
-                    'B-2': { top: '14%', right: '4%' },
-                    'C-1': { top: '57%', left: '4%' },
-                    'D-1': { top: '57%', right: '4%' },
-                  };
-                  return FACILITIES.map(f => {
-                    const pos = positions[f.cellId];
-                    if (!pos) return null;
-                    const isSelected = manualTarget?.id === f.cellId;
-                    return (
-                      <button
-                        key={f.name}
-                        onClick={() => navigateToCell(f.cellId, true)}
-                        style={{ top: pos.top, left: pos.left, right: pos.right }}
-                        className={cn(
-                          "absolute flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all duration-300 shadow-lg cursor-pointer group z-10 w-28",
-                          isSelected
-                            ? "bg-accent border-accent/60 shadow-[0_8px_30px_rgba(217,179,16,0.4)] scale-110"
-                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 hover:border-primary/40 dark:hover:border-accent/40 hover:scale-105"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
-                          isSelected ? "bg-primary/20 text-primary" : "bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent"
-                        )}>
-                          <f.icon className="w-5 h-5" />
-                        </div>
-                        <span className={cn(
-                          "text-[9px] font-black text-center leading-tight",
-                          isSelected ? "text-primary" : "text-primary dark:text-white"
-                        )}>{f.name}</span>
-                        <span className={cn(
-                          "text-[8px] font-bold px-2 py-0.5 rounded-full",
-                          f.status === 'available'
-                            ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
-                            : "bg-amber-100 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
-                        )}>
-                          {f.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
-                        </span>
-                      </button>
-                    );
-                  });
-                })()}
-
-                {/* Compass */}
-                <div className={cn("absolute bottom-6 opacity-10 text-primary dark:text-white pointer-events-none", dir === 'rtl' ? 'left-6' : 'right-6')}>
-                  <Compass className="w-16 h-16" />
-                </div>
-              </motion.div>
-            ) : activeTab === 'map' ? (
+            {activeTab === 'map' ? (
               <motion.div
                 key="map"
                 initial={{ opacity: 0 }}
@@ -667,16 +465,14 @@ export function LibraryMap() {
                     <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-20 px-10">
                       <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
                         <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
-                        {targetFacility
-                          ? t('headTowardsDestination', { destination: targetFacility.name })
-                          : t('headTowardsShelf', { shelf: destinationShelfId })}
+                        {t('headTowardsShelf', { shelf: destinationShelfId })}
                       </div>
                       {/* Floor guidance, right under the heading, so the user
                           knows which floor to head to as well. Facilities carry
                           their own real floor label; shelves derive it. */}
                       <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/70 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <Box className="w-3.5 h-3.5 text-accent/80" />
-                        {targetFacility ? targetFacility.location : destinationFloorLabel}
+                        {destinationFloorLabel}
                       </div>
                       {/* Distance/ETA surfaced right under the heading so it's
                           visible without scrolling the tall aisle view on a
@@ -761,125 +557,7 @@ export function LibraryMap() {
 
         {/* Sidebar Intelligence */}
         <div className="w-full xl:w-[450px] flex flex-col gap-8">
-          {resourceTab === 'facilities' ? (
-            /* ══ FACILITIES TAB: always facilities sidebar, never book info ══ */
-            manualTarget ? (
-              /* Facility selected → navigation panel */
-              <motion.div
-                initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="official-card p-8 bg-white dark:bg-slate-900"
-              >
-                <div className="space-y-8">
-                  <div className="flex justify-center">
-                    <div className="relative">
-                      <div className="w-28 h-28 bg-accent/10 dark:bg-accent/15 rounded-[2.5rem] flex items-center justify-center text-primary dark:text-accent">
-                        <Navigation className={cn("w-12 h-12", dir === 'rtl' ? 'rotate-180' : '')} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-center space-y-3">
-                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
-                    <h2 className="text-2xl font-black leading-tight tracking-tight text-primary dark:text-white">{destinationLabel}</h2>
-                    <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[11px] tracking-widest">{destinationSectionName}</p>
-                  </div>
-                  <div className="space-y-3">
-                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
-                    <ol className="space-y-2">
-                      {navigationSteps.map((step, idx) => (
-                        <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                          <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
-                          <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                  <button
-                    onClick={() => { setManualTarget(null); setShowPath(false); }}
-                    className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
-                  >
-                    <X className="w-4 h-4" />
-                    {t('cancelActiveNavigation')}
-                  </button>
-                </div>
-              </motion.div>
-            ) : (
-            /* ── Facility search sidebar ── */
-            <div className="official-card flex flex-col bg-white dark:bg-slate-900 shadow-2xl shadow-black/5 dark:shadow-black/20 overflow-hidden min-h-[500px]">
-              <div className="px-7 pt-7 pb-5 border-b border-slate-100 dark:border-white/5">
-                <div className={cn("flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                  <div className="w-9 h-9 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center text-primary dark:text-accent">
-                    <Compass className="w-4 h-4" />
-                  </div>
-                  <h3 className="text-base font-black text-primary dark:text-white tracking-tight">
-                    {language === 'ar' ? 'البحث في المرافق' : 'Search Facilities'}
-                  </h3>
-                </div>
-                <div className="relative">
-                  <Search className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none", dir === 'rtl' ? 'right-4' : 'left-4')} />
-                  <input
-                    type="text"
-                    value={facilitySearch}
-                    onChange={e => setFacilitySearch(e.target.value)}
-                    placeholder={language === 'ar' ? 'اسم المرفق أو الموقع...' : 'Facility name or location...'}
-                    className={cn(
-                      "w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors",
-                      dir === 'rtl' ? 'pr-11 pl-4 text-right' : 'pl-11 pr-4 text-left'
-                    )}
-                  />
-                  {facilitySearch && (
-                    <button onClick={() => setFacilitySearch('')} className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors", dir === 'rtl' ? 'left-4' : 'right-4')}>
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-white/5">
-                {FACILITIES.filter(f => {
-                  const q = facilitySearch.trim().toLowerCase();
-                  return !q || f.name.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q) || f.location.toLowerCase().includes(q);
-                }).map(facility => (
-                  <button
-                    key={facility.name}
-                    onClick={() => navigateToCell(facility.cellId, true)}
-                    className={cn(
-                      "w-full flex items-center gap-4 px-5 py-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group",
-                      dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left'
-                    )}
-                  >
-                    <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent group-hover:bg-primary/20 dark:group-hover:bg-accent/20 transition-colors">
-                      <facility.icon className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-primary dark:text-white truncate leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">{facility.name}</p>
-                      <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">{facility.desc}</p>
-                      <div className={cn("flex items-center gap-2 mt-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                        <MapPin className="w-3 h-3 text-primary/40 dark:text-accent/60 shrink-0" />
-                        <span className="text-[10px] font-bold text-primary/50 dark:text-accent/70 truncate">{facility.location}</span>
-                        <span className={cn(
-                          "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider",
-                          facility.status === 'available'
-                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
-                            : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
-                        )}>
-                          {facility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
-                        </span>
-                      </div>
-                    </div>
-                    <Navigation className={cn("w-4 h-4 shrink-0 text-slate-200 dark:text-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-colors", dir === 'rtl' ? 'rotate-180' : '')} />
-                  </button>
-                ))}
-              </div>
-
-              <div className="px-7 py-4 border-t border-slate-50 dark:border-white/5">
-                <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 text-center leading-relaxed">
-                  {language === 'ar' ? 'اختر مرفقاً لعرض مساره على الخريطة' : 'Pick a facility to show its route on the map'}
-                </p>
-              </div>
-            </div>
-          )
-          ) : bookData ? (
+          {bookData ? (
             /* ══ SHELVES TAB: book selected → book navigation ══ */
             <motion.div
               initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}

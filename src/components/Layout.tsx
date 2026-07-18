@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle } from 'lucide-react';
+import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle } from 'lucide-react';
 import { User } from '../types';
 import { cn, getUserLevel } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -39,12 +39,14 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
     ? [
         { icon: ShieldCheck, label: t('admin'), path: '/admin' },
         { icon: Search, label: t('smartSearchCard'), path: '/search' },
-        { icon: Map, label: t('libraryFacilities'), path: '/map', state: { tab: 'facilities' } },
+        { icon: Map, label: t('knowledgeCampusMap'), path: '/map' },
+        { icon: Compass, label: t('libraryFacilities'), path: '/facilities' },
       ]
     : [
         { icon: Home, label: t('dashboard'), path: '/' },
         { icon: Search, label: t('smartSearchCard'), path: '/search' },
-        { icon: Map, label: t('libraryFacilities'), path: '/map', state: { tab: 'facilities' } },
+        { icon: Map, label: t('knowledgeCampusMap'), path: '/map' },
+        { icon: Compass, label: t('libraryFacilities'), path: '/facilities' },
         { icon: BookOpen, label: t('readingHistory'), path: '/my-books' },
       ];
 
@@ -93,7 +95,6 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               <Link
                 key={item.path}
                 to={item.path}
-                state={item.state}
                 className={cn(
                   "group flex items-center gap-4 px-5 py-4 rounded-2xl cursor-pointer transition-all duration-300 relative",
                   isActive
@@ -485,7 +486,6 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               <Link
                 key={item.path}
                 to={item.path}
-                state={item.state}
                 className={cn(
                   "flex flex-col items-center gap-1.5 px-3 transition-all duration-300 relative group",
                   isActive ? "text-primary dark:text-accent" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
