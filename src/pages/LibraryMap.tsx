@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Users, VolumeX, Monitor, Printer } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Users, VolumeX, Monitor, Printer, Search } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -29,6 +29,17 @@ export function LibraryMap() {
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
 
   const [resourceTab, setResourceTab] = useState<'shelves' | 'facilities'>('shelves');
+  const [sidebarSearch, setSidebarSearch] = useState('');
+
+  const sidebarSearchResults = useMemo(() => {
+    const q = sidebarSearch.trim().toLowerCase();
+    if (!q) return MOCK_BOOKS.slice(0, 6);
+    return MOCK_BOOKS.filter(b =>
+      b.title.toLowerCase().includes(q) ||
+      b.author.toLowerCase().includes(q) ||
+      (b.category ?? '').toLowerCase().includes(q)
+    ).slice(0, 8);
+  }, [sidebarSearch]);
 
   // Simulated real-time occupancy data
   const occupancyData = useMemo(() => {
@@ -736,46 +747,83 @@ export function LibraryMap() {
               </div>
             </motion.div>
           ) : (
-            <div className="official-card p-16 flex flex-col items-center justify-center text-center gap-10 min-h-[500px] border-dashed border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 shadow-2xl shadow-black/5 dark:shadow-black/20">
-               <div className="relative">
-                  <div className="w-32 h-32 bg-slate-50 dark:bg-slate-800 rounded-[3.5rem] flex items-center justify-center text-slate-200 dark:text-slate-700">
-                     <Compass className="w-16 h-16" />
+            <div className="official-card flex flex-col bg-white dark:bg-slate-900 shadow-2xl shadow-black/5 dark:shadow-black/20 overflow-hidden min-h-[500px]">
+              {/* Header */}
+              <div className="px-7 pt-7 pb-5 border-b border-slate-100 dark:border-white/5">
+                <div className={cn("flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <div className="w-9 h-9 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center text-primary dark:text-accent">
+                    <Search className="w-4 h-4" />
                   </div>
-                  <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute -inset-4 border-2 border-dashed border-slate-100 dark:border-white/5 rounded-[4rem]"
+                  <h3 className="text-base font-black text-primary dark:text-white tracking-tight">{t('searchReferenceFirst')}</h3>
+                </div>
+                {/* Inline search input */}
+                <div className="relative">
+                  <Search className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none", dir === 'rtl' ? 'right-4' : 'left-4')} />
+                  <input
+                    type="text"
+                    value={sidebarSearch}
+                    onChange={e => setSidebarSearch(e.target.value)}
+                    placeholder={language === 'ar' ? 'اسم الكتاب، المؤلف، التصنيف...' : 'Title, author, category...'}
+                    className={cn(
+                      "w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors",
+                      dir === 'rtl' ? 'pr-11 pl-4 text-right' : 'pl-11 pr-4 text-left'
+                    )}
                   />
-               </div>
-               
-               <div className="space-y-4">
-                  <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('searchReferenceFirst')}</h3>
-                  <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed px-4">
-                    {t('unifiedSearchDesc')}
-                  </p>
-                  <p className="text-slate-300 dark:text-slate-600 font-bold text-[11px] leading-relaxed px-4">
-                    {t('navigateToShelfHint')}
-                  </p>
-               </div>
+                  {sidebarSearch && (
+                    <button
+                      onClick={() => setSidebarSearch('')}
+                      className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors", dir === 'rtl' ? 'left-4' : 'right-4')}
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
 
-               <button 
-                onClick={() => navigate('/')}
-                className="w-full py-6 rounded-[2.5rem] border-2 border-primary dark:border-accent text-primary dark:text-accent font-black text-xs uppercase tracking-[0.3em] hover:bg-primary dark:hover:bg-accent hover:text-white dark:hover:text-primary transition-all active:scale-95 shadow-lg shadow-black/5"
-               >
-                 {t('searchInIndex')}
-               </button>
+              {/* Results list */}
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-white/5">
+                {sidebarSearchResults.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-300 dark:text-slate-600">
+                    <Compass className="w-8 h-8" />
+                    <p className="text-xs font-bold">{language === 'ar' ? 'لا توجد نتائج' : 'No results'}</p>
+                  </div>
+                ) : (
+                  sidebarSearchResults.map(book => (
+                    <button
+                      key={book.id}
+                      onClick={() => {
+                        setSelectedBook(book.id);
+                        setManualTarget(null);
+                        setShowPath(true);
+                        setResourceTab('shelves');
+                        setActiveTab('map');
+                      }}
+                      className={cn(
+                        "w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group",
+                        dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left'
+                      )}
+                    >
+                      <BookCover book={book} className="w-10 h-14 rounded-xl shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-black text-primary dark:text-white truncate leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">{book.title}</p>
+                        <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">{book.author}</p>
+                        <div className={cn("flex items-center gap-2 mt-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                          <span className="text-[9px] font-black text-primary/60 dark:text-accent/80 bg-primary/5 dark:bg-accent/10 px-2 py-0.5 rounded-lg uppercase tracking-wider">{book.shelf}</span>
+                          <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 truncate">{book.category}</span>
+                        </div>
+                      </div>
+                      <Navigation className={cn("w-4 h-4 shrink-0 text-slate-200 dark:text-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-colors", dir === 'rtl' ? 'rotate-180' : '')} />
+                    </button>
+                  ))
+                )}
+              </div>
 
-               <div className={cn("flex items-center gap-8 pt-8 border-t border-slate-100 dark:border-white/5 w-full justify-center", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                  <div className="text-center">
-                    <div className="text-lg font-black text-primary dark:text-white tracking-tighter">١٥٠ألف+</div>
-                    <div className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase leading-relaxed">{t('indexedBooks')}</div>
-                  </div>
-                  <div className="w-px h-10 bg-slate-100 dark:bg-white/5" />
-                  <div className="text-center">
-                    <div className="text-lg font-black text-emerald-500 tracking-tighter">{language === 'ar' ? 'مباشر' : 'Live'}</div>
-                    <div className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase leading-relaxed">{t('shelfUpdates')}</div>
-                  </div>
-               </div>
+              {/* Footer hint */}
+              <div className="px-7 py-4 border-t border-slate-50 dark:border-white/5">
+                <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 text-center leading-relaxed">
+                  {language === 'ar' ? 'اختر كتاباً لعرض مساره على الخريطة' : 'Pick a book to show its route on the map'}
+                </p>
+              </div>
             </div>
           )}
 
