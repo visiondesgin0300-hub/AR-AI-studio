@@ -295,8 +295,174 @@ export function LibraryMap() {
           )}
 
           <AnimatePresence mode="wait">
-            {activeTab === 'map' ? (
-              <motion.div 
+            {activeTab === 'map' && resourceTab === 'facilities' ? (
+              /* ── Digital Facilities Floor Plan ── */
+              <motion.div
+                key="facilities-map"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="relative w-full h-full min-h-[650px] overflow-hidden bg-slate-50/50 dark:bg-slate-900/50"
+              >
+                {/* SVG floor plan */}
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 520" preserveAspectRatio="xMidYMid meet">
+                  <defs>
+                    <pattern id="floorGrid" width="30" height="30" patternUnits="userSpaceOnUse">
+                      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#e2e8f0" strokeWidth="0.5" className="dark:stroke-white/5" />
+                    </pattern>
+                    <linearGradient id="corridorGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                      <stop offset="0%" stopColor="#f8fafc" />
+                      <stop offset="100%" stopColor="#f1f5f9" />
+                    </linearGradient>
+                    <filter id="facilityGlow">
+                      <feGaussianBlur stdDeviation="4" result="blur" />
+                      <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                    </filter>
+                  </defs>
+
+                  {/* Floor grid */}
+                  <rect x="0" y="0" width="600" height="520" fill="url(#floorGrid)" />
+
+                  {/* Building outline */}
+                  <rect x="18" y="18" width="564" height="464" rx="20" fill="white" stroke="#e2e8f0" strokeWidth="2.5" />
+
+                  {/* Main corridors */}
+                  <rect x="255" y="18" width="90" height="464" fill="#f8fafc" />
+                  <rect x="18" y="228" width="564" height="64" fill="#f8fafc" />
+
+                  {/* Corridor center lines */}
+                  <line x1="300" y1="18" x2="300" y2="482" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="6 4" />
+                  <line x1="18" y1="260" x2="582" y2="260" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="6 4" />
+
+                  {/* Section A — top left */}
+                  <rect x="28" y="28" width="217" height="192" rx="12" fill="#eff6ff" stroke="#bfdbfe" strokeWidth="1.5" />
+                  <text x="136" y="110" textAnchor="middle" fontSize="13" fontWeight="900" fill="#1e40af" opacity="0.6">A</text>
+                  <text x="136" y="128" textAnchor="middle" fontSize="9" fontWeight="700" fill="#93c5fd">NATURAL SCIENCES</text>
+                  {[55,70,85,100,115,130].map((x,i) => (
+                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#bfdbfe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+                  ))}
+                  {[170,185,200,215,230].map((x,i) => (
+                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#bfdbfe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+                  ))}
+
+                  {/* Section B — top right */}
+                  <rect x="355" y="28" width="217" height="192" rx="12" fill="#fff7ed" stroke="#fed7aa" strokeWidth="1.5" />
+                  <text x="463" y="110" textAnchor="middle" fontSize="13" fontWeight="900" fill="#c2410c" opacity="0.6">B</text>
+                  <text x="463" y="128" textAnchor="middle" fontSize="9" fontWeight="700" fill="#fdba74">ENGINEERING & TECH</text>
+                  {[380,395,410,425,440].map((x,i) => (
+                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+                  ))}
+                  {[500,515,530,545,560].map((x,i) => (
+                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+                  ))}
+
+                  {/* Section C — bottom left */}
+                  <rect x="28" y="300" width="217" height="172" rx="12" fill="#faf5ff" stroke="#d8b4fe" strokeWidth="1.5" />
+                  <text x="136" y="378" textAnchor="middle" fontSize="13" fontWeight="900" fill="#7e22ce" opacity="0.6">C</text>
+                  <text x="136" y="396" textAnchor="middle" fontSize="9" fontWeight="700" fill="#c4b5fd">ARTS & CRAFTS</text>
+                  {[55,70,85,100,115,130].map((x,i) => (
+                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#d8b4fe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+                  ))}
+                  {[170,185,200,215,230].map((x,i) => (
+                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#d8b4fe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+                  ))}
+
+                  {/* Section D — bottom right */}
+                  <rect x="355" y="300" width="217" height="172" rx="12" fill="#f0fdf4" stroke="#bbf7d0" strokeWidth="1.5" />
+                  <text x="463" y="378" textAnchor="middle" fontSize="13" fontWeight="900" fill="#15803d" opacity="0.6">D</text>
+                  <text x="463" y="396" textAnchor="middle" fontSize="9" fontWeight="700" fill="#86efac">HUMANITIES</text>
+                  {[380,395,410,425,440].map((x,i) => (
+                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#bbf7d0" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+                  ))}
+                  {[500,515,530,545,560].map((x,i) => (
+                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#bbf7d0" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
+                  ))}
+
+                  {/* Entrance */}
+                  <rect x="248" y="478" width="104" height="22" rx="8" fill="#004C6D" />
+                  <text x="300" y="493" textAnchor="middle" fontSize="8" fontWeight="800" fill="white" letterSpacing="1">ENTRANCE</text>
+                  <line x1="300" y1="478" x2="300" y2="464" stroke="#004C6D" strokeWidth="2" />
+
+                  {/* Navigation path to selected facility */}
+                  {manualTarget && (() => {
+                    const paths: Record<string, string> = {
+                      'A-2': 'M 300,478 L 300,260 L 136,260 L 136,125',
+                      'B-2': 'M 300,478 L 300,260 L 463,260 L 463,125',
+                      'C-1': 'M 300,478 L 300,260 L 136,260 L 136,385',
+                      'D-1': 'M 300,478 L 300,260 L 463,260 L 463,385',
+                    };
+                    const d = paths[manualTarget.id];
+                    if (!d) return null;
+                    return (
+                      <>
+                        <motion.path d={d} stroke="#D9B310" strokeWidth="5" strokeDasharray="12 8"
+                          fill="none" strokeLinecap="round"
+                          filter="url(#facilityGlow)"
+                          initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                          transition={{ duration: 1.2, ease: 'easeInOut' }}
+                        />
+                        <motion.circle r="8" fill="#D9B310" stroke="white" strokeWidth="3">
+                          <animateMotion dur="3s" repeatCount="indefinite" path={d} />
+                        </motion.circle>
+                      </>
+                    );
+                  })()}
+                </svg>
+
+                {/* Facility markers (HTML overlay) */}
+                {(() => {
+                  const positions: Record<string, { top: string; left?: string; right?: string }> = {
+                    'A-2': { top: '14%', left: '4%' },
+                    'B-2': { top: '14%', right: '4%' },
+                    'C-1': { top: '57%', left: '4%' },
+                    'D-1': { top: '57%', right: '4%' },
+                  };
+                  return FACILITIES.map(f => {
+                    const pos = positions[f.cellId];
+                    if (!pos) return null;
+                    const isSelected = manualTarget?.id === f.cellId;
+                    return (
+                      <button
+                        key={f.name}
+                        onClick={() => navigateToCell(f.cellId, true)}
+                        style={{ top: pos.top, left: pos.left, right: pos.right }}
+                        className={cn(
+                          "absolute flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all duration-300 shadow-lg cursor-pointer group z-10 w-28",
+                          isSelected
+                            ? "bg-accent border-accent/60 shadow-[0_8px_30px_rgba(217,179,16,0.4)] scale-110"
+                            : "bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 hover:border-primary/40 dark:hover:border-accent/40 hover:scale-105"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-10 h-10 rounded-xl flex items-center justify-center transition-colors",
+                          isSelected ? "bg-primary/20 text-primary" : "bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent"
+                        )}>
+                          <f.icon className="w-5 h-5" />
+                        </div>
+                        <span className={cn(
+                          "text-[9px] font-black text-center leading-tight",
+                          isSelected ? "text-primary" : "text-primary dark:text-white"
+                        )}>{f.name}</span>
+                        <span className={cn(
+                          "text-[8px] font-bold px-2 py-0.5 rounded-full",
+                          f.status === 'available'
+                            ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                            : "bg-amber-100 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                        )}>
+                          {f.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
+                        </span>
+                      </button>
+                    );
+                  });
+                })()}
+
+                {/* Compass */}
+                <div className={cn("absolute bottom-6 opacity-10 text-primary dark:text-white pointer-events-none", dir === 'rtl' ? 'left-6' : 'right-6')}>
+                  <Compass className="w-16 h-16" />
+                </div>
+              </motion.div>
+            ) : activeTab === 'map' ? (
+              <motion.div
                 key="map"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
