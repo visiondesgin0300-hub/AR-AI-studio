@@ -222,7 +222,7 @@ export function LibraryMap() {
                )}
              >
                <Camera className="w-4 h-4" />
-               {t('mainSections')}
+               {language === 'ar' ? 'AR توجيه' : 'AR Guide'}
              </button>
           </div>
 
@@ -351,7 +351,7 @@ export function LibraryMap() {
                           </feMerge>
                         </filter>
                       </defs>
-                      <motion.path 
+                      <motion.path
                         d={getPathData()}
                         stroke="url(#pathGradient)"
                         strokeWidth="12"
@@ -368,13 +368,26 @@ export function LibraryMap() {
                       </motion.circle>
                     </svg>
                   )}
+                  {/* "View AR Guide" nudge when a destination is set */}
+                  {destinationShelfId && (
+                    <button
+                      onClick={() => setActiveTab('sections')}
+                      className={cn(
+                        'absolute bottom-6 z-40 flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-accent text-xs font-black shadow-xl shadow-primary/30 hover:brightness-110 transition-all active:scale-95',
+                        dir === 'rtl' ? 'right-6' : 'left-6'
+                      )}
+                    >
+                      <Camera className="w-4 h-4" />
+                      {language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}
+                    </button>
+                  )}
               </motion.div>
             ) : (
               <motion.div
                 key="sections"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="relative w-full h-full min-h-[650px] bg-slate-950 flex flex-col overflow-hidden"
+                className="relative w-full h-full min-h-[650px] bg-[#01354C] dark:bg-[#010f1a] flex flex-col overflow-hidden"
               >
                 {destinationShelfId ? (
                   <>
@@ -448,7 +461,7 @@ export function LibraryMap() {
                           arrows flows along the same path so the yellow
                           route visibly indicates the direction of travel
                           instead of sitting static. */}
-                      {showPath && [0, 1, 2].map((i) => (
+                      {[0, 1, 2].map((i) => (
                         <polygon key={i} points="-7,-9 8,0 -7,9" fill="#D9B310" stroke="#01354C" strokeWidth="1">
                           <animateMotion dur="2.2s" begin={`${i * 0.75}s`} repeatCount="indefinite" rotate="auto" path={DARK_NAV_PATH_D} />
                         </polygon>
