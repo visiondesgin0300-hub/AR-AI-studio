@@ -282,7 +282,7 @@ export function LibraryMap() {
         {/* Map Visualization Zone */}
         <div className="flex-1 official-card relative overflow-hidden min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
           {/* Blueprint Grid Overlay */}
-          {activeTab === 'map' && resourceTab !== 'facilities' && (
+          {activeTab === 'map' && (
             <div className="absolute inset-0 z-0 pointer-events-none">
               <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
               <div className="absolute inset-0 opacity-[0.01] dark:opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '200px 200px' }} />
@@ -294,44 +294,6 @@ export function LibraryMap() {
             </div>
           )}
 
-          {resourceTab === 'facilities' ? (
-            <div className="relative z-10 w-full h-full p-12 overflow-y-auto">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {FACILITIES.map((facility) => (
-                  <div
-                    key={facility.name}
-                    onClick={() => navigateToCell(facility.cellId, true)}
-                    className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900 cursor-pointer hover:border-accent dark:hover:border-accent transition-all"
-                  >
-                    <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
-                      <facility.icon className="w-6 h-6" />
-                    </div>
-                    <div className={cn("flex-1 min-w-0 space-y-1", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                      <div className="flex items-center justify-between gap-2">
-                        <h4 className="font-black text-primary dark:text-white text-sm leading-tight">{facility.name}</h4>
-                        <span className={cn(
-                          "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider",
-                          facility.status === 'available'
-                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
-                            : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
-                        )}>
-                          {facility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); navigateToCell(facility.cellId, true); }}
-                        className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent hover:text-primary dark:hover:text-white hover:underline cursor-pointer"
-                      >
-                        <MapPin className="w-3.5 h-3.5" />
-                        <span>{facility.location}</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : (
           <AnimatePresence mode="wait">
             {activeTab === 'map' ? (
               <motion.div 
@@ -629,7 +591,6 @@ export function LibraryMap() {
               </motion.div>
             )}
           </AnimatePresence>
-          )}
         </div>
 
         {/* Sidebar Intelligence */}
