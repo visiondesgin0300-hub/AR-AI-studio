@@ -236,7 +236,7 @@ export function FacilitiesMap() {
                 className="relative w-full h-full min-h-[650px] flex flex-col bg-[#01354C] dark:bg-[#010f1a]"
               >
                 {/* Shelf silhouette background */}
-                <svg className="absolute inset-0 w-full h-full opacity-20" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
+                <svg className="absolute inset-0 w-full h-full opacity-40" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
                   {SHELF_SILHOUETTE_ROWS.map(rowY => (
                     <g key={rowY}>
                       {SHELF_SPINE_WIDTHS.map((w, i) => (
