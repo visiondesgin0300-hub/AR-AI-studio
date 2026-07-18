@@ -2,11 +2,16 @@ export interface Book {
   id: string;
   title: string;
   titleArabic?: string;
+  titleEn?: string;          // English title (bilingual display)
   author: string;
+  authorEn?: string;         // English/original author name
   category?: 'فيزياء' | 'هندسة' | 'علم نفس' | 'عام' | string;
   shelf?: string;
   section?: 'A' | 'B' | 'C' | 'D' | 'E' | string;
   description: string;
+  descriptionEn?: string;    // English summary (bilingual display)
+  callNumber?: string;       // real LC classification number
+  publisher?: string;        // real publisher (used for citations)
   status?: 'available' | 'borrowed';
   coverUrl?: string;
   genre?: string;

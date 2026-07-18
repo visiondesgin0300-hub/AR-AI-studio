@@ -54,15 +54,20 @@ export function getArBookMeta(book: Book): ArBookMeta {
   const major = 20 + (h % 900) / 10; // e.g. 76.6
   const cutterLetter = String.fromCharCode(65 + (h % 26)); // A-Z
   const cutterNum = (h % 900) + 100; // 3-digit
-  const year = 1998 + (h % 26); // 1998 - 2023
-  const callNumber = `${cls.code}${major.toFixed(1)} .${cutterLetter}${cutterNum} ${year}`;
+  // Prefer a book's real catalog metadata (year/call number/publisher) when it
+  // carries it; otherwise fall back to deterministic derived values so every
+  // book still has a plausible profile.
+  const year = book.year ?? 1998 + (h % 26); // 1998 - 2023
+  const callNumber = book.callNumber ?? `${cls.code}${major.toFixed(1)} .${cutterLetter}${cutterNum} ${year}`;
+  // Derive the LC class from a real call number's leading letters when present.
+  const lcClass = book.callNumber ? (book.callNumber.match(/^[A-Z]+/)?.[0] ?? cls.code) : cls.code;
   return {
     callNumber,
-    lcClass: cls.code,
+    lcClass,
     subjectAr: cls.subjectAr,
     subjectEn: cls.subjectEn,
     year,
-    publisher: PUBLISHERS[h % PUBLISHERS.length],
+    publisher: book.publisher ?? PUBLISHERS[h % PUBLISHERS.length],
     spineColor: SPINE_COLORS[h % SPINE_COLORS.length],
   };
 }
@@ -75,9 +80,13 @@ export type CitationStyle = 'APA' | 'MLA' | 'Chicago' | 'BibTeX';
 export function getCitations(book: Book): Record<CitationStyle, string> {
   const meta = getArBookMeta(book);
   const { year, publisher } = meta;
-  const author = book.author?.trim() || 'مؤلف غير معروف';
-  const title = book.title?.trim() || '';
-  const bibKey = `${(book.author?.split(' ')[0] || 'ref').replace(/[^A-Za-z0-9]/g, '') || 'ref'}${book.id}${year}`;
+  // Prefer the original English title/author for citations (the standard
+  // academic form), falling back to the Arabic fields for books that only
+  // carry Arabic metadata.
+  const author = (book.authorEn || book.author)?.trim() || 'Unknown author';
+  const title = (book.titleEn || book.title)?.trim() || '';
+  const keySeed = (book.authorEn || book.author || 'ref').split(/[\s,&]+/)[0].replace(/[^A-Za-z0-9]/g, '') || 'ref';
+  const bibKey = `${keySeed}${book.id}${year}`;
 
   return {
     APA: `${author} (${year}). ${title}. ${publisher}.`,
