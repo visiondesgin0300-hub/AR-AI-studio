@@ -338,7 +338,7 @@ export function FacilitiesMap() {
                         <span className="w-1 h-1 rounded-full bg-accent/50" />
                         <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
                       </div>
-                      {showPath && navigationSteps.length > 0 && (
+                      {navigationSteps.length > 0 && (
                         <AnimatePresence mode="wait">
                           <motion.div
                             key={hasArrived ? 'arrived' : liveStepIndex}
