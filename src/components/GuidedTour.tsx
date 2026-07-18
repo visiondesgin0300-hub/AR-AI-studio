@@ -13,6 +13,7 @@ interface TourStep {
   path: string;
   navState?: unknown;
   adminOnly?: boolean;
+  studentOnly?: boolean;
 }
 
 const TOUR_STEPS: TourStep[] = [
@@ -20,7 +21,9 @@ const TOUR_STEPS: TourStep[] = [
   { icon: MapIcon, titleKey: 'tourStepMapTitle', descKey: 'tourStepMapDesc', path: '/map' },
   { icon: Camera, titleKey: 'tourStepArTitle', descKey: 'tourStepArDesc', path: '/ar' },
   { icon: Sparkles, titleKey: 'tourStepSimulationTitle', descKey: 'tourStepSimulationDesc', path: '/ar' },
-  { icon: Award, titleKey: 'tourStepGamificationTitle', descKey: 'tourStepGamificationDesc', path: '/my-books', navState: { tab: 'badges' } },
+  // Gamification is a student surface (hidden from admins in the nav/header),
+  // so the tour only advertises it to students.
+  { icon: Award, titleKey: 'tourStepGamificationTitle', descKey: 'tourStepGamificationDesc', path: '/my-books', navState: { tab: 'badges' }, studentOnly: true },
   { icon: ShieldCheck, titleKey: 'tourStepAdminTitle', descKey: 'tourStepAdminDesc', path: '/admin', adminOnly: true },
 ];
 
@@ -32,7 +35,9 @@ interface GuidedTourProps {
 export function GuidedTour({ user, onClose }: GuidedTourProps) {
   const { t, dir } = useLanguage();
   const navigate = useNavigate();
-  const steps = TOUR_STEPS.filter((s) => !s.adminOnly || user.role === 'admin');
+  const steps = TOUR_STEPS.filter((s) =>
+    (!s.adminOnly || user.role === 'admin') && (!s.studentOnly || user.role !== 'admin')
+  );
   const [index, setIndex] = useState(0);
 
   const step = steps[index];

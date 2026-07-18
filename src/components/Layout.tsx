@@ -24,20 +24,27 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const { theme, toggleTheme } = useTheme();
   const { t, toggleLanguage, language, dir } = useLanguage();
 
-  // Ordered to follow the natural user journey: land on the home page, search
-  // for a book, locate it on the map, navigate to it in AR, then track it
-  // among your borrowed books. AR stays reachable here too, in addition to
-  // the always-visible floating AR button, since it's still a primary feature.
-  const navItems = [
-    { icon: Home, label: t('dashboard'), path: '/' },
-    { icon: Search, label: t('smartSearchCard'), path: '/search' },
-    { icon: Map, label: t('libraryFacilities'), path: '/map', state: { tab: 'facilities' } },
-    { icon: BookOpen, label: t('readingHistory'), path: '/my-books' },
-  ];
+  const isAdmin = user.role === 'admin';
 
-  if (user.role === 'admin') {
-    navItems.push({ icon: ShieldCheck, label: t('admin'), path: '/admin' });
-  }
+  // Role-specific navigation so each storyboard reads clearly:
+  // - Student journey: home → search a book → locate it on the map → track it
+  //   in "my books" (AR stays reachable via the floating button).
+  // - Admin journey: management dashboard first (their real home; "/" already
+  //   redirects admins to /admin), then the catalog search and map for
+  //   reference. Personal, student-only surfaces (my borrowed books,
+  //   gamification) are omitted so the admin flow isn't muddied by them.
+  const navItems = isAdmin
+    ? [
+        { icon: ShieldCheck, label: t('admin'), path: '/admin' },
+        { icon: Search, label: t('smartSearchCard'), path: '/search' },
+        { icon: Map, label: t('libraryFacilities'), path: '/map', state: { tab: 'facilities' } },
+      ]
+    : [
+        { icon: Home, label: t('dashboard'), path: '/' },
+        { icon: Search, label: t('smartSearchCard'), path: '/search' },
+        { icon: Map, label: t('libraryFacilities'), path: '/map', state: { tab: 'facilities' } },
+        { icon: BookOpen, label: t('readingHistory'), path: '/my-books' },
+      ];
 
   return (
     <div className={cn(
@@ -116,7 +123,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
         {/* User Card & Gamification Panel */}
         <div className="p-6 relative z-10 border-t border-slate-100 dark:border-white/5">
-          {/* Gamified Level Indicator */}
+          {/* Gamified Level Indicator - student progression only. */}
+          {!isAdmin && (
           <div className="mb-4 space-y-1.5 px-1.5">
             <div className="flex justify-between items-center text-[10px] font-black tracking-wide text-slate-400 dark:text-slate-500 uppercase">
               <span className="flex items-center gap-1 text-primary dark:text-accent">
@@ -134,6 +142,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               />
             </div>
           </div>
+          )}
 
           <div className="flex items-center gap-3.5 mb-5 p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-accent/20 transition-all duration-300 group">
              <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-accent relative overflow-hidden shrink-0 shadow-sm">
@@ -376,7 +385,9 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               </AnimatePresence>
             </div>
 
-            {/* Premium Header Stat Capsules */}
+            {/* Premium Header Stat Capsules - student gamification only, so the
+                admin header stays focused on management, not XP/borrows. */}
+            {!isAdmin && (
             <div className="flex gap-3 items-center">
               {/* Borrowed Books Stat */}
               <motion.div
@@ -408,6 +419,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 </div>
               </motion.div>
             </div>
+            )}
 
             {/* Decorative brand mark */}
             <div className="hidden lg:block relative w-14 h-14 shrink-0">
