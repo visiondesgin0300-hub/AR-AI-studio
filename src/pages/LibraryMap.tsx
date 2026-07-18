@@ -65,12 +65,17 @@ export function LibraryMap() {
 
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
 
-  const navigateToCell = (cellId: string) => {
+  // `fromFacility` routes to the AR-mode wayfinding view instead of the
+  // digital shelf-grid map: a facility (study room, silent zone, ...) is not a
+  // book shelf, so dropping the user onto the "الرف X-Y" occupancy grid was
+  // confusing. Facilities get the dark guided path; shelf-grid clicks keep
+  // showing the path on the grid itself.
+  const navigateToCell = (cellId: string, fromFacility = false) => {
     setSelectedBook(null);
     setManualTarget({ id: cellId });
     setShowPath(true);
     setResourceTab('shelves');
-    setActiveTab('map');
+    setActiveTab(fromFacility ? 'sections' : 'map');
     // Light haptic confirmation that navigation started, so the user doesn't
     // have to visually double-check the destination was registered.
     if (typeof navigator.vibrate === 'function') {
@@ -89,7 +94,7 @@ export function LibraryMap() {
     }
     if (location.state?.facilityName) {
       const match = FACILITIES.find(f => f.name === location.state.facilityName);
-      if (match) navigateToCell(match.cellId);
+      if (match) navigateToCell(match.cellId, true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
@@ -281,7 +286,7 @@ export function LibraryMap() {
                 {FACILITIES.map((facility) => (
                   <div
                     key={facility.name}
-                    onClick={() => navigateToCell(facility.cellId)}
+                    onClick={() => navigateToCell(facility.cellId, true)}
                     className="official-card p-6 flex items-center gap-5 bg-white dark:bg-slate-900 cursor-pointer hover:border-accent dark:hover:border-accent transition-all"
                   >
                     <div className="w-14 h-14 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
@@ -301,7 +306,7 @@ export function LibraryMap() {
                       </div>
                       <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{facility.desc}</p>
                       <button
-                        onClick={(e) => { e.stopPropagation(); navigateToCell(facility.cellId); }}
+                        onClick={(e) => { e.stopPropagation(); navigateToCell(facility.cellId, true); }}
                         className="flex items-center gap-1.5 pt-1 text-[10px] font-black text-primary/60 dark:text-accent hover:text-primary dark:hover:text-white hover:underline cursor-pointer"
                       >
                         <MapPin className="w-3.5 h-3.5" />
@@ -520,13 +525,16 @@ export function LibraryMap() {
                     <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-20 px-10">
                       <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
                         <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
-                        {t('headTowardsShelf', { shelf: destinationShelfId })}
+                        {targetFacility
+                          ? t('headTowardsDestination', { destination: targetFacility.name })
+                          : t('headTowardsShelf', { shelf: destinationShelfId })}
                       </div>
-                      {/* Floor guidance, right under the shelf heading, so the
-                          student knows which floor to head to as well. */}
+                      {/* Floor guidance, right under the heading, so the user
+                          knows which floor to head to as well. Facilities carry
+                          their own real floor label; shelves derive it. */}
                       <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/70 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
                         <Box className="w-3.5 h-3.5 text-accent/80" />
-                        {destinationFloorLabel}
+                        {targetFacility ? targetFacility.location : destinationFloorLabel}
                       </div>
                       {/* Distance/ETA surfaced right under the heading so it's
                           visible without scrolling the tall aisle view on a
