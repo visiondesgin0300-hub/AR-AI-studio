@@ -228,7 +228,7 @@ export function LibraryMap() {
                  resourceTab !== 'facilities' && activeTab === 'sections' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
                )}
              >
-               <Box className="w-4 h-4" />
+               <Camera className="w-4 h-4" />
                {t('mainSections')}
              </button>
              <button
