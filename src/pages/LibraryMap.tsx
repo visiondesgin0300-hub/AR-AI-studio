@@ -761,121 +761,49 @@ export function LibraryMap() {
 
         {/* Sidebar Intelligence */}
         <div className="w-full xl:w-[450px] flex flex-col gap-8">
-          {bookData ? (
-            <motion.div
-              initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="official-card p-8 bg-white dark:bg-slate-900"
-            >
-              <div className="space-y-10">
-                 <div className="flex justify-center">
-                    <div className="relative group">
-                       <img
-                          src={bookData.coverUrl}
-                          className="w-48 h-72 object-cover rounded-[1.5rem] shadow-lg border border-slate-100 dark:border-white/10"
-                          alt=""
-                          referrerPolicy="no-referrer"
-                        />
-                       <div className={cn("absolute -bottom-6 w-16 h-16 bg-accent rounded-3xl flex items-center justify-center text-primary shadow-lg border-4 border-white dark:border-slate-900", dir === 'rtl' ? '-left-6' : '-right-6')}>
-                          <Navigation className={cn("w-7 h-7", dir === 'rtl' ? 'rotate-180' : '')} />
-                       </div>
-                    </div>
-                 </div>
-
-                 <div className="text-center space-y-4">
-                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
-                    <h2 className="text-3xl font-black leading-tight tracking-tight text-primary dark:text-white">{bookData.title}</h2>
-                    <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[12px] tracking-widest flex items-center justify-center gap-2">
-                       <UserIcon className="w-4 h-4" />
-                       {bookData.author}
-                    </p>
-                 </div>
-
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
-                       <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 leading-relaxed">{t('digitalView')} ({t('shelfShort')})</div>
-                       <div className="text-3xl font-black text-primary dark:text-white">{bookData.shelf}</div>
-                    </div>
-                    <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
-                       <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 leading-relaxed">{t('bookHall', { section: '' })}</div>
-                       <div className="text-3xl font-black text-primary dark:text-white">{bookData.section}</div>
-                    </div>
-                 </div>
-
-                 {navigationSteps.length > 0 && (
-                    <div className="space-y-3 pt-2">
-                       <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
-                       <ol className="space-y-2">
-                          {navigationSteps.map((step, idx) => (
-                            <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                               <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
-                               <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
-                            </li>
-                          ))}
-                       </ol>
-                    </div>
-                 )}
-
-                 <div className="space-y-4 pt-4">
-                    <button
-                      onClick={() => navigate(`/book/${bookData.id}`)}
-                      className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95"
-                    >
-                       <span>{t('viewReferenceData')}</span>
-                    </button>
-                    <button
-                      onClick={() => { setSelectedBook(null); setShowPath(false); }}
-                      className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
-                    >
-                       <X className="w-4 h-4" />
-                       {t('cancelActiveNavigation')}
-                    </button>
-                 </div>
-              </div>
-            </motion.div>
-          ) : manualTarget ? (
-            <motion.div
-              initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="official-card p-8 bg-white dark:bg-slate-900"
-            >
-              <div className="space-y-8">
-                 <div className="flex justify-center">
+          {resourceTab === 'facilities' ? (
+            /* ══ FACILITIES TAB: always facilities sidebar, never book info ══ */
+            manualTarget ? (
+              /* Facility selected → navigation panel */
+              <motion.div
+                initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="official-card p-8 bg-white dark:bg-slate-900"
+              >
+                <div className="space-y-8">
+                  <div className="flex justify-center">
                     <div className="relative">
-                       <div className="w-28 h-28 bg-accent/10 dark:bg-accent/15 rounded-[2.5rem] flex items-center justify-center text-primary dark:text-accent">
-                          <Navigation className={cn("w-12 h-12", dir === 'rtl' ? 'rotate-180' : '')} />
-                       </div>
+                      <div className="w-28 h-28 bg-accent/10 dark:bg-accent/15 rounded-[2.5rem] flex items-center justify-center text-primary dark:text-accent">
+                        <Navigation className={cn("w-12 h-12", dir === 'rtl' ? 'rotate-180' : '')} />
+                      </div>
                     </div>
-                 </div>
-
-                 <div className="text-center space-y-3">
+                  </div>
+                  <div className="text-center space-y-3">
                     <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
                     <h2 className="text-2xl font-black leading-tight tracking-tight text-primary dark:text-white">{destinationLabel}</h2>
                     <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[11px] tracking-widest">{destinationSectionName}</p>
-                 </div>
-
-                 <div className="space-y-3">
+                  </div>
+                  <div className="space-y-3">
                     <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
                     <ol className="space-y-2">
-                       {navigationSteps.map((step, idx) => (
-                         <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                            <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
-                            <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
-                         </li>
-                       ))}
+                      {navigationSteps.map((step, idx) => (
+                        <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                          <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
+                          <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
+                        </li>
+                      ))}
                     </ol>
-                 </div>
-
-                 <button
-                   onClick={() => { setManualTarget(null); setShowPath(false); }}
-                   className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
-                 >
+                  </div>
+                  <button
+                    onClick={() => { setManualTarget(null); setShowPath(false); }}
+                    className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
+                  >
                     <X className="w-4 h-4" />
                     {t('cancelActiveNavigation')}
-                 </button>
-              </div>
-            </motion.div>
-          ) : resourceTab === 'facilities' ? (
+                  </button>
+                </div>
+              </motion.div>
+            ) : (
             /* ── Facility search sidebar ── */
             <div className="official-card flex flex-col bg-white dark:bg-slate-900 shadow-2xl shadow-black/5 dark:shadow-black/20 overflow-hidden min-h-[500px]">
               <div className="px-7 pt-7 pb-5 border-b border-slate-100 dark:border-white/5">
@@ -950,8 +878,99 @@ export function LibraryMap() {
                 </p>
               </div>
             </div>
+          )
+          ) : bookData ? (
+            /* ══ SHELVES TAB: book selected → book navigation ══ */
+            <motion.div
+              initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="official-card p-8 bg-white dark:bg-slate-900"
+            >
+              <div className="space-y-10">
+                <div className="flex justify-center">
+                  <div className="relative group">
+                    <BookCover book={bookData} className="w-48 h-72 rounded-[1.5rem] shadow-lg border border-slate-100 dark:border-white/10" />
+                    <div className={cn("absolute -bottom-6 w-16 h-16 bg-accent rounded-3xl flex items-center justify-center text-primary shadow-lg border-4 border-white dark:border-slate-900", dir === 'rtl' ? '-left-6' : '-right-6')}>
+                      <Navigation className={cn("w-7 h-7", dir === 'rtl' ? 'rotate-180' : '')} />
+                    </div>
+                  </div>
+                </div>
+                <div className="text-center space-y-4">
+                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
+                  <h2 className="text-3xl font-black leading-tight tracking-tight text-primary dark:text-white">{bookData.title}</h2>
+                  <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[12px] tracking-widest flex items-center justify-center gap-2">
+                    <UserIcon className="w-4 h-4" />{bookData.author}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
+                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{t('digitalView')} ({t('shelfShort')})</div>
+                    <div className="text-3xl font-black text-primary dark:text-white">{bookData.shelf}</div>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
+                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{t('bookHall', { section: '' })}</div>
+                    <div className="text-3xl font-black text-primary dark:text-white">{bookData.section}</div>
+                  </div>
+                </div>
+                {navigationSteps.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
+                    <ol className="space-y-2">
+                      {navigationSteps.map((step, idx) => (
+                        <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                          <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
+                          <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                )}
+                <div className="space-y-4 pt-4">
+                  <button onClick={() => navigate(`/book/${bookData.id}`)} className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
+                    <span>{t('viewReferenceData')}</span>
+                  </button>
+                  <button onClick={() => { setSelectedBook(null); setShowPath(false); }} className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+                    <X className="w-4 h-4" />{t('cancelActiveNavigation')}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          ) : manualTarget ? (
+            /* Shelf cell selected → shelf navigation */
+            <motion.div
+              initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="official-card p-8 bg-white dark:bg-slate-900"
+            >
+              <div className="space-y-8">
+                <div className="flex justify-center">
+                  <div className="w-28 h-28 bg-accent/10 dark:bg-accent/15 rounded-[2.5rem] flex items-center justify-center text-primary dark:text-accent">
+                    <Navigation className={cn("w-12 h-12", dir === 'rtl' ? 'rotate-180' : '')} />
+                  </div>
+                </div>
+                <div className="text-center space-y-3">
+                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
+                  <h2 className="text-2xl font-black leading-tight tracking-tight text-primary dark:text-white">{destinationLabel}</h2>
+                  <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[11px] tracking-widest">{destinationSectionName}</p>
+                </div>
+                <div className="space-y-3">
+                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
+                  <ol className="space-y-2">
+                    {navigationSteps.map((step, idx) => (
+                      <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                        <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
+                        <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <button onClick={() => { setManualTarget(null); setShowPath(false); }} className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
+                  <X className="w-4 h-4" />{t('cancelActiveNavigation')}
+                </button>
+              </div>
+            </motion.div>
           ) : (
-            /* ── Book search sidebar (shelves tab) ── */
+            /* ── Book search sidebar (shelves tab, nothing selected) ── */
             <div className="official-card flex flex-col bg-white dark:bg-slate-900 shadow-2xl shadow-black/5 dark:shadow-black/20 overflow-hidden min-h-[500px]">
               <div className="px-7 pt-7 pb-5 border-b border-slate-100 dark:border-white/5">
                 <div className={cn("flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
