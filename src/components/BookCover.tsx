@@ -18,26 +18,28 @@ export function BookCover({ book, className, imgClassName }: BookCoverProps) {
   const [failed, setFailed] = useState(false);
   const meta = getArBookMeta(book);
 
-  if (!book.coverUrl || failed) {
-    return (
-      <div
-        className={cn('flex flex-col items-center justify-center gap-2 text-white/90 overflow-hidden', className)}
-        style={{ background: `linear-gradient(150deg, ${meta.spineColor}, ${meta.spineColor}bb 60%, rgba(0,0,0,0.35))` }}
-      >
-        <BookOpen className="w-1/4 h-1/4 min-w-6 min-h-6 opacity-80" />
-        <span className="px-3 text-center text-[11px] font-black leading-tight line-clamp-3 opacity-90">{book.title}</span>
-      </div>
-    );
-  }
-
   return (
-    <img
-      src={book.coverUrl}
-      alt={book.title}
-      loading="lazy"
-      referrerPolicy="no-referrer"
-      onError={() => setFailed(true)}
-      className={cn('w-full h-full object-cover', imgClassName)}
-    />
+    <div
+      className={cn('overflow-hidden relative flex flex-col items-center justify-center', className)}
+      style={(!book.coverUrl || failed)
+        ? { background: `linear-gradient(150deg, ${meta.spineColor}, ${meta.spineColor}bb 60%, rgba(0,0,0,0.35))` }
+        : undefined}
+    >
+      {(!book.coverUrl || failed) ? (
+        <>
+          <BookOpen className="w-1/4 h-1/4 min-w-6 min-h-6 opacity-80 text-white/90" />
+          <span className="px-3 text-center text-[11px] font-black leading-tight line-clamp-3 opacity-90 text-white/90">{book.title}</span>
+        </>
+      ) : (
+        <img
+          src={book.coverUrl}
+          alt={book.title}
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+          className={cn('w-full h-full object-cover', imgClassName)}
+        />
+      )}
+    </div>
   );
 }
