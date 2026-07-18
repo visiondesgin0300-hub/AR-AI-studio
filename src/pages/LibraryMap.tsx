@@ -41,6 +41,8 @@ export function LibraryMap() {
     ).slice(0, 8);
   }, [sidebarSearch]);
 
+  const [facilitySearch, setFacilitySearch] = useState('');
+
   // Simulated real-time occupancy data
   const occupancyData = useMemo(() => {
     return {
@@ -746,9 +748,84 @@ export function LibraryMap() {
                  </button>
               </div>
             </motion.div>
-          ) : (
+          ) : resourceTab === 'facilities' ? (
+            /* ── Facility search sidebar ── */
             <div className="official-card flex flex-col bg-white dark:bg-slate-900 shadow-2xl shadow-black/5 dark:shadow-black/20 overflow-hidden min-h-[500px]">
-              {/* Header */}
+              <div className="px-7 pt-7 pb-5 border-b border-slate-100 dark:border-white/5">
+                <div className={cn("flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <div className="w-9 h-9 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center text-primary dark:text-accent">
+                    <Compass className="w-4 h-4" />
+                  </div>
+                  <h3 className="text-base font-black text-primary dark:text-white tracking-tight">
+                    {language === 'ar' ? 'البحث في المرافق' : 'Search Facilities'}
+                  </h3>
+                </div>
+                <div className="relative">
+                  <Search className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none", dir === 'rtl' ? 'right-4' : 'left-4')} />
+                  <input
+                    type="text"
+                    value={facilitySearch}
+                    onChange={e => setFacilitySearch(e.target.value)}
+                    placeholder={language === 'ar' ? 'اسم المرفق أو الموقع...' : 'Facility name or location...'}
+                    className={cn(
+                      "w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors",
+                      dir === 'rtl' ? 'pr-11 pl-4 text-right' : 'pl-11 pr-4 text-left'
+                    )}
+                  />
+                  {facilitySearch && (
+                    <button onClick={() => setFacilitySearch('')} className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors", dir === 'rtl' ? 'left-4' : 'right-4')}>
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-white/5">
+                {FACILITIES.filter(f => {
+                  const q = facilitySearch.trim().toLowerCase();
+                  return !q || f.name.toLowerCase().includes(q) || f.desc.toLowerCase().includes(q) || f.location.toLowerCase().includes(q);
+                }).map(facility => (
+                  <button
+                    key={facility.name}
+                    onClick={() => navigateToCell(facility.cellId, true)}
+                    className={cn(
+                      "w-full flex items-center gap-4 px-5 py-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group",
+                      dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left'
+                    )}
+                  >
+                    <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent group-hover:bg-primary/20 dark:group-hover:bg-accent/20 transition-colors">
+                      <facility.icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-primary dark:text-white truncate leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">{facility.name}</p>
+                      <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">{facility.desc}</p>
+                      <div className={cn("flex items-center gap-2 mt-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                        <MapPin className="w-3 h-3 text-primary/40 dark:text-accent/60 shrink-0" />
+                        <span className="text-[10px] font-bold text-primary/50 dark:text-accent/70 truncate">{facility.location}</span>
+                        <span className={cn(
+                          "shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider",
+                          facility.status === 'available'
+                            ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400"
+                            : "bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400"
+                        )}>
+                          {facility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
+                        </span>
+                      </div>
+                    </div>
+                    <Navigation className={cn("w-4 h-4 shrink-0 text-slate-200 dark:text-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-colors", dir === 'rtl' ? 'rotate-180' : '')} />
+                  </button>
+                ))}
+              </div>
+
+              <div className="px-7 py-4 border-t border-slate-50 dark:border-white/5">
+                <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 text-center leading-relaxed">
+                  {language === 'ar' ? 'اختر مرفقاً لعرض مساره على الخريطة' : 'Pick a facility to show its route on the map'}
+                </p>
+              </div>
+            </div>
+          ) : (
+            /* ── Book search sidebar (shelves tab) ── */
+            <div className="official-card flex flex-col bg-white dark:bg-slate-900 shadow-2xl shadow-black/5 dark:shadow-black/20 overflow-hidden min-h-[500px]">
               <div className="px-7 pt-7 pb-5 border-b border-slate-100 dark:border-white/5">
                 <div className={cn("flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                   <div className="w-9 h-9 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center text-primary dark:text-accent">
@@ -756,7 +833,6 @@ export function LibraryMap() {
                   </div>
                   <h3 className="text-base font-black text-primary dark:text-white tracking-tight">{t('searchReferenceFirst')}</h3>
                 </div>
-                {/* Inline search input */}
                 <div className="relative">
                   <Search className={cn("absolute top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none", dir === 'rtl' ? 'right-4' : 'left-4')} />
                   <input
@@ -770,17 +846,13 @@ export function LibraryMap() {
                     )}
                   />
                   {sidebarSearch && (
-                    <button
-                      onClick={() => setSidebarSearch('')}
-                      className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors", dir === 'rtl' ? 'left-4' : 'right-4')}
-                    >
+                    <button onClick={() => setSidebarSearch('')} className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors", dir === 'rtl' ? 'left-4' : 'right-4')}>
                       <X className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Results list */}
               <div className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-white/5">
                 {sidebarSearchResults.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-300 dark:text-slate-600">
@@ -795,7 +867,6 @@ export function LibraryMap() {
                         setSelectedBook(book.id);
                         setManualTarget(null);
                         setShowPath(true);
-                        setResourceTab('shelves');
                         setActiveTab('map');
                       }}
                       className={cn(
@@ -818,7 +889,6 @@ export function LibraryMap() {
                 )}
               </div>
 
-              {/* Footer hint */}
               <div className="px-7 py-4 border-t border-slate-50 dark:border-white/5">
                 <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 text-center leading-relaxed">
                   {language === 'ar' ? 'اختر كتاباً لعرض مساره على الخريطة' : 'Pick a book to show its route on the map'}
