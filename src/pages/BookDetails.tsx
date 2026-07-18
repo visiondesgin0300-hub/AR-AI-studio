@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowRight, MapPin, Share2, Heart, BookOpen, Clock, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { ArrowRight, MapPin, Share2, Heart, BookOpen, Clock, CheckCircle2, AlertCircle, X, Tag } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { User, Book } from '../types';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { CitationBox } from '../components/CitationBox';
+import { getArBookMeta } from '../lib/arCatalog';
 
 const BORROW_XP_REWARD = 15;
 
@@ -129,8 +130,11 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
               {categoryTranslationMap[book.category] || book.category}
             </div>
             <h1 className="text-4xl font-black text-primary dark:text-white leading-tight tracking-tight">{book.title}</h1>
+            {book.titleEn && (
+              <p className="text-lg text-slate-400 dark:text-slate-500 font-bold tracking-tight" dir="ltr">{book.titleEn}</p>
+            )}
             <p className={cn("text-xl text-gray-500 dark:text-gray-400 font-medium", dir === 'rtl' ? 'border-r-4 pr-6' : 'border-l-4 pl-6')}>
-              {t('authorLabel')}: {book.author}
+              {t('authorLabel')}: {book.author}{book.year ? ` · ${book.year}` : ''}
             </p>
           </div>
 
@@ -161,6 +165,19 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
             </div>
           </div>
 
+          {/* Library of Congress classification number (bilingual label) */}
+          <div className={cn("glass-panel p-5 flex items-center gap-4 border border-slate-100 dark:border-white/5 bg-white/40 dark:bg-slate-900/40", dir === 'rtl' ? 'flex-row-reverse text-right' : '')}>
+            <div className="p-3 bg-primary/10 dark:bg-accent/15 rounded-2xl shrink-0">
+              <Tag className="w-6 h-6 text-primary dark:text-accent" />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] text-gray-400 dark:text-gray-500 font-black uppercase tracking-wider mb-1">
+                {t('callNumberLabel')} <span className="opacity-50">· LC Call Number</span>
+              </span>
+              <span className="text-base font-black text-primary dark:text-white font-mono" dir="ltr">{getArBookMeta(book).callNumber}</span>
+            </div>
+          </div>
+
           <div className="space-y-5">
             <div className={cn("flex items-center justify-between py-1", dir === 'rtl' ? 'border-r-4 pr-4' : 'border-l-4 pl-4')}>
               <h3 className="font-bold text-primary dark:text-white flex items-center gap-3 text-lg">
@@ -176,7 +193,7 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
             </div>
             <div className="glass-panel p-6 bg-white/60 dark:bg-slate-900/60 border border-slate-100 dark:border-white/5">
               <p className="text-gray-600 dark:text-gray-300 leading-loose text-justify font-medium text-sm line-clamp-3">
-                 {book.description} {t('descriptionSuffix')}
+                 {(language === 'en' && book.descriptionEn) ? book.descriptionEn : book.description} {t('descriptionSuffix')}
               </p>
             </div>
           </div>
@@ -264,7 +281,7 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
                 
                 <div className="bg-white/40 dark:bg-slate-800/40 p-8 rounded-3xl border border-white/50 dark:border-white/10 shadow-inner">
                   <p className="text-primary dark:text-slate-200 text-lg leading-relaxed font-medium text-justify">
-                     {book.description} {t('descriptionSuffix')}
+                     {(language === 'en' && book.descriptionEn) ? book.descriptionEn : book.description} {t('descriptionSuffix')}
                   </p>
                 </div>
 
