@@ -7,6 +7,7 @@ import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { CitationBox } from '../components/CitationBox';
+import { BookCover } from '../components/BookCover';
 import { getArBookMeta } from '../lib/arCatalog';
 
 const BORROW_XP_REWARD = 15;
@@ -86,12 +87,7 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
         {/* Book Cover Container */}
         <div className="w-full lg:w-80 flex flex-col items-center">
           <div className={cn("w-64 aspect-[3/4.5] relative rounded-3xl shadow-2xl overflow-hidden border-[10px] border-white dark:border-slate-800 z-10 transition-transform duration-500", dir === 'rtl' ? 'rotate-1 group hover:rotate-0' : '-rotate-1 group hover:rotate-0')}>
-            <img 
-              src={book.coverUrl} 
-              alt={book.title}
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
+            <BookCover book={book} className="w-full h-full" />
             {!isAvailable && !(alreadyBorrowed || justBorrowed) && (
                <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center p-4">
                   <div className="bg-red-500 text-white px-5 py-2.5 rounded-full font-black text-sm flex items-center gap-2 shadow-xl">

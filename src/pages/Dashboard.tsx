@@ -8,6 +8,7 @@ import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
+import { BookCover } from '../components/BookCover';
 
 interface DashboardProps {
   user: User;
@@ -132,12 +133,7 @@ export function Dashboard({ user }: DashboardProps) {
                   </span>
                 </div>
                 <div className={cn("flex gap-4", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
-                  <img
-                    src={book.coverUrl}
-                    alt={book.title}
-                    className="w-16 h-20 object-cover rounded-xl shrink-0"
-                    referrerPolicy="no-referrer"
-                  />
+                  <BookCover book={book} className="w-16 h-20 rounded-xl shrink-0" />
                   <div className="min-w-0 space-y-1">
                     <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2">{book.title}</h5>
                     <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{book.author}</p>
@@ -257,12 +253,7 @@ export function Dashboard({ user }: DashboardProps) {
                 className="official-card group overflow-hidden flex flex-col h-full bg-white dark:bg-slate-900 transition-all hover:shadow-2xl"
               >
                 <div className="aspect-[3/4] relative overflow-hidden bg-slate-100 dark:bg-slate-800 rounded-2xl">
-                  <img 
-                    src={book.coverUrl} 
-                    alt={book.title}
-                    className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110 group-hover:rotate-1"
-                    referrerPolicy="no-referrer"
-                  />
+                  <BookCover book={book} className="w-full h-full" imgClassName="transition-all duration-700 group-hover:scale-110 group-hover:rotate-1" />
                   <div className="absolute inset-0 bg-gradient-to-t from-primary/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                   <div className={cn("absolute top-4 bg-white/10 dark:bg-black/20 backdrop-blur-md p-2 rounded-xl opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0 border border-white/20 dark:border-white/10", dir === 'rtl' ? 'right-4' : 'left-4')}>
                     <BookOpen className="w-4 h-4 text-white" />
@@ -300,12 +291,7 @@ export function Dashboard({ user }: DashboardProps) {
                 className="official-card group flex h-32 bg-white dark:bg-slate-900 transition-all hover:border-primary/20 dark:hover:border-accent/20 overflow-hidden"
               >
                 <div className={cn("w-24 h-full relative overflow-hidden shrink-0 border-slate-50 dark:border-white/5", dir === 'rtl' ? 'border-l' : 'border-r')}>
-                  <img 
-                    src={book.coverUrl} 
-                    alt={book.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                    referrerPolicy="no-referrer"
-                  />
+                  <BookCover book={book} className="w-full h-full" imgClassName="group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="p-4 flex flex-col justify-center gap-1">
                   <div className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t('shelfItem')} {book.shelf}</div>

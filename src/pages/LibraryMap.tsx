@@ -6,6 +6,7 @@ import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
+import { BookCover } from '../components/BookCover';
 
 interface ManualTarget {
   id: string;
@@ -570,7 +571,7 @@ export function LibraryMap() {
                     <div className="relative z-20 mt-auto p-6 space-y-3">
                       <div className={cn("bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 shadow-2xl", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
                         {bookData && (
-                          <img src={bookData.coverUrl} className="w-14 h-[4.5rem] object-cover rounded-xl shrink-0" alt="" referrerPolicy="no-referrer" />
+                          <BookCover book={bookData} className="w-14 h-[4.5rem] rounded-xl shrink-0" />
                         )}
                         <div className="flex-1 min-w-0">
                           <h4 className="font-black text-primary dark:text-white text-sm truncate">{destinationLabel}</h4>
