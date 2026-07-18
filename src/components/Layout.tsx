@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle } from 'lucide-react';
+import { Home, BookOpen, Map, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle } from 'lucide-react';
 import { User } from '../types';
 import { cn, getUserLevel } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -8,6 +8,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage';
 import { GuidedTour } from './GuidedTour';
+import { LibrarianChat } from './LibrarianChat';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -21,6 +22,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [showLibrarian, setShowLibrarian] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { t, toggleLanguage, language, dir } = useLanguage();
 
@@ -190,6 +192,23 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         <span className="hidden sm:inline lg:max-w-0 lg:overflow-hidden lg:group-hover:max-w-[220px] whitespace-nowrap text-[11px] font-black uppercase tracking-widest relative z-10 transition-all duration-300">
           {t('arHubFabLabel')}
         </span>
+      </motion.button>
+
+      {/* Persistent AI Librarian entry point - a chat helper one tap away from
+          every page, stacked just above the AR button on the same side so the
+          two floating actions never overlap the bottom nav or each other. */}
+      <motion.button
+        onClick={() => setShowLibrarian(true)}
+        whileHover={{ scale: 1.08 }}
+        whileTap={{ scale: 0.92 }}
+        title={t('askLibrarianLabel')}
+        className={cn(
+          "fixed z-40 bottom-44 lg:bottom-28 w-14 h-14 flex items-center justify-center rounded-full bg-primary dark:bg-slate-800 text-white border-2 border-white/20 dark:border-white/10 shadow-[0_15px_40px_rgba(0,76,109,0.45)]",
+          dir === 'rtl' ? 'left-5 lg:left-10' : 'right-5 lg:right-10'
+        )}
+      >
+        <MessageCircle className="w-6 h-6" />
+        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-accent border-2 border-white dark:border-slate-900" />
       </motion.button>
 
       <div className="flex-1 flex flex-col min-w-0 relative h-full">
@@ -500,6 +519,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
       <AnimatePresence>
         {showTour && <GuidedTour user={user} onClose={() => setShowTour(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showLibrarian && <LibrarianChat onClose={() => setShowLibrarian(false)} />}
       </AnimatePresence>
     </div>
   );
