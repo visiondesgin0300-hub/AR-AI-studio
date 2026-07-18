@@ -145,7 +145,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 </div>
                 <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-1.5 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                  {t('academicResearcher')}
+                  {user.role === 'admin' ? t('adminRole') : t('academicResearcher')}
                 </div>
              </div>
           </div>
