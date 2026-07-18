@@ -8,9 +8,15 @@ import { useLanguage } from '../hooks/useLanguage';
 interface ManualTarget { id: string }
 
 const DARK_NAV_PATH_D = 'M 300,460 C 300,380 190,340 210,260 C 230,180 260,140 285,90';
-const SHELF_SILHOUETTE_ROWS = [30, 145, 260, 375];
-const SHELF_SPINE_WIDTHS = [14, 10, 16, 12, 18, 11];
-const SHELF_SPINE_COLORS = ['#0e7490', '#155e75', '#D9B310', '#0891b2', '#164e63', '#0e7490'];
+const SHELF_SILHOUETTE_ROWS = [0, 100, 200, 300, 400];
+const SHELF_SPINE_WIDTHS = [14, 9, 17, 11, 15, 10, 18, 12, 13, 8];
+const SHELF_SPINE_COLORS = ['#0e7490', '#155e75', '#D9B310', '#0891b2', '#164e63', '#0e7490', '#0c6a7a', '#1a7a6a'];
+const AR_BOOK_TOP_OFFSETS = [12, 22, 5, 18, 3, 16, 8, 26, 4, 20];
+const AR_BOOK_XS = SHELF_SPINE_WIDTHS.reduce<number[]>((acc, w, i) => {
+  acc.push(i === 0 ? 4 : acc[i - 1] + SHELF_SPINE_WIDTHS[i - 1] + 2);
+  return acc;
+}, []);
+const AR_SHELF_PANEL_W = AR_BOOK_XS[AR_BOOK_XS.length - 1] + SHELF_SPINE_WIDTHS[SHELF_SPINE_WIDTHS.length - 1] + 8;
 
 const DISTANCE_BY_CELL: Record<string, number> = {
   'A-2': 38,
@@ -236,17 +242,20 @@ export function FacilitiesMap() {
                 className="relative w-full h-full min-h-[650px] flex flex-col bg-[#01354C] dark:bg-[#010f1a]"
               >
                 {/* Shelf silhouette background */}
-                <svg className="absolute inset-0 w-full h-full opacity-40" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
-                  {SHELF_SILHOUETTE_ROWS.map(rowY => (
+                <svg className="absolute inset-0 w-full h-full opacity-40 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
+                  {SHELF_SILHOUETTE_ROWS.map((rowY, rowIdx) => (
                     <g key={rowY}>
-                      {SHELF_SPINE_WIDTHS.map((w, i) => (
-                        <rect key={`l-${i}`} x={18 + i * 22} y={rowY} width={w} height={72} rx={2} fill={SHELF_SPINE_COLORS[i % SHELF_SPINE_COLORS.length]} />
-                      ))}
-                      <rect x={14} y={rowY + 72} width={SHELF_SPINE_WIDTHS.length * 22 + 8} height={5} rx={1.5} fill="#8a6d1f" />
-                      {SHELF_SPINE_WIDTHS.map((w, i) => (
-                        <rect key={`r-${i}`} x={600 - 18 - (i + 1) * 22} y={rowY} width={w} height={72} rx={2} fill={SHELF_SPINE_COLORS[(i + 2) % SHELF_SPINE_COLORS.length]} />
-                      ))}
-                      <rect x={600 - 14 - (SHELF_SPINE_WIDTHS.length * 22 + 8)} y={rowY + 72} width={SHELF_SPINE_WIDTHS.length * 22 + 8} height={5} rx={1.5} fill="#8a6d1f" />
+                      {SHELF_SPINE_WIDTHS.map((w, i) => {
+                        const topOff = AR_BOOK_TOP_OFFSETS[(rowIdx * 3 + i) % AR_BOOK_TOP_OFFSETS.length];
+                        return <rect key={`l-${i}`} x={AR_BOOK_XS[i]} y={rowY + topOff} width={w} height={88 - topOff} rx={2} fill={SHELF_SPINE_COLORS[i % SHELF_SPINE_COLORS.length]} />;
+                      })}
+                      <rect x={0} y={rowY + 88} width={AR_SHELF_PANEL_W} height={8} rx={1.5} fill="#6b4423" />
+                      {SHELF_SPINE_WIDTHS.map((_w, i) => {
+                        const ri = SHELF_SPINE_WIDTHS.length - 1 - i;
+                        const topOff = AR_BOOK_TOP_OFFSETS[(rowIdx * 3 + ri) % AR_BOOK_TOP_OFFSETS.length];
+                        return <rect key={`r-${i}`} x={600 - AR_BOOK_XS[ri] - SHELF_SPINE_WIDTHS[ri]} y={rowY + topOff} width={SHELF_SPINE_WIDTHS[ri]} height={88 - topOff} rx={2} fill={SHELF_SPINE_COLORS[(ri + 2) % SHELF_SPINE_COLORS.length]} />;
+                      })}
+                      <rect x={600 - AR_SHELF_PANEL_W} y={rowY + 88} width={AR_SHELF_PANEL_W} height={8} rx={1.5} fill="#6b4423" />
                     </g>
                   ))}
                 </svg>
