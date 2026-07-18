@@ -505,10 +505,10 @@ export function LibraryMap() {
                         <span className="w-1 h-1 rounded-full bg-accent/50" />
                         <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
                       </div>
-                      {/* Live turn-by-turn instruction, cycling through the
-                          same steps shown in the sidebar as the simulated
-                          walk progresses. */}
-                      {showPath && navigationSteps.length > 0 && (
+                      {/* Live turn-by-turn instruction — shown immediately so the
+                          student knows what to do right away, and cycles
+                          through steps as the simulated walk progresses. */}
+                      {navigationSteps.length > 0 && (
                         <AnimatePresence mode="wait">
                           <motion.div
                             key={hasArrived ? 'arrived' : liveStepIndex}
@@ -528,9 +528,13 @@ export function LibraryMap() {
                     </div>
 
                     <div className="relative z-20 mt-auto p-6 space-y-3">
-                      <div className={cn("bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 shadow-2xl", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
-                        {bookData && (
-                          <BookCover book={bookData} className="w-14 h-[4.5rem] rounded-xl shrink-0" />
+                      <div className={cn("bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 shadow-2xl shadow-black/30", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
+                        {bookData ? (
+                          <BookCover book={bookData} className="w-16 h-[5.25rem] rounded-xl shrink-0 shadow-lg" />
+                        ) : (
+                          <div className="w-14 h-14 rounded-2xl bg-accent/20 flex items-center justify-center text-accent shrink-0">
+                            <Navigation className={cn('w-7 h-7', dir === 'rtl' ? 'rotate-180' : '')} />
+                          </div>
                         )}
                         <div className="flex-1 min-w-0">
                           <h4 className="font-black text-primary dark:text-white text-sm truncate">{destinationLabel}</h4>
@@ -743,7 +747,7 @@ export function LibraryMap() {
             </div>
           )}
 
-          {destinationShelfId && (
+          {manualTarget && !bookData && destinationShelfId && (
             <ShelfIdentityPanel
               shelfId={destinationShelfId}
               booksOnShelf={MOCK_BOOKS.filter(b => b.shelf === destinationShelfId && b.id !== bookData?.id)}
