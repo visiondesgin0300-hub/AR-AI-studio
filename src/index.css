@@ -14,17 +14,37 @@
 }
 
 @layer base {
+  /* Recharts reads these via inline style="var(--chart-*)" in MyBooks; they
+     must be defined or the chart line/bars/tooltips render with an invalid
+     (invisible) color. Themed so charts stay legible in light and dark. */
+  :root {
+    --chart-line: #004C6D;
+    --chart-primary: #004C6D;
+    --chart-secondary: #99d6ea;
+    --grid-color: #e2e8f0;
+    --tooltip-bg: #ffffff;
+    --tooltip-text: #0f172a;
+  }
+  .dark {
+    --chart-line: #D7C826;
+    --chart-primary: #D7C826;
+    --chart-secondary: #99d6ea;
+    --grid-color: rgba(255, 255, 255, 0.08);
+    --tooltip-bg: #0f172a;
+    --tooltip-text: #f1f5f9;
+  }
+
   body {
     @apply bg-bg-light text-slate-900 antialiased transition-colors duration-705 ease-in-out;
-    background-image: 
+    background-image:
       radial-gradient(at 0% 0%, rgba(0, 76, 109, 0.05) 0px, transparent 50%),
       radial-gradient(at 50% 0%, rgba(215, 200, 38, 0.03) 0px, transparent 50%),
       radial-gradient(at 100% 0%, rgba(0, 76, 109, 0.05) 0px, transparent 50%);
   }
-  
+
   .dark body {
     @apply bg-bg-dark text-slate-100;
-    background-image: 
+    background-image:
       radial-gradient(at 0% 0%, rgba(215, 200, 38, 0.05) 0px, transparent 50%),
       radial-gradient(at 50% 100%, rgba(0, 76, 109, 0.2) 0px, transparent 50%),
       radial-gradient(at 100% 0%, rgba(215, 200, 38, 0.05) 0px, transparent 50%);
