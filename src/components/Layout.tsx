@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle, QrCode, X, Printer, Sparkles } from 'lucide-react';
+import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles } from 'lucide-react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../hooks/useNotifications';
-import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage';
 import { GuidedTour } from './GuidedTour';
 import { LibrarianChat } from './LibrarianChat';
@@ -29,7 +28,6 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [showFabHint, setShowFabHint] = useState(() => !localStorage.getItem('ar_fab_seen'));
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'));
-  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     if (!showFabHint) return;
@@ -340,49 +338,6 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               </span>
             </motion.button>
 
-            {/* Theme Toggle */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={toggleTheme}
-              className="p-3 rounded-2xl bg-white/10 text-white/80 border border-white/15 hover:bg-white/20 hover:border-white/25 transition-all relative overflow-hidden"
-              title={theme === 'light' ? 'الوضع الداكن' : 'الوضع الفاتح'}
-            >
-              <motion.div
-                initial={false}
-                animate={{ 
-                  rotate: theme === 'light' ? 0 : 180,
-                  scale: theme === 'light' ? 1 : 0
-                }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
-              >
-                <Moon className="w-5 h-5" />
-              </motion.div>
-              <motion.div
-                initial={false}
-                animate={{ 
-                  rotate: theme === 'light' ? -180 : 0,
-                  scale: theme === 'light' ? 0 : 1
-                }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none"
-              >
-                <Sun className="w-5 h-5 text-accent" />
-              </motion.div>
-              <div className="w-5 h-5 opacity-0"></div> {/* Spacer */}
-            </motion.button>
-
-            {/* Guided Tour - a self-driving walkthrough of every core feature,
-                so the app can be presented to an audience without narrating
-                each click manually. */}
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              onClick={() => setShowTour(true)}
-              title={t('guidedTourLabel')}
-              className="p-3 rounded-2xl bg-white/10 text-white/80 border border-white/15 hover:bg-white/20 hover:border-white/25 transition-all"
-            >
-              <PlayCircle className="w-5 h-5" />
-            </motion.button>
 
             {/* Help Center - always one tap away, since students hitting a
                 snag shouldn't have to hunt for support in a submenu. */}
