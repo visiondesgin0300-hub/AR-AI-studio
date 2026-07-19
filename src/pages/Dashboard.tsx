@@ -86,6 +86,34 @@ export function Dashboard({ user }: DashboardProps) {
                 : 'Explore Library with augmented reality — search, scan, discover.'}
             </p>
           </div>
+
+          {/* Stats row */}
+          <div className="relative flex gap-4">
+            <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5 text-white/70" />
+              </div>
+              <div>
+                <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t('totalLearningTime')}</div>
+                <div className="text-xl font-black text-white leading-none mt-0.5">
+                  {language === 'ar' ? '١٤٢' : '142'} <span className="text-[10px] font-bold text-white/40">{t('hoursShort')}</span>
+                </div>
+              </div>
+            </div>
+            <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
+                <span className="text-xl">💡</span>
+              </div>
+              <div>
+                <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">
+                  {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
+                </div>
+                <div className="text-xl font-black text-accent leading-none mt-0.5">
+                  {user.points || 450} <span className="text-[10px] font-bold text-white/40">KP</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -290,9 +318,8 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
       </section>
 
-      {/* Stats and Rankings Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-        <div className="lg:col-span-2 space-y-8">
+      {/* Best in Catalog */}
+      <div className="space-y-8">
           <div className="flex justify-between items-center px-1">
              <div className="space-y-1">
                 <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('bestInCatalog')}</h3>
@@ -321,40 +348,6 @@ export function Dashboard({ user }: DashboardProps) {
               </Link>
             ))}
           </div>
-        </div>
-
-        <div className="space-y-8">
-          <div className="space-y-1">
-             <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('achievementsHistory')}</h3>
-             <div className="w-12 h-1.5 bg-secondary dark:bg-accent rounded-full"></div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-             <div className="official-card p-5 flex flex-col items-center text-center gap-3 group hover:border-accent/40 transition-colors bg-white dark:bg-slate-900">
-                <div className="w-12 h-12 rounded-full bg-accent/5 dark:bg-accent/10 flex items-center justify-center text-accent ring-4 ring-accent/5">
-                   <Clock className="w-6 h-6" />
-                </div>
-                <div>
-                   <div className="text-[9px] font-black text-primary dark:text-accent uppercase tracking-[0.15em] mb-1">{t('totalLearningTime')}</div>
-                   <div className="text-2xl font-black text-primary dark:text-white">
-                     {language === 'ar' ? '١٤٢' : '142'} {t('hoursShort')}
-                   </div>
-                </div>
-             </div>
-
-             <div className="official-card p-5 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 hover:border-accent/40 transition-colors">
-                <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center shrink-0">
-                  <span className="text-2xl">💡</span>
-                </div>
-                <div>
-                  <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
-                    {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
-                  </div>
-                  <div className="text-2xl font-black text-accent leading-none">{user.points || 450}</div>
-                  <div className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">KP</div>
-                </div>
-             </div>
-          </div>
-        </div>
       </div>
     </div>
   );
