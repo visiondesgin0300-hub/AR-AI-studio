@@ -390,19 +390,16 @@ export function Dashboard({ user }: DashboardProps) {
                 </div>
              </div>
              
-             <div className="official-card p-6 flex items-center gap-6 bg-white dark:bg-slate-900">
-                <div className="flex-1 space-y-3">
-                   <div className="flex justify-between items-center">
-                     <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('levelProgress')}</span>
-                     <span className="text-xs font-black text-accent">{language === 'ar' ? '٧٤٪' : '74%'}</span>
-                   </div>
-                   <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: "74%" }}
-                        className="h-full bg-accent"
-                      />
-                   </div>
+             <div className="official-card p-6 flex items-center justify-between gap-6 bg-white dark:bg-slate-900">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                    {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
+                  </span>
+                  <div className="text-3xl font-black text-accent leading-none">{user.points || 450}</div>
+                  <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">KP</div>
+                </div>
+                <div className="w-14 h-14 rounded-2xl bg-accent/10 dark:bg-accent/10 flex items-center justify-center shrink-0">
+                  <span className="text-3xl">💡</span>
                 </div>
              </div>
           </div>
