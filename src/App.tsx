@@ -17,6 +17,8 @@ import { Search } from './pages/Search';
 import { Landing } from './pages/Landing';
 import { HelpCenter } from './pages/HelpCenter';
 import { ArLab } from './pages/ArLab';
+import { QRScanner } from './pages/QRScanner';
+import { ShelfQRPrint } from './pages/ShelfQRPrint';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -139,6 +141,14 @@ function AppContent() {
         <Route
           path="/ar-lab"
           element={user ? <Layout user={user} onLogout={handleLogout}><ArLab /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/scan"
+          element={user ? <QRScanner /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/qr-print"
+          element={user ? <Layout user={user} onLogout={handleLogout}><ShelfQRPrint /></Layout> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

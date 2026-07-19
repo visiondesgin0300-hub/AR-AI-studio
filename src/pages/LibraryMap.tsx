@@ -90,6 +90,13 @@ export function LibraryMap() {
       setManualTarget(null);
       setSelectedBook(location.state.bookId);
       setShowPath(true);
+    } else if (location.state?.shelfId) {
+      setSelectedBook(null);
+      setManualTarget({ id: location.state.shelfId });
+      setShowPath(true);
+      if (location.state?.openAR) {
+        setActiveTab('sections');
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state]);
