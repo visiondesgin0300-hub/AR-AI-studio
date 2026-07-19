@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layers } from 'lucide-react';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
@@ -59,15 +58,6 @@ export function Dashboard({ user }: DashboardProps) {
   }, [recommendationCategories, user.borrowedBooks]);
   const MATCH_SCORES = [98, 94, 91];
 
-  const WEEKLY_ACTIVITY = React.useMemo(() => [
-    { day: t('saturday'), value: 40 },
-    { day: t('sunday'), value: 30 },
-    { day: t('monday'), value: 60 },
-    { day: t('tuesday'), value: 45 },
-    { day: t('wednesday'), value: 70 },
-    { day: t('thursday'), value: 90 },
-    { day: t('friday'), value: 65 },
-  ], [t]);
 
   return (
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
@@ -234,31 +224,6 @@ export function Dashboard({ user }: DashboardProps) {
         </section>
       )}
 
-      {/* Weekly Activity Chart */}
-      <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900 space-y-6">
-        <h3 className="text-sm font-black text-primary dark:text-white tracking-tight uppercase">
-          {language === 'ar' ? 'النشاط الأسبوعي' : 'Weekly Activity'}
-        </h3>
-
-        <div className="h-48 w-full -mx-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={WEEKLY_ACTIVITY} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="weeklyActivityFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#99d6ea" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="#99d6ea" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="text-slate-100 dark:text-white/5" />
-              <XAxis dataKey="day" tick={{ fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-              <YAxis hide />
-              <Tooltip contentStyle={{ borderRadius: 12, border: 'none', fontSize: 11, fontWeight: 700 }} />
-              <Area type="monotone" dataKey="value" stroke="#99d6ea" strokeWidth={3} fill="url(#weeklyActivityFill)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-
-      </section>
 
       {/* Categories Explorer */}
       <section id="explore-collections" className="space-y-8 scroll-mt-24">
