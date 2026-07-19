@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle, QrCode, X, Printer } from 'lucide-react';
 import { User } from '../types';
@@ -9,6 +9,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useLanguage } from '../hooks/useLanguage';
 import { GuidedTour } from './GuidedTour';
 import { LibrarianChat } from './LibrarianChat';
+import { Onboarding } from './Onboarding';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -24,7 +25,23 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const [showTour, setShowTour] = useState(false);
   const [showLibrarian, setShowLibrarian] = useState(false);
   const [showCameraMenu, setShowCameraMenu] = useState(false);
+  const [showFabHint, setShowFabHint] = useState(() => !localStorage.getItem('ar_fab_seen'));
+  const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'));
   const { theme, toggleTheme } = useTheme();
+
+  useEffect(() => {
+    if (!showFabHint) return;
+    const timer = setTimeout(() => {
+      localStorage.setItem('ar_fab_seen', '1');
+      setShowFabHint(false);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [showFabHint]);
+
+  const dismissFabHint = () => {
+    localStorage.setItem('ar_fab_seen', '1');
+    setShowFabHint(false);
+  };
   const { t, toggleLanguage, language, dir } = useLanguage();
 
   const isAdmin = user.role === 'admin';
@@ -222,8 +239,40 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
           )}
         </AnimatePresence>
 
+        <AnimatePresence>
+          {showFabHint && !showCameraMenu && (
+            <motion.div
+              initial={{ opacity: 0, y: 8, scale: 0.92 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.92 }}
+              transition={{ type: 'spring', damping: 22, stiffness: 280 }}
+              className="relative mb-1"
+            >
+              <div className={cn(
+                "px-4 py-3 bg-primary dark:bg-slate-800 text-white rounded-2xl shadow-2xl text-[11px] font-black leading-snug max-w-[160px] text-center",
+                dir === 'rtl' ? 'text-right' : 'text-left'
+              )}>
+                {language === 'ar' ? 'اضغط لفتح قائمة AR' : 'Tap to open AR menu'}
+                <button
+                  onClick={(e) => { e.stopPropagation(); dismissFabHint(); }}
+                  className="absolute -top-2 -right-2 w-5 h-5 bg-slate-600 hover:bg-slate-500 rounded-full flex items-center justify-center transition-colors"
+                >
+                  <X className="w-2.5 h-2.5 text-white" />
+                </button>
+              </div>
+              {/* Arrow pointing down toward the FAB */}
+              <div className={cn(
+                "absolute -bottom-2 w-4 h-2 overflow-hidden",
+                dir === 'rtl' ? 'left-5' : 'right-5'
+              )}>
+                <div className="w-4 h-4 bg-primary dark:bg-slate-800 rotate-45 -translate-y-3 mx-auto shadow-md" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <motion.button
-          onClick={() => setShowCameraMenu(!showCameraMenu)}
+          onClick={() => { dismissFabHint(); setShowCameraMenu(!showCameraMenu); }}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
           title={t('arHubFabLabel')}
@@ -579,6 +628,15 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
       <AnimatePresence>
         {showLibrarian && <LibrarianChat onClose={() => setShowLibrarian(false)} />}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showOnboarding && (
+          <Onboarding onDone={() => {
+            localStorage.setItem('onboarding_done', '1');
+            setShowOnboarding(false);
+          }} />
+        )}
       </AnimatePresence>
     </div>
   );

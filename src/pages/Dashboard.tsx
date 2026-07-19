@@ -78,6 +78,33 @@ export function Dashboard({ user }: DashboardProps) {
           <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
         </div>
 
+        {/* Quick-search input — shortcut to /search with pre-filled query */}
+        <div className="relative max-w-xl mx-auto w-full">
+          <Search className={cn("absolute top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-400 pointer-events-none", dir === 'rtl' ? 'right-5' : 'left-5')} />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && searchQuery.trim()) navigate(`/search?q=${encodeURIComponent(searchQuery)}`); }}
+            placeholder={language === 'ar' ? 'ابحث عن كتاب أو مؤلف…' : 'Search a book or author…'}
+            className={cn(
+              "w-full py-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 shadow-sm focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all",
+              dir === 'rtl' ? 'pr-12 pl-5 text-right' : 'pl-12 pr-5 text-left'
+            )}
+          />
+          {searchQuery && (
+            <button
+              onClick={() => navigate(`/search?q=${encodeURIComponent(searchQuery)}`)}
+              className={cn(
+                "absolute top-1/2 -translate-y-1/2 px-4 py-2 bg-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-primary/90 transition-colors",
+                dir === 'rtl' ? 'left-2' : 'right-2'
+              )}
+            >
+              {language === 'ar' ? 'بحث' : 'Go'}
+            </button>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <button
             onClick={() => navigate('/search')}
@@ -155,6 +182,15 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
         <BadgesCabinet user={user} />
       </section>
+
+      {/* ── Section divider: Explore ── */}
+      <div className="flex items-center gap-4">
+        <div className="flex-1 h-px bg-slate-100 dark:bg-white/5" />
+        <span className="text-[10px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.25em] px-2">
+          {language === 'ar' ? 'استكشف' : 'Explore'}
+        </span>
+        <div className="flex-1 h-px bg-slate-100 dark:bg-white/5" />
+      </div>
 
       {recommendations.length > 0 && (
         <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
