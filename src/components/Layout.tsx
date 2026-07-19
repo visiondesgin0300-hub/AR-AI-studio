@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle, QrCode, X, Printer } from 'lucide-react';
+import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle, QrCode, X, Printer, Sparkles } from 'lucide-react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -10,6 +10,7 @@ import { useLanguage } from '../hooks/useLanguage';
 import { GuidedTour } from './GuidedTour';
 import { LibrarianChat } from './LibrarianChat';
 import { Onboarding } from './Onboarding';
+import { FeedbackWidget } from './FeedbackWidget';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -25,6 +26,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const [showTour, setShowTour] = useState(false);
   const [showLibrarian, setShowLibrarian] = useState(false);
   const [showCameraMenu, setShowCameraMenu] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [showFabHint, setShowFabHint] = useState(() => !localStorage.getItem('ar_fab_seen'));
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'));
   const { theme, toggleTheme } = useTheme();
@@ -140,6 +142,23 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             );
           })}
         </nav>
+
+        {/* Feedback trigger */}
+        <div className="px-5 py-3">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => setShowFeedback(true)}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-accent/10 dark:bg-accent/10 border border-accent/20 hover:bg-accent/20 dark:hover:bg-accent/20 transition-all group"
+          >
+            <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center shrink-0 shadow-md shadow-accent/20 group-hover:scale-110 transition-transform">
+              <Sparkles className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-[11px] font-black text-primary dark:text-accent uppercase tracking-widest">
+              {language === 'ar' ? 'شاركنا رأيك' : 'Share Feedback'}
+            </span>
+          </motion.button>
+        </div>
 
         {/* User Card */}
         <div className="p-6 relative z-10 border-t border-slate-100 dark:border-white/5">
@@ -599,6 +618,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             setShowOnboarding(false);
           }} />
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showFeedback && <FeedbackWidget onClose={() => setShowFeedback(false)} />}
       </AnimatePresence>
     </div>
   );
