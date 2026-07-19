@@ -201,7 +201,7 @@ export function AdminDashboard() {
     { id: 'users', label: t('usersTab'), icon: Users },
     { id: 'books', label: t('libraryTab'), icon: BookOpen },
     { id: 'facilities', label: ar ? 'المرافق' : 'Facilities', icon: Building2 },
-    { id: 'qr', label: ar ? 'رموز QR' : 'QR Codes', icon: QrCode },
+    { id: 'qr', label: ar ? 'رموز AR' : 'AR Codes', icon: QrCode },
     { id: 'stats', label: t('statsTab'), icon: BarChart3 },
     { id: 'logs', label: t('logsTab'), icon: Activity },
     { id: 'feedback', label: ar ? 'آراء المستخدمين' : 'Feedback', icon: TrendingUp },
@@ -243,7 +243,7 @@ export function AdminDashboard() {
         </div>
         <div className={cn('flex items-center gap-3 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
           <button onClick={() => navigate('/qr-print')} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
-            <QrCode className="w-4 h-4 text-accent" />{ar ? 'طباعة QR الأرفف' : 'Print Shelf QR'}
+            <QrCode className="w-4 h-4 text-accent" />{ar ? 'طباعة رموز AR' : 'Print AR Codes'}
           </button>
           <button className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
             <Download className="w-4 h-4" />{t('exportReports')}
@@ -495,7 +495,7 @@ export function AdminDashboard() {
             {activeTab === 'qr' && (
               <motion.div key="qr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className={cn('flex flex-col sm:flex-row items-center justify-between gap-4', dir === 'rtl' ? 'sm:flex-row-reverse' : '')}>
-                  <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'رموز QR التلقائية' : 'Auto-Generated QR Codes'}</h3>
+                  <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'رموز AR التلقائية' : 'Auto-Generated AR Codes'}</h3>
                   <button onClick={handlePrintQR} className="flex items-center gap-2 bg-primary dark:bg-accent text-white dark:text-primary px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-primary/20">
                     <Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}
                   </button>

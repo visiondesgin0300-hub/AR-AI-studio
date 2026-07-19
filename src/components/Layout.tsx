@@ -132,8 +132,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
           })}
         </nav>
 
-        {/* Feedback trigger */}
-        <div className="px-5 py-3">
+        {/* Feedback trigger — students only */}
+        {!isAdmin && <div className="px-5 py-3">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
@@ -147,7 +147,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               {language === 'ar' ? 'شاركنا رأيك' : 'Share Feedback'}
             </span>
           </motion.button>
-        </div>
+        </div>}
 
         {/* User Card */}
         <div className="p-6 relative z-10 border-t border-slate-100 dark:border-white/5">
