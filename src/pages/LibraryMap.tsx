@@ -598,7 +598,7 @@ export function LibraryMap() {
                 )}
                 <div className="space-y-4 pt-4">
                   <button onClick={() => { setShowPath(true); setActiveTab('map'); }} className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
-                    <span>{t('viewReferenceData')}</span>
+                    <span>{language === 'ar' ? 'الخريطة' : 'Map'}</span>
                   </button>
                   <button onClick={() => setActiveTab('sections')} className="w-full py-4 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
                     <Camera className="w-4 h-4" />
