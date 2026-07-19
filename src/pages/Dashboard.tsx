@@ -154,12 +154,12 @@ export function Dashboard({ user }: DashboardProps) {
               <Layers className="w-5 h-5 relative z-10 text-accent drop-shadow" />
             </div>
             <h3 className="relative text-sm font-black text-primary dark:text-white tracking-tight">
-              {language === 'ar' ? 'اكتشاف الكتب AR' : 'AR Book Discovery'}
+              {language === 'ar' ? 'محاكاة تفاعلية لتجربة مسح الكتب بـAR' : 'Interactive simulation of the AR book scanning experience'}
             </h3>
             <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">
               {language === 'ar'
-                ? 'محاكاة تفاعلية لمسح الكتب ومعرفة تفاصيلها فورياً'
-                : 'Interactive AR simulation — tap spines to scan books'}
+                ? 'اضغط على أي كتاب لمسحه ومعرفة تفاصيله فورياً'
+                : 'Tap any book to scan it and get instant details'}
             </p>
             <span className={cn("relative text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
               {language === 'ar' ? 'جرّب الآن' : 'Try Now'}
