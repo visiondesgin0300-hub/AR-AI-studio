@@ -1,8 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   Users, BookOpen, Activity, PlusCircle, Download, Trash2, Edit, X,
-  BarChart3, ListFilter, AlertCircle, Bell, TrendingUp, Search,
-  Settings, Clock, QrCode, Building2, MapPin,
+  BarChart3, Bell, TrendingUp, Search,
+  QrCode, Building2, MapPin,
   Printer, Monitor, VolumeX, User as UserIcon,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -58,7 +58,6 @@ export function AdminDashboard() {
   const [facilities, setFacilities] = useState<Facility[]>(INITIAL_FACILITIES);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<{ type: 'user' | 'book' | 'facility'; data: any } | null>(null);
-  const [isSendingReminders, setIsSendingReminders] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [bookFilter, setBookFilter] = useState('all');
   const [qrSection, setQrSection] = useState<'shelves' | 'books' | 'facilities'>('shelves');
@@ -194,11 +193,6 @@ export function AdminDashboard() {
     setIsModalOpen(false);
   };
 
-  const handleSendReminders = () => {
-    setIsSendingReminders(true);
-    setTimeout(() => { setIsSendingReminders(false); alert(t('remindersSentAlert')); }, 1500);
-  };
-
   const handlePrintQR = () => {
     window.print();
   };
@@ -287,9 +281,9 @@ export function AdminDashboard() {
         ))}
       </div>
 
-      {/* Main grid */}
-      <div className={cn('grid grid-cols-1 lg:grid-cols-3 gap-10', dir === 'rtl' ? '' : '')}>
-        <div className={cn('lg:col-span-2 space-y-8', dir === 'rtl' ? 'order-last lg:order-first' : '')}>
+      {/* Main content */}
+      <div>
+        <div className="space-y-8">
           <AnimatePresence mode="wait">
 
             {/* ── USERS ── */}
@@ -709,36 +703,6 @@ export function AdminDashboard() {
           </AnimatePresence>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-8">
-          <div className="space-y-2">
-            <h3 className={cn('text-xl font-black text-primary dark:text-white tracking-tight', dir === 'rtl' ? 'text-right' : 'text-left')}>{t('sovereignOperations')}</h3>
-            <div className={cn('w-12 h-1.5 bg-accent rounded-full', dir === 'rtl' ? 'mr-0 ml-auto' : '')}></div>
-          </div>
-          <div className="grid grid-cols-1 gap-4">
-            {[
-              { id: 'sync', label: t('updateInventory'), icon: ListFilter, desc: t('syncDatabases') },
-              { id: 'reminders', label: t('expiryWarnings'), icon: AlertCircle, desc: t('alertProtocol') },
-              { id: 'settings', label: t('envConfig'), icon: Settings, desc: t('operationalParams') },
-            ].map(action => (
-              <button key={action.id} onClick={() => action.id === 'reminders' && handleSendReminders()} disabled={isSendingReminders && action.id === 'reminders'}
-                className={cn('official-card p-6 flex items-center gap-5 group transition-all bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-xl shadow-black/5',
-                  isSendingReminders && action.id === 'reminders' ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50 dark:hover:bg-slate-800 hover:scale-[1.02]',
-                  dir === 'rtl' ? 'flex-row-reverse text-right' : 'text-left')}>
-                <div className="w-12 h-12 rounded-[1.5rem] bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 group-hover:bg-white dark:group-hover:bg-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-all border border-slate-200 dark:border-white/10 shadow-sm shrink-0">
-                  {isSendingReminders && action.id === 'reminders' ? <Clock className="w-5 h-5 animate-spin text-accent" /> : <action.icon className="w-5 h-5" />}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-black text-primary dark:text-white uppercase tracking-wider group-hover:text-accent transition-colors truncate">
-                    {isSendingReminders && action.id === 'reminders' ? (ar ? 'جاري الإرسال...' : 'Sending...') : action.label}
-                  </div>
-                  <div className="text-[11px] font-bold text-slate-400 mt-1 truncate">{action.desc}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-        </div>
       </div>
 
       {/* ── UNIFIED MODAL ── */}
