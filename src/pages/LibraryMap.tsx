@@ -351,7 +351,6 @@ export function LibraryMap() {
                         dir === 'rtl' ? 'right-6' : 'left-6'
                       )}
                     >
-                      <Camera className="w-4 h-4" />
                       {language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}
                     </button>
                   )}

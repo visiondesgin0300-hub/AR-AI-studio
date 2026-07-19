@@ -628,7 +628,6 @@ export function FacilitiesMap() {
                     onClick={() => setActiveView('ar')}
                     className="w-full py-4 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95"
                   >
-                    <Camera className="w-4 h-4" />
                     <span>{language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}</span>
                   </button>
 
