@@ -283,7 +283,7 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
 
                 <div className="flex justify-center pt-4">
                     <p className="text-[10px] font-black text-primary/40 dark:text-white/20 uppercase tracking-[0.3em]">
-                      {language === 'ar' ? 'تحليل ذكي • المكتبة المعززة الذكية' : 'AI Analysis • Smart ARLibrary'}
+                      {language === 'ar' ? 'تحليل ذكي • ARLibrary' : 'AI Analysis • ARLibrary'}
                     </p>
                 </div>
               </div>
