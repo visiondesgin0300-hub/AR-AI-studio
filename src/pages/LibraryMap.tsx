@@ -215,43 +215,16 @@ export function LibraryMap() {
           <p className="text-slate-400 dark:text-slate-500 font-bold mt-2 leading-relaxed">{t('navAccuratelyDesc')}</p>
         </div>
 
-        <div className={cn("flex flex-col sm:flex-row items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+        <div className={cn("flex items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
           <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5">
              <button
                onClick={() => setActiveTab('map')}
-               className={cn(
-                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
-                 activeTab === 'map' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
-               )}
+               className="px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3 bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5"
              >
                <MapPin className="w-4 h-4" />
                {t('digitalView')}
              </button>
-             <button
-               onClick={() => setActiveTab('sections')}
-               className={cn(
-                 "px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3",
-                 activeTab === 'sections' ? "bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5" : "text-slate-400 hover:text-primary dark:hover:text-slate-200"
-               )}
-             >
-               <Camera className="w-4 h-4" />
-               {language === 'ar' ? 'AR توجيه' : 'AR Guide'}
-             </button>
           </div>
-
-          {bookData && (
-            <button
-              onClick={() => navigate('/ar', { state: { book: bookData } })}
-              className="px-8 py-4 bg-primary text-white rounded-2xl text-xs font-black flex items-center gap-3 shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all group"
-            >
-               <Camera className="w-5 h-5 group-hover:animate-pulse" />
-               <span>{t('enterArMode')}</span>
-               <div className="flex items-center gap-1">
-                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                 <span className="text-[9px] text-emerald-400 opacity-80 uppercase">{t('activeStatus')}</span>
-               </div>
-            </button>
-          )}
         </div>
       </div>
 
@@ -639,6 +612,10 @@ export function LibraryMap() {
                 <div className="space-y-4 pt-4">
                   <button onClick={() => { setShowPath(true); setActiveTab('map'); }} className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
                     <span>{t('viewReferenceData')}</span>
+                  </button>
+                  <button onClick={() => setActiveTab('sections')} className="w-full py-4 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
+                    <Camera className="w-4 h-4" />
+                    <span>{language === 'ar' ? 'AR توجيه' : 'AR Guide'}</span>
                   </button>
                   <button onClick={() => { setSelectedBook(null); setShowPath(false); }} className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
                     <X className="w-4 h-4" />{t('cancelActiveNavigation')}
