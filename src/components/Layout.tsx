@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle, QrCode, X, Printer } from 'lucide-react';
 import { User } from '../types';
-import { cn, getUserLevel } from '../lib/utils';
+import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useTheme } from '../hooks/useTheme';
@@ -142,28 +142,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
           })}
         </nav>
 
-        {/* User Card & Gamification Panel */}
+        {/* User Card */}
         <div className="p-6 relative z-10 border-t border-slate-100 dark:border-white/5">
-          {/* Gamified Level Indicator - student progression only. */}
-          {!isAdmin && (
-          <div className="mb-4 space-y-1.5 px-1.5">
-            <div className="flex justify-between items-center text-[10px] font-black tracking-wide text-slate-400 dark:text-slate-500 uppercase">
-              <span className="flex items-center gap-1 text-primary dark:text-accent">
-                <Award className="w-3.5 h-3.5 text-accent" />
-                {language === 'ar' ? `المستوى ${getUserLevel(user.points || 450)}` : `Level ${getUserLevel(user.points || 450)}`}
-              </span>
-              <span className="text-primary dark:text-accent">{(user.points || 450) % 100}/100 XP</span>
-            </div>
-            <div className="h-2 w-full bg-slate-100 dark:bg-white/5 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${(user.points || 450) % 100}%` }}
-                transition={{ duration: 1.2, ease: "easeOut" }}
-                className="h-full bg-accent rounded-full"
-              />
-            </div>
-          </div>
-          )}
 
           <div className="flex items-center gap-3.5 mb-5 p-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:border-accent/20 transition-all duration-300 group">
              <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-accent relative overflow-hidden shrink-0 shadow-sm">
