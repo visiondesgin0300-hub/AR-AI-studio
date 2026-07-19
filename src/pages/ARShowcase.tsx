@@ -114,18 +114,6 @@ export function ARShowcase() {
               : 'Interactive simulation of the AR book scanning experience — tap any book'}
           </p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/scan')}
-          className={cn(
-            'flex items-center gap-3 px-6 py-3.5 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-accent/30 hover:brightness-110 transition-all shrink-0',
-            dir === 'rtl' ? 'flex-row-reverse' : ''
-          )}
-        >
-          <QrCode className="w-4 h-4" />
-          {language === 'ar' ? 'مسح رمز QR' : 'Scan Shelf QR'}
-        </motion.button>
       </div>
 
       {/* ── Top CTA ── */}
