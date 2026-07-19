@@ -61,11 +61,50 @@ export function Dashboard({ user }: DashboardProps) {
 
   return (
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
-      {/* Title + entry-point cards: search, facilities, AR cover scanner */}
+      {/* Hero banner */}
       <div className="space-y-10">
-        <div className="text-center space-y-3 max-w-2xl mx-auto">
-          <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('augmentedLibraryMap').replace('{name}', user.name)}</h1>
-          <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
+        <div className="relative overflow-hidden rounded-[2rem] bg-primary p-8 md:p-10 flex flex-col gap-6">
+          {/* Background decoration */}
+          <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+
+          {/* Top row: date + live badge */}
+          <div className={cn("relative flex items-center justify-between", dir === 'rtl' ? 'flex-row-reverse' : '')}>
+            <span className="text-[11px] font-black text-white/50 uppercase tracking-widest">
+              {new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </span>
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/20 border border-accent/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+              <span className="text-[10px] font-black text-accent uppercase tracking-widest">AR Live</span>
+            </span>
+          </div>
+
+          {/* Brand + tagline */}
+          <div className="relative space-y-2">
+            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none">
+              AR<span className="text-accent">Library</span>
+            </h1>
+            <p className="text-white/50 font-bold text-sm leading-relaxed max-w-sm">
+              {language === 'ar'
+                ? 'استكشف الكتب بتقنية الواقع المعزز — ابحث، امسح، اكتشف.'
+                : 'Explore books with augmented reality — search, scan, discover.'}
+            </p>
+          </div>
+
+          {/* Quick stats */}
+          <div className={cn("relative flex flex-wrap gap-3", dir === 'rtl' ? 'flex-row-reverse' : '')}>
+            {[
+              { emoji: '📚', value: '1,240', label: language === 'ar' ? 'كتاب' : 'Books' },
+              { emoji: '🏛️', value: '4', label: language === 'ar' ? 'طوابق' : 'Floors' },
+              { emoji: '💡', value: user.points || 450, label: 'KP' },
+            ].map((s, i) => (
+              <div key={i} className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/8 border border-white/10 backdrop-blur-sm">
+                <span className="text-base leading-none">{s.emoji}</span>
+                <span className="text-sm font-black text-white">{s.value}</span>
+                <span className="text-[10px] font-bold text-white/50 uppercase tracking-widest">{s.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Quick-search input — shortcut to /search with pre-filled query */}
