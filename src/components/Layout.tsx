@@ -490,6 +490,24 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             </div>
 
 
+            {/* XP Points Capsule */}
+            {!isAdmin && (
+              <motion.div
+                whileHover={{ y: -2, scale: 1.02 }}
+                className="flex items-center gap-3 px-4.5 py-2 bg-accent/15 border border-accent/25 rounded-2xl shadow-sm hover:bg-accent/25 transition-all cursor-default"
+              >
+                <div className="w-8 h-8 rounded-xl bg-accent flex items-center justify-center text-primary shadow-lg shadow-accent/20">
+                  <Award className="w-4 h-4 font-bold" />
+                </div>
+                <div>
+                  <div className="text-[8px] font-black text-accent/70 uppercase tracking-wider">{t('experiencePoints')}</div>
+                  <div className="text-sm font-black text-accent leading-none mt-0.5">
+                    {user.points || 450} <span className="text-[9px] font-bold text-white/60">XP</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
             {/* Decorative brand mark */}
             <div className="hidden lg:block relative w-14 h-14 shrink-0">
               <div className="absolute inset-0 bg-white/5 rounded-2xl rotate-6 border border-white/10" />
