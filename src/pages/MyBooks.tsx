@@ -2,13 +2,13 @@ import React, { useState, useMemo } from 'react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { 
-  Award, BookOpen, Clock, ChevronLeft, MapPin, Calendar, Heart, Star, 
-  Map as MapIcon, ArrowDown, ArrowUp, Zap, Compass,
-  Search, TrendingUp, BarChart3, PieChart, Activity, User as UserIcon,
+  Award, BookOpen, Clock, ChevronLeft, MapPin, Calendar, Heart,
+  Map as MapIcon, ArrowDown, ArrowUp, Zap,
+  TrendingUp, BarChart3, PieChart, Activity, User as UserIcon,
   Navigation
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { cn, getUserLevel, getEarnedBadges } from '../lib/utils';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, 
@@ -24,20 +24,8 @@ interface MyBooksProps {
 export function MyBooks({ user }: MyBooksProps) {
   const navigate = useNavigate();
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-  const [hoveredBadge, setHoveredBadge] = useState<string | null>(null);
   const [activeStatTab, setActiveStatTab] = useState<'weekly' | 'categories'>('weekly');
   const { t, language, dir } = useLanguage();
-
-  React.useEffect(() => {
-    if (window.location.hash === '#royal-badges-cabinet' || window.location.search.includes('tab=badges')) {
-      const element = document.getElementById('royal-badges-cabinet');
-      if (element) {
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: 'smooth' });
-        }, 300);
-      }
-    }
-  }, []);
 
   const dayMap: Record<string, string> = {
     'السبت': t('saturday'),
@@ -459,136 +447,6 @@ export function MyBooks({ user }: MyBooksProps) {
         )}
       </section>
 
-      {/* Luxury Badges Cabinet Section */}
-      <section id="royal-badges-cabinet" className="glass-panel p-8 md:p-16 bg-white dark:bg-slate-900 shadow-[0_50px_100px_rgba(0,0,0,0.08)] dark:shadow-none relative overflow-hidden rounded-[4rem] border-white dark:border-white/5">
-         <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none" style={{ backgroundImage: 'radial-gradient(var(--grid-color) 2px, transparent 0)', backgroundSize: '40px 40px' }}></div>
-         
-         <div className="flex flex-col lg:flex-row items-center justify-between mb-20 gap-10 relative z-10">
-           <div className={cn("space-y-2 text-center", dir === 'rtl' ? 'lg:text-right' : 'lg:text-left')}>
-              <h3 className="text-4xl font-black text-primary dark:text-white tracking-tight leading-tight">{t('royalBadgesCabinet')}</h3>
-              <p className="text-sm font-bold text-slate-400 dark:text-slate-500">{t('achievementRecord')}</p>
-           </div>
-           <div className="flex flex-col sm:flex-row items-center gap-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-[2rem] border border-slate-100 dark:border-white/5 shadow-inner">
-              <div className={cn("flex", dir === 'rtl' ? '-space-x-4 space-x-reverse' : '-space-x-4')}>
-                 {[...Array(4)].map((_, i) => (
-                   <div key={i} className="w-12 h-12 rounded-full border-4 border-white dark:border-slate-700 bg-slate-200 dark:bg-slate-600 shadow-sm flex items-center justify-center overflow-hidden grayscale hover:grayscale-0 transition-all cursor-pointer">
-                      <img src={`https://i.pravatar.cc/150?u=${i + 10}`} alt="" />
-                   </div>
-                 ))}
-              </div>
-              <div className={cn("text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest", dir === 'rtl' ? 'pr-4' : 'pl-4')}>
-                {user.totalReadCount > 0 ? t('topReadersPercent', { percent: 100 - user.totalReadCount }) : t('startReadingToCompete')}
-              </div>
-           </div>
-         </div>
-
-         <motion.div 
-           initial="hidden"
-           whileInView="visible"
-           viewport={{ once: true }}
-           variants={{
-             visible: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
-           }}
-           className="grid grid-cols-1 sm:grid-cols-3 gap-12 lg:gap-16 relative z-10"
-         >
-            {[
-              { id: 'باحث', icon: Search, color: 'bg-blue-500' },
-              { id: 'متميز', icon: Star, color: 'bg-yellow-500' },
-              { id: 'مستكشف', icon: Compass, color: 'bg-indigo-500' }
-            ].map((badge) => {
-               const isEarned = earnedBadges.includes(badge.id);
-               const translation = badgeTranslationMap[badge.id];
-               return (
-                 <motion.div 
-                   key={badge.id}
-                   variants={{
-                     hidden: { opacity: 0, scale: 0.8, y: 20 },
-                     visible: { opacity: 1, scale: 1, y: 0 }
-                   }}
-                   className="flex flex-col items-center gap-8 group"
-                 >
-                    <div className="relative">
-                      {/* Floating Tooltip */}
-                      <AnimatePresence>
-                        {isEarned && hoveredBadge === badge.id && (
-                          <motion.div 
-                            initial={{ opacity: 0, y: 15, scale: 0.85, x: '-50%' }}
-                            animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
-                            exit={{ opacity: 0, y: 15, scale: 0.85, x: '-50%' }}
-                            className={cn(
-                               "absolute -top-24 left-1/2 px-6 py-4 bg-primary dark:bg-slate-800 text-white rounded-[1.8rem] shadow-2xl z-[100] whitespace-nowrap text-center border border-white/10 ring-8 ring-primary/5 dark:ring-white/5",
-                            )}
-                          >
-                             <div className="text-[11px] font-black uppercase tracking-[0.2em] mb-1.5">{translation?.title}</div>
-                             <div className="text-[10px] font-bold opacity-60 max-w-[200px] whitespace-normal leading-relaxed">{translation?.desc}</div>
-                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-primary dark:bg-slate-800 rotate-45"></div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      <motion.div 
-                        onHoverStart={() => isEarned && setHoveredBadge(badge.id)}
-                        onHoverEnd={() => setHoveredBadge(null)}
-                        whileHover={isEarned ? { 
-                          scale: 1.15, 
-                          rotate: 5,
-                          y: -15,
-                          transition: { type: "spring", stiffness: 400, damping: 10 }
-                        } : {}}
-                        className={cn(
-                          "w-32 h-32 rounded-[3.5rem] flex items-center justify-center transition-all relative overflow-hidden p-8 shadow-[0_30px_60px_rgba(0,0,0,0.1)]",
-                          isEarned 
-                            ? "bg-white dark:bg-slate-800 border-2 border-accent text-accent shadow-accent/20" 
-                            : "bg-slate-100 dark:bg-slate-800/50 border-2 border-slate-200 dark:border-white/5 text-slate-300 dark:text-slate-600 grayscale"
-                        )}
-                      >
-                         {isEarned && (
-                           <>
-                              <motion.div 
-                                 animate={{ rotate: 360 }}
-                                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                                 className="absolute inset-0 bg-[conic-gradient(from_0deg,_transparent_0%,_#D9B310_50%,_transparent_100%)] opacity-20 blur-2xl"
-                              />
-                              <div className="absolute inset-1.5 bg-white dark:bg-slate-800 rounded-[3.2rem] z-0 shadow-inner"></div>
-                           </>
-                         )}
-
-                         <badge.icon className={cn("w-14 h-14 relative z-10", isEarned && "drop-shadow-xl animate-pulse [animation-duration:3s]")} />
-                         
-                         {isEarned && (
-                           <motion.div 
-                             animate={{ left: ['-100%', '200%'] }}
-                             transition={{ duration: 4, repeat: Infinity, repeatDelay: 2 }}
-                             className="absolute top-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/50 dark:via-white/5 to-transparent skew-x-12 z-20"
-                           />
-                         )}
-                      </motion.div>
-                      
-                      {isEarned && (
-                        <motion.div 
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: 'spring', delay: 0.5 }}
-                          className={cn("absolute -bottom-2 w-10 h-10 bg-emerald-500 rounded-full border-4 border-white dark:border-slate-900 flex items-center justify-center shadow-lg z-30", dir === 'rtl' ? '-right-2' : '-left-2')}
-                        >
-                           <Zap className="w-5 h-5 text-white fill-white" />
-                        </motion.div>
-                      )}
-                    </div>
-                    
-                    <div className="text-center px-2">
-                      <span className={cn(
-                        "text-xs font-black transition-colors uppercase tracking-[0.2em] leading-relaxed",
-                        isEarned ? "text-primary dark:text-white" : "text-slate-300 dark:text-slate-600 opacity-60"
-                      )}>
-                        {translation?.title || badge.id}
-                      </span>
-                    </div>
-                 </motion.div>
-               );
-            })}
-         </motion.div>
-      </section>
     </div>
   );
 }
