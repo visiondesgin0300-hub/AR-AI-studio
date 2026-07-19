@@ -364,13 +364,13 @@ export function ARShowcase() {
                     </div>
                   </div>
 
-                  {/* Go to shelf */}
+                  {/* Locate on map */}
                   <button
-                    onClick={() => navigate('/map', { state: { shelfId: selectedBook.shelf, openAR: true } })}
+                    onClick={() => navigate('/map', { state: { shelfId: selectedBook.shelf } })}
                     className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-accent/25 hover:brightness-110 active:scale-95 transition-all"
                   >
                     <MapPin className="w-4 h-4" />
-                    {language === 'ar' ? 'الذهاب إلى الرف' : 'Go to Shelf'}
+                    {language === 'ar' ? 'حدد موقعه على الرف' : 'Locate it on the shelf'}
                   </button>
                 </motion.div>
               ) : (
