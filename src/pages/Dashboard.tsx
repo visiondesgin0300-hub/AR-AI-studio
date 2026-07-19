@@ -142,6 +142,20 @@ export function Dashboard({ user }: DashboardProps) {
         </div>
       </div>
 
+      {/* ── Cognitive Badges ── */}
+      <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900 space-y-8">
+        <div className="text-center space-y-2 max-w-xl mx-auto">
+          <span className="inline-block px-4 py-1.5 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
+            {t('earnedBadgesEyebrow')}
+          </span>
+          <h4 className="text-xl font-black text-primary dark:text-white tracking-tight">
+            {language === 'ar' ? 'الأوسمة المعرفية' : 'Cognitive Badges'}
+          </h4>
+          <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('informationCognitiveBadgesChestDesc')}</p>
+        </div>
+        <BadgesCabinet user={user} />
+      </section>
+
       {recommendations.length > 0 && (
         <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
           <h4 className="text-sm font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
@@ -215,16 +229,6 @@ export function Dashboard({ user }: DashboardProps) {
           </ResponsiveContainer>
         </div>
 
-        <div className="space-y-6">
-          <div className="text-center space-y-2 max-w-xl mx-auto">
-            <span className="inline-block px-4 py-1.5 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
-              {t('earnedBadgesEyebrow')}
-            </span>
-            <h4 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('informationCognitiveBadgesChest')}</h4>
-            <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('informationCognitiveBadgesChestDesc')}</p>
-          </div>
-          <BadgesCabinet user={user} />
-        </div>
       </section>
 
       {/* Categories Explorer */}
