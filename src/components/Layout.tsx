@@ -57,13 +57,11 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
     ? [
         { icon: ShieldCheck, label: t('admin'), path: '/admin' },
         { icon: Search, label: t('smartSearchCard'), path: '/search' },
-        { icon: Map, label: t('knowledgeCampusMap'), path: '/map' },
         { icon: Compass, label: t('libraryFacilities'), path: '/facilities' },
       ]
     : [
         { icon: Home, label: t('dashboard'), path: '/' },
         { icon: Search, label: t('smartSearchCard'), path: '/search' },
-        { icon: Map, label: t('knowledgeCampusMap'), path: '/map' },
         { icon: Compass, label: t('libraryFacilities'), path: '/facilities' },
       ];
 
