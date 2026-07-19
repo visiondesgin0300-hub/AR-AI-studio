@@ -2,11 +2,10 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   Users, BookOpen, Activity, PlusCircle, Download, Trash2, Edit, X,
   BarChart3, ListFilter, AlertCircle, Bell, TrendingUp, Search,
-  Settings, Clock, ShieldCheck, QrCode, Building2, MapPin,
+  Settings, Clock, QrCode, Building2, MapPin,
   Printer, Monitor, VolumeX, User as UserIcon,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { ShelfAuditPanel } from '../components/ShelfAuditPanel';
 import { BookCover } from '../components/BookCover';
 import { MOCK_BOOKS, MOCK_USERS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
@@ -27,7 +26,7 @@ interface Facility {
   iconName: string;
 }
 
-type AdminTab = 'users' | 'books' | 'facilities' | 'qr' | 'audit' | 'stats' | 'logs' | 'feedback';
+type AdminTab = 'users' | 'books' | 'facilities' | 'qr' | 'stats' | 'logs' | 'feedback';
 
 const SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
 
@@ -209,7 +208,6 @@ export function AdminDashboard() {
     { id: 'books', label: t('libraryTab'), icon: BookOpen },
     { id: 'facilities', label: ar ? 'المرافق' : 'Facilities', icon: Building2 },
     { id: 'qr', label: ar ? 'رموز QR' : 'QR Codes', icon: QrCode },
-    { id: 'audit', label: t('shelfAuditTab'), icon: ShieldCheck },
     { id: 'stats', label: t('statsTab'), icon: BarChart3 },
     { id: 'logs', label: t('logsTab'), icon: Activity },
     { id: 'feedback', label: ar ? 'آراء المستخدمين' : 'Feedback', icon: TrendingUp },
@@ -575,12 +573,6 @@ export function AdminDashboard() {
               </motion.div>
             )}
 
-            {/* ── AUDIT ── */}
-            {activeTab === 'audit' && (
-              <motion.div key="audit" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-                <ShelfAuditPanel />
-              </motion.div>
-            )}
 
             {/* ── LOGS ── */}
             {activeTab === 'logs' && (
