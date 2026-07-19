@@ -12,7 +12,7 @@ import { MOCK_BOOKS, MOCK_USERS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { User, Book } from '../types';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, LabelList, PieChart, Pie } from 'recharts';
 import { useLanguage } from '../hooks/useLanguage';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,7 +27,7 @@ interface Facility {
   iconName: string;
 }
 
-type AdminTab = 'users' | 'books' | 'facilities' | 'qr' | 'audit' | 'stats' | 'logs';
+type AdminTab = 'users' | 'books' | 'facilities' | 'qr' | 'audit' | 'stats' | 'logs' | 'feedback';
 
 const SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
 
@@ -102,6 +102,35 @@ export function AdminDashboard() {
     { id: 2, user: ar ? 'سارة أحمد' : 'Sara Ahmed', action: t('updateProfileAction'), target: t('settingsTarget'), time: ar ? 'منذ ٣٠ دقيقة' : '30 mins ago' },
     { id: 3, user: ar ? 'نظام الملاحة' : 'Navigation System', action: t('updatePathsAction'), target: t('engineeringDeptTarget'), time: ar ? 'منذ ساعة' : '1 hour ago' },
     { id: 4, user: ar ? 'محمد علي' : 'Mohamed Ali', action: t('returnBookAction'), target: t('software'), time: ar ? 'منذ ساعتين' : '2 hours ago' },
+  ];
+
+  const FACILITY_USAGE = useMemo(() => [
+    { name: ar ? 'غرف الدراسة' : 'Study Rooms', value: 75 },
+    { name: ar ? 'منطقة الصمت' : 'Silent Zone', value: 90 },
+    { name: ar ? 'مختبر الحاسوب' : 'Computer Lab', value: 45 },
+    { name: ar ? 'الطباعة' : 'Printing', value: 60 },
+  ], [ar]);
+
+  const MOOD_DATA = [
+    { name: '😍', value: 32, label: ar ? 'رائع' : 'Amazing', fill: '#f43f5e' },
+    { name: '🤩', value: 28, label: ar ? 'ممتاز' : 'Excellent', fill: '#f97316' },
+    { name: '😊', value: 25, label: ar ? 'جيد' : 'Good', fill: '#10b981' },
+    { name: '😐', value: 10, label: ar ? 'مقبول' : 'Okay', fill: '#64748b' },
+    { name: '😕', value: 5, label: ar ? 'يحتاج تحسين' : 'Needs work', fill: '#004C6D' },
+  ];
+
+  const feedbackEntries = ar ? [
+    { id: 1, mood: '😍', moodLabel: 'رائع', moodColor: 'bg-rose-100 dark:bg-rose-950/40 text-rose-700', categories: ['تجربة AR'], text: 'التنقل بواسطة AR رائع جداً، أشعر وكأنني في مكتبة المستقبل!', time: 'منذ ١٠ دقائق', user: 'فاطمة المعمري' },
+    { id: 2, mood: '😊', moodLabel: 'جيد', moodColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700', categories: ['البحث', 'الواجهة'], text: 'البحث يعمل بشكل جيد لكن يمكن تحسين سرعته.', time: 'منذ ساعة', user: 'محمد علي' },
+    { id: 3, mood: '🤩', moodLabel: 'ممتاز', moodColor: 'bg-orange-100 dark:bg-orange-950/40 text-orange-700', categories: ['الخريطة'], text: 'الخريطة ثنائية الأبعاد مفيدة جداً في إيجاد الكتب.', time: 'منذ ٣ ساعات', user: 'سارة أحمد' },
+    { id: 4, mood: '😐', moodLabel: 'مقبول', moodColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600', categories: ['اقتراح'], text: 'أقترح إضافة المزيد من تصنيفات الكتب.', time: 'منذ يوم', user: 'عمر خالد' },
+    { id: 5, mood: '😕', moodLabel: 'يحتاج تحسين', moodColor: 'bg-primary/10 text-primary', categories: ['البحث'], text: 'أحياناً تظهر نتائج بحث غير دقيقة.', time: 'منذ يومين', user: 'نورة سالم' },
+  ] : [
+    { id: 1, mood: '😍', moodLabel: 'Amazing', moodColor: 'bg-rose-100 dark:bg-rose-950/40 text-rose-700', categories: ['AR Experience'], text: 'The AR navigation is incredible, feels like the library of the future!', time: '10 mins ago', user: 'Fatima Al-Maamari' },
+    { id: 2, mood: '😊', moodLabel: 'Good', moodColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700', categories: ['Search', 'UI/Design'], text: 'Search works well but could be faster.', time: '1 hour ago', user: 'Mohamed Ali' },
+    { id: 3, mood: '🤩', moodLabel: 'Excellent', moodColor: 'bg-orange-100 dark:bg-orange-950/40 text-orange-700', categories: ['Map'], text: 'The 2D map is super helpful for finding books.', time: '3 hours ago', user: 'Sara Ahmed' },
+    { id: 4, mood: '😐', moodLabel: 'Okay', moodColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600', categories: ['Suggestion'], text: 'Would love more book categories to choose from.', time: '1 day ago', user: 'Omar Khalid' },
+    { id: 5, mood: '😕', moodLabel: 'Needs work', moodColor: 'bg-primary/10 text-primary', categories: ['Search'], text: 'Sometimes search returns irrelevant results.', time: '2 days ago', user: 'Noura Salem' },
   ];
 
   const openModal = (type: 'user' | 'book' | 'facility', data: any = {}) => {
@@ -183,6 +212,7 @@ export function AdminDashboard() {
     { id: 'audit', label: t('shelfAuditTab'), icon: ShieldCheck },
     { id: 'stats', label: t('statsTab'), icon: BarChart3 },
     { id: 'logs', label: t('logsTab'), icon: Activity },
+    { id: 'feedback', label: ar ? 'آراء المستخدمين' : 'Feedback', icon: TrendingUp },
   ];
 
   const statusBadge = (status: string) => {
@@ -601,16 +631,85 @@ export function AdminDashboard() {
                   <h4 className={cn('text-sm font-black text-primary dark:text-white uppercase tracking-tight mb-8', dir === 'rtl' ? 'text-right' : 'text-left')}>{t('knowledgeCampusMap')}</h4>
                   <div className="h-48 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={CATEGORY_DATA} layout="vertical" margin={{ left: -30 }}>
-                        <XAxis type="number" hide />
+                      <BarChart data={CATEGORY_DATA} layout="vertical" margin={{ left: -30, right: 40 }}>
+                        <XAxis type="number" hide domain={[0, 100]} />
                         <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900, fill: '#64748b' }} width={120} />
-                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none' }} />
+                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none' }} formatter={(v: number) => [`${v}%`, '']} />
                         <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={20}>
                           {CATEGORY_DATA.map((_, i) => <Cell key={i} fill={['#004C6D', '#10b981', '#f59e0b', '#94a3b8'][i % 4]} />)}
+                          <LabelList dataKey="value" position="right" formatter={(v: number) => `${v}%`} style={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} />
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
+                </div>
+                <div className="official-card p-6 md:p-10 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5">
+                  <h4 className={cn('text-sm font-black text-primary dark:text-white uppercase tracking-tight mb-8', dir === 'rtl' ? 'text-right' : 'text-left')}>{ar ? 'نسبة استخدام المرافق' : 'Facility Usage Rate'}</h4>
+                  <div className="space-y-4">
+                    {FACILITY_USAGE.map((item, i) => (
+                      <div key={i} className={cn('flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                        <div className="text-[11px] font-black text-slate-500 dark:text-slate-400 w-28 shrink-0 truncate">{item.name}</div>
+                        <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${item.value}%` }}
+                            transition={{ duration: 1.2, delay: i * 0.15, ease: 'easeOut' }}
+                            className="h-full rounded-full"
+                            style={{ backgroundColor: ['#004C6D', '#10b981', '#f59e0b', '#94a3b8'][i % 4] }}
+                          />
+                        </div>
+                        <div className="text-[11px] font-black text-primary dark:text-white w-10 shrink-0 text-right">{item.value}%</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── FEEDBACK RESULTS ── */}
+            {activeTab === 'feedback' && (
+              <motion.div key="feedback" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
+                <div className={cn('flex items-center justify-between', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                  <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'آراء المستخدمين المُستلمة' : 'Received User Feedback'}</h3>
+                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{feedbackEntries.length} {ar ? 'رأي' : 'entries'}</div>
+                </div>
+
+                {/* Mood summary */}
+                <div className="grid grid-cols-5 gap-3">
+                  {MOOD_DATA.map((m, i) => (
+                    <div key={i} className="official-card p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-lg text-center">
+                      <span className="text-2xl">{m.name}</span>
+                      <div className="text-lg font-black text-primary dark:text-white">{m.value}%</div>
+                      <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-tight">{m.label}</div>
+                      <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${m.value}%` }} transition={{ duration: 1, delay: i * 0.1 }} className="h-full rounded-full" style={{ backgroundColor: m.fill }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Feedback entries */}
+                <div className="space-y-4">
+                  {feedbackEntries.map(entry => (
+                    <div key={entry.id} className={cn('official-card p-6 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-xl shadow-black/5 space-y-3', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                      <div className={cn('flex items-center justify-between gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                        <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                          <span className="text-2xl">{entry.mood}</span>
+                          <div>
+                            <div className="text-xs font-black text-primary dark:text-white">{entry.user}</div>
+                            <span className={cn('text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg', entry.moodColor)}>{entry.moodLabel}</span>
+                          </div>
+                        </div>
+                        <div className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-tighter shrink-0">{entry.time}</div>
+                      </div>
+                      {entry.text && <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{entry.text}</p>}
+                      <div className={cn('flex flex-wrap gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                        {entry.categories.map((cat, ci) => (
+                          <span key={ci} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10">{cat}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </motion.div>
             )}
@@ -647,32 +746,6 @@ export function AdminDashboard() {
             ))}
           </div>
 
-          {/* System status */}
-          <div className={cn('official-card p-8 bg-primary dark:bg-slate-950 text-white relative overflow-hidden shadow-[0_40px_80px_rgba(15,67,129,0.3)] dark:shadow-none border-0', dir === 'rtl' ? 'text-right' : 'text-left')}>
-            <div className="absolute top-0 right-0 w-48 h-48 bg-white/5 rounded-full blur-3xl -mt-24 -mr-24"></div>
-            <div className="relative z-10 space-y-6">
-              <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                <div className="relative shrink-0">
-                  <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping"></div>
-                  <div className="absolute inset-0 w-2.5 h-2.5 bg-emerald-400 rounded-full"></div>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white/40 whitespace-nowrap">{t('connectionReliability')}</span>
-              </div>
-              <div className="space-y-1">
-                <h4 className="text-lg font-black leading-tight">{t('operationalStatusStable')}</h4>
-                <p className="text-[11px] text-white/50 font-bold">{t('allSystemsStable')}</p>
-              </div>
-              <div className="pt-4 border-t border-white/10 space-y-3">
-                <div className={cn('flex justify-between items-center text-[10px] font-black uppercase tracking-widest', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                  <span>{t('computingOccupancy')}</span>
-                  <span className="text-accent">٤٢٪ {t('enabledStatus')}</span>
-                </div>
-                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: '42%' }} transition={{ duration: 2, ease: 'easeOut' }} className="h-full bg-accent rounded-full" />
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
