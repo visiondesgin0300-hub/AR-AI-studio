@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Map as MapIcon, ArrowLeft, ArrowRight } from 'lucide-react';
+import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Map as MapIcon } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
@@ -178,47 +178,6 @@ export function FacilitiesMap() {
           </p>
         </div>
 
-        <div className={cn('flex flex-col sm:flex-row items-center gap-4', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-          {/* View toggle */}
-          <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5">
-            <button
-              onClick={() => setActiveView('map')}
-              className={cn(
-                'px-6 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2',
-                activeView === 'map'
-                  ? 'bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5'
-                  : 'text-slate-400 hover:text-primary dark:hover:text-slate-200'
-              )}
-            >
-              <MapIcon className="w-4 h-4" />
-              {language === 'ar' ? 'الخريطة' : 'Map'}
-            </button>
-            <button
-              onClick={() => setActiveView('ar')}
-              className={cn(
-                'px-6 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-2',
-                activeView === 'ar'
-                  ? 'bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5'
-                  : 'text-slate-400 hover:text-primary dark:hover:text-slate-200'
-              )}
-            >
-              <Camera className="w-4 h-4" />
-              {language === 'ar' ? 'AR توجيه' : 'AR Guide'}
-            </button>
-          </div>
-
-          {/* Back to book map */}
-          <button
-            onClick={() => navigate('/map')}
-            className={cn(
-              'flex items-center gap-2 px-5 py-3 rounded-2xl border border-slate-200 dark:border-white/10 text-xs font-black text-slate-500 dark:text-slate-400 hover:text-primary dark:hover:text-white hover:border-primary/30 dark:hover:border-accent/30 transition-all',
-              dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'
-            )}
-          >
-            {dir === 'rtl' ? <ArrowRight className="w-4 h-4" /> : <ArrowLeft className="w-4 h-4" />}
-            <span>{language === 'ar' ? 'خريطة الكتب' : 'Book Map'}</span>
-          </button>
-        </div>
       </div>
 
       {/* Main content */}
@@ -671,6 +630,14 @@ export function FacilitiesMap() {
                   >
                     <Camera className="w-4 h-4" />
                     <span>{language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveView('map')}
+                    className="w-full py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-primary dark:text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:border-accent/60 transition-all active:scale-95"
+                  >
+                    <MapIcon className="w-4 h-4" />
+                    <span>{language === 'ar' ? 'الخريطة' : 'Map'}</span>
                   </button>
 
                   <button
