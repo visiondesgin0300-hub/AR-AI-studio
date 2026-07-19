@@ -215,17 +215,6 @@ export function LibraryMap() {
           <p className="text-slate-400 dark:text-slate-500 font-bold mt-2 leading-relaxed">{t('navAccuratelyDesc')}</p>
         </div>
 
-        <div className={cn("flex items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-          <div className="flex bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-white/5">
-             <button
-               onClick={() => setActiveTab('map')}
-               className="px-8 py-3 rounded-xl text-xs font-black transition-all flex items-center gap-3 bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-lg shadow-black/5"
-             >
-               <MapPin className="w-4 h-4" />
-               {t('digitalView')}
-             </button>
-          </div>
-        </div>
       </div>
 
       <div className={cn("flex flex-col xl:flex-row gap-10 flex-1 min-h-0", dir === 'rtl' ? 'xl:flex-row-reverse' : 'xl:flex-row')}>
@@ -612,6 +601,10 @@ export function LibraryMap() {
                 <div className="space-y-4 pt-4">
                   <button onClick={() => { setShowPath(true); setActiveTab('map'); }} className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
                     <span>{t('viewReferenceData')}</span>
+                  </button>
+                  <button onClick={() => setActiveTab('map')} className="w-full py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-primary dark:text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:border-accent/60 transition-all active:scale-95">
+                    <MapPin className="w-4 h-4" />
+                    <span>{t('digitalView')}</span>
                   </button>
                   <button onClick={() => setActiveTab('sections')} className="w-full py-4 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
                     <Camera className="w-4 h-4" />
