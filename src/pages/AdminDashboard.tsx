@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Users, BookOpen, Activity, PlusCircle, Download, Trash2, Edit, X, BarChart3, ListFilter, AlertCircle, Bell, TrendingUp, Search, User as UserIcon, Settings, Clock, ShieldCheck } from 'lucide-react';
+import { Users, BookOpen, Activity, PlusCircle, Download, Trash2, Edit, X, BarChart3, ListFilter, AlertCircle, Bell, TrendingUp, Search, User as UserIcon, Settings, Clock, ShieldCheck, QrCode } from 'lucide-react';
 import { ShelfAuditPanel } from '../components/ShelfAuditPanel';
 import { BookCover } from '../components/BookCover';
 import { MOCK_BOOKS, MOCK_USERS } from '../data/mockData';
@@ -8,9 +8,11 @@ import { cn } from '../lib/utils';
 import { User, Book } from '../types';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell } from 'recharts';
 import { useLanguage } from '../hooks/useLanguage';
+import { useNavigate } from 'react-router-dom';
 
 export function AdminDashboard() {
   const { t, dir, language } = useLanguage();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'users' | 'books' | 'audit' | 'logs' | 'stats'>('users');
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [books, setBooks] = useState<Book[]>(MOCK_BOOKS);
@@ -132,6 +134,13 @@ export function AdminDashboard() {
         </div>
         
         <div className={cn("flex items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+           <button
+             onClick={() => navigate('/qr-print')}
+             className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm shadow-black/5 whitespace-nowrap"
+           >
+              <QrCode className="w-4 h-4 text-accent" />
+              {language === 'ar' ? 'طباعة QR الأرفف' : 'Print Shelf QR'}
+           </button>
            <button className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm shadow-black/5 whitespace-nowrap">
               <Download className="w-4 h-4" />
               {t('exportReports')}

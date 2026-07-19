@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle, QrCode, X } from 'lucide-react';
+import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Sun, Moon, Languages, Camera, Search, HelpCircle, PlayCircle, MessageCircle, QrCode, X, Printer } from 'lucide-react';
 import { User } from '../types';
 import { cn, getUserLevel } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -192,10 +192,11 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               className="flex flex-col gap-2 mb-1"
             >
               {[
-                { icon: QrCode, labelAr: 'مسح رمز QR', labelEn: 'Scan Shelf QR', path: '/scan', accent: true },
-                { icon: Map, labelAr: 'خريطة المراجع AR', labelEn: 'Books Map AR', path: '/map', accent: false },
-                { icon: Compass, labelAr: 'مرافق AR', labelEn: 'Facilities AR', path: '/facilities', accent: false },
-              ].map((item, i) => {
+                { icon: QrCode, labelAr: 'مسح رمز QR', labelEn: 'Scan Shelf QR', path: '/scan', accent: true, adminOnly: false },
+                { icon: Map, labelAr: 'خريطة المراجع AR', labelEn: 'Books Map AR', path: '/map', accent: false, adminOnly: false },
+                { icon: Compass, labelAr: 'مرافق AR', labelEn: 'Facilities AR', path: '/facilities', accent: false, adminOnly: false },
+                { icon: Printer, labelAr: 'طباعة QR الأرفف', labelEn: 'Print Shelf QR', path: '/qr-print', accent: false, adminOnly: true },
+              ].filter(item => !item.adminOnly || isAdmin).map((item, i) => {
                 const Icon = item.icon;
                 return (
                   <motion.button
