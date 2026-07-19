@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layers } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -78,7 +78,7 @@ export function Dashboard({ user }: DashboardProps) {
           <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('augmentedLibraryMapDesc')}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <button
             onClick={() => navigate('/search')}
             className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
@@ -107,6 +107,35 @@ export function Dashboard({ user }: DashboardProps) {
             <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('libraryFacilitiesCardDesc')}</p>
             <span className={cn("relative text-[10px] font-black uppercase tracking-widest flex items-center gap-1 text-accent", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
               {t('viewFacilitiesLabel')}
+              <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
+            </span>
+          </button>
+
+          {/* AR Book Discovery showcase card */}
+          <button
+            onClick={() => navigate('/ar-showcase')}
+            className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-[#01354C]/8 dark:from-accent/5 to-transparent pointer-events-none" />
+            {/* Decorative bookshelf mini-preview */}
+            <div className="relative w-14 h-14 bg-[#01354C] dark:bg-accent/10 rounded-2xl flex items-center justify-center text-accent overflow-hidden">
+              <div className="absolute inset-0 flex items-end gap-0.5 px-1 pb-1">
+                {['#7B2D8B','#2D5A27','#8B4513','#1B3A6B','#8B6914'].map((c, i) => (
+                  <div key={i} className="flex-1 rounded-t-sm" style={{ height: `${55 + i * 6}%`, background: c }} />
+                ))}
+              </div>
+              <Layers className="w-5 h-5 relative z-10 text-accent drop-shadow" />
+            </div>
+            <h3 className="relative text-sm font-black text-primary dark:text-white tracking-tight">
+              {language === 'ar' ? 'اكتشاف الكتب AR' : 'AR Book Discovery'}
+            </h3>
+            <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">
+              {language === 'ar'
+                ? 'محاكاة تفاعلية لمسح الكتب ومعرفة تفاصيلها فورياً'
+                : 'Interactive AR simulation — tap spines to scan books'}
+            </p>
+            <span className={cn("relative text-[10px] font-black text-accent uppercase tracking-widest flex items-center gap-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+              {language === 'ar' ? 'جرّب الآن' : 'Try Now'}
               <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
             </span>
           </button>
