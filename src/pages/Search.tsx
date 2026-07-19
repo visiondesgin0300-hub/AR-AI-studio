@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Search as SearchIcon, Sparkles, BookOpen, MapPin, Tag, RefreshCw, Compass, HelpCircle } from 'lucide-react';
+import { Search as SearchIcon, MapPin, Tag, Compass, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -15,9 +15,6 @@ export function Search() {
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
-  const [aiInsights, setAiInsights] = useState<string>('');
-  const [isGeneratingInsights, setIsGeneratingInsights] = useState(false);
-  const [insightsError, setInsightsError] = useState('');
 
   // Settle categories
   const categories = useMemo(() => {
@@ -57,43 +54,6 @@ export function Search() {
     { text: language === 'ar' ? 'تصميم المنشآت الهندسية' : 'Engineering design', q: 'هندسة' },
     { text: language === 'ar' ? 'البحث عن الرف A-1' : 'Search Shelf A-1', q: 'A-1' }
   ];
-
-  // Request AI search insights securely from the backend
-  const handleGenerateInsights = async () => {
-    if (filteredBooks.length === 0) {
-      setAiInsights(language === 'ar' ? 'يرجى البحث والحصول على نتائج أولاً ليتمكن المساعد الذكي من تحليلها.' : 'Please search and obtain results first so that the AI assistant can analyze them.');
-      return;
-    }
-
-    setIsGeneratingInsights(true);
-    setInsightsError('');
-    setAiInsights('');
-
-    try {
-      const response = await fetch('/api/search-insights', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          query: query || (selectedCategory !== 'all' ? selectedCategory : 'مجموعة عامة من الكتب'),
-          results: filteredBooks.slice(0, 3)
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error('Server response error');
-      }
-
-      const data = await response.json();
-      setAiInsights(data.insights || '');
-    } catch (err) {
-      console.error(err);
-      setInsightsError(language === 'ar' ? 'عذراً، لم نتمكن من الاتصال بالخادم الذكي حالياً. يرجى تجربة تشغيل الملقم بالكامل.' : 'Sorry, could not communicate with the smart server container.');
-    } finally {
-      setIsGeneratingInsights(false);
-    }
-  };
 
   const handleApplyPrompt = (q: string) => {
     setQuery(q);
@@ -219,88 +179,6 @@ export function Search() {
 
             </div>
           </div>
-
-          {/* Smart Search Insights - only meaningful once there are actual
-              results to analyze, so it sits directly above them instead of
-              a persistent sidebar card with a permanently-disabled button. */}
-          {filteredBooks.length > 0 && (
-            <div className="p-6 bg-gradient-to-l from-[#004C6D] to-[#01354c] dark:from-slate-900 dark:to-slate-950 text-white rounded-3xl shadow-xl shadow-[#004C6D]/15 border border-white/10 relative overflow-hidden">
-              <div className="absolute top-[-40px] right-[-40px] w-48 h-48 rounded-full bg-[#D7C826]/10 blur-xl pointer-events-none" />
-
-              <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-6 justify-between">
-                <div className="space-y-2 flex-1">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full border border-white/15">
-                    <Sparkles className="w-3.5 h-3.5 text-[#D7C826]" />
-                    <span className="text-[10px] font-black uppercase tracking-widest text-[#D7C826]">{language === 'ar' ? 'محلل الفهرس الموحد' : 'Unified Index AI'}</span>
-                  </div>
-                  <h3 className="text-lg font-black tracking-tight">
-                    {language === 'ar' ? 'تحليلات البحث الذكية' : 'Smart Search Insights'}
-                  </h3>
-                  <p className="text-xs text-white/80 leading-relaxed font-semibold max-w-xl">
-                    {language === 'ar'
-                      ? 'بناءً على نتائج تصفيتك الحالية، يستطيع نموذج الذكاء الاصطناعي تركيب أهم 3 كتب وتقديم ملخص يربطها بموضوع بحثك مباشرة.'
-                      : 'Based on current search filters, our AI synthesizer creates a quick academic report drawing pathways across the top matches.'}
-                  </p>
-                </div>
-
-                <button
-                  onClick={handleGenerateInsights}
-                  disabled={isGeneratingInsights}
-                  className="shrink-0 px-8 py-4 bg-[#D7C826] text-[#004C6D] font-black text-xs uppercase tracking-widest rounded-2xl flex items-center justify-center gap-2.5 transition-all hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:pointer-events-none cursor-pointer shadow-lg shadow-black/10"
-                >
-                  {isGeneratingInsights ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin text-primary" />
-                      <span>{t('searching')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 text-[#004C6D]" />
-                      <span>{language === 'ar' ? 'توليد تقرير وربط أكاديمي' : 'Analyze Core Insights'}</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <AnimatePresence>
-                {(aiInsights || isGeneratingInsights || insightsError) && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="relative z-10 mt-6 pt-6 border-t border-white/10 space-y-4"
-                  >
-                    {isGeneratingInsights && (
-                      <div className="space-y-2 text-center py-4 bg-white/5 rounded-2xl border border-white/5">
-                        <div className="w-6 h-6 border-2 border-[#D7C826] border-t-transparent rounded-full animate-spin mx-auto" />
-                        <span className="text-[10px] font-black text-white/60 block animate-pulse uppercase tracking-widest">
-                          {t('analyzingResultsDeeply')}
-                        </span>
-                      </div>
-                    )}
-
-                    {insightsError && (
-                      <div className="p-4 bg-red-950/40 text-red-300 rounded-2xl border border-red-900/50 text-xs font-semibold leading-relaxed">
-                        {insightsError}
-                      </div>
-                    )}
-
-                    {aiInsights && !isGeneratingInsights && (
-                      <div className="p-5 bg-white/5 rounded-2xl border border-white/10 text-xs leading-relaxed space-y-3 shadow-inner text-white">
-                        <div className="flex items-center gap-1.5 font-black text-[#D7C826] border-b border-white/5 pb-2 uppercase tracking-wide text-[10px]">
-                          <BookOpen className="w-4 h-4" />
-                          <span>{t('smartSummaryTopResults')}</span>
-                        </div>
-                        <p className="whitespace-pre-wrap font-medium text-white/90">
-                          {aiInsights}
-                        </p>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )}
 
           {/* Results section */}
           <div className="space-y-4">
