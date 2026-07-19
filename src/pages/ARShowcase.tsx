@@ -128,6 +128,42 @@ export function ARShowcase() {
         </motion.button>
       </div>
 
+      {/* ── Top CTA ── */}
+      <div className="official-card p-8 md:p-12 bg-primary dark:bg-slate-900 text-center space-y-6 overflow-hidden relative">
+        <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-transparent pointer-events-none" />
+        <div className="relative space-y-2">
+          <span className="inline-block px-4 py-1.5 bg-accent/20 text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
+            {language === 'ar' ? 'الخطوة التالية' : 'Next Step'}
+          </span>
+          <h3 className="text-2xl font-black text-white tracking-tight">
+            {language === 'ar' ? 'جاهز للمكتبة الحقيقية؟' : 'Ready for the real library?'}
+          </h3>
+          <p className="text-sm text-white/60 font-bold max-w-md mx-auto leading-relaxed">
+            {language === 'ar'
+              ? 'امسح رفًا حقيقيًا بكاميرتك أو ابحث عن أي كتاب في الفهرس.'
+              : 'Scan a real shelf with your camera or search the full catalog.'}
+          </p>
+        </div>
+        <div className={cn('relative flex flex-col sm:flex-row gap-3 justify-center', dir === 'rtl' ? 'sm:flex-row-reverse' : '')}>
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => navigate('/scan')}
+            className="flex items-center justify-center gap-2.5 px-8 py-4 bg-accent text-primary rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-accent/30 hover:brightness-110 active:scale-95 transition-all"
+          >
+            <QrCode className="w-5 h-5" />
+            {language === 'ar' ? 'امسح رفًا حقيقيًا' : 'Scan a Real Shelf'}
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => navigate('/search')}
+            className="flex items-center justify-center gap-2.5 px-8 py-4 bg-white/10 text-white border border-white/20 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-white/20 active:scale-95 transition-all"
+          >
+            <Compass className="w-5 h-5" />
+            {language === 'ar' ? 'ابحث عن كتاب' : 'Search a Book'}
+          </motion.button>
+        </div>
+      </div>
+
       {/* Main AR view */}
       <div className={cn('flex flex-col xl:flex-row gap-6', dir === 'rtl' ? 'xl:flex-row-reverse' : '')}>
 
@@ -423,41 +459,6 @@ export function ARShowcase() {
         </div>
       </div>
 
-      {/* ── Bottom CTA ── */}
-      <div className="official-card p-8 md:p-12 bg-primary dark:bg-slate-900 text-center space-y-6 overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-transparent to-transparent pointer-events-none" />
-        <div className="relative space-y-2">
-          <span className="inline-block px-4 py-1.5 bg-accent/20 text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
-            {language === 'ar' ? 'الخطوة التالية' : 'Next Step'}
-          </span>
-          <h3 className="text-2xl font-black text-white tracking-tight">
-            {language === 'ar' ? 'جاهز للمكتبة الحقيقية؟' : 'Ready for the real library?'}
-          </h3>
-          <p className="text-sm text-white/60 font-bold max-w-md mx-auto leading-relaxed">
-            {language === 'ar'
-              ? 'امسح رفًا حقيقيًا بكاميرتك أو ابحث عن أي كتاب في الفهرس.'
-              : 'Scan a real shelf with your camera or search the full catalog.'}
-          </p>
-        </div>
-        <div className={cn('relative flex flex-col sm:flex-row gap-3 justify-center', dir === 'rtl' ? 'sm:flex-row-reverse' : '')}>
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            onClick={() => navigate('/scan')}
-            className="flex items-center justify-center gap-2.5 px-8 py-4 bg-accent text-primary rounded-2xl text-sm font-black uppercase tracking-widest shadow-xl shadow-accent/30 hover:brightness-110 active:scale-95 transition-all"
-          >
-            <QrCode className="w-5 h-5" />
-            {language === 'ar' ? 'امسح رفًا حقيقيًا' : 'Scan a Real Shelf'}
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            onClick={() => navigate('/search')}
-            className="flex items-center justify-center gap-2.5 px-8 py-4 bg-white/10 text-white border border-white/20 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-white/20 active:scale-95 transition-all"
-          >
-            <Compass className="w-5 h-5" />
-            {language === 'ar' ? 'ابحث عن كتاب' : 'Search a Book'}
-          </motion.button>
-        </div>
-      </div>
     </div>
   );
 }
