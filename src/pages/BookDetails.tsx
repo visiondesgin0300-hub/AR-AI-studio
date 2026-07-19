@@ -197,6 +197,40 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
           {/* One-tap academic citations (APA/MLA/Chicago/BibTeX) */}
           <CitationBox book={book} />
 
+          {/* Action Bar */}
+          <div className="flex flex-col sm:flex-row gap-4 pt-6">
+            <button
+              onClick={handleBorrow}
+              disabled={!isAvailable}
+              className={cn(
+                "flex-1 py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 transition-all shadow-xl active:scale-95",
+                justBorrowed
+                  ? "bg-green-600 text-white shadow-green-600/30"
+                  : isAvailable
+                  ? "bg-primary dark:bg-accent text-white dark:text-primary hover:bg-primary/95 dark:hover:brightness-110 shadow-primary/30 dark:shadow-accent/20"
+                  : "bg-gray-200 dark:bg-slate-800 text-gray-400 dark:text-slate-500 cursor-not-allowed"
+              )}
+            >
+              <CheckCircle2 className="w-6 h-6" />
+              <span>
+                {justBorrowed
+                  ? t('borrowSuccess')
+                  : isAvailable
+                  ? t('borrowNowAction')
+                  : alreadyBorrowed
+                  ? t('borrowedByYou')
+                  : t('notAvailableNow')}
+              </span>
+            </button>
+            <button
+              onClick={() => navigate('/map', { state: { bookId: book.id } })}
+              className="flex-1 bg-white dark:bg-slate-900 border-2 border-secondary dark:border-secondary text-secondary dark:text-secondary py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-secondary/5 dark:hover:bg-secondary/10 transition-all shadow-lg active:scale-95"
+            >
+              <MapPin className="w-6 h-6" />
+              <span>{t('locate')}</span>
+            </button>
+          </div>
+
         </div>
       </div>
 
