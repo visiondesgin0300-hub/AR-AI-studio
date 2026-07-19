@@ -123,7 +123,7 @@ export function Dashboard({ user }: DashboardProps) {
           </button>
 
           <button
-            onClick={() => navigate('/map', { state: { tab: 'facilities' } })}
+            onClick={() => navigate('/facilities')}
             className="official-card relative overflow-hidden p-8 flex flex-col items-center text-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all"
           >
             <div className="absolute inset-0 bg-gradient-to-br from-secondary/10 to-transparent pointer-events-none" />
