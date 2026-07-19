@@ -91,14 +91,6 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
              </div>
              <span className="text-xl font-black tracking-widest uppercase italic text-primary dark:text-white">{t('appName')}</span>
           </div>
-          <div className={cn("flex items-center gap-2 mt-1", dir === 'rtl' ? 'ml-1' : 'mr-1')}>
-            <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-[0.25em] uppercase leading-none outline-none">
-              {t('appSubtitle')}
-            </div>
-            <span className="px-2 py-0.5 rounded-md bg-accent/15 text-accent text-[8px] font-black uppercase tracking-widest">
-              {t('demoVersionBadge')}
-            </span>
-          </div>
         </div>
 
         {/* Navigation Section */}
