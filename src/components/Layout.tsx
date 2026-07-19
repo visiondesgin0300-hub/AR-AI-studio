@@ -62,6 +62,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
     : [
         { icon: Home, label: t('dashboard'), path: '/' },
         { icon: Search, label: t('smartSearchCard'), path: '/search' },
+        { icon: BookOpen, label: t('readingHistory'), path: '/my-books' },
         { icon: Compass, label: t('libraryFacilities'), path: '/facilities' },
       ];
 
