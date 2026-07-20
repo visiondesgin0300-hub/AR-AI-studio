@@ -56,7 +56,6 @@ export function QRScanner() {
   };
 
   const startScanner = async () => {
-    // Reset state for re-scans
     activeRef.current = true;
     setPhase('loading');
     setDetectedShelf(null);
@@ -64,23 +63,43 @@ export function QRScanner() {
     const el = document.getElementById('qr-reader');
     if (el) el.innerHTML = '';
 
+    // Yield one frame so the browser finishes layout before the library
+    // reads parentElement.clientWidth to size the video element.
+    await new Promise<void>(r => requestAnimationFrame(() => r()));
+
+    if (!activeRef.current) return;
+
     const scanner = new Html5Qrcode('qr-reader');
     scannerRef.current = scanner;
     const cfg = { fps: 10 };
     const onErr = () => {};
 
-    const tryStart = (cam: object | string) =>
-      scanner.start(cam as any, cfg, onScan, onErr);
+    try {
+      // Enumerate cameras with device IDs — more reliable than facingMode on
+      // Android where exact facingMode constraints sometimes return black frames.
+      const cameras = await Html5Qrcode.getCameras().catch(() => []);
 
-    // Try back camera modes in order; last resort falls back to front/default
-    const started = await tryStart({ facingMode: { exact: 'environment' } })
-      .catch(() => tryStart({ facingMode: 'environment' }))
-      .catch(() => tryStart({}))  // browser default — may use any camera
-      .then(() => true)
-      .catch(() => false);
+      let cameraId: string | undefined;
+      if (cameras.length === 1) {
+        cameraId = cameras[0].id;
+      } else if (cameras.length > 1) {
+        const back = cameras.find(c => /back|rear|environment/i.test(c.label))
+          ?? cameras[cameras.length - 1];
+        cameraId = back.id;
+      }
 
-    if (!activeRef.current) return; // component unmounted during async init
-    setPhase(started ? 'scanning' : 'error');
+      if (!activeRef.current) return;
+
+      const start = cameraId
+        ? scanner.start(cameraId, cfg, onScan, onErr)
+        : scanner.start({ facingMode: { exact: 'environment' } }, cfg, onScan, onErr)
+            .catch(() => scanner.start({ facingMode: 'environment' }, cfg, onScan, onErr));
+
+      await start;
+      if (activeRef.current) setPhase('scanning');
+    } catch {
+      if (activeRef.current) setPhase('error');
+    }
   };
 
   useEffect(() => {
@@ -88,48 +107,36 @@ export function QRScanner() {
     return stopScanner;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleRescan = async () => {
+  const handleRescan = () => {
     stopScanner();
-    await startScanner();
+    startScanner();
   };
-
-  const isArabic = language === 'ar';
 
   return (
     <div className="fixed inset-0 z-50 bg-black" dir={dir}>
       <style>{`
+        /* Hide Html5Qrcode's dashboard — we draw our own UI */
         #qr-reader__header_message,
         #qr-reader__dashboard { display: none !important; }
 
-        #qr-reader__scan_region {
-          position: absolute !important;
-          inset: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
-          background: transparent !important;
-          border: none !important;
-          outline: none !important;
-        }
-
-        #qr-reader__scan_region > div { display: none !important; }
-
+        /* Video fills viewport regardless of the inline width the library sets */
         #qr-reader video {
-          position: absolute !important;
-          inset: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
+          position: fixed !important;
+          top: 0 !important; left: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
           object-fit: cover !important;
-          background: black !important;
+          z-index: 0 !important;
         }
         #qr-reader canvas { display: none !important; }
       `}</style>
 
-      {/* Camera feed container — always mounted so Html5Qrcode can write into it */}
-      <div id="qr-reader" style={{ position: 'absolute', inset: 0, overflow: 'hidden' }} />
+      {/* Camera feed container */}
+      <div id="qr-reader" style={{ position: 'fixed', inset: 0, zIndex: 0 }} />
 
-      {/* Header */}
+      {/* Header — always on top */}
       <div className={cn(
-        'absolute top-0 inset-x-0 z-20 flex items-center justify-between px-5 py-4 bg-gradient-to-b from-black/70 to-transparent',
+        'fixed top-0 inset-x-0 z-20 flex items-center justify-between px-5 py-4 bg-gradient-to-b from-black/70 to-transparent',
         dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'
       )}>
         <button
@@ -150,7 +157,7 @@ export function QRScanner() {
           <motion.div
             key="loading"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4"
+            className="fixed inset-0 z-10 flex flex-col items-center justify-center gap-4"
           >
             <Loader2 className="w-10 h-10 text-accent animate-spin" />
             <p className="text-white/60 text-xs font-bold">
@@ -162,7 +169,7 @@ export function QRScanner() {
 
       {/* Scan frame — visible only while scanning */}
       {phase === 'scanning' && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
+        <div className="fixed inset-0 z-10 flex flex-col items-center justify-center pointer-events-none">
           <div className="relative w-64 h-64">
             <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-accent rounded-tl-2xl" />
             <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-accent rounded-tr-2xl" />
@@ -186,12 +193,11 @@ export function QRScanner() {
           <motion.div
             key="error"
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/95 px-8 text-center"
+            className="fixed inset-0 z-20 flex flex-col items-center justify-center gap-5 bg-black/95 px-8 text-center"
           >
             <div className="w-20 h-20 rounded-full bg-red-500/15 border border-red-500/30 flex items-center justify-center">
               <QrCode className="w-10 h-10 text-red-400" />
             </div>
-
             <div>
               <p className="text-white font-bold text-base mb-2">
                 {t('لا يمكن الوصول إلى الكاميرا', 'Camera unavailable')}
@@ -203,7 +209,6 @@ export function QRScanner() {
                 )}
               </p>
             </div>
-
             <div className="flex flex-col gap-2 w-full max-w-xs">
               <button
                 onClick={handleRescan}
@@ -232,7 +237,7 @@ export function QRScanner() {
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 280 }}
-            className="absolute bottom-0 inset-x-0 z-30 bg-white dark:bg-slate-900 rounded-t-[2.5rem] p-6 pb-8 shadow-[0_-20px_60px_rgba(0,0,0,0.5)]"
+            className="fixed bottom-0 inset-x-0 z-30 bg-white dark:bg-slate-900 rounded-t-[2.5rem] p-6 pb-8 shadow-[0_-20px_60px_rgba(0,0,0,0.5)]"
           >
             <div className="w-10 h-1 bg-slate-200 dark:bg-white/20 rounded-full mx-auto mb-5" />
 
@@ -252,7 +257,7 @@ export function QRScanner() {
               <div className="mb-5">
                 <div className={cn('text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                   <BookOpen className="w-3.5 h-3.5" />
-                  {isArabic ? `${shelfBooks.length} كتب على هذا الرف` : `${shelfBooks.length} books on this shelf`}
+                  {language === 'ar' ? `${shelfBooks.length} كتب على هذا الرف` : `${shelfBooks.length} books on this shelf`}
                 </div>
                 <div className={cn('flex gap-3 overflow-x-auto pb-1', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                   {shelfBooks.map(book => (
