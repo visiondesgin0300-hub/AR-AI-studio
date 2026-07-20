@@ -448,6 +448,80 @@ app.post("/api/book-insight", async (req, res) => {
   }
 });
 
+// Real camera-based AR scan: Gemini Vision analyzes a captured frame and
+// picks the most contextually relevant book from the library catalogue.
+app.post("/api/vision-scan", async (req, res) => {
+  const { imageData } = req.body || {};
+  if (!imageData || typeof imageData !== 'string') {
+    return res.status(400).json({ error: "Missing imageData" });
+  }
+
+  const pool = MOCK_BOOKS;
+  const pickRandom = () => pool[Math.floor(Math.random() * pool.length)];
+
+  const client = getGeminiClient();
+  if (!client) {
+    const book = pickRandom();
+    return res.json({
+      bookId: book.id,
+      whatISaw: 'وضع تجريبي — لا يوجد مفتاح API',
+      reason: 'تم الاختيار عشوائياً للعرض التوضيحي.',
+    });
+  }
+
+  try {
+    const catalogue = pool
+      .map((b) => `id:${b.id} | "${b.title}" | ${b.author} | ${b.category} | الرف ${b.shelf}`)
+      .join('\n');
+
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { inlineData: { mimeType: "image/jpeg", data: imageData } } as any,
+            {
+              text: `أنت مساعد مكتبة ذكي مدعوم بالواقع المعزز. انظر إلى هذه الصورة الملتقطة من كاميرا المستخدم:
+
+1. صف ما تراه في جملة واحدة موجزة بالعربية.
+2. اختر الكتاب الأكثر صلة بالسياق المرئي من فهرس المكتبة التالي:
+${catalogue}
+
+أجب بكائن JSON فقط (بدون markdown):
+{ "whatISaw": "وصف مختصر لما تراه", "bookId": "معرف الكتاب المختار يطابق أحد المعرفات أعلاه تماماً", "reason": "سبب اختيار هذا الكتاب بناءً على ما رأيته (جملة أو جملتان)" }`
+            }
+          ]
+        }
+      ] as any,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            whatISaw: { type: Type.STRING },
+            bookId: { type: Type.STRING },
+            reason: { type: Type.STRING },
+          },
+          required: ["bookId"],
+        },
+      },
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    const matched = pool.find((b) => b.id === parsed.bookId) || pickRandom();
+    return res.json({
+      bookId: matched.id,
+      whatISaw: parsed.whatISaw || null,
+      reason: parsed.reason || null,
+    });
+  } catch (error: any) {
+    console.error("Gemini Vision Scan Error:", error);
+    const book = pickRandom();
+    return res.json({ bookId: book.id, whatISaw: null, reason: null });
+  }
+});
+
 // AI Librarian chat assistant, grounded in the real app catalog (MOCK_BOOKS).
 // Always returns 200 with a helpful reply: Gemini when a key is configured,
 // otherwise a local keyword-matching librarian so the assistant always works.
