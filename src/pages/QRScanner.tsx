@@ -8,8 +8,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
 
-const SHELF_PREFIX = 'ARLIBRARY:SHELF:';
-const BOOK_PREFIX  = 'ARLIBRARY:BOOK:';
+const SHELF_PREFIX  = 'ARLIBRARY:SHELF:';
+const BOOK_PREFIX   = 'ARLIBRARY:BOOK:';
+const BOOK_URL_RE   = /\/book\/([^/?#]+)/;
 const VALID_SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
 
 export function QRScanner() {
@@ -38,7 +39,20 @@ export function QRScanner() {
         if (!active) return;
         try { navigator.vibrate?.([80, 40, 80]); } catch { /* best-effort */ }
 
-        // Book barcode → navigate directly to book details
+        // Book barcode: URL format (https://arlibrary.onrender.com/book/bookId)
+        const urlMatch = BOOK_URL_RE.exec(text);
+        if (urlMatch) {
+          const bookId = urlMatch[1];
+          const found = MOCK_BOOKS.find(b => b.id === bookId);
+          if (found) {
+            active = false;
+            scanner.stop().catch(() => {});
+            navigate(`/book/${bookId}`);
+            return;
+          }
+        }
+
+        // Book barcode: legacy ARLIBRARY:BOOK: format
         if (text.startsWith(BOOK_PREFIX)) {
           const bookId = text.slice(BOOK_PREFIX.length);
           const found = MOCK_BOOKS.find(b => b.id === bookId);
@@ -134,8 +148,8 @@ export function QRScanner() {
           </div>
           <p className="mt-8 text-white/70 text-xs font-bold text-center px-10 leading-relaxed">
             {language === 'ar'
-              ? 'وجّه الكاميرا نحو رمز QR المطبوع على الرف'
-              : 'Point camera at the QR code printed on the shelf'}
+              ? 'وجّه الكاميرا نحو رمز AR الخاص بالكتاب أو الرف'
+              : 'Point camera at a book AR code or shelf QR code'}
           </p>
         </div>
       )}

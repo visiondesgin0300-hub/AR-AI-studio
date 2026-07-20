@@ -7,6 +7,8 @@ import { useLanguage } from '../hooks/useLanguage';
 
 const SHELVES = ['all', 'A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
 
+const APP_BASE_URL = 'https://arlibrary.onrender.com';
+
 const CATEGORY_COLORS: Record<string, string> = {
   'فيزياء':    '#1B3A6B',
   'هندسة':     '#2D5A27',
@@ -85,7 +87,7 @@ export function BookQRPrint() {
       {/* ── QR Grid ── */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 gap-4 print:grid-cols-4 print:gap-3">
         {books.map(book => {
-          const qrValue = `ARLIBRARY:BOOK:${book.id}`;
+          const qrValue = `${APP_BASE_URL}/book/${book.id}`;
           const color = getCategoryColor(book.category);
           const shortTitle = book.title.length > 40 ? book.title.slice(0, 38) + '…' : book.title;
 
