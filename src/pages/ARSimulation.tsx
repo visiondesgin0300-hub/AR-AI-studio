@@ -5,7 +5,7 @@ import { MOCK_BOOKS } from '../data/mockData';
 import { BookCover } from '../components/BookCover';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
-import { Cpu, MapPin, Sparkles, RotateCcw, BookOpen, Navigation, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Cpu, MapPin, Sparkles, RotateCcw, BookOpen, Navigation, ChevronLeft, ChevronRight, Camera } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 type SimPhase = 'idle' | 'scanning' | 'thinking' | 'revealed' | 'navigating' | 'arrived';
@@ -216,6 +216,23 @@ export function ARSimulation() {
                 <Sparkles className="w-5 h-5" />
                 {ar ? 'ابدأ المحاكاة' : 'Start Simulation'}
               </motion.button>
+
+              {/* Upgrade to real camera */}
+              <div className="pt-1">
+                <div className="flex items-center gap-3 my-2">
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{ar ? 'أو' : 'or'}</span>
+                  <div className="flex-1 h-px bg-slate-200 dark:bg-white/10" />
+                </div>
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => navigate('/ar-camera')}
+                  className="w-full py-3.5 bg-slate-100 dark:bg-white/10 text-primary dark:text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2.5 hover:bg-slate-200 dark:hover:bg-white/15 transition-all border border-slate-200 dark:border-white/10"
+                >
+                  <Camera className="w-4 h-4 text-accent" />
+                  {ar ? 'جرّب بالكاميرا الحقيقية' : 'Try with Real Camera'}
+                </motion.button>
+              </div>
             </div>
           </motion.div>
         )}
