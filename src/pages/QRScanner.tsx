@@ -60,10 +60,13 @@ export function QRScanner() {
     const tryStart = (cam: string | object) =>
       scanner.start(cam as any, config, (t) => onScan(t, scanner, activeRef), onErr);
 
-    // Try back camera by device ID first (most reliable on mobile)
+    // Device IDs are more reliable than facingMode constraints.
+    // When we have a device ID, use it exclusively (no facingMode fallback).
+    // Only fall through to facingMode when camera enumeration gave us nothing.
     const run = cameraId
-      ? tryStart(cameraId).catch(() => tryStart({ facingMode: 'environment' }))
-      : tryStart({ facingMode: { exact: 'environment' } }).catch(() => tryStart({ facingMode: 'environment' }));
+      ? tryStart(cameraId)
+      : tryStart({ facingMode: { exact: 'environment' } })
+          .catch(() => tryStart({ facingMode: 'environment' }));
 
     run.catch(() => {
       if (activeRef.v) setError(language === 'ar' ? 'لا يمكن الوصول إلى الكاميرا' : 'Camera unavailable');
@@ -77,17 +80,22 @@ export function QRScanner() {
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
-    // Enumerate cameras and prefer back camera by device ID
     Html5Qrcode.getCameras()
       .then(cameras => {
-        const back = cameras.length > 1
-          ? (cameras.find(c => /back|rear|environment/i.test(c.label)) ?? cameras[cameras.length - 1])
-          : null;
-        cleanup = startScanning(back?.id);
+        let backId: string | undefined;
+        if (cameras.length === 1) {
+          // Single camera: always use its device ID — more reliable than facingMode
+          backId = cameras[0].id;
+        } else if (cameras.length > 1) {
+          // Multiple cameras: prefer one labeled back/rear, else take the last entry
+          const back = cameras.find(c => /back|rear|environment/i.test(c.label))
+            ?? cameras[cameras.length - 1];
+          backId = back.id;
+        }
+        cleanup = startScanning(backId);
       })
       .catch(() => { cleanup = startScanning(); });
     return () => cleanup?.();
-    // eslint-disable name-eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRescan = async () => {
@@ -102,7 +110,22 @@ export function QRScanner() {
   return (
     <div className="fixed inset-0 z-50 bg-black" dir={dir}>
       <style>{`
+        /* Hide Html5Qrcode's own header/dashboard UI — we manage our own */
+        #qr-reader__header_message,
+        #qr-reader__dashboard { display: none !important; }
+
+        /* Make the scan region fill its absolutely-positioned parent */
+        #qr-reader__scan_region {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+
+        /* Video fills the scan region absolutely so it always has real dimensions */
         #qr-reader video {
+          position: absolute !important;
+          inset: 0 !important;
           width: 100% !important;
           height: 100% !important;
           object-fit: cover !important;
