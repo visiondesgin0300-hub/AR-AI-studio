@@ -155,7 +155,7 @@ export function ARShowcase() {
             className="flex items-center justify-center gap-2.5 px-8 py-4 bg-accent/20 text-accent border border-accent/30 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-accent/30 active:scale-95 transition-all"
           >
             <Cpu className="w-5 h-5" />
-            {language === 'ar' ? 'محاكاة الذكاء الاصطناعي' : 'AI Simulation'}
+            {language === 'ar' ? 'محاكاة AR بالذكاء الاصطناعي' : 'AR AI Simulation'}
           </motion.button>
         </div>
       </div>
