@@ -64,10 +64,11 @@ export function QRScanner() {
       scanner.start(cam as any, config, (t) => onScan(t, scanner, activeRef), onErr);
 
     // Device IDs are more reliable than facingMode constraints.
-    // When we have a device ID, use it exclusively (no facingMode fallback).
-    // Only fall through to facingMode when camera enumeration gave us nothing.
+    // When we have a device ID, try it first; fall back to facingMode if it fails.
     const run = cameraId
       ? tryStart(cameraId)
+          .catch(() => tryStart({ facingMode: { exact: 'environment' } }))
+          .catch(() => tryStart({ facingMode: 'environment' }))
       : tryStart({ facingMode: { exact: 'environment' } })
           .catch(() => tryStart({ facingMode: 'environment' }));
 
@@ -83,8 +84,17 @@ export function QRScanner() {
 
   useEffect(() => {
     let cleanup: (() => void) | undefined;
-    Html5Qrcode.getCameras()
-      .then(cameras => {
+
+    const init = async () => {
+      // Pre-request camera permission so getCameras() returns full device labels.
+      // Without this, browsers return empty labels or fail enumeration entirely.
+      try {
+        const perm = await navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'environment' } });
+        perm?.getTracks().forEach(t => t.stop());
+      } catch { /* permission denied — Html5Qrcode will surface the real error */ }
+
+      try {
+        const cameras = await Html5Qrcode.getCameras();
         let backId: string | undefined;
         if (cameras.length === 1) {
           // Single camera: always use its device ID — more reliable than facingMode
@@ -96,8 +106,12 @@ export function QRScanner() {
           backId = back.id;
         }
         cleanup = startScanning(backId);
-      })
-      .catch(() => { cleanup = startScanning(); });
+      } catch {
+        cleanup = startScanning();
+      }
+    };
+
+    init();
     return () => cleanup?.();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -113,25 +127,32 @@ export function QRScanner() {
   return (
     <div className="fixed inset-0 z-50 bg-black" dir={dir}>
       <style>{`
-        /* Hide Html5Qrcode's own header/dashboard UI — we manage our own */
+        /* Hide Html5Qrcode's own header/dashboard UI — we draw our own */
         #qr-reader__header_message,
         #qr-reader__dashboard { display: none !important; }
 
-        /* Make the scan region fill its absolutely-positioned parent */
+        /* Scan region fills the container; transparent bg so no grey box shows */
         #qr-reader__scan_region {
           position: absolute !important;
           inset: 0 !important;
           width: 100% !important;
           height: 100% !important;
+          background: transparent !important;
+          border: none !important;
+          outline: none !important;
         }
 
-        /* Video fills the scan region absolutely so it always has real dimensions */
+        /* Hide any shading / frame elements the library injects */
+        #qr-reader__scan_region > div { display: none !important; }
+
+        /* Video fills the scan region absolutely — always has real pixel dims */
         #qr-reader video {
           position: absolute !important;
           inset: 0 !important;
           width: 100% !important;
           height: 100% !important;
           object-fit: cover !important;
+          background: black !important;
         }
         #qr-reader canvas { display: none !important; }
       `}</style>
