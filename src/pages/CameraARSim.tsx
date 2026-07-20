@@ -36,9 +36,19 @@ export function CameraARSim() {
   const [walkerRow, setWalkerRow] = useState(4.5);
   const [walkerCol, setWalkerCol] = useState(0.5);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const abortRef = useRef(false);
+
+  // Callback ref: fires the moment <video> mounts in the DOM, regardless of
+  // AnimatePresence animation timing. Assigns the stream immediately.
+  const videoRefCallback = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (el && streamRef.current) {
+      el.srcObject = streamRef.current;
+      el.play().catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     navigator.mediaDevices?.enumerateDevices().then(devs => {
@@ -65,21 +75,12 @@ export function CameraARSim() {
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
-  // When phase switches to 'camera', the <video> element mounts inside
-  // AnimatePresence. At that point we attach the already-acquired stream.
-  useEffect(() => {
-    if (phase === 'camera' && videoRef.current && streamRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.play().catch(() => {});
-    }
-  }, [phase]);
-
   const startCamera = async (mode: 'environment' | 'user' = facingMode) => {
     setError(null);
     const tryConstraints = async (constraints: MediaStreamConstraints) => {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
-      // srcObject will be set by the useEffect above once the video element mounts
+      // videoRefCallback will assign srcObject when <video> mounts
       setPhase('camera');
     };
     try {
@@ -270,7 +271,7 @@ export function CameraARSim() {
               className="relative bg-black select-none" style={{ minHeight: '340px' }}
             >
               <video
-                ref={videoRef} autoPlay playsInline muted
+                ref={videoRefCallback} autoPlay playsInline muted
                 className="w-full object-cover block"
                 style={{ maxHeight: '520px' }}
               />
