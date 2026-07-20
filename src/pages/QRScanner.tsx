@@ -9,6 +9,7 @@ import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
 
 const SHELF_PREFIX = 'ARLIBRARY:SHELF:';
+const BOOK_PREFIX  = 'ARLIBRARY:BOOK:';
 const VALID_SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
 
 export function QRScanner() {
@@ -34,13 +35,29 @@ export function QRScanner() {
       { facingMode: 'environment' },
       { fps: 10, qrbox: { width: 250, height: 250 } },
       (text) => {
-        if (!active || !text.startsWith(SHELF_PREFIX)) return;
-        const shelfId = text.slice(SHELF_PREFIX.length);
-        if (!VALID_SHELVES.includes(shelfId)) return;
-        active = false;
-        scanner.stop().catch(() => {});
-        setDetectedShelf(shelfId);
+        if (!active) return;
         try { navigator.vibrate?.([80, 40, 80]); } catch { /* best-effort */ }
+
+        // Book barcode → navigate directly to book details
+        if (text.startsWith(BOOK_PREFIX)) {
+          const bookId = text.slice(BOOK_PREFIX.length);
+          const found = MOCK_BOOKS.find(b => b.id === bookId);
+          if (found) {
+            active = false;
+            scanner.stop().catch(() => {});
+            navigate(`/book/${bookId}`);
+            return;
+          }
+        }
+
+        // Shelf barcode → show shelf books
+        if (text.startsWith(SHELF_PREFIX)) {
+          const shelfId = text.slice(SHELF_PREFIX.length);
+          if (!VALID_SHELVES.includes(shelfId)) return;
+          active = false;
+          scanner.stop().catch(() => {});
+          setDetectedShelf(shelfId);
+        }
       },
       () => {}
     ).catch(() => {
