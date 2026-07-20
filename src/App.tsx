@@ -23,6 +23,7 @@ import { ShelfQRPrint } from './pages/ShelfQRPrint';
 import { ARSimulation } from './pages/ARSimulation';
 import { CameraARSim } from './pages/CameraARSim';
 import { BookQRPrint } from './pages/BookQRPrint';
+import { ShelfARScan } from './pages/ShelfARScan';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -169,6 +170,10 @@ function AppContent() {
         <Route
           path="/book-codes"
           element={user ? <Layout user={user} onLogout={handleLogout}><BookQRPrint /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/shelf-ar"
+          element={user ? <ShelfARScan /> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

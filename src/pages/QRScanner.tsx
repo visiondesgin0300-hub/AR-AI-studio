@@ -214,20 +214,29 @@ export function QRScanner() {
               </div>
             )}
 
-            <div className={cn('flex gap-3', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+            <div className={cn('flex flex-col gap-2', dir === 'rtl' ? 'text-right' : 'text-left')}>
               <button
-                onClick={handleRescan}
-                className="flex-1 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest hover:border-slate-300 active:scale-95 transition-all"
+                onClick={() => navigate('/shelf-ar', { state: { shelfId: detectedShelf } })}
+                className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-accent/25 active:scale-95 transition-all"
               >
-                {language === 'ar' ? 'مسح مجدداً' : 'Rescan'}
+                <BookOpen className="w-4 h-4" />
+                {language === 'ar' ? 'مسح كتب الرف بـ AR' : 'AR Shelf Scan'}
               </button>
-              <button
-                onClick={() => navigate('/map', { state: { shelfId: detectedShelf, openAR: true } })}
-                className="flex-[2] py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-accent/25 active:scale-95 transition-all"
-              >
-                <MapPin className="w-4 h-4" />
-                {language === 'ar' ? 'عرض على الخريطة' : 'View on Map'}
-              </button>
+              <div className={cn('flex gap-2', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                <button
+                  onClick={handleRescan}
+                  className="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest hover:border-slate-300 active:scale-95 transition-all"
+                >
+                  {language === 'ar' ? 'مسح مجدداً' : 'Rescan'}
+                </button>
+                <button
+                  onClick={() => navigate('/map', { state: { shelfId: detectedShelf, openAR: true } })}
+                  className="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:border-slate-300 active:scale-95 transition-all"
+                >
+                  <MapPin className="w-4 h-4" />
+                  {language === 'ar' ? 'الخريطة' : 'Map'}
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
