@@ -8,6 +8,9 @@ import { MOCK_BOOKS } from '../data/mockData';
 import { getArBookMeta } from '../lib/arCatalog';
 import { CitationBox } from '../components/CitationBox';
 import { Book } from '../types';
+import { useCompass, bearingToCardinal } from '../hooks/useCompass';
+import { useGPS, formatDistance } from '../hooks/useGPS';
+import { LIBRARY_COORDS } from '../lib/libraryConfig';
 
 // A camera-free "AR shelf scan" simulation: a row of colorful book spines the
 // student taps to trigger a holographic AR info window (LC call number,
@@ -337,10 +340,12 @@ function MetaRow({ label, value, mono }: { label: string; value: string; mono?: 
   );
 }
 
-// Live-ish AR telemetry that drifts continuously, so the readout feels like a
-// real device attitude/depth feed rather than static text.
+// AR telemetry: pitch/roll/depth are simulated flavor; compass and GPS are real
+// sensor data from the device (when the browser supports them).
 function ArTelemetry() {
   const { t, dir } = useLanguage();
+
+  // Simulated drift values for non-sensor readings
   const [tick, setTick] = useState(0);
   const raf = useRef(0);
   useEffect(() => {
@@ -352,25 +357,73 @@ function ArTelemetry() {
     raf.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf.current);
   }, []);
+
+  // Real sensor hooks
+  const compass = useCompass();
+  const gps = useGPS(LIBRARY_COORDS.lat, LIBRARY_COORDS.lng);
+
   const pitch = (Math.sin(tick / 9) * 9).toFixed(1);
-  const roll = (Math.cos(tick / 11) * 8).toFixed(1);
-  const compass = (184 + Math.sin(tick / 15) * 6).toFixed(0);
+  const roll  = (Math.cos(tick / 11) * 8).toFixed(1);
   const depth = (1.05 + Math.sin(tick / 13) * 0.18).toFixed(2);
-  const readings: Array<[string, string]> = [
-    [t('arLabPitch'), `${pitch}°`],
-    [t('arLabRoll'), `${roll}°`],
-    [t('arLabCompass'), `${compass}° N`],
-    [t('arLabDepth'), `${depth}m`],
-    [t('arLabFps'), '60'],
+
+  // Compass display value
+  const compassValue = (() => {
+    if (!compass.supported) return '—';
+    if (compass.permissionNeeded) return '—';
+    if (compass.bearing === null) return '…';
+    return `${compass.bearing}° ${bearingToCardinal(compass.bearing)}`;
+  })();
+
+  // GPS display value
+  const gpsValue = (() => {
+    if (!gps.supported) return t('arLabGPSUnsupported');
+    if (gps.permissionDenied) return t('arLabGPSDenied');
+    if (gps.distance === null) return '…';
+    return formatDistance(gps.distance);
+  })();
+
+  const staticReadings: Array<[string, string]> = [
+    [t('arLabPitch'),  `${pitch}°`],
+    [t('arLabRoll'),   `${roll}°`],
+    [t('arLabDepth'),  `${depth}m`],
+    [t('arLabFps'),    '60'],
   ];
+
   return (
-    <div className="relative mt-5 grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono" dir="ltr">
-      {readings.map(([label, value]) => (
-        <div key={label} className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
-          <div className="text-[8px] font-black text-white/40 uppercase tracking-widest truncate" dir={dir}>{label}</div>
-          <div className="text-[11px] font-black text-accent mt-0.5">{value}</div>
+    <div className="relative mt-5 space-y-2 font-mono" dir="ltr">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {staticReadings.map(([label, value]) => (
+          <div key={label} className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+            <div className="text-[8px] font-black text-white/40 uppercase tracking-widest truncate" dir={dir}>{label}</div>
+            <div className="text-[11px] font-black text-accent mt-0.5">{value}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Real sensor row */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* Compass tile */}
+        <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2 flex items-center justify-between gap-2">
+          <div>
+            <div className="text-[8px] font-black text-white/40 uppercase tracking-widest" dir={dir}>{t('arLabCompass')}</div>
+            <div className="text-[11px] font-black text-emerald-400 mt-0.5">{compassValue}</div>
+          </div>
+          {compass.permissionNeeded && (
+            <button
+              onClick={compass.requestPermission}
+              className="shrink-0 text-[9px] font-black text-primary bg-accent px-2 py-0.5 rounded-md uppercase tracking-wider active:scale-95 transition-transform"
+            >
+              {t('arLabCompassAllow')}
+            </button>
+          )}
         </div>
-      ))}
+
+        {/* GPS distance tile */}
+        <div className="rounded-lg bg-white/5 border border-white/10 px-3 py-2">
+          <div className="text-[8px] font-black text-white/40 uppercase tracking-widest" dir={dir}>{t('arLabGPS')}</div>
+          <div className="text-[11px] font-black text-emerald-400 mt-0.5">{gpsValue}</div>
+        </div>
+      </div>
     </div>
   );
 }
