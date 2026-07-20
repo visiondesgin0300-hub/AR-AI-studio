@@ -54,7 +54,10 @@ export function QRScanner() {
     const scanner = new Html5Qrcode('qr-reader');
     scannerRef.current = scanner;
     const activeRef = { v: true };
-    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    // No qrbox: scans the full frame and removes Html5Qrcode's dark shading
+    // overlay (which caused the "foggy" appearance). Our own overlay provides
+    // the visual scan guide.
+    const config = { fps: 10 };
     const onErr = () => {};
 
     const tryStart = (cam: string | object) =>
