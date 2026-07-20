@@ -70,10 +70,32 @@ export function QRScanner() {
   return (
     <div className="fixed inset-0 z-50 bg-black" dir={dir}>
       <style>{`
+        /* Hide Html5Qrcode's own header/dashboard UI — we draw our own */
+        #qr-reader__header_message,
+        #qr-reader__dashboard { display: none !important; }
+
+        /* Scan region fills the container; transparent bg so no grey box shows */
+        #qr-reader__scan_region {
+          position: absolute !important;
+          inset: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+          background: transparent !important;
+          border: none !important;
+          outline: none !important;
+        }
+
+        /* Hide any shading / frame elements the library injects */
+        #qr-reader__scan_region > div { display: none !important; }
+
+        /* Video fills the scan region absolutely — always has real pixel dims */
         #qr-reader video {
+          position: absolute !important;
+          inset: 0 !important;
           width: 100% !important;
           height: 100% !important;
           object-fit: cover !important;
+          background: black !important;
         }
         #qr-reader canvas { display: none !important; }
       `}</style>
