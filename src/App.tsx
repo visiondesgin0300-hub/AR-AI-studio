@@ -20,6 +20,7 @@ import { ArLab } from './pages/ArLab';
 import { QRScanner } from './pages/QRScanner';
 import { ARShowcase } from './pages/ARShowcase';
 import { ShelfQRPrint } from './pages/ShelfQRPrint';
+import { ARSimulation } from './pages/ARSimulation';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -154,6 +155,10 @@ function AppContent() {
         <Route
           path="/qr-print"
           element={user ? <Layout user={user} onLogout={handleLogout}><ShelfQRPrint /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/ar-sim"
+          element={user ? <Layout user={user} onLogout={handleLogout}><ARSimulation /></Layout> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

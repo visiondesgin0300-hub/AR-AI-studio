@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrCode, MapPin, Copy, Check, Zap, Layers, Compass } from 'lucide-react';
+import { QrCode, MapPin, Copy, Check, Zap, Layers, Compass, Cpu } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { BookCover } from '../components/BookCover';
@@ -148,6 +148,14 @@ export function ARShowcase() {
           >
             <Compass className="w-5 h-5" />
             {language === 'ar' ? 'ابحث عن كتاب' : 'Search a Book'}
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => navigate('/ar-sim')}
+            className="flex items-center justify-center gap-2.5 px-8 py-4 bg-accent/20 text-accent border border-accent/30 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-accent/30 active:scale-95 transition-all"
+          >
+            <Cpu className="w-5 h-5" />
+            {language === 'ar' ? 'محاكاة الذكاء الاصطناعي' : 'AI Simulation'}
           </motion.button>
         </div>
       </div>
