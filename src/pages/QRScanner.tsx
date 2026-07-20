@@ -24,70 +24,71 @@ export function QRScanner() {
     ? MOCK_BOOKS.filter(b => b.shelf === detectedShelf).slice(0, 4)
     : [];
 
-  const startScanning = () => {
+  const onScan = (text: string, scanner: Html5Qrcode, activeRef: { v: boolean }) => {
+    if (!activeRef.v) return;
+    try { navigator.vibrate?.([80, 40, 80]); } catch { /* best-effort */ }
+
+    // Book barcode: URL format
+    const urlMatch = BOOK_URL_RE.exec(text);
+    if (urlMatch) {
+      const found = MOCK_BOOKS.find(b => b.id === urlMatch[1]);
+      if (found) { activeRef.v = false; scanner.stop().catch(() => {}); navigate(`/book/${found.id}`); return; }
+    }
+    // Book barcode: legacy ARLIBRARY:BOOK: format
+    if (text.startsWith(BOOK_PREFIX)) {
+      const found = MOCK_BOOKS.find(b => b.id === text.slice(BOOK_PREFIX.length));
+      if (found) { activeRef.v = false; scanner.stop().catch(() => {}); navigate(`/book/${found.id}`); return; }
+    }
+    // Shelf barcode
+    if (text.startsWith(SHELF_PREFIX)) {
+      const shelfId = text.slice(SHELF_PREFIX.length);
+      if (!VALID_SHELVES.includes(shelfId)) return;
+      activeRef.v = false; scanner.stop().catch(() => {}); setDetectedShelf(shelfId);
+    }
+  };
+
+  const startScanning = (cameraId?: string) => {
     const el = document.getElementById('qr-reader');
     if (el) el.innerHTML = '';
 
     const scanner = new Html5Qrcode('qr-reader');
     scannerRef.current = scanner;
-    let active = true;
+    const activeRef = { v: true };
+    const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+    const onErr = () => {};
 
-    scanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (text) => {
-        if (!active) return;
-        try { navigator.vibrate?.([80, 40, 80]); } catch { /* best-effort */ }
+    const tryStart = (cam: string | object) =>
+      scanner.start(cam as any, config, (t) => onScan(t, scanner, activeRef), onErr);
 
-        // Book barcode: URL format (https://arlibrary.onrender.com/book/bookId)
-        const urlMatch = BOOK_URL_RE.exec(text);
-        if (urlMatch) {
-          const bookId = urlMatch[1];
-          const found = MOCK_BOOKS.find(b => b.id === bookId);
-          if (found) {
-            active = false;
-            scanner.stop().catch(() => {});
-            navigate(`/book/${bookId}`);
-            return;
-          }
-        }
+    // Try back camera by device ID first (most reliable on mobile)
+    const run = cameraId
+      ? tryStart(cameraId).catch(() => tryStart({ facingMode: 'environment' }))
+      : tryStart({ facingMode: { exact: 'environment' } }).catch(() => tryStart({ facingMode: 'environment' }));
 
-        // Book barcode: legacy ARLIBRARY:BOOK: format
-        if (text.startsWith(BOOK_PREFIX)) {
-          const bookId = text.slice(BOOK_PREFIX.length);
-          const found = MOCK_BOOKS.find(b => b.id === bookId);
-          if (found) {
-            active = false;
-            scanner.stop().catch(() => {});
-            navigate(`/book/${bookId}`);
-            return;
-          }
-        }
-
-        // Shelf barcode → show shelf books
-        if (text.startsWith(SHELF_PREFIX)) {
-          const shelfId = text.slice(SHELF_PREFIX.length);
-          if (!VALID_SHELVES.includes(shelfId)) return;
-          active = false;
-          scanner.stop().catch(() => {});
-          setDetectedShelf(shelfId);
-        }
-      },
-      () => {}
-    ).catch(() => {
-      if (active) setError(language === 'ar' ? 'لا يمكن الوصول إلى الكاميرا' : 'Camera unavailable');
+    run.catch(() => {
+      if (activeRef.v) setError(language === 'ar' ? 'لا يمكن الوصول إلى الكاميرا' : 'Camera unavailable');
     });
 
     return () => {
-      active = false;
-      if (scannerRef.current) scannerRef.current.stop().catch(() => {});
+      activeRef.v = false;
+      scannerRef.current?.stop().catch(() => {});
     };
   };
 
   useEffect(() => {
-    return startScanning();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let cleanup: (() => void) | undefined;
+    // Enumerate cameras and prefer back camera by device ID
+    Html5Qrcode.getCameras()
+      .then(cameras => {
+        const back = cameras.length > 1
+          ? (cameras.find(c => /back|rear|environment/i.test(c.label)) ?? cameras[cameras.length - 1])
+          : null;
+        cleanup = startScanning(back?.id);
+      })
+      .catch(() => { cleanup = startScanning(); });
+    return () => cleanup?.();
+    // eslint-disable name-eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRescan = async () => {
     if (scannerRef.current) {

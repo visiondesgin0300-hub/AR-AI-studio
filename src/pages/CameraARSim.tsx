@@ -67,18 +67,26 @@ export function CameraARSim() {
 
   const startCamera = async (mode: 'environment' | 'user' = facingMode) => {
     setError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } },
-      });
+    const tryConstraints = async (constraints: MediaStreamConstraints) => {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
       if (videoRef.current) videoRef.current.srcObject = stream;
       setPhase('camera');
+    };
+    try {
+      // Try exact facingMode first (forces back camera), fall back to ideal
+      if (mode === 'environment') {
+        try {
+          await tryConstraints({ video: { facingMode: { exact: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
+          return;
+        } catch { /* fall through to ideal */ }
+      }
+      await tryConstraints({ video: { facingMode: mode, width: { ideal: 1280 }, height: { ideal: 720 } } });
     } catch (e: any) {
       const denied = e?.name === 'NotAllowedError' || e?.name === 'PermissionDeniedError';
       setError(denied
         ? (ar ? 'رُفض إذن الكاميرا. افتح إعدادات المتصفح وامنح الإذن.' : 'Camera permission denied. Allow it in browser settings.')
-        : (ar ? 'تعذّر فتح الكاميرا.' : 'Unable to open camera.')
+        : (ar ? 'تعذّر فتح الكاميرا الخلفية. جرّب قلب الكاميرا.' : 'Unable to open back camera. Try flipping.')
       );
     }
   };
