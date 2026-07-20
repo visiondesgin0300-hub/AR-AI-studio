@@ -65,12 +65,21 @@ export function CameraARSim() {
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
+  // When phase switches to 'camera', the <video> element mounts inside
+  // AnimatePresence. At that point we attach the already-acquired stream.
+  useEffect(() => {
+    if (phase === 'camera' && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.play().catch(() => {});
+    }
+  }, [phase]);
+
   const startCamera = async (mode: 'environment' | 'user' = facingMode) => {
     setError(null);
     const tryConstraints = async (constraints: MediaStreamConstraints) => {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
-      if (videoRef.current) videoRef.current.srcObject = stream;
+      // srcObject will be set by the useEffect above once the video element mounts
       setPhase('camera');
     };
     try {
