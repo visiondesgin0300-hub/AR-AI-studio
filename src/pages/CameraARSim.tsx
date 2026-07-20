@@ -32,23 +32,14 @@ export function CameraARSim() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<'environment' | 'user'>('environment');
   const [multiCam, setMultiCam] = useState(false);
-  // walker position within 4×2 grid; row 4.5 = below the map (entrance)
   const [walkerRow, setWalkerRow] = useState(4.5);
   const [walkerCol, setWalkerCol] = useState(0.5);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const abortRef = useRef(false);
-
-  // Callback ref: fires the moment <video> mounts in the DOM, regardless of
-  // AnimatePresence animation timing. Assigns the stream immediately.
-  const videoRefCallback = useCallback((el: HTMLVideoElement | null) => {
-    videoRef.current = el;
-    if (el && streamRef.current) {
-      el.srcObject = streamRef.current;
-      el.play().catch(() => {});
-    }
-  }, []);
+  // Track the RAF handle so we can cancel it on cleanup
+  const rafRef = useRef<number>(0);
 
   useEffect(() => {
     navigator.mediaDevices?.enumerateDevices().then(devs => {
@@ -56,9 +47,10 @@ export function CameraARSim() {
     }).catch(() => {});
     return () => {
       abortRef.current = true;
+      cancelAnimationFrame(rafRef.current);
       stopCamera();
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function safeDelay(ms: number) {
     return new Promise<void>(resolve => {
@@ -75,16 +67,32 @@ export function CameraARSim() {
     if (videoRef.current) videoRef.current.srcObject = null;
   }, []);
 
+  // RAF loop: polls until <video> is in the DOM, then assigns srcObject.
+  // This handles AnimatePresence delays that defer element mounting.
+  const assignStreamWhenReady = (stream: MediaStream) => {
+    const attempt = () => {
+      if (abortRef.current) return;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {});
+      } else {
+        rafRef.current = requestAnimationFrame(attempt);
+      }
+    };
+    rafRef.current = requestAnimationFrame(attempt);
+  };
+
   const startCamera = async (mode: 'environment' | 'user' = facingMode) => {
     setError(null);
+    cancelAnimationFrame(rafRef.current);
     const tryConstraints = async (constraints: MediaStreamConstraints) => {
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (abortRef.current) { stream.getTracks().forEach(t => t.stop()); return; }
       streamRef.current = stream;
-      // videoRefCallback will assign srcObject when <video> mounts
       setPhase('camera');
+      assignStreamWhenReady(stream);
     };
     try {
-      // Try exact facingMode first (forces back camera), fall back to ideal
       if (mode === 'environment') {
         try {
           await tryConstraints({ video: { facingMode: { exact: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } });
@@ -104,6 +112,7 @@ export function CameraARSim() {
   const flipCamera = async () => {
     const next: 'environment' | 'user' = facingMode === 'environment' ? 'user' : 'environment';
     setFacingMode(next);
+    cancelAnimationFrame(rafRef.current);
     stopCamera();
     await startCamera(next);
   };
@@ -112,7 +121,6 @@ export function CameraARSim() {
     const video = videoRef.current;
     if (!video || !video.videoWidth) return;
 
-    // Capture frame to canvas
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
@@ -171,6 +179,7 @@ export function CameraARSim() {
 
   const reset = (andStart = false) => {
     abortRef.current = false;
+    cancelAnimationFrame(rafRef.current);
     stopCamera();
     setPhase('idle');
     setBook(null);
@@ -184,8 +193,6 @@ export function CameraARSim() {
   };
 
   const targetPos = book ? (SHELF_GRID[book.shelf ?? 'A-1'] ?? [0, 0]) : [0, 0];
-
-  // Phase progress dots
   const PHASE_SEQ: CamPhase[] = ['camera', 'captured', 'thinking', 'revealed', 'navigating', 'arrived'];
   const phaseIdx = PHASE_SEQ.indexOf(phase);
 
@@ -212,6 +219,70 @@ export function CameraARSim() {
 
       {/* ── Main card ── */}
       <div className="official-card overflow-hidden p-0">
+
+        {/* ─── CAMERA LIVE — rendered OUTSIDE AnimatePresence so <video> mounts
+            immediately on setPhase('camera'), with no animation exit delay.
+            The RAF loop in assignStreamWhenReady() then finds videoRef.current
+            instantly and sets srcObject. ─── */}
+        {phase === 'camera' && (
+          <div className="relative bg-black select-none" style={{ height: '400px' }}>
+            {/* Video fills container absolutely so it always has defined dimensions */}
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+
+            {/* AR overlay */}
+            <div className="absolute inset-0 pointer-events-none">
+              <div className="absolute inset-6">
+                <div className="absolute top-0 left-0 w-7 h-7 border-t-2 border-l-2 border-accent" />
+                <div className="absolute top-0 right-0 w-7 h-7 border-t-2 border-r-2 border-accent" />
+                <div className="absolute bottom-0 left-0 w-7 h-7 border-b-2 border-l-2 border-accent" />
+                <div className="absolute bottom-0 right-0 w-7 h-7 border-b-2 border-r-2 border-accent" />
+              </div>
+              <motion.div
+                className="absolute left-6 right-6 h-px bg-gradient-to-r from-transparent via-accent to-transparent opacity-70"
+                animate={{ top: ['8%', '92%', '8%'] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+              />
+              <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-accent/30">
+                <motion.div className="w-1.5 h-1.5 rounded-full bg-red-500" animate={{ opacity: [1, 0.2] }} transition={{ duration: 0.9, repeat: Infinity }} />
+                <span className="text-[9px] font-black text-white/70 uppercase tracking-widest">LIVE</span>
+              </div>
+              <div className="absolute bottom-24 inset-x-0 text-center">
+                <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">
+                  {ar ? 'وجّه الكاميرا ثم اضغط للالتقاط' : 'Point camera then tap to capture'}
+                </p>
+              </div>
+            </div>
+
+            {multiCam && (
+              <motion.button whileTap={{ scale: 0.9 }} onClick={flipCamera}
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white"
+              >
+                <FlipHorizontal2 className="w-4 h-4" />
+              </motion.button>
+            )}
+
+            <motion.button whileTap={{ scale: 0.9 }} onClick={() => reset()}
+              className="absolute top-3 left-3 w-9 h-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white text-xs font-black"
+            >
+              ✕
+            </motion.button>
+
+            <div className="absolute bottom-5 inset-x-0 flex justify-center">
+              <motion.button whileTap={{ scale: 0.9 }} onClick={captureAndAnalyze}
+                className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl ring-4 ring-accent/60"
+              >
+                <div className="w-11 h-11 rounded-full bg-accent" />
+              </motion.button>
+            </div>
+          </div>
+        )}
+
         <AnimatePresence mode="wait">
 
           {/* ─── IDLE ─── */}
@@ -265,76 +336,7 @@ export function CameraARSim() {
             </motion.div>
           )}
 
-          {/* ─── CAMERA LIVE ─── */}
-          {phase === 'camera' && (
-            <motion.div key="camera" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="relative bg-black select-none" style={{ minHeight: '340px' }}
-            >
-              <video
-                ref={videoRefCallback} autoPlay playsInline muted
-                className="w-full object-cover block"
-                style={{ maxHeight: '520px' }}
-              />
-
-              {/* AR overlay */}
-              <div className="absolute inset-0 pointer-events-none">
-                {/* Corner brackets */}
-                <div className="absolute inset-6">
-                  <div className="absolute top-0 left-0 w-7 h-7 border-t-2 border-l-2 border-accent" />
-                  <div className="absolute top-0 right-0 w-7 h-7 border-t-2 border-r-2 border-accent" />
-                  <div className="absolute bottom-0 left-0 w-7 h-7 border-b-2 border-l-2 border-accent" />
-                  <div className="absolute bottom-0 right-0 w-7 h-7 border-b-2 border-r-2 border-accent" />
-                </div>
-
-                {/* Animated scan line */}
-                <motion.div
-                  className="absolute left-6 right-6 h-px bg-gradient-to-r from-transparent via-accent to-transparent opacity-70"
-                  animate={{ top: ['8%', '92%', '8%'] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                />
-
-                {/* LIVE badge */}
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-accent/30">
-                  <motion.div className="w-1.5 h-1.5 rounded-full bg-red-500" animate={{ opacity: [1, 0.2] }} transition={{ duration: 0.9, repeat: Infinity }} />
-                  <span className="text-[9px] font-black text-white/70 uppercase tracking-widest">LIVE</span>
-                </div>
-
-                {/* Instruction */}
-                <div className="absolute bottom-24 inset-x-0 text-center">
-                  <p className="text-[10px] font-black text-white/50 uppercase tracking-widest">
-                    {ar ? 'وجّه الكاميرا ثم اضغط للالتقاط' : 'Point camera then tap to capture'}
-                  </p>
-                </div>
-              </div>
-
-              {/* Flip camera */}
-              {multiCam && (
-                <motion.button whileTap={{ scale: 0.9 }} onClick={flipCamera}
-                  className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white"
-                >
-                  <FlipHorizontal2 className="w-4 h-4" />
-                </motion.button>
-              )}
-
-              {/* Cancel */}
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => reset()}
-                className="absolute top-3 left-3 w-9 h-9 rounded-full bg-black/60 backdrop-blur-sm border border-white/20 flex items-center justify-center text-white text-xs font-black"
-              >
-                ✕
-              </motion.button>
-
-              {/* Capture button */}
-              <div className="absolute bottom-5 inset-x-0 flex justify-center">
-                <motion.button whileTap={{ scale: 0.9 }} onClick={captureAndAnalyze}
-                  className="w-16 h-16 rounded-full bg-white flex items-center justify-center shadow-2xl ring-4 ring-accent/60"
-                >
-                  <div className="w-11 h-11 rounded-full bg-accent" />
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* ─── CAPTURED (freeze + sending) ─── */}
+          {/* ─── CAPTURED ─── */}
           {phase === 'captured' && (
             <motion.div key="captured" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="relative bg-black" style={{ minHeight: '280px' }}
@@ -384,7 +386,6 @@ export function CameraARSim() {
                 {ar ? 'اقتراح Gemini Vision' : 'Gemini Vision Pick'}
               </div>
 
-              {/* What Gemini saw */}
               {whatISaw && (
                 <div className="w-full max-w-md px-4 py-3 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
                   <p className={cn('text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center gap-1', dir === 'rtl' ? 'flex-row-reverse' : '')}>
@@ -438,7 +439,6 @@ export function CameraARSim() {
                 <p className="font-black text-primary dark:text-white text-sm">{book.title}</p>
               </div>
 
-              {/* 4×2 shelf map */}
               <div className="relative select-none">
                 <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10">
                   {ALL_SHELVES.map(shelfId => {
@@ -459,7 +459,6 @@ export function CameraARSim() {
                   })}
                 </div>
 
-                {/* Walker dot — positioned over the grid using % of container */}
                 <div className="absolute inset-4 pointer-events-none overflow-visible">
                   <motion.div
                     className="absolute w-4 h-4 rounded-full bg-primary dark:bg-white shadow-lg ring-2 ring-white dark:ring-slate-800 -translate-x-1/2 -translate-y-1/2 z-10"
