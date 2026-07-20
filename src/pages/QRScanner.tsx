@@ -8,7 +8,9 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
 
-const SHELF_PREFIX = 'ARLIBRARY:SHELF:';
+const SHELF_PREFIX  = 'ARLIBRARY:SHELF:';
+const BOOK_PREFIX   = 'ARLIBRARY:BOOK:';
+const BOOK_URL_RE   = /\/book\/([^/?#]+)/;
 const VALID_SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
 
 export function QRScanner() {
@@ -22,41 +24,96 @@ export function QRScanner() {
     ? MOCK_BOOKS.filter(b => b.shelf === detectedShelf).slice(0, 4)
     : [];
 
-  const startScanning = () => {
+  const onScan = (text: string, scanner: Html5Qrcode, activeRef: { v: boolean }) => {
+    if (!activeRef.v) return;
+    try { navigator.vibrate?.([80, 40, 80]); } catch { /* best-effort */ }
+
+    // Book barcode: URL format
+    const urlMatch = BOOK_URL_RE.exec(text);
+    if (urlMatch) {
+      const found = MOCK_BOOKS.find(b => b.id === urlMatch[1]);
+      if (found) { activeRef.v = false; scanner.stop().catch(() => {}); navigate(`/book/${found.id}`); return; }
+    }
+    // Book barcode: legacy ARLIBRARY:BOOK: format
+    if (text.startsWith(BOOK_PREFIX)) {
+      const found = MOCK_BOOKS.find(b => b.id === text.slice(BOOK_PREFIX.length));
+      if (found) { activeRef.v = false; scanner.stop().catch(() => {}); navigate(`/book/${found.id}`); return; }
+    }
+    // Shelf barcode
+    if (text.startsWith(SHELF_PREFIX)) {
+      const shelfId = text.slice(SHELF_PREFIX.length);
+      if (!VALID_SHELVES.includes(shelfId)) return;
+      activeRef.v = false; scanner.stop().catch(() => {}); setDetectedShelf(shelfId);
+    }
+  };
+
+  const startScanning = (cameraId?: string) => {
     const el = document.getElementById('qr-reader');
     if (el) el.innerHTML = '';
 
     const scanner = new Html5Qrcode('qr-reader');
     scannerRef.current = scanner;
-    let active = true;
+    const activeRef = { v: true };
+    // No qrbox: scans the full frame and removes Html5Qrcode's dark shading
+    // overlay (which caused the "foggy" appearance). Our own overlay provides
+    // the visual scan guide.
+    const config = { fps: 10 };
+    const onErr = () => {};
 
-    scanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      (text) => {
-        if (!active || !text.startsWith(SHELF_PREFIX)) return;
-        const shelfId = text.slice(SHELF_PREFIX.length);
-        if (!VALID_SHELVES.includes(shelfId)) return;
-        active = false;
-        scanner.stop().catch(() => {});
-        setDetectedShelf(shelfId);
-        try { navigator.vibrate?.([80, 40, 80]); } catch { /* best-effort */ }
-      },
-      () => {}
-    ).catch(() => {
-      if (active) setError(language === 'ar' ? 'لا يمكن الوصول إلى الكاميرا' : 'Camera unavailable');
+    const tryStart = (cam: string | object) =>
+      scanner.start(cam as any, config, (t) => onScan(t, scanner, activeRef), onErr);
+
+    // Device IDs are more reliable than facingMode constraints.
+    // When we have a device ID, try it first; fall back to facingMode if it fails.
+    const run = cameraId
+      ? tryStart(cameraId)
+          .catch(() => tryStart({ facingMode: { exact: 'environment' } }))
+          .catch(() => tryStart({ facingMode: 'environment' }))
+      : tryStart({ facingMode: { exact: 'environment' } })
+          .catch(() => tryStart({ facingMode: 'environment' }));
+
+    run.catch(() => {
+      if (activeRef.v) setError(language === 'ar' ? 'لا يمكن الوصول إلى الكاميرا' : 'Camera unavailable');
     });
 
     return () => {
-      active = false;
-      if (scannerRef.current) scannerRef.current.stop().catch(() => {});
+      activeRef.v = false;
+      scannerRef.current?.stop().catch(() => {});
     };
   };
 
   useEffect(() => {
-    return startScanning();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    let cleanup: (() => void) | undefined;
+
+    const init = async () => {
+      // Pre-request camera permission so getCameras() returns full device labels.
+      // Without this, browsers return empty labels or fail enumeration entirely.
+      try {
+        const perm = await navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'environment' } });
+        perm?.getTracks().forEach(t => t.stop());
+      } catch { /* permission denied — Html5Qrcode will surface the real error */ }
+
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        let backId: string | undefined;
+        if (cameras.length === 1) {
+          // Single camera: always use its device ID — more reliable than facingMode
+          backId = cameras[0].id;
+        } else if (cameras.length > 1) {
+          // Multiple cameras: prefer one labeled back/rear, else take the last entry
+          const back = cameras.find(c => /back|rear|environment/i.test(c.label))
+            ?? cameras[cameras.length - 1];
+          backId = back.id;
+        }
+        cleanup = startScanning(backId);
+      } catch {
+        cleanup = startScanning();
+      }
+    };
+
+    init();
+    return () => cleanup?.();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRescan = async () => {
     if (scannerRef.current) {
@@ -139,8 +196,8 @@ export function QRScanner() {
           </div>
           <p className="mt-8 text-white/70 text-xs font-bold text-center px-10 leading-relaxed">
             {language === 'ar'
-              ? 'وجّه الكاميرا نحو رمز QR المطبوع على الرف'
-              : 'Point camera at the QR code printed on the shelf'}
+              ? 'وجّه الكاميرا نحو رمز AR الخاص بالكتاب أو الرف'
+              : 'Point camera at a book AR code or shelf QR code'}
           </p>
         </div>
       )}
@@ -204,20 +261,29 @@ export function QRScanner() {
               </div>
             )}
 
-            <div className={cn('flex gap-3', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+            <div className={cn('flex flex-col gap-2', dir === 'rtl' ? 'text-right' : 'text-left')}>
               <button
-                onClick={handleRescan}
-                className="flex-1 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest hover:border-slate-300 active:scale-95 transition-all"
+                onClick={() => navigate('/shelf-ar', { state: { shelfId: detectedShelf } })}
+                className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-accent/25 active:scale-95 transition-all"
               >
-                {language === 'ar' ? 'مسح مجدداً' : 'Rescan'}
+                <BookOpen className="w-4 h-4" />
+                {language === 'ar' ? 'مسح كتب الرف بـ AR' : 'AR Shelf Scan'}
               </button>
-              <button
-                onClick={() => navigate('/map', { state: { shelfId: detectedShelf, openAR: true } })}
-                className="flex-[2] py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-accent/25 active:scale-95 transition-all"
-              >
-                <MapPin className="w-4 h-4" />
-                {language === 'ar' ? 'عرض على الخريطة' : 'View on Map'}
-              </button>
+              <div className={cn('flex gap-2', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                <button
+                  onClick={handleRescan}
+                  className="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest hover:border-slate-300 active:scale-95 transition-all"
+                >
+                  {language === 'ar' ? 'مسح مجدداً' : 'Rescan'}
+                </button>
+                <button
+                  onClick={() => navigate('/map', { state: { shelfId: detectedShelf, openAR: true } })}
+                  className="flex-1 py-3.5 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:border-slate-300 active:scale-95 transition-all"
+                >
+                  <MapPin className="w-4 h-4" />
+                  {language === 'ar' ? 'الخريطة' : 'Map'}
+                </button>
+              </div>
             </div>
           </motion.div>
         )}
