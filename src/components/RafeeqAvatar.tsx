@@ -12,177 +12,210 @@ export function RafeeqAvatar({ className }: RafeeqAvatarProps) {
       aria-label="Rafeeq"
     >
       <defs>
-        {/* Red-white checkered pattern for ghutra */}
-        <pattern id="rc-ghutra" x="0" y="0" width="5" height="5" patternUnits="userSpaceOnUse">
-          <rect width="5" height="5" fill="#F5ECEC" />
-          <rect x="0" y="0" width="2.5" height="2.5" fill="#C42C2C" opacity="0.82" />
-          <rect x="2.5" y="2.5" width="2.5" height="2.5" fill="#C42C2C" opacity="0.82" />
-        </pattern>
-        {/* Softer diagonal lines for ghutra texture */}
-        <pattern id="rc-ghutra2" x="0" y="0" width="5" height="5" patternUnits="userSpaceOnUse">
-          <rect width="5" height="5" fill="#EEE4E4" />
-          <rect x="0" y="0" width="2.5" height="2.5" fill="#B82828" opacity="0.7" />
-          <rect x="2.5" y="2.5" width="2.5" height="2.5" fill="#B82828" opacity="0.7" />
-        </pattern>
+        <radialGradient id="rc-skin" cx="45%" cy="40%" r="60%">
+          <stop offset="0%" stopColor="#EAA870" />
+          <stop offset="100%" stopColor="#C87840" />
+        </radialGradient>
+        <radialGradient id="rc-iris-l" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#4A2C10" />
+          <stop offset="100%" stopColor="#1A0800" />
+        </radialGradient>
+        <radialGradient id="rc-iris-r" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#4A2C10" />
+          <stop offset="100%" stopColor="#1A0800" />
+        </radialGradient>
+        <radialGradient id="rc-kuma" cx="50%" cy="60%" r="70%">
+          <stop offset="0%" stopColor="#226644" />
+          <stop offset="100%" stopColor="#0F3D28" />
+        </radialGradient>
       </defs>
 
       {/* ── DISHDASHA ── */}
       <path
-        d="M 5 115 L 4 100 Q 15 90 50 88 Q 85 90 96 100 L 95 115Z"
-        fill="#FAFAFA" stroke="#E8E8E8" strokeWidth="0.5"
+        d="M 2 115 L 2 102 Q 16 91 50 89 Q 84 91 98 102 L 98 115Z"
+        fill="#F8F8F8"
       />
-      {/* Collar */}
-      <path d="M 50 88 L 50 102" stroke="#DCDCDC" strokeWidth="0.8" />
-      {/* Gold buttons */}
-      <circle cx="50" cy="97" r="1.7" fill="#D4AF37" />
-      <circle cx="50" cy="103" r="1.7" fill="#D4AF37" />
-      {/* Subtle chest shadow */}
-      <ellipse cx="50" cy="100" rx="14" ry="7" fill="#D0C8C0" opacity="0.1" />
+      {/* Collar shadow */}
+      <path
+        d="M 38 90 Q 50 95 62 90 Q 56 93 50 93.5 Q 44 93 38 90Z"
+        fill="#D8D0C8" opacity="0.4"
+      />
+      {/* Centre seam */}
+      <path d="M 50 89 L 50 106" stroke="#E0D8D0" strokeWidth="0.7" />
+      {/* Gold button */}
+      <circle cx="50" cy="99" r="2.2" fill="#D4AF37" />
+      <circle cx="50" cy="99" r="1.1" fill="#F0CC50" />
 
       {/* ── NECK ── */}
       <path
-        d="M 43 87 Q 43 96 50 97 Q 57 96 57 87 L 55 80 L 50 78 L 45 80Z"
-        fill="#D08C56"
+        d="M 42 88 Q 42 97 50 98.5 Q 58 97 58 88 L 56 80 L 50 78 L 44 80Z"
+        fill="url(#rc-skin)"
       />
-      {/* Neck shadow */}
-      <path d="M 44 87 Q 46 93 50 94 Q 44 92 43 87Z" fill="#B87040" opacity="0.3" />
+      <path
+        d="M 43 88 Q 45 95 50 96 Q 43 94 42 88Z"
+        fill="#B87040" opacity="0.25"
+      />
 
       {/* ── HEAD ── */}
-      <ellipse cx="50" cy="60" rx="23" ry="26" fill="#D89060" />
-      {/* Face shading/depth */}
-      <ellipse cx="50" cy="65" rx="18" ry="20" fill="#E09868" opacity="0.4" />
-      {/* Forehead highlight */}
-      <ellipse cx="50" cy="50" rx="10" ry="7" fill="#EAA870" opacity="0.3" />
+      <ellipse cx="50" cy="59" rx="24" ry="28" fill="url(#rc-skin)" />
+      {/* Cheek depth */}
+      <ellipse cx="34" cy="68" rx="8" ry="7" fill="#D48C50" opacity="0.2" />
+      <ellipse cx="66" cy="68" rx="8" ry="7" fill="#D48C50" opacity="0.2" />
+      {/* Forehead light */}
+      <ellipse cx="50" cy="46" rx="11" ry="8" fill="#F0B078" opacity="0.35" />
 
       {/* ── EARS ── */}
-      <path d="M 27 58 Q 23 63 25 70 Q 28 74 32 71 Q 34 65 30 58Z" fill="#C88250" />
-      <path d="M 28.5 59 Q 26 64 27.5 69 Q 29.5 71 31 69 Q 32 65 30 59Z" fill="#B07040" />
-      <path d="M 73 58 Q 77 63 75 70 Q 72 74 68 71 Q 66 65 70 58Z" fill="#C88250" />
-      <path d="M 71.5 59 Q 74 64 72.5 69 Q 70.5 71 69 69 Q 68 65 70 59Z" fill="#B07040" />
+      <path d="M 26 57 Q 22 62 24 69 Q 27 74 31 70 Q 34 64 30 57Z" fill="#C88048" />
+      <path d="M 27.5 58.5 Q 25 63 26.5 68 Q 28.5 70.5 30 68 Q 31 64 29 58.5Z" fill="#A86030" />
+      <path d="M 74 57 Q 78 62 76 69 Q 73 74 69 70 Q 66 64 70 57Z" fill="#C88048" />
+      <path d="M 72.5 58.5 Q 75 63 73.5 68 Q 71.5 70.5 70 68 Q 69 64 71 58.5Z" fill="#A86030" />
 
-      {/* ── GHUTRA / KEFFIYEH ── */}
-      {/* Inner white layer — forehead band */}
-      <path
-        d="M 27 57 Q 27 36 50 31 Q 73 36 73 57
-           Q 66 46 50 43 Q 34 46 27 57Z"
-        fill="#F8F3EE"
-      />
-      {/* White inner top cap */}
-      <path
-        d="M 30 50 Q 32 32 50 28 Q 68 32 70 50
-           Q 63 40 50 38 Q 37 40 30 50Z"
-        fill="#F0EAE0"
-      />
+      {/* ══════════════════════════════════════
+          KUMA CAP — the signature Omani element
+          ══════════════════════════════════════ */}
 
-      {/* Main outer ghutra — checkered */}
+      {/* Cap dome */}
       <path
-        d="M 26 57 Q 25 28 50 23 Q 75 28 74 57
-           Q 67 43 50 40 Q 33 43 26 57Z"
-        fill="url(#rc-ghutra)"
+        d="M 27 53 Q 26 28 50 23 Q 74 28 73 53
+           Q 64 42 50 40 Q 36 42 27 53Z"
+        fill="url(#rc-kuma)"
+      />
+      {/* Cap base band */}
+      <path
+        d="M 27 53 Q 36 44 50 42 Q 64 44 73 53
+           Q 64 50 50 49 Q 36 50 27 53Z"
+        fill="#0C3020"
       />
 
-      {/* Left drape going down shoulder (distinctive ghutra style) */}
-      <path
-        d="M 26 57 Q 20 64 17 78 Q 15 90 18 100
-           Q 24 88 28 74 Q 30 64 26 57Z"
-        fill="url(#rc-ghutra2)"
-      />
-      {/* Left drape fold edge */}
-      <path
-        d="M 26 57 Q 20 64 17 78 Q 15 90 18 100"
-        fill="none" stroke="#D8CECE" strokeWidth="0.8" opacity="0.6"
-      />
+      {/* ── KUMA EMBROIDERY (gold geometric) ── */}
 
-      {/* Right shorter drape */}
+      {/* Central 8-pointed star */}
       <path
-        d="M 74 57 Q 80 63 82 74 Q 80 76 76 72 Q 75 65 74 57Z"
-        fill="url(#rc-ghutra2)"
+        d="M50,27 L50.96,29.69 L53.54,28.46 L52.31,31.04
+           L55,32 L52.31,32.96 L53.54,35.54 L50.96,34.31
+           L50,37 L49.04,34.31 L46.46,35.54 L47.69,32.96
+           L45,32 L47.69,31.04 L46.46,28.46 L49.04,29.69Z"
+        fill="#D4AF37"
       />
+      <circle cx="50" cy="32" r="2" fill="#F0CC50" />
+      <circle cx="50" cy="32" r="0.9" fill="#FFEAA0" />
 
-      {/* Ghutra fold crease (where cloth wraps over) */}
+      {/* Diamond lattice band (left side) */}
+      <path d="M 34 43 L 37 40.5 L 40 43 L 37 45.5Z" fill="#D4AF37" opacity="0.9" />
+      <path d="M 34 43 L 37 40.5 L 40 43 L 37 45.5Z" fill="none" stroke="#F0CC50" strokeWidth="0.4" />
+      <circle cx="37" cy="43" r="0.7" fill="#FFEAA0" />
+
+      <path d="M 41 41.5 L 44 39 L 47 41.5 L 44 44Z" fill="#D4AF37" opacity="0.9" />
+      <circle cx="44" cy="41.5" r="0.7" fill="#FFEAA0" />
+
+      <path d="M 53 41.5 L 56 39 L 59 41.5 L 56 44Z" fill="#D4AF37" opacity="0.9" />
+      <circle cx="56" cy="41.5" r="0.7" fill="#FFEAA0" />
+
+      <path d="M 60 43 L 63 40.5 L 66 43 L 63 45.5Z" fill="#D4AF37" opacity="0.9" />
+      <path d="M 60 43 L 63 40.5 L 66 43 L 63 45.5Z" fill="none" stroke="#F0CC50" strokeWidth="0.4" />
+      <circle cx="63" cy="43" r="0.7" fill="#FFEAA0" />
+
+      {/* Small corner accent dots */}
+      <circle cx="30" cy="46" r="1.1" fill="#D4AF37" opacity="0.75" />
+      <circle cx="70" cy="46" r="1.1" fill="#D4AF37" opacity="0.75" />
+      <circle cx="50" cy="42" r="1.1" fill="#D4AF37" opacity="0.75" />
+
+      {/* Gold trim ring at base of cap */}
       <path
-        d="M 27 57 Q 34 47 50 44 Q 66 47 73 57"
-        fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity="0.7"
+        d="M 28 52 Q 36 46 50 44.5 Q 64 46 72 52"
+        fill="none" stroke="#D4AF37" strokeWidth="1.6" strokeLinecap="round"
       />
       <path
-        d="M 27 57 Q 34 47 50 44 Q 66 47 73 57"
-        fill="none" stroke="#D0C0C0" strokeWidth="0.6" strokeLinecap="round" opacity="0.5"
-      />
-      {/* Second fold line */}
-      <path
-        d="M 28 53 Q 35 44 50 41 Q 65 44 72 53"
-        fill="none" stroke="white" strokeWidth="1" strokeLinecap="round" opacity="0.4"
+        d="M 27.5 53.5 Q 36 47.5 50 46 Q 64 47.5 72.5 53.5"
+        fill="none" stroke="#A88820" strokeWidth="0.7" strokeLinecap="round" opacity="0.6"
       />
 
       {/* ── FACE FEATURES ── */}
 
-      {/* Eyebrows — clean, confident arches */}
+      {/* Eyebrows — confident, clean arch */}
       <path
-        d="M 31 52 Q 38 48.5 45 51"
-        fill="none" stroke="#1E1008" strokeWidth="2.4" strokeLinecap="round"
+        d="M 31.5 51 Q 38 47.5 44.5 50"
+        fill="none" stroke="#1E1008" strokeWidth="2.5" strokeLinecap="round"
       />
       <path
-        d="M 55 51 Q 62 48.5 69 52"
-        fill="none" stroke="#1E1008" strokeWidth="2.4" strokeLinecap="round"
+        d="M 55.5 50 Q 62 47.5 68.5 51"
+        fill="none" stroke="#1E1008" strokeWidth="2.5" strokeLinecap="round"
+      />
+      {/* Eyebrow depth */}
+      <path
+        d="M 31.5 51 Q 38 48 44.5 50.5"
+        fill="none" stroke="#4A2C10" strokeWidth="1" strokeLinecap="round" opacity="0.4"
       />
 
-      {/* Left eye — large, expressive, cartoon style */}
-      <ellipse cx="38" cy="59" rx="6.8" ry="5.2" fill="white" />
-      <ellipse cx="38" cy="59.5" rx="4.8" ry="4.5" fill="#2C1408" />
-      <ellipse cx="38" cy="59.5" rx="3.4" ry="3.4" fill="#0C0400" />
-      {/* Large shine */}
-      <circle cx="40" cy="57.5" r="2.2" fill="white" opacity="0.95" />
+      {/* Left eye */}
+      <ellipse cx="38" cy="59" rx="6.5" ry="5" fill="white" />
+      {/* Iris */}
+      <ellipse cx="38" cy="59.4" rx="4.5" ry="4.3" fill="url(#rc-iris-l)" />
+      {/* Pupil */}
+      <ellipse cx="38" cy="59.4" rx="2.8" ry="2.8" fill="#0C0400" />
+      {/* Main shine — large */}
+      <ellipse cx="40" cy="57.5" rx="2" ry="1.7" fill="white" opacity="0.95" />
       {/* Small secondary shine */}
-      <circle cx="36.5" cy="61" r="0.9" fill="white" opacity="0.55" />
-      {/* Eyelid line */}
-      <path d="M 31 57 Q 38 53 45 57" fill="none" stroke="#1E1008" strokeWidth="1.2" opacity="0.75" />
-      {/* Lower lid subtle */}
-      <path d="M 31.5 61.5 Q 38 64.5 44.5 61.5" fill="none" stroke="#2C1408" strokeWidth="0.6" opacity="0.3" />
-      {/* Eyelashes top */}
-      <path d="M 31.5 57.2 L 30.5 55.8" stroke="#1E1008" strokeWidth="0.8" strokeLinecap="round" />
-      <path d="M 44.5 57.2 L 45.5 55.8" stroke="#1E1008" strokeWidth="0.8" strokeLinecap="round" />
+      <circle cx="36.2" cy="61" r="0.85" fill="white" opacity="0.5" />
+      {/* Upper eyelid */}
+      <path d="M 31.5 57 Q 38 52.5 44.5 57" fill="none" stroke="#1A0C06" strokeWidth="1.3" opacity="0.8" />
+      {/* Lower lash */}
+      <path d="M 32 61.5 Q 38 64 44 61.5" fill="none" stroke="#2C1408" strokeWidth="0.6" opacity="0.25" />
 
       {/* Right eye */}
-      <ellipse cx="62" cy="59" rx="6.8" ry="5.2" fill="white" />
-      <ellipse cx="62" cy="59.5" rx="4.8" ry="4.5" fill="#2C1408" />
-      <ellipse cx="62" cy="59.5" rx="3.4" ry="3.4" fill="#0C0400" />
-      <circle cx="64" cy="57.5" r="2.2" fill="white" opacity="0.95" />
-      <circle cx="60.5" cy="61" r="0.9" fill="white" opacity="0.55" />
-      <path d="M 55 57 Q 62 53 69 57" fill="none" stroke="#1E1008" strokeWidth="1.2" opacity="0.75" />
-      <path d="M 55.5 61.5 Q 62 64.5 68.5 61.5" fill="none" stroke="#2C1408" strokeWidth="0.6" opacity="0.3" />
-      <path d="M 55.5 57.2 L 54.5 55.8" stroke="#1E1008" strokeWidth="0.8" strokeLinecap="round" />
-      <path d="M 68.5 57.2 L 69.5 55.8" stroke="#1E1008" strokeWidth="0.8" strokeLinecap="round" />
+      <ellipse cx="62" cy="59" rx="6.5" ry="5" fill="white" />
+      <ellipse cx="62" cy="59.4" rx="4.5" ry="4.3" fill="url(#rc-iris-r)" />
+      <ellipse cx="62" cy="59.4" rx="2.8" ry="2.8" fill="#0C0400" />
+      <ellipse cx="64" cy="57.5" rx="2" ry="1.7" fill="white" opacity="0.95" />
+      <circle cx="60.2" cy="61" r="0.85" fill="white" opacity="0.5" />
+      <path d="M 55.5 57 Q 62 52.5 68.5 57" fill="none" stroke="#1A0C06" strokeWidth="1.3" opacity="0.8" />
+      <path d="M 56 61.5 Q 62 64 68 61.5" fill="none" stroke="#2C1408" strokeWidth="0.6" opacity="0.25" />
 
-      {/* Nose — simple, stylized */}
+      {/* Nose — refined, natural */}
       <path
-        d="M 50 65 Q 48 70.5 47 72.5 Q 49 73.5 50 73.2 Q 51 73.5 53 72.5 Q 52 70.5 50 65Z"
-        fill="none" stroke="#B06830" strokeWidth="0.9" opacity="0.55"
+        d="M 50 65 Q 48 70 47 72.5 Q 49 73.8 50 73.5 Q 51 73.8 53 72.5 Q 52 70 50 65Z"
+        fill="none" stroke="#A86030" strokeWidth="0.9" strokeLinecap="round" opacity="0.55"
       />
-      <ellipse cx="47" cy="72" rx="2.8" ry="2" fill="#B06830" opacity="0.28" />
-      <ellipse cx="53" cy="72" rx="2.8" ry="2" fill="#B06830" opacity="0.28" />
+      <ellipse cx="47" cy="72" rx="2.6" ry="1.9" fill="#B07038" opacity="0.28" />
+      <ellipse cx="53" cy="72" rx="2.6" ry="1.9" fill="#B07038" opacity="0.28" />
 
-      {/* ── BIG CHEERFUL SMILE ── */}
-      {/* Mouth cavity */}
-      <path d="M 40.5 77.5 Q 50 87 59.5 77.5 Q 55 84 50 84.5 Q 45 84 40.5 77.5Z" fill="#7A2010" />
+      {/* ── WARM, CONFIDENT SMILE ── */}
+      {/* Mouth shadow */}
+      <path
+        d="M 41.5 77 Q 50 83 58.5 77 Q 54.5 81 50 81.5 Q 45.5 81 41.5 77Z"
+        fill="#7A2A12"
+      />
       {/* Teeth */}
-      <path d="M 41.5 78.5 Q 50 83.5 58.5 78.5 Q 55 81 50 81.5 Q 45 81 41.5 78.5Z" fill="white" />
-      {/* Tooth divider */}
-      <line x1="50" y1="78.5" x2="50" y2="81.5" stroke="#E8E0D8" strokeWidth="0.5" />
+      <path
+        d="M 42.5 77.8 Q 50 82 57.5 77.8 Q 54 80.5 50 81 Q 46 80.5 42.5 77.8Z"
+        fill="#FAFAF8"
+      />
+      {/* Tooth line */}
+      <line x1="50" y1="77.8" x2="50" y2="81" stroke="#E4DED8" strokeWidth="0.5" />
       {/* Upper lip */}
       <path
-        d="M 40.5 77.5 Q 45 75 50 76 Q 55 75 59.5 77.5 Q 55.5 76.5 50 77 Q 44.5 76.5 40.5 77.5Z"
+        d="M 41.5 77 Q 45.5 74.8 50 75.8 Q 54.5 74.8 58.5 77
+           Q 55 76 50 76.5 Q 45 76 41.5 77Z"
         fill="#A84030"
       />
-      {/* Smile crease dimples */}
-      <circle cx="39" cy="77" r="1.8" fill="#C07840" opacity="0.35" />
-      <circle cx="61" cy="77" r="1.8" fill="#C07840" opacity="0.35" />
+      {/* Lower lip highlight */}
+      <path
+        d="M 43.5 78.5 Q 50 81 56.5 78.5 Q 53 80.5 50 81 Q 47 80.5 43.5 78.5Z"
+        fill="#C86050" opacity="0.3"
+      />
+      {/* Dimples */}
+      <circle cx="39.5" cy="77.5" r="2" fill="#C07840" opacity="0.3" />
+      <circle cx="60.5" cy="77.5" r="2" fill="#C07840" opacity="0.3" />
 
-      {/* ── CHEEK GLOW (cartoon warmth) ── */}
-      <ellipse cx="34.5" cy="70" rx="7" ry="5" fill="#E86050" opacity="0.18" />
-      <ellipse cx="65.5" cy="70" rx="7" ry="5" fill="#E86050" opacity="0.18" />
+      {/* Cheek warmth */}
+      <ellipse cx="33" cy="69" rx="7.5" ry="5.5" fill="#E06040" opacity="0.14" />
+      <ellipse cx="67" cy="69" rx="7.5" ry="5.5" fill="#E06040" opacity="0.14" />
 
-      {/* Chin definition (clean-shaven) */}
-      <path d="M 38 82 Q 50 86 62 82 Q 55 85 50 85.5 Q 45 85 38 82Z" fill="#C07A48" opacity="0.3" />
+      {/* Chin shadow */}
+      <path
+        d="M 39 82 Q 50 87 61 82 Q 55 85.5 50 86 Q 45 85.5 39 82Z"
+        fill="#B07840" opacity="0.28"
+      />
     </svg>
   );
 }
