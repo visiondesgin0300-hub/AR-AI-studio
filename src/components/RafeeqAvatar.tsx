@@ -134,29 +134,22 @@ export function RafeeqAvatar({ className }: RafeeqAvatarProps) {
       <circle  cx="63.8" cy="37.2" r="1"   fill="white" opacity="0.45" />
       <line x1="56" y1="35" x2="76" y2="35" stroke="#00F0FF" strokeWidth="0.5" opacity="0.3" />
 
-      {/* ── CLOSED SMILE — LED arc, no teeth ── */}
-      {/* Glow track behind dots */}
+      {/* ── CLOSED SMILE — smooth glowing arc, no dots ── */}
+      {/* Soft outer glow */}
       <path
-        d="M 31 49 Q 50 60 69 49"
-        fill="none" stroke="#005A70" strokeWidth="4" strokeLinecap="round"
+        d="M 33 49 Q 50 61 67 49"
+        fill="none" stroke="#00D8FF" strokeWidth="5.5" strokeLinecap="round" opacity="0.18"
       />
-      {/* Bright arc */}
+      {/* Mid glow */}
       <path
-        d="M 31 49 Q 50 60 69 49"
-        fill="none" stroke="#00D8FF" strokeWidth="2.2" strokeLinecap="round"
+        d="M 33 49 Q 50 61 67 49"
+        fill="none" stroke="#00D8FF" strokeWidth="3.5" strokeLinecap="round" opacity="0.35"
       />
-      {/* LED dot nodes */}
-      <circle cx="31" cy="49"   r="2.4" fill="#00D8FF" />
-      <circle cx="38" cy="53.8" r="2.4" fill="#00D8FF" />
-      <circle cx="44" cy="57"   r="2.4" fill="#00D8FF" />
-      <circle cx="50" cy="58.2" r="2.4" fill="#00D8FF" />
-      <circle cx="56" cy="57"   r="2.4" fill="#00D8FF" />
-      <circle cx="62" cy="53.8" r="2.4" fill="#00D8FF" />
-      <circle cx="69" cy="49"   r="2.4" fill="#00D8FF" />
-      {/* Inner shine on dots */}
-      <circle cx="31" cy="49"   r="1"   fill="white" opacity="0.65" />
-      <circle cx="50" cy="58.2" r="1"   fill="white" opacity="0.65" />
-      <circle cx="69" cy="49"   r="1"   fill="white" opacity="0.65" />
+      {/* Bright core line */}
+      <path
+        d="M 33 49 Q 50 61 67 49"
+        fill="none" stroke="#00F0FF" strokeWidth="2" strokeLinecap="round"
+      />
     </svg>
   );
 }
