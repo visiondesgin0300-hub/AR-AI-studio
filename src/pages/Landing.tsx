@@ -55,7 +55,7 @@ export function Landing() {
       <main className="relative z-10 flex flex-col items-center justify-center px-6 py-16 min-h-[calc(100vh-96px)]">
         {/* Hero: two-column on md+, stacked on mobile */}
         <div className={cn(
-          "max-w-5xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16 mb-16",
+          "max-w-5xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16",
           dir === 'rtl' ? 'md:flex-row-reverse' : ''
         )}>
           {/* Left/RTL-right: text + buttons */}
@@ -99,9 +99,16 @@ export function Landing() {
             className="flex flex-col items-center gap-4 shrink-0"
           >
             {/* Speech bubble */}
-            <div className="relative bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/10 rounded-2xl px-5 py-3 shadow-md max-w-[200px] text-center">
-              <p className="text-sm font-black text-primary dark:text-white leading-snug">
-                {language === 'ar' ? 'مرحباً! أنا رفيق، دليلك في المكتبة' : "Hi! I'm Rafeeq, your library guide"}
+            <div className="relative bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/10 rounded-2xl px-5 py-4 shadow-md max-w-[220px] text-center">
+              <p className="text-sm font-black text-primary dark:text-white leading-snug mb-2">
+                {language === 'ar'
+                  ? 'مرحباً! أنا رفيق، دليلك في ARLibrary'
+                  : "Hi! I'm Rafeeq, your ARLibrary guide"}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
+                {language === 'ar'
+                  ? 'اضغط تسجيل الدخول واستكشف عالم المكتبة الذكية!'
+                  : 'Press Login & explore the smart AR library!'}
               </p>
               {/* Tail */}
               <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-5 h-5 bg-white dark:bg-slate-800 border-b border-r border-slate-200/60 dark:border-white/10 rotate-45" />
@@ -125,29 +132,6 @@ export function Landing() {
           </motion.div>
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="grid grid-cols-3 gap-4 md:gap-6 max-w-xl w-full"
-        >
-          {[
-            { icon: Search, label: t('searchTitle'), desc: language === 'ar' ? 'فهرس ذكي لكل الكتب' : 'Smart catalog search' },
-            { icon: MapIcon, label: t('mapTitle'), desc: language === 'ar' ? 'ملاحة دقيقة للأرفف' : 'Precise shelf wayfinding' },
-            { icon: Camera, label: t('arHubFabLabel'), desc: language === 'ar' ? 'كاميرا تدلك على الطريق' : 'Camera-guided navigation' },
-          ].map((feature, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-slate-900 border border-slate-150/60 dark:border-white/5 rounded-2xl p-4 md:p-5 flex flex-col items-center text-center gap-2 shadow-sm shadow-black/[0.03]"
-            >
-              <div className="w-10 h-10 rounded-xl bg-primary/5 dark:bg-accent/10 text-primary dark:text-accent flex items-center justify-center">
-                <feature.icon className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-black text-primary dark:text-white">{feature.label}</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed hidden sm:block">{feature.desc}</span>
-            </div>
-          ))}
-        </motion.div>
       </main>
 
       <footer className="relative z-10 px-8 pb-8">
