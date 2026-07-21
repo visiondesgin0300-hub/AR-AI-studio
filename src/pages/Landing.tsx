@@ -30,11 +30,11 @@ export function Landing() {
 
       <header className="relative z-10 px-8 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className={cn("flex items-center gap-3", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-              <Brain className="text-accent w-5 h-5" />
+          <div className={cn("flex items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/25 shrink-0">
+              <Brain className="text-accent w-8 h-8" />
             </div>
-            <div className="font-display text-lg font-bold text-primary dark:text-white tracking-tight leading-tight">
+            <div className="font-display text-3xl font-bold text-primary dark:text-white tracking-tight leading-tight">
               {language === 'ar' ? 'المكتبة المعززة' : 'ARLibrary'}
             </div>
             <span className="px-2.5 py-1 rounded-lg bg-accent/15 text-accent text-[9px] font-black uppercase tracking-widest">
