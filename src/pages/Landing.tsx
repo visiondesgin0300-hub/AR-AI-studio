@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Globe, HelpCircle, ArrowRight, ArrowLeft, X, Search, BookOpen, Map as MapIcon, Camera } from 'lucide-react';
+import { Brain, Globe, HelpCircle, ArrowRight, ArrowLeft, X, Search, BookOpen, Map as MapIcon, Camera, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
@@ -81,13 +81,6 @@ export function Landing() {
                 {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
                 {dir === 'rtl' ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
               </button>
-              <button
-                onClick={() => setShowGuide(true)}
-                className="flex items-center gap-2.5 bg-accent text-primary px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all"
-              >
-                <HelpCircle className="w-5 h-5" />
-                {language === 'ar' ? 'دليل الاستخدام' : 'User Guide'}
-              </button>
             </div>
           </motion.div>
 
@@ -126,9 +119,13 @@ export function Landing() {
               <RafeeqAvatar className="w-full h-full drop-shadow-xl" />
             </motion.button>
 
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              {language === 'ar' ? 'رفيق' : 'Rafeeq'}
-            </span>
+            <button
+              onClick={() => navigate('/login')}
+              className="flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-2xl text-xs font-black shadow-md shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
+            </button>
           </motion.div>
         </div>
 
