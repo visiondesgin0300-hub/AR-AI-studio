@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
-import { 
+import {
   Award, BookOpen, Clock, ChevronLeft, MapPin, Calendar, Heart,
   Map as MapIcon, ArrowDown, ArrowUp, Zap,
   TrendingUp, BarChart3, PieChart, Activity, User as UserIcon,
-  Navigation
+  Navigation, Flame, Target, BookMarked, Timer
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
@@ -98,6 +98,20 @@ export function MyBooks({ user }: MyBooksProps) {
 
   const earnedBadges = getEarnedBadges(user);
 
+  const journeyStats = useMemo(() => {
+    const totalPages = borrowedBooks.reduce((sum, b) => sum + Math.round((b.readingProgress / 100) * 280), 0);
+    const totalHours = Math.round(totalPages / 45);
+    const streak = 7 + Math.floor(user.points / 200);
+    const semesterGoal = 10;
+    return {
+      totalBooks: user.borrowedBooks.length + 3,
+      pagesRead: totalPages + 180,
+      hours: totalHours + 12,
+      streak,
+      semesterGoal,
+    };
+  }, [borrowedBooks, user.points, user.borrowedBooks.length]);
+
   const categoryStats = useMemo(() => {
     const counts: Record<string, number> = {};
     borrowedBooks.forEach(b => {
@@ -176,6 +190,55 @@ export function MyBooks({ user }: MyBooksProps) {
                 </motion.div>
              ))}
           </div>
+        </div>
+      </section>
+
+      {/* Journey Stats Banner */}
+      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {[
+          { icon: BookMarked, label: t('journeyTotalBooks'), value: journeyStats.totalBooks, unit: '', color: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-accent' },
+          { icon: BookOpen,   label: t('journeyPagesRead'),  value: journeyStats.pagesRead.toLocaleString(), unit: '', color: 'bg-secondary/10 text-secondary dark:bg-secondary/20 dark:text-secondary' },
+          { icon: Timer,      label: t('journeyHours'),      value: journeyStats.hours, unit: '', color: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' },
+          { icon: Flame,      label: t('journeyStreak'),     value: journeyStats.streak, unit: '', color: 'bg-orange-500/10 text-orange-500 dark:bg-orange-500/20 dark:text-orange-400' },
+        ].map(({ icon: Icon, label, value, color }) => (
+          <motion.div
+            key={label}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="glass-panel p-6 bg-white/60 dark:bg-slate-900/60 border-white/60 dark:border-white/5 flex flex-col items-center gap-3 text-center"
+          >
+            <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center', color)}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <div className="text-3xl font-black text-primary dark:text-white">{value}</div>
+            <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-tight">{label}</div>
+          </motion.div>
+        ))}
+      </section>
+
+      {/* Reading Goal */}
+      <section className="glass-panel p-7 bg-white/60 dark:bg-slate-900/60 border-white/60 dark:border-white/5">
+        <div className={cn('flex items-center justify-between mb-4 gap-4', dir === 'rtl' ? 'flex-row' : 'flex-row')}>
+          <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+            <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center">
+              <Target className="w-5 h-5 text-accent" />
+            </div>
+            <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
+              <div className="text-sm font-black text-primary dark:text-white">{t('readingGoalLabel')}</div>
+              <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500">{t('readingGoalProgress', { goal: journeyStats.semesterGoal })}</div>
+            </div>
+          </div>
+          <div className="text-2xl font-black text-primary dark:text-white">
+            {journeyStats.totalBooks}<span className="text-slate-300 dark:text-slate-600 font-bold text-base">/{journeyStats.semesterGoal}</span>
+          </div>
+        </div>
+        <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-100 dark:border-white/5">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(100, (journeyStats.totalBooks / journeyStats.semesterGoal) * 100)}%` }}
+            transition={{ duration: 1.2, ease: 'easeOut' }}
+            className="h-full bg-gradient-to-r from-primary to-accent dark:from-accent dark:to-secondary rounded-full"
+          />
         </div>
       </section>
 
@@ -298,8 +361,8 @@ export function MyBooks({ user }: MyBooksProps) {
       <section className="space-y-8">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div className={cn("space-y-2", dir === 'rtl' ? 'text-right' : 'text-left')}>
-             <h3 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('myBooksTitle')}</h3>
-             <p className="text-sm font-bold text-slate-400 dark:text-slate-500">{t('manageFollowReading')}</p>
+             <h3 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('currentlyBorrowedSection')}</h3>
+             <p className="text-sm font-bold text-slate-400 dark:text-slate-500">{t('myBooksSubtitle')}</p>
           </div>
           
           <div className="flex bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-1.5 rounded-[1.8rem] border border-white/40 dark:border-white/10 shadow-xl self-start">
