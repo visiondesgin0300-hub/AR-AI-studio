@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles, Cpu } from 'lucide-react';
+import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -297,12 +298,12 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         whileTap={{ scale: 0.92 }}
         title={t('askLibrarianLabel')}
         className={cn(
-          "fixed z-40 bottom-44 lg:bottom-28 w-14 h-14 flex items-center justify-center rounded-full bg-primary dark:bg-slate-800 text-white border-2 border-white/20 dark:border-white/10 shadow-[0_15px_40px_rgba(0,76,109,0.45)]",
+          "fixed z-40 bottom-44 lg:bottom-28 w-14 h-14 flex items-end justify-center rounded-full bg-primary dark:bg-slate-800 border-2 border-white/20 dark:border-white/10 shadow-[0_15px_40px_rgba(0,76,109,0.45)] overflow-hidden",
           dir === 'rtl' ? 'left-5 lg:left-10' : 'right-5 lg:right-10'
         )}
       >
-        <MessageCircle className="w-6 h-6" />
-        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-accent border-2 border-white dark:border-slate-900" />
+        <RafeeqAvatar className="w-full h-full scale-110" />
+        <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-accent border-2 border-white dark:border-slate-900" />
       </motion.button>
 
       <div className="flex-1 flex flex-col min-w-0 relative h-full">
