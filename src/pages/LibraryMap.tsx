@@ -8,6 +8,8 @@ import { useLanguage } from '../hooks/useLanguage';
 import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
 import { BookCover } from '../components/BookCover';
 import { RafeeqAvatar } from '../components/RafeeqAvatar';
+import { Shelf3DView } from '../components/Shelf3DView';
+import { UnityMap3D } from '../components/UnityMap3D';
 
 interface ManualTarget {
   id: string;
@@ -36,6 +38,7 @@ export function LibraryMap() {
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [rafeeqDismissed, setRafeeqDismissed] = useState(false);
   const [map3D, setMap3D] = useState(false);
+  const [mapMode, setMapMode] = useState<'flat' | 'unity'>('flat');
 
   const [sidebarSearch, setSidebarSearch] = useState('');
 
@@ -254,20 +257,33 @@ export function LibraryMap() {
                 exit={{ opacity: 0 }}
                 className="relative z-10 w-full h-full p-12 flex flex-col"
               >
-                  {/* 3D toggle */}
-                  <button
-                    onClick={() => setMap3D(v => !v)}
-                    className={cn(
-                      "absolute top-5 z-40 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                      dir === 'rtl' ? 'left-5' : 'right-5',
-                      map3D
-                        ? "bg-primary text-accent shadow-lg shadow-primary/20"
-                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
-                    )}
-                  >
-                    <Layers className="w-3 h-3" />
-                    3D
-                  </button>
+                  {/* Map mode toggle */}
+                  <div className={cn("absolute top-5 z-40 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1", dir === 'rtl' ? 'left-5' : 'right-5')}>
+                    <button
+                      onClick={() => setMapMode('flat')}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        mapMode === 'flat'
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      )}
+                    >
+                      <Layers className="w-3 h-3" />
+                      2D
+                    </button>
+                    <button
+                      onClick={() => setMapMode('unity')}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        mapMode === 'unity'
+                          ? "bg-primary text-accent shadow-sm"
+                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      )}
+                    >
+                      <Box className="w-3 h-3" />
+                      Unity 3D
+                    </button>
+                  </div>
 
                   {/* Rafeeq floating guide */}
                   <AnimatePresence>
@@ -325,14 +341,21 @@ export function LibraryMap() {
                     </button>
                   )}
 
-                  <div
-                    className="flex-1 transition-all duration-500"
-                    style={map3D ? { perspective: '800px', perspectiveOrigin: '50% 100%' } : undefined}
-                  >
-                  <div
-                    className="grid grid-cols-2 md:grid-cols-4 gap-8 h-full transition-all duration-500"
-                    style={map3D ? { transform: 'rotateX(28deg)', transformOrigin: 'bottom center' } : undefined}
-                  >
+                  {/* Unity 3D mode */}
+                  {mapMode === 'unity' && (
+                    <div className="flex-1 relative overflow-hidden rounded-2xl bg-[#01202e]">
+                      <UnityMap3D
+                        destinationShelfId={destinationShelfId}
+                        onSelectShelf={navigateToCell}
+                        language={language}
+                      />
+                    </div>
+                  )}
+
+                  {/* Flat / 2D mode */}
+                  {mapMode === 'flat' && (
+                  <div className="flex-1">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 h-full">
                     {cells.map((cell) => {
                       const section = sections.find(s => s.id === cell.section);
                       const isDestination = destinationShelfId === cell.id;
@@ -390,10 +413,11 @@ export function LibraryMap() {
                       );
                     })}
                   </div>
-
                   </div>
+                  )} {/* end flat mode */}
 
-                  {/* Enhanced Entrance Visual */}
+                  {/* Enhanced Entrance Visual (flat mode only) */}
+                  {mapMode === 'flat' && (<div><div>
                   <div className="mt-16 relative flex justify-center">
                      <div className="absolute bottom-full mb-8 h-20 w-px bg-gradient-to-t from-slate-200 dark:from-white/10 to-transparent" />
                      <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 px-12 py-4 rounded-full text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-[0.4em] shadow-inner text-center">
@@ -484,6 +508,7 @@ export function LibraryMap() {
                       {language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}
                     </button>
                   )}
+                  </div></div>)} {/* end flat entrance + path wrapper */}
               </motion.div>
             ) : (
               <motion.div
@@ -494,28 +519,15 @@ export function LibraryMap() {
               >
                 {destinationShelfId ? (
                   <>
-                    {/* Bookshelf aisle silhouette - stacked "book spine" bars
-                        resting on a wooden plank line along both edges, so
-                        the dark screen reads as a real library aisle lined
-                        with shelved books instead of an empty black void. */}
-                    <svg className="absolute inset-0 w-full h-full opacity-40 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
-                      {SHELF_SILHOUETTE_ROWS.map((rowY, rowIdx) => (
-                        <g key={rowY}>
-                          {SHELF_SPINE_WIDTHS.map((w, i) => {
-                            const topOff = AR_BOOK_TOP_OFFSETS[(rowIdx * 3 + i) % AR_BOOK_TOP_OFFSETS.length];
-                            return <rect key={`l-${i}`} x={AR_BOOK_XS[i]} y={rowY + topOff} width={w} height={88 - topOff} rx={2} fill={SHELF_SPINE_COLORS[i % SHELF_SPINE_COLORS.length]} />;
-                          })}
-                          <rect x={0} y={rowY + 88} width={AR_SHELF_PANEL_W} height={8} rx={1.5} fill="#6b4423" />
-                          {SHELF_SPINE_WIDTHS.map((_w, i) => {
-                            const ri = SHELF_SPINE_WIDTHS.length - 1 - i;
-                            const topOff = AR_BOOK_TOP_OFFSETS[(rowIdx * 3 + ri) % AR_BOOK_TOP_OFFSETS.length];
-                            return <rect key={`r-${i}`} x={600 - AR_BOOK_XS[ri] - SHELF_SPINE_WIDTHS[ri]} y={rowY + topOff} width={SHELF_SPINE_WIDTHS[ri]} height={88 - topOff} rx={2} fill={SHELF_SPINE_COLORS[(ri + 2) % SHELF_SPINE_COLORS.length]} />;
-                          })}
-                          <rect x={600 - AR_SHELF_PANEL_W} y={rowY + 88} width={AR_SHELF_PANEL_W} height={8} rx={1.5} fill="#6b4423" />
-                        </g>
-                      ))}
-                    </svg>
-                    <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
+                    {/* 3D bookshelf view */}
+                    <div className="absolute inset-0 z-10">
+                      <Shelf3DView
+                        targetBook={bookData ?? null}
+                        shelfId={destinationShelfId}
+                        language={language}
+                        dir={dir}
+                      />
+                    </div>
 
                     <div className={cn("absolute top-6 z-20 flex items-center gap-3", dir === 'rtl' ? 'right-6' : 'left-6')}>
                       <button
@@ -558,7 +570,7 @@ export function LibraryMap() {
                       <Camera className="w-4 h-4" />
                     </button>
 
-                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
+                    <svg className="absolute inset-0 w-full h-full z-20 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
                       <defs>
                         <linearGradient id="darkPathGradient" x1="0%" y1="100%" x2="0%" y2="0%">
                           <stop offset="0%" stopColor="#D9B310" stopOpacity="0.2" />
@@ -602,7 +614,7 @@ export function LibraryMap() {
                       />
                     </svg>
 
-                    <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-20 px-10">
+                    <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-30 px-10">
                       <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
                         <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
                         {t('headTowardsShelf', { shelf: destinationShelfId })}
@@ -645,7 +657,7 @@ export function LibraryMap() {
                       )}
                     </div>
 
-                    <div className="relative z-20 mt-auto p-6 space-y-3">
+                    <div className="relative z-30 mt-auto p-6 space-y-3">
                       <div className={cn("bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 shadow-2xl shadow-black/30", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
                         {bookData ? (
                           <BookCover book={bookData} className="w-16 h-[5.25rem] rounded-xl shrink-0 shadow-lg" />
