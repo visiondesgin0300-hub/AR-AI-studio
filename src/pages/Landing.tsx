@@ -4,6 +4,7 @@ import { Brain, Globe, HelpCircle, ArrowRight, ArrowLeft, X, Search, BookOpen, M
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
+import { RafeeqAvatar } from '../components/RafeeqAvatar';
 
 export function Landing() {
   const { dir, language, toggleLanguage, t } = useLanguage();
@@ -51,59 +52,84 @@ export function Landing() {
         </div>
       </header>
 
-      <main className="relative z-10 flex flex-col items-center justify-center text-center px-6 py-24 min-h-[calc(100vh-96px)]">
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="font-display max-w-4xl text-4xl md:text-6xl font-bold text-primary dark:text-white tracking-tight leading-[1.15] mb-6"
-        >
-          {language === 'ar'
-            ? 'تصفح المعرفة الأكاديمية مع المكتبة المعززة'
-            : 'Navigate Academic Knowledge with ARLibrary'}
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="max-w-2xl text-base md:text-lg text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-12"
-        >
-          {language === 'ar' ? 'مرحباً بك في المكتبة المعززة' : 'Welcome to the AR Library'}
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className={cn("flex flex-wrap items-center justify-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
-        >
-          <button
-            onClick={() => navigate('/login')}
-            className="flex items-center gap-2.5 bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+      <main className="relative z-10 flex flex-col items-center justify-center px-6 py-16 min-h-[calc(100vh-96px)]">
+        {/* Hero: two-column on md+, stacked on mobile */}
+        <div className={cn(
+          "max-w-5xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16 mb-16",
+          dir === 'rtl' ? 'md:flex-row-reverse' : ''
+        )}>
+          {/* Left/RTL-right: text + buttons */}
+          <motion.div
+            initial={{ opacity: 0, x: dir === 'rtl' ? 20 : -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className={cn("flex-1 flex flex-col", dir === 'rtl' ? 'items-end text-right' : 'items-start text-left')}
           >
-            {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
-            {dir === 'rtl' ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
-          </button>
+            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary dark:text-white tracking-tight leading-[1.15] mb-5">
+              {language === 'ar'
+                ? 'تصفح المعرفة الأكاديمية مع المكتبة المعززة'
+                : 'Navigate Academic Knowledge with ARLibrary'}
+            </h1>
+            <p className="max-w-lg text-base md:text-lg text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-10">
+              {language === 'ar' ? 'مرحباً بك في المكتبة المعززة' : 'Welcome to the AR Library'}
+            </p>
+            <div className={cn("flex flex-wrap gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-2.5 bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+              >
+                {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
+                {dir === 'rtl' ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => setShowGuide(true)}
+                className="flex items-center gap-2.5 bg-accent text-primary px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all"
+              >
+                <HelpCircle className="w-5 h-5" />
+                {language === 'ar' ? 'دليل الاستخدام' : 'User Guide'}
+              </button>
+            </div>
+          </motion.div>
 
-          <button
-            onClick={() => setShowGuide(true)}
-            className="flex items-center gap-2.5 bg-accent text-primary px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all"
+          {/* Right/RTL-left: Rafeeq character */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="flex flex-col items-center gap-4 shrink-0"
           >
-            <HelpCircle className="w-5 h-5" />
-            {language === 'ar' ? 'دليل الاستخدام' : 'User Guide'}
-          </button>
-        </motion.div>
+            {/* Speech bubble */}
+            <div className="relative bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/10 rounded-2xl px-5 py-3 shadow-md max-w-[200px] text-center">
+              <p className="text-sm font-black text-primary dark:text-white leading-snug">
+                {language === 'ar' ? 'مرحباً! أنا رفيق، دليلك في المكتبة' : "Hi! I'm Rafeeq, your library guide"}
+              </p>
+              {/* Tail */}
+              <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-5 h-5 bg-white dark:bg-slate-800 border-b border-r border-slate-200/60 dark:border-white/10 rotate-45" />
+            </div>
 
-        {/* Feature highlights: fills the otherwise empty space below the fold
-            with the app's three core capabilities instead of blank grid
-            background, and gives first-time visitors a preview of what's
-            behind the login wall. */}
+            {/* Character */}
+            <motion.button
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+              whileHover={{ scale: 1.06 }}
+              onClick={() => navigate('/login')}
+              className="w-36 h-36 focus:outline-none cursor-pointer"
+              title={language === 'ar' ? 'تسجيل الدخول' : 'Login'}
+            >
+              <RafeeqAvatar className="w-full h-full drop-shadow-xl" />
+            </motion.button>
+
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+              {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+            </span>
+          </motion.div>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
-          className="grid grid-cols-3 gap-4 md:gap-6 max-w-xl w-full mt-20"
+          className="grid grid-cols-3 gap-4 md:gap-6 max-w-xl w-full"
         >
           {[
             { icon: Search, label: t('searchTitle'), desc: language === 'ar' ? 'فهرس ذكي لكل الكتب' : 'Smart catalog search' },
