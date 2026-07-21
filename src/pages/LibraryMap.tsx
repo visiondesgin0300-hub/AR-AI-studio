@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
 import { BookCover } from '../components/BookCover';
+import { RafeeqAvatar } from '../components/RafeeqAvatar';
 
 interface ManualTarget {
   id: string;
@@ -33,6 +34,8 @@ export function LibraryMap() {
 
   const [activeTab, setActiveTab] = useState<'map' | 'sections'>('map');
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+  const [rafeeqDismissed, setRafeeqDismissed] = useState(false);
+  const [map3D, setMap3D] = useState(false);
 
   const [sidebarSearch, setSidebarSearch] = useState('');
 
@@ -181,6 +184,16 @@ export function LibraryMap() {
   const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
   const hasArrived = showPath && walkProgress >= 1;
+
+  const rafeeqMessage = (() => {
+    if (hasArrived) return { ar: 'وصلت! أحسنت! 🎉', en: 'You made it! Great job! 🎉' };
+    if (showPath && destinationShelfId) return {
+      ar: `أنت على بُعد ${liveDistanceMeters} م — استمر!`,
+      en: `${liveDistanceMeters}m to go — keep going!`,
+    };
+    if (destinationShelfId) return { ar: 'وجدت الرف! اضغط "AR توجيه" لأريك الطريق', en: "Found it! Tap 'AR Guide' for the path" };
+    return { ar: 'اختر رفاً من الخريطة وسأوجّهك! 👋', en: "Pick a shelf and I'll guide you! 👋" };
+  })();
   const liveStepIndex = navigationSteps.length > 0
     ? Math.min(navigationSteps.length - 1, Math.floor(walkProgress * navigationSteps.length))
     : 0;
@@ -241,7 +254,85 @@ export function LibraryMap() {
                 exit={{ opacity: 0 }}
                 className="relative z-10 w-full h-full p-12 flex flex-col"
               >
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 flex-1">
+                  {/* 3D toggle */}
+                  <button
+                    onClick={() => setMap3D(v => !v)}
+                    className={cn(
+                      "absolute top-5 z-40 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                      dir === 'rtl' ? 'left-5' : 'right-5',
+                      map3D
+                        ? "bg-primary text-accent shadow-lg shadow-primary/20"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    )}
+                  >
+                    <Layers className="w-3 h-3" />
+                    3D
+                  </button>
+
+                  {/* Rafeeq floating guide */}
+                  <AnimatePresence>
+                    {!rafeeqDismissed && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className={cn("absolute bottom-24 z-40 flex flex-col items-center gap-1", dir === 'rtl' ? 'right-6' : 'left-6')}
+                      >
+                        {/* Speech bubble */}
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={rafeeqMessage.ar}
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="relative bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/10 rounded-2xl px-4 py-3 shadow-xl max-w-[180px] text-center mb-1"
+                          >
+                            <p className="text-[11px] font-black text-primary dark:text-white leading-snug">
+                              {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
+                            </p>
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-800 border-b border-r border-slate-200/60 dark:border-white/10 rotate-45" />
+                            <button
+                              onClick={() => setRafeeqDismissed(true)}
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-red-400 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </motion.div>
+                        </AnimatePresence>
+
+                        {/* Rafeeq character */}
+                        <motion.div
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                        >
+                          <RafeeqAvatar className="w-20 h-20 drop-shadow-xl" />
+                        </motion.div>
+                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                          {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Restore Rafeeq button when dismissed */}
+                  {rafeeqDismissed && (
+                    <button
+                      onClick={() => setRafeeqDismissed(false)}
+                      className={cn("absolute bottom-24 z-40 w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-lg flex items-center justify-center hover:scale-110 transition-all", dir === 'rtl' ? 'right-6' : 'left-6')}
+                      title={language === 'ar' ? 'أظهر رفيق' : 'Show Rafeeq'}
+                    >
+                      <span className="text-lg">🤖</span>
+                    </button>
+                  )}
+
+                  <div
+                    className="flex-1 transition-all duration-500"
+                    style={map3D ? { perspective: '800px', perspectiveOrigin: '50% 100%' } : undefined}
+                  >
+                  <div
+                    className="grid grid-cols-2 md:grid-cols-4 gap-8 h-full transition-all duration-500"
+                    style={map3D ? { transform: 'rotateX(28deg)', transformOrigin: 'bottom center' } : undefined}
+                  >
                     {cells.map((cell) => {
                       const section = sections.find(s => s.id === cell.section);
                       const isDestination = destinationShelfId === cell.id;
@@ -300,6 +391,8 @@ export function LibraryMap() {
                     })}
                   </div>
 
+                  </div>
+
                   {/* Enhanced Entrance Visual */}
                   <div className="mt-16 relative flex justify-center">
                      <div className="absolute bottom-full mb-8 h-20 w-px bg-gradient-to-t from-slate-200 dark:from-white/10 to-transparent" />
@@ -308,38 +401,75 @@ export function LibraryMap() {
                      </div>
                   </div>
 
-                  {/* Path Visualization SVG */}
+                  {/* Path Visualization SVG — Unity-style */}
                   {showPath && destinationShelfId && (
                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 600 500">
                       <defs>
-                        <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#004C6D" stopOpacity="0" />
-                          <stop offset="50%" stopColor="#D9B310" stopOpacity="0.5" />
+                        <linearGradient id="pathGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                          <stop offset="0%" stopColor="#004C6D" stopOpacity="0.1" />
+                          <stop offset="60%" stopColor="#D9B310" stopOpacity="0.7" />
                           <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
                         </linearGradient>
-                         <filter id="glow">
-                          <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
+                        <filter id="glow">
+                          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                        <filter id="glowStrong">
+                          <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
                           <feMerge>
                             <feMergeNode in="coloredBlur"/>
                             <feMergeNode in="SourceGraphic"/>
                           </feMerge>
                         </filter>
                       </defs>
+                      {/* Glow base */}
+                      <motion.path
+                        d={getPathData()}
+                        stroke="#D9B310"
+                        strokeWidth="20"
+                        strokeDasharray="1"
+                        fill="none"
+                        strokeLinecap="round"
+                        opacity="0.08"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.2, ease: "easeInOut" }}
+                      />
+                      {/* Main path */}
                       <motion.path
                         d={getPathData()}
                         stroke="url(#pathGradient)"
-                        strokeWidth="12"
-                        strokeDasharray="20 15"
+                        strokeWidth="8"
+                        strokeDasharray="18 12"
                         fill="none"
                         strokeLinecap="round"
                         filter="url(#glow)"
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.5, ease: "easeInOut" }}
+                        transition={{ duration: 1.2, ease: "easeInOut" }}
                       />
-                      <motion.circle r="12" fill="#D9B310" stroke="white" strokeWidth="4">
-                        <animateMotion dur="4s" repeatCount="indefinite" path={getPathData()} />
-                      </motion.circle>
+                      {/* Moving arrows along path */}
+                      {[0, 1, 2].map((i) => (
+                        <polygon key={i} points="-6,-9 8,0 -6,9" fill="#D9B310" stroke="white" strokeWidth="1.5" filter="url(#glow)">
+                          <animateMotion dur="2s" begin={`${i * 0.67}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
+                        </polygon>
+                      ))}
+                      {/* Destination pulse */}
+                      <motion.circle
+                        r="18" fill="#D9B310" opacity="0.15" filter="url(#glowStrong)"
+                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
+                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
+                        animate={{ r: [14, 26, 14], opacity: [0.2, 0, 0.2] }}
+                        transition={{ duration: 1.8, repeat: Infinity }}
+                      />
+                      <circle
+                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
+                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
+                        r="10" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#glow)"
+                      />
                     </svg>
                   )}
                   {/* "View AR Guide" nudge when a destination is set */}
@@ -395,6 +525,27 @@ export function LibraryMap() {
                         {t('changeRouteLabel')}
                       </button>
                     </div>
+
+                    {/* Rafeeq mini guide in AR dark view */}
+                    <motion.div
+                      className={cn("absolute bottom-44 z-30 flex flex-col items-center gap-1", dir === 'rtl' ? 'left-4' : 'right-4')}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-3 py-2 max-w-[140px] text-center mb-1 shadow-xl">
+                        <p className="text-[10px] font-black text-white leading-snug">
+                          {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
+                        </p>
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/10 border-b border-r border-white/20 rotate-45" />
+                      </div>
+                      <motion.div
+                        animate={{ y: [0, -4, 0] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <RafeeqAvatar className="w-14 h-14 drop-shadow-2xl" />
+                      </motion.div>
+                    </motion.div>
 
                     {/* Hands off to the real camera-based AR guidance; the
                         dark path here is a simulated preview of that same
