@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layers } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layers, MessageCircle } from 'lucide-react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
@@ -8,6 +8,7 @@ import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
+import { RafeeqAvatar } from '../components/RafeeqAvatar';
 
 interface DashboardProps {
   user: User;
@@ -63,56 +64,103 @@ export function Dashboard({ user }: DashboardProps) {
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
       {/* Hero banner */}
       <div className="space-y-10">
-        <div className="relative overflow-hidden rounded-[2rem] bg-primary p-8 md:p-10 flex flex-col gap-6">
+        <div className="relative overflow-hidden rounded-[2rem] bg-primary p-8 md:p-10 flex flex-col md:flex-row gap-8 items-end">
           {/* Background decoration */}
           <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
 
-          {/* Date row */}
-          <div className="relative">
-            <span className="text-[11px] font-black text-white/50 uppercase tracking-widest">
-              {new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
-            </span>
+          {/* Left: text + stats */}
+          <div className="relative flex-1 flex flex-col gap-6">
+            {/* Date row */}
+            <div>
+              <span className="text-[11px] font-black text-white/50 uppercase tracking-widest">
+                {new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </span>
+            </div>
+
+            {/* Brand + tagline */}
+            <div className="space-y-2">
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none">
+                AR<span className="text-accent">Library</span>
+              </h1>
+              <p className="text-white/50 font-bold text-sm leading-relaxed max-w-sm">
+                {language === 'ar'
+                  ? 'استكشف المكتبة بتقنية الواقع المعزز — ابحث، امسح، اكتشف.'
+                  : 'Explore Library with augmented reality — search, scan, discover.'}
+              </p>
+            </div>
+
+            {/* Stats row */}
+            <div className="flex gap-4">
+              <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+                  <Clock className="w-5 h-5 text-white/70" />
+                </div>
+                <div>
+                  <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t('totalLearningTime')}</div>
+                  <div className="text-xl font-black text-white leading-none mt-0.5">
+                    {language === 'ar' ? '١٤٢' : '142'} <span className="text-[10px] font-bold text-white/40">{t('hoursShort')}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
+                  <span className="text-xl">💡</span>
+                </div>
+                <div>
+                  <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">
+                    {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
+                  </div>
+                  <div className="text-xl font-black text-accent leading-none mt-0.5">
+                    {user.points || 450} <span className="text-[10px] font-bold text-white/40">KP</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Brand + tagline */}
-          <div className="relative space-y-2">
-            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none">
-              AR<span className="text-accent">Library</span>
-            </h1>
-            <p className="text-white/50 font-bold text-sm leading-relaxed max-w-sm">
+          {/* Right: Rafeeq character */}
+          <div className="relative flex flex-col items-center gap-3 shrink-0 md:w-44">
+            {/* Speech bubble */}
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ delay: 0.4, type: 'spring' }}
+              className="relative bg-white/15 backdrop-blur-sm border border-white/25 rounded-2xl rounded-b-sm px-4 py-3 text-white text-[12px] font-bold text-center leading-snug max-w-[160px]"
+            >
               {language === 'ar'
-                ? 'استكشف المكتبة بتقنية الواقع المعزز — ابحث، امسح، اكتشف.'
-                : 'Explore Library with augmented reality — search, scan, discover.'}
-            </p>
-          </div>
+                ? `مرحباً ${user.name.split(' ')[0]}! 👋\nكيف أساعدك اليوم؟`
+                : `Hi ${user.name.split(' ')[0]}! 👋\nHow can I help you?`}
+              {/* Bubble tail */}
+              <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 overflow-hidden">
+                <div className="w-3 h-3 bg-white/15 border-r border-b border-white/25 rotate-45 -translate-y-1.5 mx-auto" />
+              </div>
+            </motion.div>
 
-          {/* Stats row */}
-          <div className="relative flex gap-4">
-            <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                <Clock className="w-5 h-5 text-white/70" />
-              </div>
-              <div>
-                <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t('totalLearningTime')}</div>
-                <div className="text-xl font-black text-white leading-none mt-0.5">
-                  {language === 'ar' ? '١٤٢' : '142'} <span className="text-[10px] font-bold text-white/40">{t('hoursShort')}</span>
-                </div>
-              </div>
-            </div>
-            <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
-                <span className="text-xl">💡</span>
-              </div>
-              <div>
-                <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">
-                  {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
-                </div>
-                <div className="text-xl font-black text-accent leading-none mt-0.5">
-                  {user.points || 450} <span className="text-[10px] font-bold text-white/40">KP</span>
-                </div>
-              </div>
-            </div>
+            {/* Rafeeq avatar */}
+            <motion.button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-rafeeq'))}
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-28 h-28 md:w-36 md:h-36 relative cursor-pointer"
+              title={language === 'ar' ? 'تحدث مع رفيق' : 'Chat with Rafeeq'}
+            >
+              <RafeeqAvatar className="w-full h-full drop-shadow-2xl" />
+            </motion.button>
+
+            {/* Chat CTA button */}
+            <motion.button
+              onClick={() => window.dispatchEvent(new CustomEvent('open-rafeeq'))}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-primary text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 shadow-lg"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              {language === 'ar' ? 'تحدث مع رفيق' : 'Chat with Rafeeq'}
+            </motion.button>
           </div>
         </div>
 

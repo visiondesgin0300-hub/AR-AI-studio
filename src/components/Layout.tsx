@@ -39,6 +39,12 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
     return () => clearTimeout(timer);
   }, [showFabHint]);
 
+  useEffect(() => {
+    const handler = () => setShowLibrarian(true);
+    window.addEventListener('open-rafeeq', handler);
+    return () => window.removeEventListener('open-rafeeq', handler);
+  }, []);
+
   const dismissFabHint = () => {
     localStorage.setItem('ar_fab_seen', '1');
     setShowFabHint(false);
