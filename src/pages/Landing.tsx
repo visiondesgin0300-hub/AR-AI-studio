@@ -73,15 +73,6 @@ export function Landing() {
             <p className="max-w-lg text-base md:text-lg text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-10">
               {language === 'ar' ? 'مرحباً بك في المكتبة المعززة' : 'Welcome to the AR Library'}
             </p>
-            <div className={cn("flex flex-wrap gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-              <button
-                onClick={() => navigate('/login')}
-                className="flex items-center gap-2.5 bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-              >
-                {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
-                {dir === 'rtl' ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
-              </button>
-            </div>
           </motion.div>
 
           {/* Right/RTL-left: Rafeeq character */}
