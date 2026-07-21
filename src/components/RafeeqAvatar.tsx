@@ -12,210 +12,169 @@ export function RafeeqAvatar({ className }: RafeeqAvatarProps) {
       aria-label="Rafeeq"
     >
       <defs>
-        <radialGradient id="rc-skin" cx="45%" cy="40%" r="60%">
-          <stop offset="0%" stopColor="#EAA870" />
-          <stop offset="100%" stopColor="#C87840" />
+        <radialGradient id="rq-head" cx="40%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#005E8A" />
+          <stop offset="100%" stopColor="#002438" />
         </radialGradient>
-        <radialGradient id="rc-iris-l" cx="35%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#4A2C10" />
-          <stop offset="100%" stopColor="#1A0800" />
+        <radialGradient id="rq-body" cx="40%" cy="25%" r="70%">
+          <stop offset="0%" stopColor="#004D72" />
+          <stop offset="100%" stopColor="#001E30" />
         </radialGradient>
-        <radialGradient id="rc-iris-r" cx="35%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#4A2C10" />
-          <stop offset="100%" stopColor="#1A0800" />
+        <radialGradient id="rq-eye" cx="32%" cy="32%" r="68%">
+          <stop offset="0%" stopColor="#A0F4FF" />
+          <stop offset="40%" stopColor="#00D4F0" />
+          <stop offset="100%" stopColor="#0098B8" />
         </radialGradient>
-        <radialGradient id="rc-kuma" cx="50%" cy="60%" r="70%">
-          <stop offset="0%" stopColor="#226644" />
-          <stop offset="100%" stopColor="#0F3D28" />
+        <radialGradient id="rq-orb" cx="35%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#FFE878" />
+          <stop offset="60%" stopColor="#D4AF37" />
+          <stop offset="100%" stopColor="#A07820" />
         </radialGradient>
       </defs>
 
-      {/* ── DISHDASHA ── */}
-      <path
-        d="M 2 115 L 2 102 Q 16 91 50 89 Q 84 91 98 102 L 98 115Z"
-        fill="#F8F8F8"
-      />
-      {/* Collar shadow */}
-      <path
-        d="M 38 90 Q 50 95 62 90 Q 56 93 50 93.5 Q 44 93 38 90Z"
-        fill="#D8D0C8" opacity="0.4"
-      />
-      {/* Centre seam */}
-      <path d="M 50 89 L 50 106" stroke="#E0D8D0" strokeWidth="0.7" />
-      {/* Gold button */}
-      <circle cx="50" cy="99" r="2.2" fill="#D4AF37" />
-      <circle cx="50" cy="99" r="1.1" fill="#F0CC50" />
+      {/* ── BODY ── */}
+      <rect x="18" y="66" width="64" height="47" rx="18" fill="url(#rq-body)" />
+      {/* Top sheen */}
+      <rect x="18" y="66" width="64" height="22" rx="18" fill="white" opacity="0.07" />
+      {/* Bottom shadow */}
+      <ellipse cx="50" cy="111" rx="28" ry="5" fill="#000D14" opacity="0.35" />
+
+      {/* Corner rivets */}
+      <circle cx="25" cy="73" r="2.8" fill="#002438" stroke="#005580" strokeWidth="1" />
+      <circle cx="75" cy="73" r="2.8" fill="#002438" stroke="#005580" strokeWidth="1" />
+      <circle cx="25" cy="106" r="2.8" fill="#002438" stroke="#005580" strokeWidth="1" />
+      <circle cx="75" cy="106" r="2.8" fill="#002438" stroke="#005580" strokeWidth="1" />
+
+      {/* ── CHEST PANEL ── */}
+      <rect x="30" y="74" width="40" height="30" rx="9" fill="#001624" />
+      <rect x="30" y="74" width="40" height="13" rx="9" fill="white" opacity="0.04" />
+
+      {/* Open book icon */}
+      {/* Left page */}
+      <rect x="35" y="79" width="11" height="14" rx="2" fill="#D4AF37" />
+      <rect x="36.5" y="79" width="9.5" height="14" rx="1.5" fill="#C8A030" />
+      {/* Right page */}
+      <rect x="46" y="79" width="11" height="14" rx="2" fill="#F0F0EA" />
+      <line x1="48" y1="80" x2="48" y2="92" stroke="#D4CFC8" strokeWidth="0.6" />
+      <line x1="50.5" y1="80" x2="50.5" y2="92" stroke="#D4CFC8" strokeWidth="0.6" />
+      <line x1="53" y1="80" x2="53" y2="92" stroke="#D4CFC8" strokeWidth="0.6" />
+      {/* Spine */}
+      <rect x="45.5" y="79" width="1" height="14" rx="0.5" fill="#8A6010" />
+      {/* Book shadow */}
+      <ellipse cx="50" cy="93.5" rx="9" ry="1.5" fill="#000D14" opacity="0.3" />
+
+      {/* AR scan line */}
+      <line x1="31" y1="99" x2="69" y2="99" stroke="#00D4FF" strokeWidth="0.7" opacity="0.7" />
+      <circle cx="31" cy="99" r="1.3" fill="#00D4FF" opacity="0.9" />
+      <circle cx="69" cy="99" r="1.3" fill="#00D4FF" opacity="0.9" />
+      {/* Scan tick marks */}
+      <line x1="40" y1="97.5" x2="40" y2="100.5" stroke="#00D4FF" strokeWidth="0.5" opacity="0.5" />
+      <line x1="50" y1="97.5" x2="50" y2="100.5" stroke="#00D4FF" strokeWidth="0.5" opacity="0.5" />
+      <line x1="60" y1="97.5" x2="60" y2="100.5" stroke="#00D4FF" strokeWidth="0.5" opacity="0.5" />
 
       {/* ── NECK ── */}
-      <path
-        d="M 42 88 Q 42 97 50 98.5 Q 58 97 58 88 L 56 80 L 50 78 L 44 80Z"
-        fill="url(#rc-skin)"
-      />
-      <path
-        d="M 43 88 Q 45 95 50 96 Q 43 94 42 88Z"
-        fill="#B87040" opacity="0.25"
-      />
+      <rect x="42" y="58" width="16" height="10" rx="5" fill="#002438" />
+      <line x1="46" y1="60" x2="46" y2="66" stroke="#003A55" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="50" y1="60" x2="50" y2="66" stroke="#003A55" strokeWidth="1.8" strokeLinecap="round" />
+      <line x1="54" y1="60" x2="54" y2="66" stroke="#003A55" strokeWidth="1.8" strokeLinecap="round" />
 
       {/* ── HEAD ── */}
-      <ellipse cx="50" cy="59" rx="24" ry="28" fill="url(#rc-skin)" />
-      {/* Cheek depth */}
-      <ellipse cx="34" cy="68" rx="8" ry="7" fill="#D48C50" opacity="0.2" />
-      <ellipse cx="66" cy="68" rx="8" ry="7" fill="#D48C50" opacity="0.2" />
-      {/* Forehead light */}
-      <ellipse cx="50" cy="46" rx="11" ry="8" fill="#F0B078" opacity="0.35" />
+      <rect x="14" y="14" width="72" height="46" rx="18" fill="url(#rq-head)" />
+      {/* Top highlight */}
+      <rect x="14" y="14" width="72" height="22" rx="18" fill="white" opacity="0.09" />
+      {/* Side sheen */}
+      <rect x="14" y="20" width="5" height="32" rx="2.5" fill="white" opacity="0.05" />
+      <rect x="81" y="20" width="5" height="32" rx="2.5" fill="white" opacity="0.05" />
 
-      {/* ── EARS ── */}
-      <path d="M 26 57 Q 22 62 24 69 Q 27 74 31 70 Q 34 64 30 57Z" fill="#C88048" />
-      <path d="M 27.5 58.5 Q 25 63 26.5 68 Q 28.5 70.5 30 68 Q 31 64 29 58.5Z" fill="#A86030" />
-      <path d="M 74 57 Q 78 62 76 69 Q 73 74 69 70 Q 66 64 70 57Z" fill="#C88048" />
-      <path d="M 72.5 58.5 Q 75 63 73.5 68 Q 71.5 70.5 70 68 Q 69 64 71 58.5Z" fill="#A86030" />
+      {/* Head corner rivets */}
+      <circle cx="21" cy="21" r="3" fill="#002438" stroke="#005580" strokeWidth="1" />
+      <circle cx="79" cy="21" r="3" fill="#002438" stroke="#005580" strokeWidth="1" />
+      <circle cx="21" cy="53" r="3" fill="#002438" stroke="#005580" strokeWidth="1" />
+      <circle cx="79" cy="53" r="3" fill="#002438" stroke="#005580" strokeWidth="1" />
 
-      {/* ══════════════════════════════════════
-          KUMA CAP — the signature Omani element
-          ══════════════════════════════════════ */}
+      {/* ── ANTENNA ── */}
+      <line x1="50" y1="14" x2="50" y2="5" stroke="#B8901C" strokeWidth="3" strokeLinecap="round" />
+      {/* Antenna base ring */}
+      <circle cx="50" cy="14" r="3.5" fill="#003A55" />
+      <circle cx="50" cy="14" r="2" fill="#D4AF37" />
+      {/* Antenna orb */}
+      <circle cx="50" cy="4" r="5.5" fill="url(#rq-orb)" />
+      <circle cx="50" cy="4" r="3.2" fill="#F0CC50" />
+      <circle cx="50" cy="4" r="1.6" fill="#FFEEAA" />
+      <circle cx="51.8" cy="2.4" r="1.2" fill="white" opacity="0.7" />
 
-      {/* Cap dome */}
-      <path
-        d="M 27 53 Q 26 28 50 23 Q 74 28 73 53
-           Q 64 42 50 40 Q 36 42 27 53Z"
-        fill="url(#rc-kuma)"
-      />
-      {/* Cap base band */}
-      <path
-        d="M 27 53 Q 36 44 50 42 Q 64 44 73 53
-           Q 64 50 50 49 Q 36 50 27 53Z"
-        fill="#0C3020"
-      />
+      {/* ── SIDE EAR PANELS (speaker grills) ── */}
+      {/* Left */}
+      <rect x="6" y="26" width="9" height="22" rx="4.5" fill="#002A3E" stroke="#003A55" strokeWidth="0.8" />
+      <line x1="9" y1="30" x2="12" y2="30" stroke="#004A6A" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="9" y1="34" x2="12" y2="34" stroke="#004A6A" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="9" y1="38" x2="12" y2="38" stroke="#004A6A" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="9" y1="42" x2="12" y2="42" stroke="#004A6A" strokeWidth="1.5" strokeLinecap="round" />
+      {/* Right */}
+      <rect x="85" y="26" width="9" height="22" rx="4.5" fill="#002A3E" stroke="#003A55" strokeWidth="0.8" />
+      <line x1="88" y1="30" x2="91" y2="30" stroke="#004A6A" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="88" y1="34" x2="91" y2="34" stroke="#004A6A" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="88" y1="38" x2="91" y2="38" stroke="#004A6A" strokeWidth="1.5" strokeLinecap="round" />
+      <line x1="88" y1="42" x2="91" y2="42" stroke="#004A6A" strokeWidth="1.5" strokeLinecap="round" />
 
-      {/* ── KUMA EMBROIDERY (gold geometric) ── */}
+      {/* ── FACE SCREEN PANEL ── */}
+      <rect x="20" y="19" width="60" height="38" rx="12" fill="#000E1C" />
+      <rect x="21" y="20" width="58" height="16" rx="11" fill="white" opacity="0.04" />
 
-      {/* Central 8-pointed star */}
-      <path
-        d="M50,27 L50.96,29.69 L53.54,28.46 L52.31,31.04
-           L55,32 L52.31,32.96 L53.54,35.54 L50.96,34.31
-           L50,37 L49.04,34.31 L46.46,35.54 L47.69,32.96
-           L45,32 L47.69,31.04 L46.46,28.46 L49.04,29.69Z"
-        fill="#D4AF37"
-      />
-      <circle cx="50" cy="32" r="2" fill="#F0CC50" />
-      <circle cx="50" cy="32" r="0.9" fill="#FFEAA0" />
+      {/* Status LED (forehead) */}
+      <circle cx="50" cy="22" r="2.5" fill="#00FF88" />
+      <circle cx="50" cy="22" r="1.3" fill="#AAFFD8" />
 
-      {/* Diamond lattice band (left side) */}
-      <path d="M 34 43 L 37 40.5 L 40 43 L 37 45.5Z" fill="#D4AF37" opacity="0.9" />
-      <path d="M 34 43 L 37 40.5 L 40 43 L 37 45.5Z" fill="none" stroke="#F0CC50" strokeWidth="0.4" />
-      <circle cx="37" cy="43" r="0.7" fill="#FFEAA0" />
-
-      <path d="M 41 41.5 L 44 39 L 47 41.5 L 44 44Z" fill="#D4AF37" opacity="0.9" />
-      <circle cx="44" cy="41.5" r="0.7" fill="#FFEAA0" />
-
-      <path d="M 53 41.5 L 56 39 L 59 41.5 L 56 44Z" fill="#D4AF37" opacity="0.9" />
-      <circle cx="56" cy="41.5" r="0.7" fill="#FFEAA0" />
-
-      <path d="M 60 43 L 63 40.5 L 66 43 L 63 45.5Z" fill="#D4AF37" opacity="0.9" />
-      <path d="M 60 43 L 63 40.5 L 66 43 L 63 45.5Z" fill="none" stroke="#F0CC50" strokeWidth="0.4" />
-      <circle cx="63" cy="43" r="0.7" fill="#FFEAA0" />
-
-      {/* Small corner accent dots */}
-      <circle cx="30" cy="46" r="1.1" fill="#D4AF37" opacity="0.75" />
-      <circle cx="70" cy="46" r="1.1" fill="#D4AF37" opacity="0.75" />
-      <circle cx="50" cy="42" r="1.1" fill="#D4AF37" opacity="0.75" />
-
-      {/* Gold trim ring at base of cap */}
-      <path
-        d="M 28 52 Q 36 46 50 44.5 Q 64 46 72 52"
-        fill="none" stroke="#D4AF37" strokeWidth="1.6" strokeLinecap="round"
-      />
-      <path
-        d="M 27.5 53.5 Q 36 47.5 50 46 Q 64 47.5 72.5 53.5"
-        fill="none" stroke="#A88820" strokeWidth="0.7" strokeLinecap="round" opacity="0.6"
-      />
-
-      {/* ── FACE FEATURES ── */}
-
-      {/* Eyebrows — confident, clean arch */}
-      <path
-        d="M 31.5 51 Q 38 47.5 44.5 50"
-        fill="none" stroke="#1E1008" strokeWidth="2.5" strokeLinecap="round"
-      />
-      <path
-        d="M 55.5 50 Q 62 47.5 68.5 51"
-        fill="none" stroke="#1E1008" strokeWidth="2.5" strokeLinecap="round"
-      />
-      {/* Eyebrow depth */}
-      <path
-        d="M 31.5 51 Q 38 48 44.5 50.5"
-        fill="none" stroke="#4A2C10" strokeWidth="1" strokeLinecap="round" opacity="0.4"
-      />
-
-      {/* Left eye */}
-      <ellipse cx="38" cy="59" rx="6.5" ry="5" fill="white" />
-      {/* Iris */}
-      <ellipse cx="38" cy="59.4" rx="4.5" ry="4.3" fill="url(#rc-iris-l)" />
+      {/* ── LEFT EYE SCREEN ── */}
+      <rect x="23" y="26" width="22" height="18" rx="7" fill="#000A14" />
+      <rect x="24" y="27" width="20" height="8" rx="6" fill="white" opacity="0.03" />
+      {/* Iris glow ring */}
+      <circle cx="34" cy="35" rx="7.5" fill="#004A6A" opacity="0.6" />
+      <circle cx="34" cy="35" r="7.5" fill="#004A6A" opacity="0.3" />
+      {/* Main iris */}
+      <circle cx="34" cy="35" r="6.5" fill="url(#rq-eye)" />
       {/* Pupil */}
-      <ellipse cx="38" cy="59.4" rx="2.8" ry="2.8" fill="#0C0400" />
-      {/* Main shine — large */}
-      <ellipse cx="40" cy="57.5" rx="2" ry="1.7" fill="white" opacity="0.95" />
-      {/* Small secondary shine */}
-      <circle cx="36.2" cy="61" r="0.85" fill="white" opacity="0.5" />
-      {/* Upper eyelid */}
-      <path d="M 31.5 57 Q 38 52.5 44.5 57" fill="none" stroke="#1A0C06" strokeWidth="1.3" opacity="0.8" />
-      {/* Lower lash */}
-      <path d="M 32 61.5 Q 38 64 44 61.5" fill="none" stroke="#2C1408" strokeWidth="0.6" opacity="0.25" />
+      <circle cx="34" cy="35" r="3.8" fill="#001828" />
+      <circle cx="34" cy="35" r="2.2" fill="#003044" />
+      {/* Shine */}
+      <ellipse cx="36.5" cy="32.5" rx="2.4" ry="1.9" fill="white" opacity="0.92" />
+      <circle cx="32.5" cy="37" r="1" fill="white" opacity="0.45" />
+      {/* Scan line */}
+      <line x1="24" y1="35" x2="44" y2="35" stroke="#00F0FF" strokeWidth="0.5" opacity="0.35" />
 
-      {/* Right eye */}
-      <ellipse cx="62" cy="59" rx="6.5" ry="5" fill="white" />
-      <ellipse cx="62" cy="59.4" rx="4.5" ry="4.3" fill="url(#rc-iris-r)" />
-      <ellipse cx="62" cy="59.4" rx="2.8" ry="2.8" fill="#0C0400" />
-      <ellipse cx="64" cy="57.5" rx="2" ry="1.7" fill="white" opacity="0.95" />
-      <circle cx="60.2" cy="61" r="0.85" fill="white" opacity="0.5" />
-      <path d="M 55.5 57 Q 62 52.5 68.5 57" fill="none" stroke="#1A0C06" strokeWidth="1.3" opacity="0.8" />
-      <path d="M 56 61.5 Q 62 64 68 61.5" fill="none" stroke="#2C1408" strokeWidth="0.6" opacity="0.25" />
+      {/* ── RIGHT EYE SCREEN ── */}
+      <rect x="55" y="26" width="22" height="18" rx="7" fill="#000A14" />
+      <rect x="56" y="27" width="20" height="8" rx="6" fill="white" opacity="0.03" />
+      <circle cx="66" cy="35" r="7.5" fill="#004A6A" opacity="0.3" />
+      <circle cx="66" cy="35" r="6.5" fill="url(#rq-eye)" />
+      <circle cx="66" cy="35" r="3.8" fill="#001828" />
+      <circle cx="66" cy="35" r="2.2" fill="#003044" />
+      <ellipse cx="68.5" cy="32.5" rx="2.4" ry="1.9" fill="white" opacity="0.92" />
+      <circle cx="64.5" cy="37" r="1" fill="white" opacity="0.45" />
+      <line x1="56" y1="35" x2="76" y2="35" stroke="#00F0FF" strokeWidth="0.5" opacity="0.35" />
 
-      {/* Nose — refined, natural */}
+      {/* ── LED SMILE ── */}
+      {/* Smile arc */}
       <path
-        d="M 50 65 Q 48 70 47 72.5 Q 49 73.8 50 73.5 Q 51 73.8 53 72.5 Q 52 70 50 65Z"
-        fill="none" stroke="#A86030" strokeWidth="0.9" strokeLinecap="round" opacity="0.55"
+        d="M 30 48 Q 50 58 70 48"
+        fill="none" stroke="#001828" strokeWidth="4" strokeLinecap="round"
       />
-      <ellipse cx="47" cy="72" rx="2.6" ry="1.9" fill="#B07038" opacity="0.28" />
-      <ellipse cx="53" cy="72" rx="2.6" ry="1.9" fill="#B07038" opacity="0.28" />
-
-      {/* ── WARM, CONFIDENT SMILE ── */}
-      {/* Mouth shadow */}
       <path
-        d="M 41.5 77 Q 50 83 58.5 77 Q 54.5 81 50 81.5 Q 45.5 81 41.5 77Z"
-        fill="#7A2A12"
+        d="M 30 48 Q 50 58 70 48"
+        fill="none" stroke="#00D4FF" strokeWidth="2.5" strokeLinecap="round"
       />
-      {/* Teeth */}
-      <path
-        d="M 42.5 77.8 Q 50 82 57.5 77.8 Q 54 80.5 50 81 Q 46 80.5 42.5 77.8Z"
-        fill="#FAFAF8"
-      />
-      {/* Tooth line */}
-      <line x1="50" y1="77.8" x2="50" y2="81" stroke="#E4DED8" strokeWidth="0.5" />
-      {/* Upper lip */}
-      <path
-        d="M 41.5 77 Q 45.5 74.8 50 75.8 Q 54.5 74.8 58.5 77
-           Q 55 76 50 76.5 Q 45 76 41.5 77Z"
-        fill="#A84030"
-      />
-      {/* Lower lip highlight */}
-      <path
-        d="M 43.5 78.5 Q 50 81 56.5 78.5 Q 53 80.5 50 81 Q 47 80.5 43.5 78.5Z"
-        fill="#C86050" opacity="0.3"
-      />
-      {/* Dimples */}
-      <circle cx="39.5" cy="77.5" r="2" fill="#C07840" opacity="0.3" />
-      <circle cx="60.5" cy="77.5" r="2" fill="#C07840" opacity="0.3" />
-
-      {/* Cheek warmth */}
-      <ellipse cx="33" cy="69" rx="7.5" ry="5.5" fill="#E06040" opacity="0.14" />
-      <ellipse cx="67" cy="69" rx="7.5" ry="5.5" fill="#E06040" opacity="0.14" />
-
-      {/* Chin shadow */}
-      <path
-        d="M 39 82 Q 50 87 61 82 Q 55 85.5 50 86 Q 45 85.5 39 82Z"
-        fill="#B07840" opacity="0.28"
-      />
+      {/* LED dot nodes on smile */}
+      <circle cx="30" cy="48" r="2.2" fill="#00D4FF" />
+      <circle cx="37" cy="52.5" r="2.2" fill="#00D4FF" />
+      <circle cx="44" cy="55.5" r="2.2" fill="#00D4FF" />
+      <circle cx="50" cy="56.5" r="2.2" fill="#00D4FF" />
+      <circle cx="56" cy="55.5" r="2.2" fill="#00D4FF" />
+      <circle cx="63" cy="52.5" r="2.2" fill="#00D4FF" />
+      <circle cx="70" cy="48" r="2.2" fill="#00D4FF" />
+      {/* Inner dot shine */}
+      <circle cx="30" cy="48" r="1" fill="white" opacity="0.6" />
+      <circle cx="50" cy="56.5" r="1" fill="white" opacity="0.6" />
+      <circle cx="70" cy="48" r="1" fill="white" opacity="0.6" />
     </svg>
   );
 }
