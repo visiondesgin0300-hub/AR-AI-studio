@@ -5,7 +5,7 @@ interface RafeeqAvatarProps {
 export function RafeeqAvatar({ className }: RafeeqAvatarProps) {
   return (
     <svg
-      viewBox="0 0 100 115"
+      viewBox="0 0 100 120"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       fill="none"
@@ -34,10 +34,29 @@ export function RafeeqAvatar({ className }: RafeeqAvatarProps) {
         </radialGradient>
       </defs>
 
+      {/* ── ARMS (behind body) ── */}
+      {/* Left arm - curves inward to hold book */}
+      <path
+        d="M 18,80 C 10,80 8,86 8,95 C 8,104 12,108 20,108
+           L 22,106 C 16,104 13,100 13,93 C 13,86 15,82 20,82Z"
+        fill="#C8E0F5" stroke="#90BBE0" strokeWidth="0.8"
+      />
+      <circle cx="18" cy="80" r="4.5" fill="#D5ECF8" stroke="#90BBE0" strokeWidth="0.8" />
+      <circle cx="19" cy="107" r="4" fill="#BEDBF0" stroke="#90BBE0" strokeWidth="0.8" />
+
+      {/* Right arm - mirrors left */}
+      <path
+        d="M 82,80 C 90,80 92,86 92,95 C 92,104 88,108 80,108
+           L 78,106 C 84,104 87,100 87,93 C 87,86 85,82 80,82Z"
+        fill="#C8E0F5" stroke="#90BBE0" strokeWidth="0.8"
+      />
+      <circle cx="82" cy="80" r="4.5" fill="#D5ECF8" stroke="#90BBE0" strokeWidth="0.8" />
+      <circle cx="81" cy="107" r="4" fill="#BEDBF0" stroke="#90BBE0" strokeWidth="0.8" />
+
       {/* ── BODY ── */}
       <rect x="18" y="66" width="64" height="47" rx="18" fill="url(#rq-body)" stroke="#B0CCEE" strokeWidth="1" />
       <rect x="18" y="66" width="64" height="22" rx="18" fill="white" opacity="0.35" />
-      <ellipse cx="50" cy="111" rx="28" ry="5" fill="#8AAAC8" opacity="0.25" />
+      <ellipse cx="50" cy="111" rx="28" ry="5" fill="#8AAAC8" opacity="0.2" />
 
       {/* Corner rivets */}
       <circle cx="25" cy="73" r="2.8" fill="#C0D8F0" stroke="#7AAAD0" strokeWidth="1" />
@@ -45,26 +64,46 @@ export function RafeeqAvatar({ className }: RafeeqAvatarProps) {
       <circle cx="25" cy="106" r="2.8" fill="#C0D8F0" stroke="#7AAAD0" strokeWidth="1" />
       <circle cx="75" cy="106" r="2.8" fill="#C0D8F0" stroke="#7AAAD0" strokeWidth="1" />
 
-      {/* ── CHEST PANEL ── */}
-      <rect x="30" y="74" width="40" height="30" rx="9" fill="#E0EEFA" stroke="#AACCEE" strokeWidth="0.8" />
-      <rect x="30" y="74" width="40" height="12" rx="9" fill="white" opacity="0.5" />
+      {/* Chest indicator light */}
+      <rect x="44" y="72" width="12" height="6" rx="3" fill="#D0E8FA" stroke="#90BBE0" strokeWidth="0.6" />
+      <rect x="46" y="73.5" width="8" height="3" rx="1.5" fill="#29B6F6" opacity="0.5" />
 
-      {/* Open book icon on chest */}
-      <rect x="35" y="79" width="11" height="14" rx="2" fill="#D4AF37" />
-      <rect x="36.5" y="79" width="9.5" height="14" rx="1.5" fill="#C09828" />
-      <rect x="46" y="79" width="11" height="14" rx="2" fill="#F0F0EA" />
-      <line x1="48.2" y1="80" x2="48.2" y2="92" stroke="#D0C8C0" strokeWidth="0.6" />
-      <line x1="50.8" y1="80" x2="50.8" y2="92" stroke="#D0C8C0" strokeWidth="0.6" />
-      <line x1="53.4" y1="80" x2="53.4" y2="92" stroke="#D0C8C0" strokeWidth="0.6" />
-      <rect x="45.5" y="79" width="1" height="14" rx="0.5" fill="#8A6010" />
+      {/* ── OPEN BOOK (held in front of body) ── */}
+      {/* Book shadow */}
+      <ellipse cx="50" cy="117" rx="27" ry="3.5" fill="#7A9ABE" opacity="0.2" />
 
-      {/* AR scan line */}
-      <line x1="31" y1="99" x2="69" y2="99" stroke="#29B6F6" strokeWidth="0.8" opacity="0.8" />
-      <circle cx="31" cy="99" r="1.4" fill="#29B6F6" opacity="0.9" />
-      <circle cx="69" cy="99" r="1.4" fill="#29B6F6" opacity="0.9" />
-      <line x1="40" y1="97.5" x2="40" y2="100.5" stroke="#29B6F6" strokeWidth="0.5" opacity="0.6" />
-      <line x1="50" y1="97.5" x2="50" y2="100.5" stroke="#29B6F6" strokeWidth="0.5" opacity="0.6" />
-      <line x1="60" y1="97.5" x2="60" y2="100.5" stroke="#29B6F6" strokeWidth="0.5" opacity="0.6" />
+      {/* Book spine / binding */}
+      <rect x="47.5" y="88" width="5" height="27" rx="2.5" fill="#1565C0" />
+
+      {/* Left page (cream, slightly fanned) */}
+      <path d="M 21,91 Q 36,89 47.5,88 L 47.5,115 Q 36,115 21,115Z" fill="#FAFAF4" />
+      {/* Left page subtle gradient */}
+      <path d="M 21,91 Q 36,89 47.5,88 L 47.5,115 Q 36,115 21,115Z" fill="#E8F0F8" opacity="0.3" />
+
+      {/* Right page */}
+      <path d="M 52.5,88 Q 64,89 79,91 L 79,115 Q 64,115 52.5,115Z" fill="#F8F8F2" />
+
+      {/* Left page lines (text simulation) */}
+      <line x1="26" y1="94"  x2="46" y2="93"  stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="26" y1="97"  x2="46" y2="96"  stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="26" y1="100" x2="46" y2="99"  stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="26" y1="103" x2="46" y2="102" stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="26" y1="106" x2="46" y2="105" stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="26" y1="109" x2="46" y2="108" stroke="#C8C8C0" strokeWidth="0.7" />
+
+      {/* Right page lines */}
+      <line x1="54" y1="93"  x2="74" y2="94"  stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="54" y1="96"  x2="74" y2="97"  stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="54" y1="99"  x2="74" y2="100" stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="54" y1="102" x2="74" y2="103" stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="54" y1="105" x2="74" y2="106" stroke="#C8C8C0" strokeWidth="0.7" />
+      <line x1="54" y1="108" x2="74" y2="109" stroke="#C8C8C0" strokeWidth="0.7" />
+
+      {/* Book outer border */}
+      <path d="M 21,91 Q 36,89 47.5,88 L 47.5,115 Q 36,115 21,115Z"
+            fill="none" stroke="#4A80C0" strokeWidth="0.8" />
+      <path d="M 52.5,88 Q 64,89 79,91 L 79,115 Q 64,115 52.5,115Z"
+            fill="none" stroke="#4A80C0" strokeWidth="0.8" />
 
       {/* ── NECK ── */}
       <rect x="42" y="58" width="16" height="10" rx="5" fill="#C0D8F0" stroke="#90B8E0" strokeWidth="0.8" />
@@ -75,8 +114,8 @@ export function RafeeqAvatar({ className }: RafeeqAvatarProps) {
       {/* ── HEAD ── */}
       <rect x="14" y="14" width="72" height="46" rx="18" fill="url(#rq-head)" stroke="#B0CCEE" strokeWidth="1" />
       <rect x="14" y="14" width="72" height="22" rx="18" fill="white" opacity="0.45" />
-      <rect x="14" y="20" width="5" height="32" rx="2.5" fill="white" opacity="0.3" />
-      <rect x="81" y="20" width="5" height="32" rx="2.5" fill="white" opacity="0.3" />
+      <rect x="14" y="20" width="5"  height="32" rx="2.5" fill="white" opacity="0.3" />
+      <rect x="81" y="20" width="5"  height="32" rx="2.5" fill="white" opacity="0.3" />
 
       {/* Head corner rivets */}
       <circle cx="21" cy="21" r="3" fill="#D0E8F8" stroke="#80AACC" strokeWidth="1" />
@@ -86,7 +125,7 @@ export function RafeeqAvatar({ className }: RafeeqAvatarProps) {
 
       {/* ── ANTENNA ── */}
       <line x1="50" y1="14" x2="50" y2="5" stroke="#B8901C" strokeWidth="3" strokeLinecap="round" />
-      <circle cx="50" cy="14" r="3.5" fill="#003A55" />
+      <circle cx="50" cy="14" r="3.5" fill="#C0D8F0" />
       <circle cx="50" cy="14" r="2"   fill="#D4AF37" />
       <circle cx="50" cy="4"  r="5.5" fill="url(#rq-orb)" />
       <circle cx="50" cy="4"  r="3.2" fill="#F0CC50" />
@@ -114,44 +153,51 @@ export function RafeeqAvatar({ className }: RafeeqAvatarProps) {
       <circle cx="50" cy="22" r="2.5" fill="#00DD77" />
       <circle cx="50" cy="22" r="1.3" fill="#AAFFCC" />
 
-      {/* ── LEFT EYE SCREEN ── */}
+      {/* ── LEFT EYE ── */}
       <rect x="23" y="26" width="22" height="18" rx="7" fill="white" stroke="#C0DCFA" strokeWidth="0.8" />
-      <rect x="24" y="27" width="20" height="8"  rx="6" fill="white" opacity="0.6" />
       <circle cx="34" cy="35" r="7.5" fill="#D8EFFF" />
       <circle cx="34" cy="35" r="6.5" fill="url(#rq-eye)" />
       <circle cx="34" cy="35" r="3.8" fill="#0D2A50" />
       <circle cx="34" cy="35" r="2.2" fill="#1A3A6A" />
       <ellipse cx="36.5" cy="32.5" rx="2.4" ry="1.9" fill="white" opacity="0.95" />
       <circle  cx="31.8" cy="37.2" r="1"   fill="white" opacity="0.5" />
-      <line x1="24" y1="35" x2="44" y2="35" stroke="#29B6F6" strokeWidth="0.5" opacity="0.35" />
 
-      {/* ── RIGHT EYE SCREEN ── */}
+      {/* ── RIGHT EYE ── */}
       <rect x="55" y="26" width="22" height="18" rx="7" fill="white" stroke="#C0DCFA" strokeWidth="0.8" />
-      <rect x="56" y="27" width="20" height="8"  rx="6" fill="white" opacity="0.6" />
       <circle cx="66" cy="35" r="7.5" fill="#D8EFFF" />
       <circle cx="66" cy="35" r="6.5" fill="url(#rq-eye)" />
       <circle cx="66" cy="35" r="3.8" fill="#0D2A50" />
       <circle cx="66" cy="35" r="2.2" fill="#1A3A6A" />
       <ellipse cx="68.5" cy="32.5" rx="2.4" ry="1.9" fill="white" opacity="0.95" />
       <circle  cx="63.8" cy="37.2" r="1"   fill="white" opacity="0.5" />
-      <line x1="56" y1="35" x2="76" y2="35" stroke="#29B6F6" strokeWidth="0.5" opacity="0.35" />
 
-      {/* ── CLOSED SMILE — smooth arc ── */}
-      {/* Soft halo */}
-      <path
-        d="M 33 49 Q 50 61 67 49"
-        fill="none" stroke="#29B6F6" strokeWidth="5.5" strokeLinecap="round" opacity="0.15"
-      />
-      {/* Mid */}
-      <path
-        d="M 33 49 Q 50 61 67 49"
-        fill="none" stroke="#0288D1" strokeWidth="3.5" strokeLinecap="round" opacity="0.3"
-      />
-      {/* Core */}
-      <path
-        d="M 33 49 Q 50 61 67 49"
-        fill="none" stroke="#0277BD" strokeWidth="2.2" strokeLinecap="round"
-      />
+      {/* ── GLASSES (gold frames over eyes) ── */}
+      {/* Left glass frame */}
+      <rect x="21" y="24" width="26" height="22" rx="8"
+            fill="none" stroke="#D4AF37" strokeWidth="2.5" />
+      {/* Right glass frame */}
+      <rect x="53" y="24" width="26" height="22" rx="8"
+            fill="none" stroke="#D4AF37" strokeWidth="2.5" />
+      {/* Bridge (nose piece) */}
+      <path d="M 47,34 Q 50,31 53,34"
+            fill="none" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" />
+      {/* Left temple */}
+      <path d="M 21,32 Q 16,31 14,29"
+            fill="none" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" />
+      {/* Right temple */}
+      <path d="M 79,32 Q 84,31 86,29"
+            fill="none" stroke="#D4AF37" strokeWidth="2" strokeLinecap="round" />
+      {/* Gold hinge dots */}
+      <circle cx="21" cy="32" r="1.8" fill="#D4AF37" />
+      <circle cx="79" cy="32" r="1.8" fill="#D4AF37" />
+
+      {/* ── CLOSED SMILE ── */}
+      <path d="M 33 49 Q 50 61 67 49"
+            fill="none" stroke="#29B6F6" strokeWidth="5.5" strokeLinecap="round" opacity="0.15" />
+      <path d="M 33 49 Q 50 61 67 49"
+            fill="none" stroke="#0288D1" strokeWidth="3.5" strokeLinecap="round" opacity="0.3" />
+      <path d="M 33 49 Q 50 61 67 49"
+            fill="none" stroke="#0277BD" strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   );
 }
