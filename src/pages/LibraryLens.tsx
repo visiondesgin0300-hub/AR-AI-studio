@@ -31,6 +31,7 @@ export function LibraryLens() {
   const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [phase, setPhase] = useState<'loading' | 'live' | 'denied'>('loading');
+  const [deniedReason, setDeniedReason] = useState<'permission' | 'notfound' | 'inuse' | 'other'>('permission');
   const [cards, setCards] = useState<ARCard[]>([]);
   const [scanning, setScanning] = useState(false);
   const [ripplePos, setRipplePos] = useState<{ x: number; y: number } | null>(null);
@@ -60,27 +61,47 @@ export function LibraryLens() {
     return () => window.removeEventListener('deviceorientation', handler);
   }, []);
 
-  // Start camera
+  // Start camera — two-stage: prefer back camera, fall back to any camera
   useEffect(() => {
     let cancelled = false;
+
+    const attachStream = (stream: MediaStream) => {
+      if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+      streamRef.current = stream;
+      const v = videoRef.current;
+      if (!v) { if (!cancelled) { setDeniedReason('other'); setPhase('denied'); } return; }
+      v.srcObject = stream;
+      v.addEventListener('playing', () => { if (!cancelled) setPhase('live'); }, { once: true });
+      v.play().catch(() => { if (!cancelled) { setDeniedReason('other'); setPhase('denied'); } });
+    };
+
+    const classifyError = (e: unknown): 'permission' | 'notfound' | 'inuse' | 'other' => {
+      const name = (e as DOMException)?.name ?? '';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') return 'permission';
+      if (name === 'NotFoundError' || name === 'DevicesNotFoundError') return 'notfound';
+      if (name === 'NotReadableError' || name === 'TrackStartError') return 'inuse';
+      return 'other';
+    };
+
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
-      .then(stream => {
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
-        streamRef.current = stream;
-        const v = videoRef.current;
-        if (!v) { if (!cancelled) setPhase('denied'); return; }
-        v.srcObject = stream;
-        // Wait for the 'playing' event — that's when the first frame is actually
-        // visible. Transitioning to 'live' before this causes a black screen.
-        v.addEventListener('playing', () => {
-          if (!cancelled) setPhase('live');
-        }, { once: true });
-        v.play().catch(() => {
-          if (!cancelled) setPhase('denied');
-        });
-      })
-      .catch(() => { if (!cancelled) setPhase('denied'); });
+      .then(attachStream)
+      .catch(err1 => {
+        const reason = classifyError(err1);
+        // Permission denied → no point retrying
+        if (reason === 'permission') {
+          if (!cancelled) { setDeniedReason('permission'); setPhase('denied'); }
+          return;
+        }
+        // Any other failure → retry without facingMode constraint
+        navigator.mediaDevices
+          .getUserMedia({ video: true, audio: false })
+          .then(attachStream)
+          .catch(err2 => {
+            if (!cancelled) { setDeniedReason(classifyError(err2)); setPhase('denied'); }
+          });
+      });
+
     return () => {
       cancelled = true;
       streamRef.current?.getTracks().forEach(t => t.stop());
@@ -173,17 +194,36 @@ export function LibraryLens() {
 
   // ─── Denied ───────────────────────────────────────────────────────────────
   if (phase === 'denied') {
+    const deniedMsgs = {
+      permission: {
+        title: ar ? 'تم حظر الكاميرا' : 'Camera blocked',
+        body: ar
+          ? 'اضغط على أيقونة القفل 🔒 في شريط العنوان ← الكاميرا ← سماح، ثم أعد التحميل'
+          : 'Tap the lock 🔒 in the address bar → Camera → Allow, then reload',
+      },
+      notfound: {
+        title: ar ? 'لا توجد كاميرا' : 'No camera found',
+        body: ar ? 'لم يتم اكتشاف أي كاميرا على هذا الجهاز' : 'No camera device detected on this device',
+      },
+      inuse: {
+        title: ar ? 'الكاميرا مشغولة' : 'Camera in use',
+        body: ar
+          ? 'الكاميرا مفتوحة في تطبيق آخر — أغلقه ثم أعد التحميل'
+          : 'Camera is open in another app — close it then reload',
+      },
+      other: {
+        title: ar ? 'خطأ في الكاميرا' : 'Camera error',
+        body: ar ? 'تعذّر فتح الكاميرا، يرجى إعادة المحاولة' : 'Could not open camera, please try again',
+      },
+    };
+    const msg = deniedMsgs[deniedReason];
     return (
       <div className="fixed inset-0 bg-primary flex flex-col items-center justify-center p-8 text-center gap-6" dir={dir}>
         <div className="w-20 h-20 rounded-[2rem] bg-red-500/20 flex items-center justify-center">
           <BookOpen className="w-10 h-10 text-red-400" />
         </div>
-        <h2 className="text-xl font-black text-white">{ar ? 'لا يمكن الوصول للكاميرا' : 'Camera access denied'}</h2>
-        <p className="text-white/50 text-sm font-bold max-w-xs leading-relaxed">
-          {ar
-            ? 'يرجى السماح للمتصفح باستخدام الكاميرا، ثم أعد تحميل الصفحة'
-            : 'Allow camera access in browser settings, then reload the page'}
-        </p>
+        <h2 className="text-xl font-black text-white">{msg.title}</h2>
+        <p className="text-white/50 text-sm font-bold max-w-xs leading-relaxed">{msg.body}</p>
         <button
           onClick={() => window.location.reload()}
           className="px-8 py-4 bg-accent text-primary rounded-2xl font-black"
