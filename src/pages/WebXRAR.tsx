@@ -12,7 +12,7 @@ type XRFrame = any;
 type XRHitTestSource = any;
 type XRReferenceSpace = any;
 
-type Phase = 'check' | 'ready' | 'active' | 'unsupported';
+type Phase = 'check' | 'ready' | 'active' | 'unsupported' | 'sim';
 
 interface PlacedLabel {
   id: string;
@@ -63,6 +63,8 @@ export function WebXRAR() {
   const [pendingShelf, setPendingShelf] = useState<string | null>(null);
   const [tapHint, setTapHint] = useState(false);
 
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const simStreamRef = useRef<MediaStream | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
   const sessionRef = useRef<XRSession>(null);
@@ -191,8 +193,33 @@ export function WebXRAR() {
   const endAR = useCallback(() => {
     cancelAnimationFrame(rafIdRef.current);
     sessionRef.current?.end();
+    simStreamRef.current?.getTracks().forEach(t => t.stop());
+    simStreamRef.current = null;
     navigate(-1);
   }, [navigate]);
+
+  const startSim = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+      simStreamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.play();
+      }
+      // Auto-place 4 shelf labels at fixed screen-percentage positions
+      const autoLabels: PlacedLabel[] = [
+        { id: 'sim-1', shelfId: 'A-1', worldPos: [0,0,0], screenX: window.innerWidth * 0.18, screenY: window.innerHeight * 0.28, visible: true },
+        { id: 'sim-2', shelfId: 'B-2', worldPos: [0,0,0], screenX: window.innerWidth * 0.60, screenY: window.innerHeight * 0.20, visible: true },
+        { id: 'sim-3', shelfId: 'C-1', worldPos: [0,0,0], screenX: window.innerWidth * 0.35, screenY: window.innerHeight * 0.55, visible: true },
+        { id: 'sim-4', shelfId: 'D-2', worldPos: [0,0,0], screenX: window.innerWidth * 0.72, screenY: window.innerHeight * 0.48, visible: true },
+      ];
+      setLabels(autoLabels);
+      setPhase('sim');
+    } catch {
+      // Camera denied — still enter sim mode with a static background
+      setPhase('sim');
+    }
+  }, []);
 
   const placeLabel = useCallback((shelfId: string) => {
     const pos = lastHitRef.current;
@@ -235,12 +262,21 @@ export function WebXRAR() {
             <span>✓ Desktop — غير متاح / Not available</span>
           </div>
         </div>
-        <button
-          onClick={() => navigate(-1)}
-          className="mt-4 px-8 py-4 bg-accent text-primary rounded-2xl font-black uppercase tracking-widest"
-        >
-          {ar ? 'رجوع' : 'Back'}
-        </button>
+        <div className="flex flex-col gap-3 w-full max-w-xs">
+          <button
+            onClick={startSim}
+            className="w-full py-4 bg-emerald-500 text-white rounded-2xl font-black uppercase tracking-widest text-sm flex items-center justify-center gap-2"
+          >
+            <Scan className="w-5 h-5" />
+            {ar ? 'جرّب وضع المحاكاة' : 'Try Simulation Mode'}
+          </button>
+          <button
+            onClick={() => navigate(-1)}
+            className="py-3 text-white/40 font-bold text-sm"
+          >
+            {ar ? 'رجوع' : 'Back'}
+          </button>
+        </div>
       </div>
     );
   }
@@ -304,6 +340,82 @@ export function WebXRAR() {
         <div className="absolute bottom-6 flex items-center gap-2 text-white/20 text-[10px] font-black uppercase tracking-widest">
           <Smartphone className="w-3 h-3" />
           {ar ? 'Android Chrome + ARCore' : 'Android Chrome + ARCore required'}
+        </div>
+      </div>
+    );
+  }
+
+  // ─── Simulation mode (camera feed + CSS-overlay labels) ──────────────────
+  if (phase === 'sim') {
+    return (
+      <div className="fixed inset-0 bg-black overflow-hidden" dir={dir}>
+        {/* Live camera feed */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Dark vignette so labels are readable */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/40 pointer-events-none" />
+
+        {/* Sim badge */}
+        <div className="absolute top-6 left-0 right-0 flex justify-center pointer-events-none">
+          <div className="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-400/40 backdrop-blur-xl text-emerald-400 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+            <motion.div animate={{ scale: [1, 1.4, 1] }} transition={{ duration: 1.2, repeat: Infinity }} className="w-2 h-2 rounded-full bg-emerald-400" />
+            {ar ? 'وضع المحاكاة — AR' : 'Simulation Mode — AR'}
+          </div>
+        </div>
+
+        {/* Close */}
+        <button
+          onClick={endAR}
+          className="absolute top-6 left-6 w-11 h-11 bg-black/50 rounded-full flex items-center justify-center text-white backdrop-blur-xl border border-white/10 z-10"
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+        {/* Floating shelf labels */}
+        {labels.map((label, i) => {
+          const books = booksForShelf(label.shelfId);
+          return (
+            <motion.div
+              key={label.id}
+              className="absolute flex flex-col items-center pointer-events-none"
+              style={{ left: label.screenX, top: label.screenY, width: 120 }}
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 2.5 + i * 0.4, repeat: Infinity, ease: 'easeInOut', delay: i * 0.3 }}
+            >
+              <div className="bg-primary/90 backdrop-blur-xl rounded-xl px-3 py-2 border border-accent/40 shadow-2xl shadow-accent/20">
+                <div className="text-[10px] font-black text-accent uppercase tracking-widest">{ar ? 'رف' : 'Shelf'}</div>
+                <div className="text-white font-black text-sm">{label.shelfId}</div>
+                {books[0] && (
+                  <div className="text-white/60 text-[9px] font-bold mt-0.5 leading-tight line-clamp-1">{books[0].title}</div>
+                )}
+              </div>
+              <div className="w-px h-5 bg-accent/60" />
+              <motion.div
+                animate={{ scale: [1, 1.3, 1], opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.2 }}
+                className="w-3 h-3 rounded-full bg-accent shadow-[0_0_12px_rgba(217,179,16,0.9)]"
+              />
+            </motion.div>
+          );
+        })}
+
+        {/* Scan line sweep effect */}
+        <motion.div
+          className="absolute left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-400/60 to-transparent pointer-events-none"
+          animate={{ top: ['10%', '90%', '10%'] }}
+          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+        />
+
+        {/* Bottom hint */}
+        <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none">
+          <p className="text-white/60 text-xs font-bold text-center px-8">
+            {ar ? 'محاكاة AR — لا يتطلب ARCore' : 'AR Simulation — no ARCore needed'}
+          </p>
         </div>
       </div>
     );
