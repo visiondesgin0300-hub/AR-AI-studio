@@ -462,7 +462,6 @@ export function LibraryMap() {
                         animate={{ pathLength: 1 }}
                         transition={{ duration: 1.2, ease: "easeInOut" }}
                       />
-                      {/* Main path */}
                       <motion.path
                         d={getPathData()}
                         stroke="url(#pathGradient)"

@@ -45,6 +45,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
     return () => window.removeEventListener('open-rafeeq', handler);
   }, []);
 
+
   const dismissFabHint = () => {
     localStorage.setItem('ar_fab_seen', '1');
     setShowFabHint(false);
@@ -203,7 +204,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               className="flex flex-col gap-2 mb-1"
             >
               {[
-                { icon: QrCode, labelAr: 'مسح رمز QR', labelEn: 'Scan Shelf QR', path: '/scan', accent: true, adminOnly: false },
+                { icon: Sparkles, labelAr: 'مسح كتب الرف AR', labelEn: 'AR Shelf Scan', path: '/shelf-ar', accent: true, adminOnly: false },
+                { icon: QrCode, labelAr: 'مسح رمز QR', labelEn: 'Scan Shelf QR', path: '/scan', accent: false, adminOnly: false },
                 { icon: Map, labelAr: 'خريطة المراجع AR', labelEn: 'Books Map AR', path: '/map', accent: false, adminOnly: false },
                 { icon: Compass, labelAr: 'مرافق AR', labelEn: 'Facilities AR', path: '/facilities', accent: false, adminOnly: false },
                 { icon: Cpu, labelAr: 'AR Lab', labelEn: 'AR Lab', path: '/ar-lab', accent: false, adminOnly: false },

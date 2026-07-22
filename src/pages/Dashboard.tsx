@@ -121,7 +121,6 @@ export function Dashboard({ user }: DashboardProps) {
 
           {/* Right: Rafeeq character */}
           <div className="relative flex flex-col items-center gap-3 shrink-0 md:w-44">
-            {/* Speech bubble */}
             <motion.div
               initial={{ opacity: 0, y: -8, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -131,13 +130,10 @@ export function Dashboard({ user }: DashboardProps) {
               {language === 'ar'
                 ? `مرحباً ${user.name.split(' ')[0]}! 👋\nكيف أساعدك اليوم؟`
                 : `Hi ${user.name.split(' ')[0]}! 👋\nHow can I help you?`}
-              {/* Bubble tail */}
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 overflow-hidden">
                 <div className="w-3 h-3 bg-white/15 border-r border-b border-white/25 rotate-45 -translate-y-1.5 mx-auto" />
               </div>
             </motion.div>
-
-            {/* Rafeeq avatar */}
             <motion.button
               onClick={() => window.dispatchEvent(new CustomEvent('open-rafeeq'))}
               animate={{ y: [0, -6, 0] }}
@@ -149,8 +145,6 @@ export function Dashboard({ user }: DashboardProps) {
             >
               <RafeeqAvatar className="w-full h-full drop-shadow-2xl" />
             </motion.button>
-
-            {/* Chat CTA button */}
             <motion.button
               onClick={() => window.dispatchEvent(new CustomEvent('open-rafeeq'))}
               initial={{ opacity: 0, y: 8 }}

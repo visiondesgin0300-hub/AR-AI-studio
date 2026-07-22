@@ -1,5 +1,6 @@
 import { QRCodeSVG } from 'qrcode.react';
-import { Printer, QrCode } from 'lucide-react';
+import { Printer, QrCode, BookOpen } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
@@ -14,6 +15,7 @@ const SECTION_NAMES: Record<string, { ar: string; en: string }> = {
 
 export function ShelfQRPrint() {
   const { language, dir } = useLanguage();
+  const navigate = useNavigate();
 
   return (
     <div className={cn('flex flex-col gap-8 animate-in duration-500', dir === 'rtl' ? 'text-right' : 'text-left')}>
@@ -37,13 +39,22 @@ export function ShelfQRPrint() {
               : 'Print and place these on shelves to enable automatic scanning'}
           </p>
         </div>
-        <button
-          onClick={() => window.print()}
-          className="flex items-center gap-3 px-6 py-3.5 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
-        >
-          <Printer className="w-4 h-4" />
-          {language === 'ar' ? 'طباعة الكل' : 'Print All'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => navigate('/book-codes')}
+            className="flex items-center gap-2.5 px-5 py-3.5 bg-accent/10 text-accent border border-accent/30 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-accent/20 active:scale-95 transition-all"
+          >
+            <BookOpen className="w-4 h-4" />
+            {language === 'ar' ? 'رموز الكتب' : 'Book Codes'}
+          </button>
+          <button
+            onClick={() => window.print()}
+            className="flex items-center gap-3 px-6 py-3.5 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
+          >
+            <Printer className="w-4 h-4" />
+            {language === 'ar' ? 'طباعة الكل' : 'Print All'}
+          </button>
+        </div>
       </div>
 
       {/* QR Grid */}
