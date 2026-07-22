@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, MapPin, Sparkles, Navigation, BookOpen, Zap } from 'lucide-react';
+import { X, MapPin, Sparkles, Navigation, BookOpen, Zap, Star, Clock, FileText, ChevronRight } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
@@ -310,56 +310,135 @@ export function LibraryLens() {
             style={{ transformStyle: 'preserve-3d', transition: 'transform 0.08s ease-out' }}
           >
             <AnimatePresence>
-              {cards.map(card => (
-                <motion.div
-                  key={card.id}
-                  initial={{ opacity: 0, scale: 0.75, y: 8 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.85 }}
-                  transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                  className="absolute pointer-events-auto"
-                  style={{ left: card.x, top: card.y, width: 220 }}
-                >
-                  <div className="absolute left-1/2 -translate-x-1/2 -bottom-6 flex flex-col items-center">
-                    <div className="w-px h-4 bg-accent/50" />
-                    <motion.div
-                      animate={{ scale: [1, 1.5, 1] }}
-                      transition={{ duration: 1.4, repeat: Infinity }}
-                      className="w-2.5 h-2.5 rounded-full bg-accent shadow-[0_0_10px_rgba(217,179,16,0.9)]"
-                    />
-                  </div>
-                  <div className="bg-black/80 backdrop-blur-2xl rounded-2xl border border-accent/40 overflow-hidden shadow-2xl">
-                    <div className="flex items-center justify-between px-3 py-2 border-b border-white/10">
-                      <div className="flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3 text-accent" />
-                        <span className="text-[9px] font-black text-accent uppercase tracking-widest">{ar ? 'مسح ذكي' : 'AI Scan'}</span>
-                      </div>
-                      <button className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center" onClick={e => { e.stopPropagation(); setCards(p => p.filter(c => c.id !== card.id)); }}>
-                        <X className="w-3 h-3 text-white/60" />
-                      </button>
+              {cards.map(card => {
+                const b = card.book;
+                const isAvailable = b.status !== 'borrowed';
+                const loc = b.location
+                  ? `${ar ? 'طابق' : 'Floor'} ${b.location.floor} · ${ar ? 'ممر' : 'Aisle'} ${b.location.aisle} · ${ar ? 'رف' : 'Shelf'} ${b.location.shelf}`
+                  : b.shelf ? `${ar ? 'رف' : 'Shelf'} ${b.shelf}` : '';
+                return (
+                  <motion.div
+                    key={card.id}
+                    initial={{ opacity: 0, scale: 0.8, y: 12 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: 'spring', damping: 22, stiffness: 320 }}
+                    className="absolute pointer-events-auto"
+                    style={{ left: card.x, top: card.y, width: 270 }}
+                  >
+                    {/* AR connector dot */}
+                    <div className="absolute left-1/2 -translate-x-1/2 -bottom-5 flex flex-col items-center">
+                      <div className="w-px h-4 bg-accent/40" />
+                      <motion.div animate={{ scale: [1, 1.6, 1] }} transition={{ duration: 1.4, repeat: Infinity }}
+                        className="w-2 h-2 rounded-full bg-accent shadow-[0_0_8px_rgba(217,179,16,0.8)]" />
                     </div>
-                    {card.whatISaw ? <div className="px-3 pt-2"><p className="text-white/40 text-[9px] font-bold leading-relaxed line-clamp-1">{card.whatISaw}</p></div> : null}
-                    <div className="px-3 py-2.5 flex items-start gap-2.5">
-                      <div className="w-9 h-12 rounded-lg bg-accent/20 flex items-center justify-center shrink-0 border border-accent/20"><BookOpen className="w-4 h-4 text-accent" /></div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white font-black text-[11px] leading-tight line-clamp-2">{card.book.title}</p>
-                        <p className="text-white/50 text-[9px] font-bold mt-0.5">{card.book.author}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                          <MapPin className="w-2.5 h-2.5 text-accent" />
-                          <span className="text-accent text-[9px] font-black">{ar ? 'رف' : 'Shelf'} {card.book.shelf}</span>
+
+                    <div className="bg-black/88 backdrop-blur-2xl rounded-2xl border border-accent/30 overflow-hidden shadow-2xl">
+
+                      {/* ── Header ── */}
+                      <div className="flex items-center justify-between px-3 pt-2.5 pb-2 border-b border-white/8">
+                        <div className="flex items-center gap-1.5">
+                          <Sparkles className="w-3 h-3 text-accent" />
+                          <span className="text-[9px] font-black text-accent uppercase tracking-widest">
+                            {ar ? 'كتاب مُعرَّف بالذكاء الاصطناعي' : 'AI Identified Book'}
+                          </span>
                         </div>
+                        <button className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center"
+                          onClick={e => { e.stopPropagation(); setCards(p => p.filter(c => c.id !== card.id)); }}>
+                          <X className="w-3 h-3 text-white/50" />
+                        </button>
+                      </div>
+
+                      {/* ── What AI saw ── */}
+                      {card.whatISaw ? (
+                        <div className="px-3 pt-2">
+                          <p className="text-white/35 text-[8px] italic line-clamp-1">
+                            {ar ? '👁 ' : '👁 '}{card.whatISaw}
+                          </p>
+                        </div>
+                      ) : null}
+
+                      {/* ── Title + Author ── */}
+                      <div className="px-3 pt-2 pb-1.5">
+                        <p className="text-white font-black text-[12px] leading-tight mb-0.5 line-clamp-2">{b.title}</p>
+                        {b.titleArabic && b.titleArabic !== b.title && (
+                          <p className="text-white/45 text-[9px] mb-0.5 line-clamp-1">{b.titleArabic}</p>
+                        )}
+                        <p className="text-white/55 text-[9px]">{b.author}{b.year ? ` · ${b.year}` : ''}{b.pages ? ` · ${b.pages} ${ar ? 'ص' : 'pp'}` : ''}</p>
+                      </div>
+
+                      {/* ── Status + Category badges ── */}
+                      <div className="px-3 pb-2 flex flex-wrap gap-1.5">
+                        <span className={cn(
+                          'px-2 py-0.5 rounded-full text-[8px] font-black',
+                          isAvailable ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        )}>
+                          {isAvailable ? (ar ? '✓ متاح' : '✓ Available') : (ar ? '✗ مستعار' : '✗ Borrowed')}
+                        </span>
+                        {b.category && (
+                          <span className="px-2 py-0.5 rounded-full bg-accent/15 text-accent text-[8px] font-bold border border-accent/25">
+                            {b.category}
+                          </span>
+                        )}
+                        {b.genre && (
+                          <span className="px-2 py-0.5 rounded-full bg-white/8 text-white/50 text-[8px] font-bold">
+                            {b.genre}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* ── Location ── */}
+                      {loc && (
+                        <div className="px-3 pb-2 flex items-center gap-1.5">
+                          <MapPin className="w-2.5 h-2.5 text-accent shrink-0" />
+                          <span className="text-accent text-[9px] font-black">{loc}</span>
+                        </div>
+                      )}
+
+                      {/* ── Call number ── */}
+                      {b.callNumber && (
+                        <div className="px-3 pb-2 flex items-center gap-1.5">
+                          <FileText className="w-2.5 h-2.5 text-white/30 shrink-0" />
+                          <span className="text-white/30 text-[8px] font-mono">{b.callNumber}</span>
+                        </div>
+                      )}
+
+                      {/* ── Description ── */}
+                      {b.description && (
+                        <div className="px-3 pb-2">
+                          <p className="text-white/40 text-[8.5px] leading-relaxed line-clamp-2">{b.description}</p>
+                        </div>
+                      )}
+
+                      {/* ── AI reason ── */}
+                      {card.reason && (
+                        <div className="px-3 pb-2">
+                          <p className="text-accent/55 text-[8px] italic line-clamp-1">✦ {card.reason}</p>
+                        </div>
+                      )}
+
+                      {/* ── Action buttons ── */}
+                      <div className="px-3 pb-3 flex flex-col gap-1.5">
+                        <button
+                          onClick={e => { e.stopPropagation(); navigate(`/book/${b.id}`); }}
+                          className="w-full py-2 bg-accent rounded-xl text-primary font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5"
+                        >
+                          <BookOpen className="w-3 h-3" />
+                          {ar ? 'تفاصيل الكتاب الكاملة' : 'Full Book Details'}
+                          <ChevronRight className="w-3 h-3" />
+                        </button>
+                        <button
+                          onClick={e => { e.stopPropagation(); navigate('/map', { state: { bookId: b.id } }); }}
+                          className="w-full py-1.5 bg-white/8 border border-white/12 rounded-xl text-white/70 font-bold text-[10px] flex items-center justify-center gap-1.5"
+                        >
+                          <Navigation className="w-3 h-3" />
+                          {ar ? 'الملاحة للرف' : 'Navigate to shelf'}
+                        </button>
                       </div>
                     </div>
-                    {card.reason ? <div className="px-3 pb-2"><p className="text-white/35 text-[9px] leading-relaxed line-clamp-2">{card.reason}</p></div> : null}
-                    <div className="px-3 pb-3">
-                      <button onClick={e => { e.stopPropagation(); navigate('/map', { state: { bookId: card.book.id } }); }} className="w-full py-2 bg-accent rounded-xl text-primary font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5">
-                        <Navigation className="w-3 h-3" />
-                        {ar ? 'اذهب للرف' : 'Navigate to shelf'}
-                      </button>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
 
