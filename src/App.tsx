@@ -24,6 +24,7 @@ import { ARSimulation } from './pages/ARSimulation';
 import { CameraARSim } from './pages/CameraARSim';
 import { CompassAR } from './pages/CompassAR';
 import { WebXRAR } from './pages/WebXRAR';
+import { LibraryLens } from './pages/LibraryLens';
 import { BookQRPrint } from './pages/BookQRPrint';
 import { ShelfARScan } from './pages/ShelfARScan';
 import { MOCK_USER } from './data/mockData';
@@ -176,6 +177,10 @@ function AppContent() {
         <Route
           path="/webxr-ar"
           element={user ? <WebXRAR /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/lens-ar"
+          element={user ? <LibraryLens /> : <Navigate to="/login" />}
         />
         <Route
           path="/book-codes"
