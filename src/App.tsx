@@ -23,6 +23,7 @@ import { ShelfQRPrint } from './pages/ShelfQRPrint';
 import { ARSimulation } from './pages/ARSimulation';
 import { CameraARSim } from './pages/CameraARSim';
 import { CompassAR } from './pages/CompassAR';
+import { WebXRAR } from './pages/WebXRAR';
 import { BookQRPrint } from './pages/BookQRPrint';
 import { ShelfARScan } from './pages/ShelfARScan';
 import { MOCK_USER } from './data/mockData';
@@ -171,6 +172,10 @@ function AppContent() {
         <Route
           path="/compass-ar"
           element={user ? <CompassAR /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/webxr-ar"
+          element={user ? <WebXRAR /> : <Navigate to="/login" />}
         />
         <Route
           path="/book-codes"
