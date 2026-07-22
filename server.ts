@@ -518,7 +518,13 @@ ${catalogue}
   } catch (error: any) {
     console.error("Gemini Vision Scan Error:", error);
     const book = pickRandom();
-    return res.json({ bookId: book.id, whatISaw: null, reason: null });
+    const isQuota = error?.message?.includes('429') || error?.message?.includes('RESOURCE_EXHAUSTED') || error?.status === 429;
+    return res.json({
+      bookId: book.id,
+      whatISaw: null,
+      reason: null,
+      fallbackReason: isQuota ? 'quota' : 'error',
+    });
   }
 });
 

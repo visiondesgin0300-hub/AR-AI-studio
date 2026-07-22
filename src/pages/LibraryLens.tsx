@@ -35,6 +35,7 @@ export function LibraryLens() {
   const [cards, setCards] = useState<ARCard[]>([]);
   const [scanning, setScanning] = useState(false);
   const [ripplePos, setRipplePos] = useState<{ x: number; y: number } | null>(null);
+  const [quotaExceeded, setQuotaExceeded] = useState(false);
 
   // Gyroscope parallax — iOS 13+ needs explicit permission
   useEffect(() => {
@@ -144,6 +145,7 @@ export function LibraryLens() {
       });
       if (!res.ok) throw new Error('API error');
       const data = await res.json();
+      if (data.fallbackReason === 'quota') setQuotaExceeded(true);
       const book = MOCK_BOOKS.find(b => b.id === data.bookId);
       if (book) {
         const cx = Math.min(Math.max(tapX - 110, 12), window.innerWidth - 232);
@@ -153,7 +155,7 @@ export function LibraryLens() {
           x: cx,
           y: cy,
           book,
-          reason: data.reason ?? '',
+          reason: data.reason ?? (ar ? 'وضع عرض توضيحي — تجاوز حصة الذكاء الاصطناعي' : 'Demo mode — AI quota exceeded'),
           whatISaw: data.whatISaw ?? '',
         };
         setCards(prev => [...prev.slice(-3), card]);
@@ -273,6 +275,22 @@ export function LibraryLens() {
       {/* ─── Live UI ─── */}
       {phase === 'live' && (
         <>
+          {/* Quota exceeded banner */}
+          {quotaExceeded && (
+            <motion.div
+              initial={{ y: -60, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="absolute top-0 left-0 right-0 z-40 bg-amber-500/90 backdrop-blur-sm px-4 py-2.5 flex items-center justify-between gap-2"
+            >
+              <p className="text-black text-[11px] font-black leading-tight">
+                {ar
+                  ? '⚠️ حصة Gemini AI المجانية منتهية — العرض في وضع تجريبي. فعّل الفوترة على Google AI Studio للمسح الحقيقي.'
+                  : '⚠️ Gemini free quota exceeded — running in demo mode. Enable billing on Google AI Studio for real scanning.'}
+              </p>
+              <button onClick={() => setQuotaExceeded(false)} className="shrink-0 text-black/60 text-lg leading-none">×</button>
+            </motion.div>
+          )}
+
           {/* Subtle scan grid */}
           <div
             className="absolute inset-0 pointer-events-none opacity-15"
