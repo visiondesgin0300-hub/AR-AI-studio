@@ -69,8 +69,16 @@ export function LibraryLens() {
         if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
         streamRef.current = stream;
         const v = videoRef.current;
-        if (v) { v.srcObject = stream; v.play().catch(() => {}); }
-        setPhase('live');
+        if (!v) { if (!cancelled) setPhase('denied'); return; }
+        v.srcObject = stream;
+        // Wait for the 'playing' event — that's when the first frame is actually
+        // visible. Transitioning to 'live' before this causes a black screen.
+        v.addEventListener('playing', () => {
+          if (!cancelled) setPhase('live');
+        }, { once: true });
+        v.play().catch(() => {
+          if (!cancelled) setPhase('denied');
+        });
       })
       .catch(() => { if (!cancelled) setPhase('denied'); });
     return () => {
