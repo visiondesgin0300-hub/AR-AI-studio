@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles, Cpu, Scan } from 'lucide-react';
+import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles, Cpu, Scan, Eye } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
 import { cn } from '../lib/utils';
@@ -204,7 +204,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               className="flex flex-col gap-2 mb-1"
             >
               {[
-                { icon: Scan,     labelAr: 'WebXR حقيقي',       labelEn: 'Real WebXR AR',   path: '/webxr-ar',  accent: false, green: true,  adminOnly: false },
+                { icon: Eye,      labelAr: 'عدسة المكتبة الذكية', labelEn: 'Smart Lens AR',   path: '/lens-ar',   accent: false, green: true,  adminOnly: false },
+                { icon: Scan,     labelAr: 'WebXR حقيقي',       labelEn: 'Real WebXR AR',   path: '/webxr-ar',  accent: false, green: false, adminOnly: false },
                 { icon: Sparkles, labelAr: 'مسح كتب الرف AR',   labelEn: 'AR Shelf Scan',   path: '/shelf-ar',  accent: true,  green: false, adminOnly: false },
                 { icon: QrCode,   labelAr: 'مسح رمز QR',        labelEn: 'Scan Shelf QR',   path: '/scan',      accent: false, green: false, adminOnly: false },
                 { icon: Map,      labelAr: 'خريطة المراجع AR',   labelEn: 'Books Map AR',    path: '/map',       accent: false, green: false, adminOnly: false },
