@@ -88,12 +88,10 @@ export function LibraryLens() {
       .then(attachStream)
       .catch(err1 => {
         const reason = classifyError(err1);
-        // Permission denied → no point retrying
         if (reason === 'permission') {
           if (!cancelled) { setDeniedReason('permission'); setPhase('denied'); }
           return;
         }
-        // Any other failure → retry without facingMode constraint
         navigator.mediaDevices
           .getUserMedia({ video: true, audio: false })
           .then(attachStream)
