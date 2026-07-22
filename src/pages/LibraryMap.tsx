@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
 import { BookCover } from '../components/BookCover';
+import { RafeeqAvatar } from '../components/RafeeqAvatar';
+import { Shelf3DView } from '../components/Shelf3DView';
+import { UnityMap3D } from '../components/UnityMap3D';
 
 interface ManualTarget {
   id: string;
@@ -33,6 +36,9 @@ export function LibraryMap() {
 
   const [activeTab, setActiveTab] = useState<'map' | 'sections'>('map');
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+  const [rafeeqDismissed, setRafeeqDismissed] = useState(false);
+  const [map3D, setMap3D] = useState(false);
+  const [mapMode, setMapMode] = useState<'flat' | 'unity'>('flat');
 
   const [sidebarSearch, setSidebarSearch] = useState('');
 
@@ -181,6 +187,16 @@ export function LibraryMap() {
   const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
   const hasArrived = showPath && walkProgress >= 1;
+
+  const rafeeqMessage = (() => {
+    if (hasArrived) return { ar: 'وصلت! أحسنت! 🎉', en: 'You made it! Great job! 🎉' };
+    if (showPath && destinationShelfId) return {
+      ar: `أنت على بُعد ${liveDistanceMeters} م — استمر!`,
+      en: `${liveDistanceMeters}m to go — keep going!`,
+    };
+    if (destinationShelfId) return { ar: 'وجدت الرف! اضغط "AR توجيه" لأريك الطريق', en: "Found it! Tap 'AR Guide' for the path" };
+    return { ar: 'اختر رفاً من الخريطة وسأوجّهك! 👋', en: "Pick a shelf and I'll guide you! 👋" };
+  })();
   const liveStepIndex = navigationSteps.length > 0
     ? Math.min(navigationSteps.length - 1, Math.floor(walkProgress * navigationSteps.length))
     : 0;
@@ -241,7 +257,105 @@ export function LibraryMap() {
                 exit={{ opacity: 0 }}
                 className="relative z-10 w-full h-full p-12 flex flex-col"
               >
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 flex-1">
+                  {/* Map mode toggle */}
+                  <div className={cn("absolute top-5 z-40 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1", dir === 'rtl' ? 'left-5' : 'right-5')}>
+                    <button
+                      onClick={() => setMapMode('flat')}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        mapMode === 'flat'
+                          ? "bg-primary text-white shadow-sm"
+                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      )}
+                    >
+                      <Layers className="w-3 h-3" />
+                      2D
+                    </button>
+                    <button
+                      onClick={() => setMapMode('unity')}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        mapMode === 'unity'
+                          ? "bg-primary text-accent shadow-sm"
+                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      )}
+                    >
+                      <Box className="w-3 h-3" />
+                      Unity 3D
+                    </button>
+                  </div>
+
+                  {/* Rafeeq floating guide */}
+                  <AnimatePresence>
+                    {!rafeeqDismissed && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        className={cn("absolute bottom-24 z-40 flex flex-col items-center gap-1", dir === 'rtl' ? 'right-6' : 'left-6')}
+                      >
+                        {/* Speech bubble */}
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={rafeeqMessage.ar}
+                            initial={{ opacity: 0, y: -4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="relative bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/10 rounded-2xl px-4 py-3 shadow-xl max-w-[180px] text-center mb-1"
+                          >
+                            <p className="text-[11px] font-black text-primary dark:text-white leading-snug">
+                              {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
+                            </p>
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-800 border-b border-r border-slate-200/60 dark:border-white/10 rotate-45" />
+                            <button
+                              onClick={() => setRafeeqDismissed(true)}
+                              className="absolute -top-2 -right-2 w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-red-400 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </motion.div>
+                        </AnimatePresence>
+
+                        {/* Rafeeq character */}
+                        <motion.div
+                          animate={{ y: [0, -5, 0] }}
+                          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                        >
+                          <RafeeqAvatar className="w-20 h-20 drop-shadow-xl" />
+                        </motion.div>
+                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                          {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Restore Rafeeq button when dismissed */}
+                  {rafeeqDismissed && (
+                    <button
+                      onClick={() => setRafeeqDismissed(false)}
+                      className={cn("absolute bottom-24 z-40 w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-lg flex items-center justify-center hover:scale-110 transition-all", dir === 'rtl' ? 'right-6' : 'left-6')}
+                      title={language === 'ar' ? 'أظهر رفيق' : 'Show Rafeeq'}
+                    >
+                      <span className="text-lg">🤖</span>
+                    </button>
+                  )}
+
+                  {/* Unity 3D mode */}
+                  {mapMode === 'unity' && (
+                    <div className="flex-1 relative overflow-hidden rounded-2xl bg-[#01202e]">
+                      <UnityMap3D
+                        destinationShelfId={destinationShelfId}
+                        onSelectShelf={navigateToCell}
+                        language={language}
+                      />
+                    </div>
+                  )}
+
+                  {/* Flat / 2D mode */}
+                  {mapMode === 'flat' && (
+                  <div className="flex-1">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 h-full">
                     {cells.map((cell) => {
                       const section = sections.find(s => s.id === cell.section);
                       const isDestination = destinationShelfId === cell.id;
@@ -299,8 +413,11 @@ export function LibraryMap() {
                       );
                     })}
                   </div>
+                  </div>
+                  )} {/* end flat mode */}
 
-                  {/* Enhanced Entrance Visual */}
+                  {/* Enhanced Entrance Visual (flat mode only) */}
+                  {mapMode === 'flat' && (<div><div>
                   <div className="mt-16 relative flex justify-center">
                      <div className="absolute bottom-full mb-8 h-20 w-px bg-gradient-to-t from-slate-200 dark:from-white/10 to-transparent" />
                      <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 px-12 py-4 rounded-full text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-[0.4em] shadow-inner text-center">
@@ -308,38 +425,74 @@ export function LibraryMap() {
                      </div>
                   </div>
 
-                  {/* Path Visualization SVG */}
+                  {/* Path Visualization SVG — Unity-style */}
                   {showPath && destinationShelfId && (
                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 600 500">
                       <defs>
-                        <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                          <stop offset="0%" stopColor="#004C6D" stopOpacity="0" />
-                          <stop offset="50%" stopColor="#D9B310" stopOpacity="0.5" />
+                        <linearGradient id="pathGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                          <stop offset="0%" stopColor="#004C6D" stopOpacity="0.1" />
+                          <stop offset="60%" stopColor="#D9B310" stopOpacity="0.7" />
                           <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
                         </linearGradient>
-                         <filter id="glow">
-                          <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
+                        <filter id="glow">
+                          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
+                          <feMerge>
+                            <feMergeNode in="coloredBlur"/>
+                            <feMergeNode in="SourceGraphic"/>
+                          </feMerge>
+                        </filter>
+                        <filter id="glowStrong">
+                          <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
                           <feMerge>
                             <feMergeNode in="coloredBlur"/>
                             <feMergeNode in="SourceGraphic"/>
                           </feMerge>
                         </filter>
                       </defs>
+                      {/* Glow base */}
+                      <motion.path
+                        d={getPathData()}
+                        stroke="#D9B310"
+                        strokeWidth="20"
+                        strokeDasharray="1"
+                        fill="none"
+                        strokeLinecap="round"
+                        opacity="0.08"
+                        initial={{ pathLength: 0 }}
+                        animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.2, ease: "easeInOut" }}
+                      />
                       <motion.path
                         d={getPathData()}
                         stroke="url(#pathGradient)"
-                        strokeWidth="12"
-                        strokeDasharray="20 15"
+                        strokeWidth="8"
+                        strokeDasharray="18 12"
                         fill="none"
                         strokeLinecap="round"
                         filter="url(#glow)"
                         initial={{ pathLength: 0 }}
                         animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.5, ease: "easeInOut" }}
+                        transition={{ duration: 1.2, ease: "easeInOut" }}
                       />
-                      <motion.circle r="12" fill="#D9B310" stroke="white" strokeWidth="4">
-                        <animateMotion dur="4s" repeatCount="indefinite" path={getPathData()} />
-                      </motion.circle>
+                      {/* Moving arrows along path */}
+                      {[0, 1, 2].map((i) => (
+                        <polygon key={i} points="-6,-9 8,0 -6,9" fill="#D9B310" stroke="white" strokeWidth="1.5" filter="url(#glow)">
+                          <animateMotion dur="2s" begin={`${i * 0.67}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
+                        </polygon>
+                      ))}
+                      {/* Destination pulse */}
+                      <motion.circle
+                        r="18" fill="#D9B310" opacity="0.15" filter="url(#glowStrong)"
+                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
+                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
+                        animate={{ r: [14, 26, 14], opacity: [0.2, 0, 0.2] }}
+                        transition={{ duration: 1.8, repeat: Infinity }}
+                      />
+                      <circle
+                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
+                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
+                        r="10" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#glow)"
+                      />
                     </svg>
                   )}
                   {/* "View AR Guide" nudge when a destination is set */}
@@ -354,6 +507,7 @@ export function LibraryMap() {
                       {language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}
                     </button>
                   )}
+                  </div></div>)} {/* end flat entrance + path wrapper */}
               </motion.div>
             ) : (
               <motion.div
@@ -364,28 +518,15 @@ export function LibraryMap() {
               >
                 {destinationShelfId ? (
                   <>
-                    {/* Bookshelf aisle silhouette - stacked "book spine" bars
-                        resting on a wooden plank line along both edges, so
-                        the dark screen reads as a real library aisle lined
-                        with shelved books instead of an empty black void. */}
-                    <svg className="absolute inset-0 w-full h-full opacity-40 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
-                      {SHELF_SILHOUETTE_ROWS.map((rowY, rowIdx) => (
-                        <g key={rowY}>
-                          {SHELF_SPINE_WIDTHS.map((w, i) => {
-                            const topOff = AR_BOOK_TOP_OFFSETS[(rowIdx * 3 + i) % AR_BOOK_TOP_OFFSETS.length];
-                            return <rect key={`l-${i}`} x={AR_BOOK_XS[i]} y={rowY + topOff} width={w} height={88 - topOff} rx={2} fill={SHELF_SPINE_COLORS[i % SHELF_SPINE_COLORS.length]} />;
-                          })}
-                          <rect x={0} y={rowY + 88} width={AR_SHELF_PANEL_W} height={8} rx={1.5} fill="#6b4423" />
-                          {SHELF_SPINE_WIDTHS.map((_w, i) => {
-                            const ri = SHELF_SPINE_WIDTHS.length - 1 - i;
-                            const topOff = AR_BOOK_TOP_OFFSETS[(rowIdx * 3 + ri) % AR_BOOK_TOP_OFFSETS.length];
-                            return <rect key={`r-${i}`} x={600 - AR_BOOK_XS[ri] - SHELF_SPINE_WIDTHS[ri]} y={rowY + topOff} width={SHELF_SPINE_WIDTHS[ri]} height={88 - topOff} rx={2} fill={SHELF_SPINE_COLORS[(ri + 2) % SHELF_SPINE_COLORS.length]} />;
-                          })}
-                          <rect x={600 - AR_SHELF_PANEL_W} y={rowY + 88} width={AR_SHELF_PANEL_W} height={8} rx={1.5} fill="#6b4423" />
-                        </g>
-                      ))}
-                    </svg>
-                    <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
+                    {/* 3D bookshelf view */}
+                    <div className="absolute inset-0 z-10">
+                      <Shelf3DView
+                        targetBook={bookData ?? null}
+                        shelfId={destinationShelfId}
+                        language={language}
+                        dir={dir}
+                      />
+                    </div>
 
                     <div className={cn("absolute top-6 z-20 flex items-center gap-3", dir === 'rtl' ? 'right-6' : 'left-6')}>
                       <button
@@ -395,6 +536,27 @@ export function LibraryMap() {
                         {t('changeRouteLabel')}
                       </button>
                     </div>
+
+                    {/* Rafeeq mini guide in AR dark view */}
+                    <motion.div
+                      className={cn("absolute bottom-44 z-30 flex flex-col items-center gap-1", dir === 'rtl' ? 'left-4' : 'right-4')}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-3 py-2 max-w-[140px] text-center mb-1 shadow-xl">
+                        <p className="text-[10px] font-black text-white leading-snug">
+                          {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
+                        </p>
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/10 border-b border-r border-white/20 rotate-45" />
+                      </div>
+                      <motion.div
+                        animate={{ y: [0, -4, 0] }}
+                        transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <RafeeqAvatar className="w-14 h-14 drop-shadow-2xl" />
+                      </motion.div>
+                    </motion.div>
 
                     {/* Hands off to the real camera-based AR guidance; the
                         dark path here is a simulated preview of that same
@@ -407,7 +569,7 @@ export function LibraryMap() {
                       <Camera className="w-4 h-4" />
                     </button>
 
-                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
+                    <svg className="absolute inset-0 w-full h-full z-20 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
                       <defs>
                         <linearGradient id="darkPathGradient" x1="0%" y1="100%" x2="0%" y2="0%">
                           <stop offset="0%" stopColor="#D9B310" stopOpacity="0.2" />
@@ -451,7 +613,7 @@ export function LibraryMap() {
                       />
                     </svg>
 
-                    <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-20 px-10">
+                    <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-30 px-10">
                       <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
                         <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
                         {t('headTowardsShelf', { shelf: destinationShelfId })}
@@ -494,7 +656,7 @@ export function LibraryMap() {
                       )}
                     </div>
 
-                    <div className="relative z-20 mt-auto p-6 space-y-3">
+                    <div className="relative z-30 mt-auto p-6 space-y-3">
                       <div className={cn("bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 shadow-2xl shadow-black/30", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
                         {bookData ? (
                           <BookCover book={bookData} className="w-16 h-[5.25rem] rounded-xl shrink-0 shadow-lg" />

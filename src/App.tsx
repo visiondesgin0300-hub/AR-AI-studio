@@ -22,6 +22,7 @@ import { ARShowcase } from './pages/ARShowcase';
 import { ShelfQRPrint } from './pages/ShelfQRPrint';
 import { ARSimulation } from './pages/ARSimulation';
 import { CameraARSim } from './pages/CameraARSim';
+import { CompassAR } from './pages/CompassAR';
 import { BookQRPrint } from './pages/BookQRPrint';
 import { ShelfARScan } from './pages/ShelfARScan';
 import { MOCK_USER } from './data/mockData';
@@ -166,6 +167,10 @@ function AppContent() {
         <Route
           path="/ar-camera"
           element={user ? <Layout user={user} onLogout={handleLogout}><CameraARSim /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/compass-ar"
+          element={user ? <CompassAR /> : <Navigate to="/login" />}
         />
         <Route
           path="/book-codes"

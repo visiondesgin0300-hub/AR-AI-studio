@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Brain, Globe, HelpCircle, ArrowRight, ArrowLeft, X, Search, BookOpen, Map as MapIcon, Camera } from 'lucide-react';
+import { Brain, Globe, HelpCircle, ArrowRight, ArrowLeft, X, Search, BookOpen, Map as MapIcon, Camera, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
+import { RafeeqAvatar } from '../components/RafeeqAvatar';
 
 export function Landing() {
   const { dir, language, toggleLanguage, t } = useLanguage();
@@ -29,11 +30,11 @@ export function Landing() {
 
       <header className="relative z-10 px-8 py-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className={cn("flex items-center gap-3", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20 shrink-0">
-              <Brain className="text-accent w-5 h-5" />
+          <div className={cn("flex items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/25 shrink-0">
+              <Brain className="text-accent w-8 h-8" />
             </div>
-            <div className="font-display text-lg font-bold text-primary dark:text-white tracking-tight leading-tight">
+            <div className="font-display text-3xl font-bold text-primary dark:text-white tracking-tight leading-tight">
               {language === 'ar' ? 'المكتبة المعززة' : 'ARLibrary'}
             </div>
             <span className="px-2.5 py-1 rounded-lg bg-accent/15 text-accent text-[9px] font-black uppercase tracking-widest">
@@ -51,77 +52,74 @@ export function Landing() {
         </div>
       </header>
 
-      <main className="relative z-10 flex flex-col items-center justify-center text-center px-6 py-24 min-h-[calc(100vh-96px)]">
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="font-display max-w-4xl text-4xl md:text-6xl font-bold text-primary dark:text-white tracking-tight leading-[1.15] mb-6"
-        >
-          {language === 'ar'
-            ? 'تصفح المعرفة الأكاديمية مع المكتبة المعززة'
-            : 'Navigate Academic Knowledge with ARLibrary'}
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="max-w-2xl text-base md:text-lg text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-12"
-        >
-          {language === 'ar' ? 'مرحباً بك في المكتبة المعززة' : 'Welcome to the AR Library'}
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className={cn("flex flex-wrap items-center justify-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
-        >
-          <button
-            onClick={() => navigate('/login')}
-            className="flex items-center gap-2.5 bg-primary text-white px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+      <main className="relative z-10 flex flex-col items-center justify-center px-6 py-16 min-h-[calc(100vh-96px)]">
+        {/* Hero: two-column on md+, stacked on mobile */}
+        <div className={cn(
+          "max-w-5xl w-full flex flex-col md:flex-row items-center gap-10 md:gap-16",
+          dir === 'rtl' ? 'md:flex-row-reverse' : ''
+        )}>
+          {/* Left/RTL-right: text + buttons */}
+          <motion.div
+            initial={{ opacity: 0, x: dir === 'rtl' ? 20 : -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+            className={cn("flex-1 flex flex-col", dir === 'rtl' ? 'items-end text-right' : 'items-start text-left')}
           >
-            {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
-            {dir === 'rtl' ? <ArrowLeft className="w-5 h-5" /> : <ArrowRight className="w-5 h-5" />}
-          </button>
+            <h1 className="font-display text-4xl md:text-5xl font-bold text-primary dark:text-white tracking-tight leading-[1.15] mb-5">
+              {language === 'ar'
+                ? 'تصفح المعرفة الأكاديمية مع المكتبة المعززة'
+                : 'Navigate Academic Knowledge with ARLibrary'}
+            </h1>
+            <p className="max-w-lg text-base md:text-lg text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-10">
+              {language === 'ar' ? 'مرحباً بك في المكتبة المعززة' : 'Welcome to the AR Library'}
+            </p>
+          </motion.div>
 
-          <button
-            onClick={() => setShowGuide(true)}
-            className="flex items-center gap-2.5 bg-accent text-primary px-8 py-4 rounded-2xl font-black text-sm shadow-lg shadow-accent/20 hover:scale-105 active:scale-95 transition-all"
+          {/* Right/RTL-left: Rafeeq character */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.15 }}
+            className="flex flex-col items-center gap-4 shrink-0"
           >
-            <HelpCircle className="w-5 h-5" />
-            {language === 'ar' ? 'دليل الاستخدام' : 'User Guide'}
-          </button>
-        </motion.div>
-
-        {/* Feature highlights: fills the otherwise empty space below the fold
-            with the app's three core capabilities instead of blank grid
-            background, and gives first-time visitors a preview of what's
-            behind the login wall. */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="grid grid-cols-3 gap-4 md:gap-6 max-w-xl w-full mt-20"
-        >
-          {[
-            { icon: Search, label: t('searchTitle'), desc: language === 'ar' ? 'فهرس ذكي لكل الكتب' : 'Smart catalog search' },
-            { icon: MapIcon, label: t('mapTitle'), desc: language === 'ar' ? 'ملاحة دقيقة للأرفف' : 'Precise shelf wayfinding' },
-            { icon: Camera, label: t('arHubFabLabel'), desc: language === 'ar' ? 'كاميرا تدلك على الطريق' : 'Camera-guided navigation' },
-          ].map((feature, i) => (
-            <div
-              key={i}
-              className="bg-white dark:bg-slate-900 border border-slate-150/60 dark:border-white/5 rounded-2xl p-4 md:p-5 flex flex-col items-center text-center gap-2 shadow-sm shadow-black/[0.03]"
-            >
-              <div className="w-10 h-10 rounded-xl bg-primary/5 dark:bg-accent/10 text-primary dark:text-accent flex items-center justify-center">
-                <feature.icon className="w-5 h-5" />
-              </div>
-              <span className="text-xs font-black text-primary dark:text-white">{feature.label}</span>
-              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed hidden sm:block">{feature.desc}</span>
+            {/* Speech bubble */}
+            <div className="relative bg-white dark:bg-slate-800 border border-slate-200/60 dark:border-white/10 rounded-2xl px-5 py-4 shadow-md max-w-[220px] text-center">
+              <p className="text-sm font-black text-primary dark:text-white leading-snug mb-2">
+                {language === 'ar'
+                  ? 'مرحباً! أنا رفيق، دليلك في ARLibrary'
+                  : "Hi! I'm Rafeeq, your ARLibrary guide"}
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold leading-relaxed">
+                {language === 'ar'
+                  ? 'اضغط تسجيل الدخول واستكشف عالم المكتبة الذكية!'
+                  : 'Press Login & explore the smart AR library!'}
+              </p>
+              {/* Tail */}
+              <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-5 h-5 bg-white dark:bg-slate-800 border-b border-r border-slate-200/60 dark:border-white/10 rotate-45" />
             </div>
-          ))}
-        </motion.div>
+
+            {/* Character */}
+            <motion.button
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+              whileHover={{ scale: 1.06 }}
+              onClick={() => navigate('/login')}
+              className="w-36 h-36 focus:outline-none cursor-pointer"
+              title={language === 'ar' ? 'تسجيل الدخول' : 'Login'}
+            >
+              <RafeeqAvatar className="w-full h-full drop-shadow-xl" />
+            </motion.button>
+
+            <button
+              onClick={() => navigate('/login')}
+              className="flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-2xl text-xs font-black shadow-md shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              {language === 'ar' ? 'تسجيل الدخول' : 'Login'}
+            </button>
+          </motion.div>
+        </div>
+
       </main>
 
       <footer className="relative z-10 px-8 pb-8">

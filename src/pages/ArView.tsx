@@ -19,8 +19,15 @@ export function ArView({ book, onClose }: ArViewProps) {
   const [distance, setDistance] = useState<number | null>(null);
   const [markerFound, setMarkerFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { t, dir } = useLanguage();
+  const [markerScreenPos, setMarkerScreenPos] = useState<{ x: number; y: number } | null>(null);
+  const { t, dir, language } = useLanguage();
   const markerId = getMarkerForShelf(book.shelf);
+
+  // Refs written by the RAF loop, read by the 80ms polling effect — avoids
+  // hammering React state at 60fps while still keeping the floating label smooth.
+  const markerWorldPosRef = useRef<THREE.Vector3 | null>(null);
+  const arCameraRef = useRef<THREE.Camera | null>(null);
+  const glRendererRef = useRef<THREE.WebGLRenderer | null>(null);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -100,6 +107,8 @@ export function ArView({ book, onClose }: ArViewProps) {
 
         const scene = new THREE.Scene();
         const camera = new THREE.Camera();
+        arCameraRef.current = camera;
+        glRendererRef.current = webglRenderer;
         scene.add(camera);
 
         // AR.js toggles markerRoot.visible off on any single frame it fails to
@@ -216,11 +225,13 @@ export function ArView({ book, onClose }: ArViewProps) {
               displayGroup.visible = true;
               setDistance(markerRoot.position.length());
               setMarkerFound(true);
+              markerWorldPosRef.current = markerRoot.position.clone();
             } else if (lostFrames <= LOST_GRACE_FRAMES) {
               lostFrames += 1;
             } else {
               displayGroup.visible = false;
               setMarkerFound(false);
+              markerWorldPosRef.current = null;
             }
             webglRenderer.render(scene, camera);
             rafId = requestAnimationFrame(animate);
@@ -247,8 +258,34 @@ export function ArView({ book, onClose }: ArViewProps) {
       if (renderer?.domElement.parentElement) {
         renderer.domElement.parentElement.removeChild(renderer.domElement);
       }
+      arCameraRef.current = null;
+      glRendererRef.current = null;
+      markerWorldPosRef.current = null;
     };
   }, [book.shelf, t]);
+
+  // Poll the RAF-written refs at ~12fps to project the 3D marker position onto
+  // 2D screen coordinates for the floating HTML info label.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const pos = markerWorldPosRef.current;
+      const cam = arCameraRef.current;
+      const rend = glRendererRef.current;
+      if (!pos || !cam || !rend) {
+        setMarkerScreenPos(null);
+        return;
+      }
+      const w = rend.domElement.clientWidth || window.innerWidth;
+      const h = rend.domElement.clientHeight || window.innerHeight;
+      const v = pos.clone();
+      v.project(cam);
+      setMarkerScreenPos({
+        x: Math.round((v.x * 0.5 + 0.5) * w),
+        y: Math.round((-v.y * 0.5 + 0.5) * h),
+      });
+    }, 80);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <motion.div
@@ -271,6 +308,53 @@ export function ArView({ book, onClose }: ArViewProps) {
           />
         )}
       </div>
+
+      {/* ── Floating AR Info Label — projected from 3D marker world position ── */}
+      {markerFound && markerScreenPos && (
+        <motion.div
+          className="absolute pointer-events-none z-[15]"
+          style={{
+            left: Math.max(80, Math.min(markerScreenPos.x, window.innerWidth - 80)),
+            top: Math.max(100, Math.min(markerScreenPos.y - 30, window.innerHeight - 180)),
+            transform: 'translate(-50%, -100%)',
+          }}
+          initial={{ opacity: 0, scale: 0.85, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.85 }}
+          transition={{ duration: 0.2 }}
+        >
+          {/* Info card */}
+          <div
+            className="bg-black/80 border border-accent/60 backdrop-blur-xl rounded-2xl px-4 py-3 shadow-2xl min-w-[170px] max-w-[220px]"
+            style={{ boxShadow: '0 0 24px rgba(217,179,16,0.3), 0 8px 32px rgba(0,0,0,0.6)' }}
+          >
+            <div className="text-[8px] font-black text-accent/80 uppercase tracking-[0.2em] mb-1">
+              {language === 'ar' ? 'الرف المستهدف' : 'TARGET SHELF'}
+            </div>
+            <div className="text-white font-black text-2xl leading-none mb-1.5">{book.shelf}</div>
+            <div className="text-white/75 text-[10px] font-bold leading-snug line-clamp-2 mb-2">
+              {language === 'ar' ? book.title : (book.titleEn ?? book.title)}
+            </div>
+            {distance !== null && (
+              <div className="flex items-center gap-1.5">
+                <div className={cn(
+                  'w-1.5 h-1.5 rounded-full',
+                  distance < 0.35 ? 'bg-emerald-400 animate-ping' : 'bg-accent animate-pulse'
+                )} />
+                <span className={cn('text-[9px] font-black uppercase', distance < 0.35 ? 'text-emerald-400' : 'text-accent')}>
+                  {distance < 0.35
+                    ? (language === 'ar' ? '✓ وصلت!' : '✓ You found it!')
+                    : `${distance.toFixed(1)}m`}
+                </span>
+              </div>
+            )}
+          </div>
+          {/* Connector line from card to marker position */}
+          <div className="w-px h-7 bg-gradient-to-b from-accent/60 to-transparent mx-auto" />
+          {/* Crosshair dot at marker */}
+          <div className="w-3 h-3 rounded-full border-2 border-accent bg-accent/30 mx-auto shadow-[0_0_8px_rgba(217,179,16,0.8)]" />
+        </motion.div>
+      )}
 
       {/* Searching prompt - shown until the physical shelf marker is actually recognized */}
       {!markerFound && !error && (

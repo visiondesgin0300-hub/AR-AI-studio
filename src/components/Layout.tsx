@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles } from 'lucide-react';
+import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles, Cpu } from 'lucide-react';
+import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -37,6 +38,13 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
     }, 5000);
     return () => clearTimeout(timer);
   }, [showFabHint]);
+
+  useEffect(() => {
+    const handler = () => setShowLibrarian(true);
+    window.addEventListener('open-rafeeq', handler);
+    return () => window.removeEventListener('open-rafeeq', handler);
+  }, []);
+
 
   const dismissFabHint = () => {
     localStorage.setItem('ar_fab_seen', '1');
@@ -200,6 +208,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 { icon: QrCode, labelAr: 'مسح رمز QR', labelEn: 'Scan Shelf QR', path: '/scan', accent: false, adminOnly: false },
                 { icon: Map, labelAr: 'خريطة المراجع AR', labelEn: 'Books Map AR', path: '/map', accent: false, adminOnly: false },
                 { icon: Compass, labelAr: 'مرافق AR', labelEn: 'Facilities AR', path: '/facilities', accent: false, adminOnly: false },
+                { icon: Cpu, labelAr: 'AR Lab', labelEn: 'AR Lab', path: '/ar-lab', accent: false, adminOnly: false },
                 { icon: Printer, labelAr: 'طباعة QR الأرفف', labelEn: 'Print Shelf QR', path: '/qr-print', accent: false, adminOnly: true },
               ].filter(item => !item.adminOnly || isAdmin).map((item, i) => {
                 const Icon = item.icon;
@@ -297,12 +306,12 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         whileTap={{ scale: 0.92 }}
         title={t('askLibrarianLabel')}
         className={cn(
-          "fixed z-40 bottom-44 lg:bottom-28 w-14 h-14 flex items-center justify-center rounded-full bg-primary dark:bg-slate-800 text-white border-2 border-white/20 dark:border-white/10 shadow-[0_15px_40px_rgba(0,76,109,0.45)]",
+          "fixed z-40 bottom-44 lg:bottom-28 w-14 h-14 flex items-end justify-center rounded-full bg-primary dark:bg-slate-800 border-2 border-white/20 dark:border-white/10 shadow-[0_15px_40px_rgba(0,76,109,0.45)] overflow-hidden",
           dir === 'rtl' ? 'left-5 lg:left-10' : 'right-5 lg:right-10'
         )}
       >
-        <MessageCircle className="w-6 h-6" />
-        <span className="absolute -top-1 -right-1 w-3.5 h-3.5 rounded-full bg-accent border-2 border-white dark:border-slate-900" />
+        <RafeeqAvatar className="w-full h-full scale-110" />
+        <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-accent border-2 border-white dark:border-slate-900" />
       </motion.button>
 
       <div className="flex-1 flex flex-col min-w-0 relative h-full">

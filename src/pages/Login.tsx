@@ -143,15 +143,15 @@ export function Login({ onLogin }: LoginProps) {
         </button>
       </div>
 
-      {/* BACK AS GUEST */}
+      {/* BACK */}
       <div className={cn("absolute top-6 z-20", dir === 'rtl' ? 'right-6' : 'left-6')}>
         <button
           type="button"
-          onClick={handleGuestAccess}
+          onClick={() => navigate('/')}
           className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-750 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
         >
           {dir === 'rtl' ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
-          <span>{t('backAsGuest')}</span>
+          <span>{language === 'ar' ? 'رجوع' : 'Back'}</span>
         </button>
       </div>
 
