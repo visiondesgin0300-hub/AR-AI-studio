@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles, Cpu } from 'lucide-react';
+import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles, Cpu, Scan } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
 import { cn } from '../lib/utils';
@@ -204,12 +204,13 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               className="flex flex-col gap-2 mb-1"
             >
               {[
-                { icon: Sparkles, labelAr: 'مسح كتب الرف AR', labelEn: 'AR Shelf Scan', path: '/shelf-ar', accent: true, adminOnly: false },
-                { icon: QrCode, labelAr: 'مسح رمز QR', labelEn: 'Scan Shelf QR', path: '/scan', accent: false, adminOnly: false },
-                { icon: Map, labelAr: 'خريطة المراجع AR', labelEn: 'Books Map AR', path: '/map', accent: false, adminOnly: false },
-                { icon: Compass, labelAr: 'مرافق AR', labelEn: 'Facilities AR', path: '/facilities', accent: false, adminOnly: false },
-                { icon: Cpu, labelAr: 'AR Lab', labelEn: 'AR Lab', path: '/ar-lab', accent: false, adminOnly: false },
-                { icon: Printer, labelAr: 'طباعة QR الأرفف', labelEn: 'Print Shelf QR', path: '/qr-print', accent: false, adminOnly: true },
+                { icon: Scan,     labelAr: 'WebXR حقيقي',       labelEn: 'Real WebXR AR',   path: '/webxr-ar',  accent: false, green: true,  adminOnly: false },
+                { icon: Sparkles, labelAr: 'مسح كتب الرف AR',   labelEn: 'AR Shelf Scan',   path: '/shelf-ar',  accent: true,  green: false, adminOnly: false },
+                { icon: QrCode,   labelAr: 'مسح رمز QR',        labelEn: 'Scan Shelf QR',   path: '/scan',      accent: false, green: false, adminOnly: false },
+                { icon: Map,      labelAr: 'خريطة المراجع AR',   labelEn: 'Books Map AR',    path: '/map',       accent: false, green: false, adminOnly: false },
+                { icon: Compass,  labelAr: 'مرافق AR',           labelEn: 'Facilities AR',   path: '/facilities',accent: false, green: false, adminOnly: false },
+                { icon: Cpu,      labelAr: 'AR Lab',             labelEn: 'AR Lab',          path: '/ar-lab',    accent: false, green: false, adminOnly: false },
+                { icon: Printer,  labelAr: 'طباعة QR الأرفف',   labelEn: 'Print Shelf QR',  path: '/qr-print',  accent: false, green: false, adminOnly: true },
               ].filter(item => !item.adminOnly || isAdmin).map((item, i) => {
                 const Icon = item.icon;
                 return (
@@ -223,6 +224,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                       'flex items-center gap-3 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl whitespace-nowrap active:scale-95 transition-transform',
                       item.accent
                         ? 'bg-accent text-primary shadow-accent/30'
+                        : item.green
+                        ? 'bg-emerald-500 text-white shadow-emerald-500/30'
                         : 'bg-primary text-white shadow-primary/30',
                       dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'
                     )}
