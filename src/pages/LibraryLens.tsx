@@ -35,7 +35,7 @@ export function LibraryLens() {
   const [scanning, setScanning] = useState(false);
   const [ripplePos, setRipplePos] = useState<{ x: number; y: number } | null>(null);
 
-  // Gyroscope parallax (passive listener, no re-renders)
+  // Gyroscope parallax — iOS 13+ needs explicit permission
   useEffect(() => {
     const handler = (e: DeviceOrientationEvent) => {
       const layer = gyroLayerRef.current;
@@ -44,7 +44,19 @@ export function LibraryLens() {
       const g = Math.max(-20, Math.min(20, e.gamma ?? 0));
       layer.style.transform = `perspective(800px) rotateX(${-b * 0.12}deg) rotateY(${g * 0.12}deg)`;
     };
-    window.addEventListener('deviceorientation', handler, { passive: true });
+
+    // On iOS 13+, DeviceOrientationEvent.requestPermission() must be called
+    // from a user gesture — we trigger it once on mount right after camera start.
+    const DOE = DeviceOrientationEvent as unknown as {
+      requestPermission?: () => Promise<'granted' | 'denied'>;
+    };
+    if (typeof DOE.requestPermission === 'function') {
+      DOE.requestPermission()
+        .then(state => { if (state === 'granted') window.addEventListener('deviceorientation', handler, { passive: true }); })
+        .catch(() => {});
+    } else {
+      window.addEventListener('deviceorientation', handler, { passive: true });
+    }
     return () => window.removeEventListener('deviceorientation', handler);
   }, []);
 
