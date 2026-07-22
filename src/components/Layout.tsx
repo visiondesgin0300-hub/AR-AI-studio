@@ -524,7 +524,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         {/* Bottom Floating Navigation (Mobile Only) */}
         <nav className="lg:hidden fixed bottom-5 left-5 right-5 z-50 rounded-[2rem] flex justify-around items-center py-3.5 bg-white/85 dark:bg-slate-950/80 backdrop-blur-3xl border border-white/45 dark:border-white/5 shadow-[0_15px_35px_rgba(0,0,0,0.18)]">
           {navItems.map((item) => {
-            const isActive = item.path.includes('?') 
+            const isActive = item.path.includes('?')
               ? (location.pathname === item.path.split('?')[0] && location.search === '?' + item.path.split('?')[1])
               : (location.pathname === item.path && !location.search);
             const Icon = item.icon;
@@ -539,8 +539,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               >
                 <div className={cn(
                   "p-2.5 rounded-2xl transition-all duration-300",
-                  isActive 
-                    ? "bg-[#004C6D]/10 dark:bg-accent/15 shadow-inner scale-105 border border-[#004C6D]/10 dark:border-accent/15" 
+                  isActive
+                    ? "bg-[#004C6D]/10 dark:bg-accent/15 shadow-inner scale-105 border border-[#004C6D]/10 dark:border-accent/15"
                     : "group-hover:bg-slate-50 dark:group-hover:bg-white/5"
                 )}>
                   <Icon className={cn("w-5 h-5 transition-transform duration-300", isActive ? "text-accent scale-110" : "text-slate-450 dark:text-slate-500")} />
@@ -552,7 +552,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                   {item.label}
                 </span>
                 {isActive && (
-                  <motion.div 
+                  <motion.div
                     layoutId="activeDot"
                     className="absolute -bottom-1.5 w-1.5 h-1.5 bg-accent rounded-full shadow-[0_0_8px_rgba(215,200,38,1)]"
                   />
@@ -560,6 +560,18 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               </Link>
             );
           })}
+          {/* Logout — mobile only */}
+          <button
+            onClick={onLogout}
+            className="flex flex-col items-center gap-1.5 px-3 text-red-400 hover:text-red-500 transition-all duration-300 group"
+          >
+            <div className="p-2.5 rounded-2xl group-hover:bg-red-50 dark:group-hover:bg-red-500/10 transition-all duration-300">
+              <LogOut className="w-5 h-5" />
+            </div>
+            <span className="text-[9px] font-black uppercase tracking-wider opacity-70">
+              {language === 'ar' ? 'خروج' : 'Logout'}
+            </span>
+          </button>
         </nav>
       </div>
 
