@@ -22,11 +22,8 @@ import { ARShowcase } from './pages/ARShowcase';
 import { ShelfQRPrint } from './pages/ShelfQRPrint';
 import { ARSimulation } from './pages/ARSimulation';
 import { CameraARSim } from './pages/CameraARSim';
-import { CompassAR } from './pages/CompassAR';
-import { WebXRAR } from './pages/WebXRAR';
 import { LibraryLens } from './pages/LibraryLens';
 import { BookQRPrint } from './pages/BookQRPrint';
-import { ShelfARScan } from './pages/ShelfARScan';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -171,24 +168,12 @@ function AppContent() {
           element={user ? <Layout user={user} onLogout={handleLogout}><CameraARSim /></Layout> : <Navigate to="/login" />}
         />
         <Route
-          path="/compass-ar"
-          element={user ? <CompassAR /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/webxr-ar"
-          element={user ? <WebXRAR /> : <Navigate to="/login" />}
-        />
-        <Route
           path="/lens-ar"
           element={user ? <LibraryLens /> : <Navigate to="/login" />}
         />
         <Route
           path="/book-codes"
           element={user ? <Layout user={user} onLogout={handleLogout}><BookQRPrint /></Layout> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/shelf-ar"
-          element={user ? <ShelfARScan /> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
