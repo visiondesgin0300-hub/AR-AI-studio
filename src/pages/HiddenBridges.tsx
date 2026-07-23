@@ -49,7 +49,7 @@ export function HiddenBridges() {
   const streamRef = useRef<MediaStream | null>(null);
   const svgRef    = useRef<SVGSVGElement>(null);
 
-  const [phase, setPhase]                     = useState<'loading' | 'live' | 'denied'>('loading');
+  const [phase, setPhase]                     = useState<'loading' | 'live'>('loading');
   const [zonesVisible, setZonesVisible]       = useState(false);
   const [bridgesVisible, setBridgesVisible]   = useState(false);
   const [badgesVisible, setBadgesVisible]     = useState(false);
@@ -95,7 +95,7 @@ export function HiddenBridges() {
       if (!v) return;
       v.srcObject = stream;
       v.addEventListener('playing', () => { if (!cancelled) setPhase('live'); }, { once: true });
-      v.play().catch(() => { if (!cancelled) setPhase('denied'); });
+      v.play().catch(() => { if (!cancelled) setPhase('live'); });
     };
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
@@ -103,7 +103,7 @@ export function HiddenBridges() {
       .catch(() => {
         if (cancelled) return;
         navigator.mediaDevices.getUserMedia({ video: true, audio: false })
-          .then(attach).catch(() => { if (!cancelled) setPhase('denied'); });
+          .then(attach).catch(() => { if (!cancelled) setPhase('live'); }); // fallback: dark bg
       });
     return () => { cancelled = true; streamRef.current?.getTracks().forEach(t => t.stop()); };
   }, []);
@@ -169,9 +169,9 @@ export function HiddenBridges() {
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/30 to-black/80 pointer-events-none" />
 
-      {/* ── Loading ── */}
+      {/* ── Loading spinner (only while camera hasn't resolved yet) ── */}
       {phase === 'loading' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none">
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
             <FlaskConical className="w-10 h-10 text-[#D7C826]" />
           </motion.div>
@@ -179,20 +179,7 @@ export function HiddenBridges() {
         </div>
       )}
 
-      {/* ── Denied ── */}
-      {phase === 'denied' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-[#D7C826]/15 border border-[#D7C826]/30 flex items-center justify-center">
-            <FlaskConical className="w-8 h-8 text-[#D7C826]" />
-          </div>
-          <p className="text-white font-black text-base mb-1">{ar ? 'يحتاج الوصول للكاميرا' : 'Camera Access Needed'}</p>
-          <button onClick={() => navigate(-1)} className="px-8 py-3 rounded-2xl bg-[#D7C826] text-[#004C6D] text-sm font-black">
-            {ar ? 'رجوع' : 'Back'}
-          </button>
-        </div>
-      )}
-
-      {/* ── Live AR ── */}
+      {/* ── AR experience (camera live or dark-bg fallback) ── */}
       {phase === 'live' && (
         <>
           {/* Header */}

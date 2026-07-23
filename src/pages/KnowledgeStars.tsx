@@ -56,7 +56,7 @@ export function KnowledgeStars() {
   const streamRef = useRef<MediaStream | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
-  const [phase, setPhase] = useState<'loading' | 'live' | 'denied'>('loading');
+  const [phase, setPhase] = useState<'loading' | 'live'>('loading');
   const [constellationReady, setConstellationReady] = useState(false);
   const [badgesReady, setBadgesReady] = useState(false);
   const [selectedRelation, setSelectedRelation] = useState<Relation | null>(null);
@@ -104,7 +104,7 @@ export function KnowledgeStars() {
       if (!v) return;
       v.srcObject = stream;
       v.addEventListener('playing', () => { if (!cancelled) setPhase('live'); }, { once: true });
-      v.play().catch(() => { if (!cancelled) setPhase('denied'); });
+      v.play().catch(() => { if (!cancelled) setPhase('live'); });
     };
     navigator.mediaDevices
       .getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
@@ -113,7 +113,7 @@ export function KnowledgeStars() {
         if (cancelled) return;
         navigator.mediaDevices.getUserMedia({ video: true, audio: false })
           .then(attach)
-          .catch(() => { if (!cancelled) setPhase('denied'); });
+          .catch(() => { if (!cancelled) setPhase('live'); }); // fallback: dark bg
       });
     return () => { cancelled = true; streamRef.current?.getTracks().forEach(t => t.stop()); };
   }, []);
@@ -193,29 +193,6 @@ export function KnowledgeStars() {
           <p className="text-white/70 text-sm font-bold tracking-wide">
             {ar ? 'جارٍ رصد الكتب...' : 'Scanning books...'}
           </p>
-        </div>
-      )}
-
-      {/* ── Camera denied ── */}
-      {phase === 'denied' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-8 text-center">
-          <div className="w-16 h-16 rounded-full bg-[#D7C826]/15 border border-[#D7C826]/30 flex items-center justify-center">
-            <Star className="w-8 h-8 text-[#D7C826]" />
-          </div>
-          <div>
-            <p className="text-white font-black text-base mb-1">
-              {ar ? 'يحتاج الوصول للكاميرا' : 'Camera Access Needed'}
-            </p>
-            <p className="text-white/45 text-sm">
-              {ar ? 'لرسم نجوم المعرفة فوق الكتب الحقيقية' : 'To draw knowledge stars over real books'}
-            </p>
-          </div>
-          <button
-            onClick={() => navigate(-1)}
-            className="px-8 py-3 rounded-2xl bg-[#D7C826] text-[#004C6D] text-sm font-black"
-          >
-            {ar ? 'رجوع' : 'Back'}
-          </button>
         </div>
       )}
 
