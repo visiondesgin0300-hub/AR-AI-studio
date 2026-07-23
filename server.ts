@@ -717,6 +717,87 @@ app.post("/api/translate-book", async (req, res) => {
   }
 });
 
+// ── Feature: The Speaking Book — AR speech bubbles from the book's POV ───────
+app.post("/api/book-speaks", async (req, res) => {
+  const { title, author, description, category, year } = req.body || {};
+  if (!title) return res.status(400).json({ error: "title required" });
+
+  const fallback = {
+    bubbles: [
+      { text: `لستُ مجرد كتاب عن ${category || 'هذا الموضوع'}… أنا الإجابة التي تبحث عنها`, delay: 0 },
+      { text: `${author ? author + ' كتبني ليُغيّر طريقة تفكيرك، لا ليضيف رقماً لقائمة مراجعك' : 'كُتبت لأبقى معك بعد إغلاق صفحتي الأخيرة'}`, delay: 700 },
+      { text: `الفصل الأول وحده يستحق الرحلة إليّ`, delay: 1400 },
+    ],
+    stats: { readTime: '6-8 ساعات', completionRate: '87%' },
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{
+          text: `أنت كتاب أكاديمي اسمك "${title}" تأليف ${author || 'مؤلف'} (${year || ''}, تخصص: ${category || 'عام'}).
+وصفك: ${description || ''}
+
+تكلّم بصوت الكتاب نفسه — شخصيّاً ومفاجئاً. اكتب 3 فقاعات حوار قصيرة (جملة واحدة لكل منها) كأنك تقنع الطالب الواقف أمامك.
+
+القواعد:
+- لا تبدأ بـ "أنا كتاب عن..."
+- الجملة الأولى: حقيقة غير متوقعة أو مفارقة
+- الجملة الثانية: ربط بحياة الطالب أو مشكلة يعيشها
+- الجملة الثالثة: وعد بتجربة أو تحوّل محدد
+
+أجب بـ JSON فقط:
+{
+  "bubbles": [
+    { "text": "...", "delay": 0 },
+    { "text": "...", "delay": 700 },
+    { "text": "...", "delay": 1400 }
+  ],
+  "stats": { "readTime": "X ساعات", "completionRate": "X%" }
+}`,
+        }],
+      }] as any,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            bubbles: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  text: { type: Type.STRING },
+                  delay: { type: Type.NUMBER },
+                },
+                required: ["text", "delay"],
+              },
+            },
+            stats: {
+              type: Type.OBJECT,
+              properties: {
+                readTime: { type: Type.STRING },
+                completionRate: { type: Type.STRING },
+              },
+            },
+          },
+          required: ["bubbles"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ ...fallback, ...parsed });
+  } catch (err: any) {
+    console.error("Book speaks error:", err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

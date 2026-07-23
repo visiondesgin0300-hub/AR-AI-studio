@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, MapPin, Sparkles, Navigation, BookOpen, Zap, Star, Clock, FileText, ChevronRight, Languages, Loader2 } from 'lucide-react';
+import { X, MapPin, Sparkles, Navigation, BookOpen, Zap, Star, Clock, FileText, ChevronRight, Languages, Loader2, MessageCircle } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
@@ -21,6 +21,11 @@ interface TranslationResult {
   descriptionTranslated: string;
   readingLevel: string;
   tags: string[];
+}
+
+interface SpeakingResult {
+  bubbles: { text: string; delay: number }[];
+  stats: { readTime: string; completionRate: string };
 }
 
 export function LibraryLens() {
@@ -45,6 +50,9 @@ export function LibraryLens() {
   const [quotaExceeded, setQuotaExceeded] = useState(false);
   const [translations, setTranslations] = useState<Record<string, TranslationResult>>({});
   const [translating, setTranslating] = useState<Record<string, boolean>>({});
+  const [speaking, setSpeaking] = useState<Record<string, SpeakingResult>>({});
+  const [speakingLoading, setSpeakingLoading] = useState<Record<string, boolean>>({});
+  const [visibleBubbles, setVisibleBubbles] = useState<Record<string, number>>({});
 
   // Gyroscope parallax — iOS 13+ needs explicit permission
   useEffect(() => {
@@ -176,6 +184,34 @@ export function LibraryLens() {
     scanningRef.current = false;
     setScanning(false);
   }, [captureFrame]);
+
+  const makeBookSpeak = useCallback(async (cardId: string, book: Book) => {
+    if (speaking[cardId] || speakingLoading[cardId]) return;
+    setSpeakingLoading(prev => ({ ...prev, [cardId]: true }));
+    setVisibleBubbles(prev => ({ ...prev, [cardId]: 0 }));
+    try {
+      const res = await fetch('/api/book-speaks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: book.titleEn || book.title,
+          author: book.author,
+          description: book.description,
+          category: book.category,
+          year: book.year,
+        }),
+      });
+      const data: SpeakingResult = await res.json();
+      setSpeaking(prev => ({ ...prev, [cardId]: data }));
+      // Reveal bubbles one by one matching their delay values
+      data.bubbles.forEach((bubble, i) => {
+        setTimeout(() => {
+          setVisibleBubbles(prev => ({ ...prev, [cardId]: i + 1 }));
+        }, bubble.delay + 200);
+      });
+    } catch { /* silent */ }
+    setSpeakingLoading(prev => ({ ...prev, [cardId]: false }));
+  }, [speaking, speakingLoading]);
 
   const translateCard = useCallback(async (cardId: string, book: Book) => {
     if (translations[cardId] || translating[cardId]) return;
@@ -464,6 +500,53 @@ export function LibraryLens() {
                         </div>
                       )}
 
+                      {/* ── Speaking Book bubbles ── */}
+                      <AnimatePresence>
+                        {speaking[card.id] && (
+                          <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="px-3 pb-1 space-y-1.5"
+                            dir="rtl"
+                          >
+                            <div className="flex items-center gap-1.5 mb-2">
+                              <MessageCircle className="w-3 h-3 text-accent" />
+                              <span className="text-[9px] font-black text-accent uppercase tracking-widest">الكتاب يتكلم</span>
+                            </div>
+                            {speaking[card.id].bubbles.slice(0, visibleBubbles[card.id] ?? 0).map((bubble, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, scale: 0.82, y: 10 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                transition={{ type: 'spring', damping: 18, stiffness: 280 }}
+                                className="relative bg-white/12 border border-white/15 rounded-2xl rounded-tl-sm px-3 py-2"
+                              >
+                                <p className="text-white text-[11px] font-bold leading-snug">{bubble.text}</p>
+                                {/* speech tail */}
+                                <div className="absolute -bottom-2 right-4 w-3 h-2 overflow-hidden">
+                                  <div className="w-3 h-3 bg-white/12 border-r border-b border-white/15 rotate-45 -translate-y-1.5" />
+                                </div>
+                              </motion.div>
+                            ))}
+                            {speaking[card.id].stats && visibleBubbles[card.id] >= speaking[card.id].bubbles.length && (
+                              <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.3 }}
+                                className="flex gap-3 pt-1"
+                              >
+                                <span className="px-2 py-0.5 rounded-full bg-accent/15 border border-accent/25 text-accent text-[8px] font-black">
+                                  ⏱ {speaking[card.id].stats.readTime}
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[8px] font-black">
+                                  ✓ {speaking[card.id].stats.completionRate} أكملوه
+                                </span>
+                              </motion.div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                       {/* ── AR Translation panel ── */}
                       <AnimatePresence>
                         {translations[card.id] && (
@@ -506,7 +589,17 @@ export function LibraryLens() {
                             className="flex-1 py-1.5 bg-white/8 border border-white/12 rounded-xl text-white/70 font-bold text-[10px] flex items-center justify-center gap-1.5"
                           >
                             <Navigation className="w-3 h-3" />
-                            {ar ? 'الملاحة للرف' : 'Navigate'}
+                            {ar ? 'ملاحة' : 'Navigate'}
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); makeBookSpeak(card.id, b); }}
+                            disabled={!!speaking[card.id] || speakingLoading[card.id]}
+                            className="flex-1 py-1.5 bg-white/12 border border-white/18 rounded-xl text-white/80 font-bold text-[10px] flex items-center justify-center gap-1.5 disabled:opacity-50"
+                          >
+                            {speakingLoading[card.id]
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <MessageCircle className="w-3 h-3" />}
+                            {ar ? 'يتكلم' : 'Speak'}
                           </button>
                           <button
                             onClick={e => { e.stopPropagation(); translateCard(card.id, b); }}
@@ -516,7 +609,7 @@ export function LibraryLens() {
                             {translating[card.id]
                               ? <Loader2 className="w-3 h-3 animate-spin" />
                               : <Languages className="w-3 h-3" />}
-                            {ar ? 'ترجمة AR' : 'Translate'}
+                            {ar ? 'ترجمة' : 'Translate'}
                           </button>
                         </div>
                       </div>
