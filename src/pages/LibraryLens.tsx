@@ -383,9 +383,9 @@ export function LibraryLens() {
 
                       {/* ── Title + Author ── */}
                       <div className="px-3 pt-2 pb-1.5">
-                        <p className="text-white font-black text-[12px] leading-tight mb-0.5 line-clamp-2">{b.title}</p>
-                        {b.titleArabic && b.titleArabic !== b.title && (
-                          <p className="text-white/45 text-[9px] mb-0.5 line-clamp-1">{b.titleArabic}</p>
+                        <p className="text-white font-black text-[12px] leading-tight mb-0.5 line-clamp-2">{b.titleEn || b.title}</p>
+                        {(b.titleArabic || (b.titleEn && b.title !== b.titleEn)) && (
+                          <p className="text-white/55 text-[10px] font-bold mb-0.5 line-clamp-1 text-right" dir="rtl">{b.titleArabic || b.title}</p>
                         )}
                         <p className="text-white/55 text-[9px]">{b.author}{b.year ? ` · ${b.year}` : ''}{b.pages ? ` · ${b.pages} ${ar ? 'ص' : 'pp'}` : ''}</p>
                       </div>
