@@ -24,8 +24,6 @@ import { ARSimulation } from './pages/ARSimulation';
 import { CameraARSim } from './pages/CameraARSim';
 import { LibraryLens } from './pages/LibraryLens';
 import { BookQRPrint } from './pages/BookQRPrint';
-import { StudyCards } from './pages/StudyCards';
-import { KnowledgeWeb } from './pages/KnowledgeWeb';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -176,14 +174,6 @@ function AppContent() {
         <Route
           path="/book-codes"
           element={user ? <Layout user={user} onLogout={handleLogout}><BookQRPrint /></Layout> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/study-cards"
-          element={user ? <StudyCards /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/knowledge-web"
-          element={user ? <Layout user={user} onLogout={handleLogout}><KnowledgeWeb /></Layout> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
