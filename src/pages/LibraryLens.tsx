@@ -168,22 +168,7 @@ export function LibraryLens() {
     setScanning(false);
   }, [captureFrame]);
 
-  // Auto-scan every 6s after camera is live — uses ref so no effect restart
-  useEffect(() => {
-    if (phase !== 'live') return;
-    const schedule = () => {
-      autoTimerRef.current = setTimeout(async () => {
-        await runScan(window.innerWidth / 2, window.innerHeight * 0.4);
-        schedule(); // reschedule after each scan completes
-      }, 6000);
-    };
-    // First auto-scan after 3s (give camera time to warm up)
-    autoTimerRef.current = setTimeout(async () => {
-      await runScan(window.innerWidth / 2, window.innerHeight * 0.4);
-      schedule();
-    }, 3000);
-    return () => { if (autoTimerRef.current) clearTimeout(autoTimerRef.current); };
-  }, [phase, runScan]);
+  // Scan on tap only — no auto-scan
 
   // Single tap handler — no onTouchStart to avoid double-fire on mobile
   const handleTap = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -320,6 +305,26 @@ export function LibraryLens() {
               <div className={cn('absolute h-10 w-0.5 bg-accent/70', c.includes('l') ? 'left-0' : 'right-0')} />
             </div>
           ))}
+
+          {/* Tap hint — shown when no cards and not scanning */}
+          {!scanning && cards.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="absolute bottom-36 left-0 right-0 flex flex-col items-center gap-2 pointer-events-none"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ duration: 1.6, repeat: Infinity }}
+                className="w-16 h-16 rounded-full border-2 border-accent/60 flex items-center justify-center"
+              >
+                <Zap className="w-7 h-7 text-accent" />
+              </motion.div>
+              <p className="text-white/70 text-xs font-black tracking-widest uppercase">
+                {ar ? 'اضغط على الشاشة للمسح' : 'Tap to scan'}
+              </p>
+            </motion.div>
+          )}
 
           {/* Gyro parallax layer for AR cards */}
           <div
