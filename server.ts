@@ -70,7 +70,7 @@ ${catalogue}
 - reason: جملة قصيرة جداً (أقل من 15 كلمة) بالعربية تشرح سبب اقتراح هذا الكتاب للطالب.`;
 
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.0-flash-lite",
       contents: prompt,
       config: {
         systemInstruction: "أنت مساعد يختار كتباً متنوعة لمحاكاة تجريبية داخل تطبيق مكتبة ذكية.",
@@ -206,7 +206,7 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
-    // We construct a structured JSON query using gemini-3.5-flash
+    // Structured JSON query via Gemini
     const sysInstruction = `You are "Al-Maktaba Guide" (مرشد المكتبة الذكية), a helpful virtual librarian assistant.
     You assist students in searching for books, navigating sections, and answering educational questions.
     You have direct access to our live physical library catalog database:
@@ -225,7 +225,7 @@ app.post("/api/chat", async (req, res) => {
     }));
 
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.0-flash-lite",
       contents: conversation as any,
       config: {
         systemInstruction: sysInstruction,
@@ -306,7 +306,7 @@ app.post("/api/search-insights", async (req, res) => {
     `;
 
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.0-flash-lite",
       contents: prompt,
       config: {
         systemInstruction: "أنت بروفيسور أكاديمي ومحلل معلومات بمكتبة جامعية متطورة تقدم توجيهات بحثية بالغة الدقة."
@@ -351,7 +351,7 @@ app.post("/api/summarize-chapter", async (req, res) => {
     `;
 
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.0-flash-lite",
       contents: prompt,
       config: {
         systemInstruction: "You are an elite academic tutor helping students study smartly."
@@ -419,7 +419,7 @@ app.post("/api/book-insight", async (req, res) => {
     - recommendedReading: مصفوفة من 2 إلى 3 عناوين أو مواضيع مقترحة للقراءة قبله أو بعده.`;
 
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.0-flash-lite",
       contents: prompt,
       config: {
         systemInstruction: "أنت أمين مكتبة أكاديمي يكتب ملفات معرفية موجزة ودقيقة للكتب.",
@@ -475,7 +475,7 @@ app.post("/api/vision-scan", async (req, res) => {
       .join('\n');
 
     const response = await client.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-2.0-flash-lite",
       contents: [
         {
           role: "user",
@@ -632,7 +632,7 @@ app.post("/api/librarian-chat", async (req, res) => {
     }));
 
     const response = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.0-flash-lite",
       contents: conversation as any,
       config: {
         systemInstruction: `أنت "رفيق"، المساعد الذكي لمكتبة جامعية متطورة. أجب بالعربية بإيجاز ووضوح.
