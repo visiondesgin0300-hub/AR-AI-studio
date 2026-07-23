@@ -575,6 +575,31 @@ export const MOCK_BOOKS: Book[] = [
     status: 'available',
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9780593297063-L.jpg',
   },
+
+  // ── كتاب مضاف يدوياً ──
+  {
+    id: 'marketing-kotler-14',
+    title: 'إدارة التسويق',
+    titleEn: 'Marketing Management',
+    titleArabic: 'إدارة التسويق',
+    author: 'فيليب كوتلر وكيفن لين كيلر',
+    authorEn: 'Philip Kotler & Kevin Lane Keller',
+    category: 'عام',
+    shelf: 'E-1',
+    section: 'E',
+    year: 2012,
+    pages: 816,
+    publisher: 'Pearson Education',
+    callNumber: 'HF5415 .K636 2012',
+    isbn: '9780273790020',
+    description: 'المرجع الأشمل والأكثر استخداماً في تدريس إدارة التسويق على مستوى العالم، يغطي استراتيجيات التسويق الحديثة وبناء العلامات التجارية وتحليل الأسواق.',
+    descriptionEn: 'The world\'s most widely used marketing management textbook — covering brand building, market analysis, and modern marketing strategy.',
+    genre: 'Business & Marketing',
+    genreArabic: 'الأعمال والتسويق',
+    status: 'available',
+    location: { floor: 2, aisle: 'E', shelf: 1, section: 'Business & Economics' },
+    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780273790020-L.jpg',
+  },
 ];
 
 export const MOCK_USER: User = {
