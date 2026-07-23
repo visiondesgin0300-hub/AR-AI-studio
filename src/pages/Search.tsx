@@ -34,11 +34,17 @@ export function Search() {
   // Live filter mock books
   const filteredBooks = useMemo(() => {
     return MOCK_BOOKS.filter(book => {
-      const matchesQuery = 
-        book.title.toLowerCase().includes(query.toLowerCase()) ||
-        book.author.toLowerCase().includes(query.toLowerCase()) ||
-        book.description.toLowerCase().includes(query.toLowerCase()) ||
-        book.shelf.toLowerCase().includes(query.toLowerCase());
+      const q = query.toLowerCase();
+      const matchesQuery =
+        book.title.toLowerCase().includes(q) ||
+        (book.titleEn ?? '').toLowerCase().includes(q) ||
+        (book.titleArabic ?? '').toLowerCase().includes(q) ||
+        book.author.toLowerCase().includes(q) ||
+        (book.authorEn ?? '').toLowerCase().includes(q) ||
+        book.description.toLowerCase().includes(q) ||
+        (book.descriptionEn ?? '').toLowerCase().includes(q) ||
+        (book.isbn ?? '').includes(q) ||
+        (book.shelf ?? '').toLowerCase().includes(q);
 
       const matchesCategory = selectedCategory === 'all' || book.category === selectedCategory;
       const matchesStatus = selectedStatus === 'all' || book.status === selectedStatus;
