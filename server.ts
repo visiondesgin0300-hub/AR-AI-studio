@@ -848,6 +848,54 @@ app.post("/api/knowledge-relations", async (req, res) => {
   }
 });
 
+app.post("/api/hidden-bridges", async (req, res) => {
+  const { leftBook, rightBook, discoveryType } = req.body || {};
+  if (!leftBook || !rightBook) return res.status(400).json({ error: "leftBook and rightBook required" });
+
+  const fallback = {
+    insight: `"${leftBook.title}" و"${rightBook.title}" يُخفيان رابطاً لم يُكتشف بعد في مجال ${discoveryType} — هذا بالضبط ما عناه سوانسون بـ"المعرفة العامة غير المكتشفة".`,
+    swanskLink: `${discoveryType}: تقاطع بين ${leftBook.subject ?? 'الفيزياء'} و${rightBook.subject ?? 'علوم الحاسب'}`,
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{ text: `أنت باحث متخصص في "المعرفة العامة غير المكتشفة" (Swanson 1986).
+
+الكتاب الأيسر (الفيزياء): "${leftBook.title}" بقلم ${leftBook.author}
+الكتاب الأيمن (علوم الحاسب): "${rightBook.title}" بقلم ${rightBook.author}
+نوع الجسر المعرفي المكتشف: ${discoveryType}
+
+في جملتين بالعربية فقط: صِف الاكتشاف المعرفي الذي يظهر حين يُدرس الباحث هذين الكتابين معاً، وهو اكتشاف موجود في الأدبيات لكن لم يُوثَّق رسمياً كرابط. لا تُعطِ نصائح عامة، بل صِف الرابط الخفي تحديداً.` }],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            insight:     { type: Type.STRING },
+            swanskLink:  { type: Type.STRING },
+          },
+          required: ["insight"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({
+      insight:    parsed.insight    || fallback.insight,
+      swanskLink: parsed.swanskLink || fallback.swanskLink,
+    });
+  } catch (err: any) {
+    console.error("[hidden-bridges]", err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles, Cpu, Eye } from 'lucide-react';
+import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Printer, Sparkles, Cpu, Eye, FlaskConical } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
 import { cn } from '../lib/utils';
@@ -205,7 +205,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             >
               {[
                 { icon: Eye,      labelAr: 'عدسة المكتبة الذكية', labelEn: 'Smart Lens AR',      path: '/lens-ar',          accent: false, green: true,  adminOnly: false },
-                { icon: Sparkles, labelAr: 'نجوم المعرفة AR',   labelEn: 'Knowledge Stars AR', path: '/knowledge-stars',  accent: false, green: false, adminOnly: false },
+                { icon: Sparkles,      labelAr: 'نجوم المعرفة AR',    labelEn: 'Knowledge Stars AR',  path: '/knowledge-stars',  accent: false, green: false, adminOnly: false },
+                { icon: FlaskConical, labelAr: 'الجسور المخفية AR',  labelEn: 'Hidden Bridges AR',   path: '/hidden-bridges',   accent: false, green: false, adminOnly: false },
                 { icon: QrCode,   labelAr: 'مسح رمز QR',        labelEn: 'Scan Shelf QR',   path: '/scan',      accent: false, green: false, adminOnly: false },
                 { icon: Map,      labelAr: 'خريطة المراجع AR',   labelEn: 'Books Map AR',    path: '/map',       accent: false, green: false, adminOnly: false },
                 { icon: Compass,  labelAr: 'مرافق AR',           labelEn: 'Facilities AR',   path: '/facilities',accent: false, green: false, adminOnly: false },

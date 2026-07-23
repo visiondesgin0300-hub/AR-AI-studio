@@ -24,6 +24,7 @@ import { ARSimulation } from './pages/ARSimulation';
 import { CameraARSim } from './pages/CameraARSim';
 import { LibraryLens } from './pages/LibraryLens';
 import { KnowledgeStars } from './pages/KnowledgeStars';
+import { HiddenBridges } from './pages/HiddenBridges';
 import { BookQRPrint } from './pages/BookQRPrint';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
@@ -175,6 +176,10 @@ function AppContent() {
         <Route
           path="/knowledge-stars"
           element={user ? <KnowledgeStars /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/hidden-bridges"
+          element={user ? <HiddenBridges /> : <Navigate to="/login" />}
         />
         <Route
           path="/book-codes"
