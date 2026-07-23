@@ -598,7 +598,7 @@ export const MOCK_BOOKS: Book[] = [
     genreArabic: 'الاقتصاد',
     status: 'available',
     location: { floor: 2, aisle: 'E', shelf: 1, section: 'Economics & Finance' },
-    coverUrl: 'https://covers.openlibrary.org/b/isbn/9780273790020-L.jpg',
+    coverUrl: 'https://books.google.com/books/content?vid=ISBN9780273790020&printsec=frontcover&img=1&zoom=1&source=gbs_api',
   },
 ];
 
