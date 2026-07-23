@@ -798,6 +798,56 @@ app.post("/api/book-speaks", async (req, res) => {
   }
 });
 
+// Knowledge Stars: AI insight explaining why two books form a spatial knowledge link.
+// Always returns 200 — Gemini when a key is configured, local fallback otherwise.
+app.post("/api/knowledge-relations", async (req, res) => {
+  const { bookA, bookB, relationType } = req.body || {};
+  if (!bookA || !bookB) return res.status(400).json({ error: "bookA and bookB required" });
+
+  const fallback = {
+    insight: `يتقاطع "${bookA.title}" و"${bookB.title}" في مجال ${relationType} — قراءتهما معاً تمنح الطالب رؤية أعمق مما يمنحه كل كتاب منفرداً.`,
+    sharedConcepts: [relationType],
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{ text: `أنت مساعد مكتبة أكاديمية متخصص في الربط المعرفي بين الكتب.
+
+الكتاب الأول: "${bookA.title}" بقلم ${bookA.author} — ${bookA.description ?? ''}
+الكتاب الثاني: "${bookB.title}" بقلم ${bookB.author} — ${bookB.description ?? ''}
+نوع العلاقة المعرفية: ${relationType}
+
+في جملتين بالعربية فقط: لماذا يكسب الطالب من قراءة هذين الكتابين معاً أكثر مما يكسبه من أيٍّ منهما وحده؟ ركّز على الفهم الأعمق الذي يمنحه التقاطع بينهما.` }],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            insight: { type: Type.STRING },
+            sharedConcepts: { type: Type.ARRAY, items: { type: Type.STRING } },
+          },
+          required: ["insight"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({
+      insight: parsed.insight || fallback.insight,
+      sharedConcepts: parsed.sharedConcepts || fallback.sharedConcepts,
+    });
+  } catch (err: any) {
+    console.error("[knowledge-relations]", err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
