@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Zap, Loader2, FlaskConical } from 'lucide-react';
+import { X, Zap, Loader2, FlaskConical, MessageCircle, Send } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
@@ -57,6 +57,13 @@ export function HiddenBridges() {
   const [bridgeInsight, setBridgeInsight]     = useState<string | null>(null);
   const [loadingInsight, setLoadingInsight]   = useState(false);
   const [svgDims, setSvgDims]                 = useState({ w: 375, h: 812 });
+
+  // ── Q&A state ──────────────────────────────────────────────────────────────
+  const [showQA, setShowQA]       = useState(false);
+  const [qaQuery, setQaQuery]     = useState('');
+  const [qaAnswer, setQaAnswer]   = useState<string | null>(null);
+  const [loadingQA, setLoadingQA] = useState(false);
+  const inputRef                  = useRef<HTMLInputElement>(null);
 
   // ── Node positions ─────────────────────────────────────────────────────────
   const leftX   = svgDims.w * 0.10;
@@ -155,6 +162,39 @@ export function HiddenBridges() {
     setBridgeInsight(FALLBACK_INSIGHTS[bridge.discoveryAr] ?? '');
     setLoadingInsight(false);
   }, []);
+
+  // ── Q&A handler ────────────────────────────────────────────────────────────
+  const askQuestion = useCallback(async () => {
+    const q = qaQuery.trim();
+    if (!q || loadingQA) return;
+    setLoadingQA(true);
+    setQaAnswer(null);
+    try {
+      const res = await fetch('/api/bridge-question', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q, books: [...LEFT_BOOKS, ...RIGHT_BOOKS] }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setQaAnswer(data.answer ?? '');
+        setLoadingQA(false);
+        return;
+      }
+    } catch { /* fallthrough */ }
+    await new Promise<void>(r => setTimeout(r, 400));
+    setQaAnswer(ar
+      ? `سؤال رائع! الجسور المخفية بين التخصصات تبدأ دائماً بأسئلة كهذه. تجربة Swanson 1986 أثبتت أن ربط أدبيات منفصلة يكشف معرفة غير منشورة — وسؤالك "${q}" هو بالضبط نوع الجسر الذي يبحث عنه الباحثون.`
+      : `Great question! Swanson's 1986 experiment proved that linking separate literatures reveals unpublished knowledge — your question "${q}" is exactly the kind of hidden bridge researchers look for.`
+    );
+    setLoadingQA(false);
+  }, [qaQuery, loadingQA, ar]);
+
+  // Auto-focus input when QA panel opens
+  useEffect(() => {
+    if (showQA) setTimeout(() => inputRef.current?.focus(), 150);
+    else { setQaAnswer(null); setQaQuery(''); }
+  }, [showQA]);
 
   const selLeft  = selectedBridge ? MOCK_BOOKS.find(b => b.id === selectedBridge.leftId)  : null;
   const selRight = selectedBridge ? MOCK_BOOKS.find(b => b.id === selectedBridge.rightId) : null;
@@ -427,15 +467,120 @@ export function HiddenBridges() {
             </div>
           )}
 
-          {/* ── Tip ── */}
-          {badgesVisible && !selectedBridge && (
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="absolute bottom-8 left-1/2 -translate-x-1/2 pointer-events-none">
-              <div className="px-4 py-2 rounded-full bg-black/55 backdrop-blur-sm border border-white/10 text-white/45 text-[10px] font-black tracking-wide whitespace-nowrap">
-                {ar ? 'اضغط على الجسر لرؤية الاكتشاف المخفي' : 'Tap a bridge to reveal the hidden discovery'}
+          {/* ── Bottom bar: tip + ask button ── */}
+          {badgesVisible && !selectedBridge && !showQA && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+              className="absolute bottom-6 left-0 right-0 flex items-center justify-between px-5 gap-3"
+            >
+              <div className="pointer-events-none px-3 py-2 rounded-full bg-black/55 backdrop-blur-sm border border-white/10 text-white/40 text-[10px] font-black tracking-wide whitespace-nowrap flex-1 text-center">
+                {ar ? 'اضغط على الجسر لرؤية الاكتشاف' : 'Tap a bridge to reveal the discovery'}
               </div>
+              <motion.button
+                whileTap={{ scale: 0.92 }}
+                onClick={() => { setShowQA(true); setSelectedBridge(null); }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full shrink-0"
+                style={{ background: 'rgba(215,200,38,0.14)', border: '1px solid rgba(215,200,38,0.35)', backdropFilter: 'blur(12px)' }}
+              >
+                <MessageCircle className="w-3.5 h-3.5 text-[#D7C826]" />
+                <span className="text-[11px] font-black text-[#D7C826]">{ar ? 'اسأل' : 'Ask'}</span>
+              </motion.button>
             </motion.div>
           )}
+
+          {/* ── Q&A panel ── */}
+          <AnimatePresence>
+            {showQA && (
+              <motion.div
+                initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+                className="absolute bottom-0 left-0 right-0 z-30 rounded-t-3xl p-6 space-y-4"
+                style={{ background: 'rgba(0,4,18,0.97)', backdropFilter: 'blur(30px)', borderTop: '1px solid rgba(255,255,255,0.07)' }}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MessageCircle className="w-4 h-4 text-[#D7C826]" />
+                    <span className="text-sm font-black text-white">
+                      {ar ? 'اسأل عن الجسور المخفية' : 'Ask about Hidden Bridges'}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowQA(false)}
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ background: 'rgba(255,255,255,0.08)' }}
+                  >
+                    <X className="w-4 h-4 text-white/40" />
+                  </button>
+                </div>
+
+                {/* Input row */}
+                <div
+                  className="flex items-center gap-3 rounded-2xl px-4 py-3"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)' }}
+                >
+                  <input
+                    ref={inputRef}
+                    type="text"
+                    value={qaQuery}
+                    onChange={e => setQaQuery(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && askQuestion()}
+                    placeholder={ar ? 'ما علاقة فيزياء الكم بالذكاء الاصطناعي؟' : 'What connects quantum physics to AI?'}
+                    className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-white/25 min-w-0"
+                    dir={ar ? 'rtl' : 'ltr'}
+                  />
+                  <button
+                    onClick={askQuestion}
+                    disabled={!qaQuery.trim() || loadingQA}
+                    className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 disabled:opacity-30"
+                    style={{ background: '#D7C826' }}
+                  >
+                    {loadingQA
+                      ? <Loader2 className="w-4 h-4 text-black animate-spin" />
+                      : <Send className="w-4 h-4 text-black" style={{ transform: ar ? 'scaleX(-1)' : undefined }} />}
+                  </button>
+                </div>
+
+                {/* Answer */}
+                <AnimatePresence>
+                  {(qaAnswer !== null || loadingQA) && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                      className="rounded-2xl p-4 min-h-[80px] flex items-center justify-center"
+                      style={{ background: 'rgba(215,200,38,0.05)', border: '1px solid rgba(215,200,38,0.18)' }}
+                    >
+                      {loadingQA ? (
+                        <div className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin text-[#D7C826]" />
+                          <span className="text-xs font-bold text-white/40">
+                            {ar ? 'جارٍ تحليل الجسور المعرفية...' : 'Analyzing knowledge bridges...'}
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-sm font-bold text-white/80 leading-relaxed" dir={ar ? 'rtl' : 'ltr'}>
+                          {qaAnswer}
+                        </p>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Swanson badge */}
+                <div
+                  className="flex items-center gap-2 rounded-xl px-3 py-2"
+                  style={{ background: 'rgba(215,200,38,0.07)', border: '1px solid rgba(215,200,38,0.18)' }}
+                  dir={ar ? 'rtl' : 'ltr'}
+                >
+                  <FlaskConical className="w-3 h-3 text-[#D7C826] shrink-0" />
+                  <span className="text-[10px] font-black text-[#D7C826]/70 leading-snug">
+                    {ar
+                      ? 'يحلل الجسور المخفية بين التخصصات — Undiscovered Public Knowledge · Swanson 1986'
+                      : 'Analyzes hidden bridges between disciplines — Undiscovered Public Knowledge · Swanson 1986'}
+                  </span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* ── Bridge detail panel ── */}
           <AnimatePresence>

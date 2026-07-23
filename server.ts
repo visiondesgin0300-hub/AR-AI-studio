@@ -896,6 +896,52 @@ app.post("/api/hidden-bridges", async (req, res) => {
   }
 });
 
+app.post("/api/bridge-question", async (req, res) => {
+  const { question, books } = req.body || {};
+  if (!question) return res.status(400).json({ error: "question required" });
+
+  const bookList = Array.isArray(books)
+    ? books.map((b: any) => `"${b.title}" بقلم ${b.author}`).join('، ')
+    : '';
+
+  const fallback = {
+    answer: `سؤال مثير: "${question}". الجسور المخفية بين العلوم الطبيعية وعلوم الحاسب تبدأ دائماً بأسئلة كهذه — وهذا بالضبط ما أثبته Swanson عام 1986 في نظرية "المعرفة العامة غير المكتشفة".`,
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{ text: `أنت باحث متخصص في اكتشاف الجسور المعرفية المخفية بين التخصصات (Undiscovered Public Knowledge — Swanson 1986).
+
+الكتب المتاحة في المشهد:
+${bookList}
+
+سؤال الباحث: "${question}"
+
+أجب في 2-3 جمل بالعربية فقط: كيف يرتبط هذا السؤال بجسر معرفي مخفي بين هذه الكتب؟ ما الاتصال غير المنشور الذي يكشفه؟ اذكر كتاباً أو أكثر من القائمة إن أمكن.` }],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: { answer: { type: Type.STRING } },
+          required: ["answer"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ answer: parsed.answer || fallback.answer });
+  } catch (err: any) {
+    console.error("[bridge-question]", err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
