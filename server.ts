@@ -897,15 +897,16 @@ app.post("/api/hidden-bridges", async (req, res) => {
 });
 
 app.post("/api/bridge-question", async (req, res) => {
-  const { question, books } = req.body || {};
+  const { question, books, leftIds, rightIds } = req.body || {};
   if (!question) return res.status(400).json({ error: "question required" });
 
-  const bookList = Array.isArray(books)
-    ? books.map((b: any) => `"${b.title}" بقلم ${b.author}`).join('، ')
-    : '';
+  const bookById = (id: string) => Array.isArray(books) ? books.find((b: any) => b.id === id) : null;
+  const leftList  = Array.isArray(leftIds)  ? leftIds.map((id: string)  => { const b = bookById(id);  return b ? `ID "${id}": "${b.title}" — ${b.author}` : `ID "${id}"`; }).join('\n') : '';
+  const rightList = Array.isArray(rightIds) ? rightIds.map((id: string) => { const b = bookById(id); return b ? `ID "${id}": "${b.title}" — ${b.author}` : `ID "${id}"`; }).join('\n') : '';
 
   const fallback = {
-    answer: `سؤال مثير: "${question}". الجسور المخفية بين العلوم الطبيعية وعلوم الحاسب تبدأ دائماً بأسئلة كهذه — وهذا بالضبط ما أثبته Swanson عام 1986 في نظرية "المعرفة العامة غير المكتشفة".`,
+    answer: `الجسور المخفية المرتبطة بسؤالك تُظهر روابط معرفية بين الفيزياء وعلوم الحاسب لم تُوثَّق رسمياً — جوهر نظرية Swanson 1986.`,
+    bridges: [{ leftId: '1', rightId: '6', connectionName: 'حدود المعرفة', strength: 3, explanation: 'هوكينج والذكاء الاصطناعي يُحددان معاً ما لا يمكن معرفته — الكون ومعالج البيانات يواجهان نفس الحدود.' }],
   };
 
   const client = getGeminiClient();
@@ -916,26 +917,53 @@ app.post("/api/bridge-question", async (req, res) => {
       model: "gemini-2.0-flash-lite",
       contents: [{
         role: "user",
-        parts: [{ text: `أنت باحث متخصص في اكتشاف الجسور المعرفية المخفية بين التخصصات (Undiscovered Public Knowledge — Swanson 1986).
+        parts: [{ text: `أنت باحث في نظرية "المعرفة العامة غير المكتشفة" (Swanson 1986).
 
-الكتب المتاحة في المشهد:
-${bookList}
+الكتب في المنطقة اليسرى (العلوم الطبيعية — الفيزياء):
+${leftList}
+
+الكتب في المنطقة اليمنى (علوم الحاسب والهندسة):
+${rightList}
 
 سؤال الباحث: "${question}"
 
-أجب في 2-3 جمل بالعربية فقط: كيف يرتبط هذا السؤال بجسر معرفي مخفي بين هذه الكتب؟ ما الاتصال غير المنشور الذي يكشفه؟ اذكر كتاباً أو أكثر من القائمة إن أمكن.` }],
+حدد 1-3 جسور معرفية مخفية ترتبط بهذا السؤال. لكل جسر:
+- leftId: أحد المعرّفات من المنطقة اليسرى فقط
+- rightId: أحد المعرّفات من المنطقة اليمنى فقط
+- connectionName: اسم الجسر بالعربية (3-5 كلمات)
+- strength: قوة الرابط من 1 إلى 3
+- explanation: جملة واحدة بالعربية تصف الجسر المخفي تحديداً
+ثم answer: فقرة 2-3 جمل بالعربية تشرح أهمية هذه الجسور في سياق السؤال.` }],
       }],
       config: {
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
-          properties: { answer: { type: Type.STRING } },
-          required: ["answer"],
+          properties: {
+            answer: { type: Type.STRING },
+            bridges: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  leftId:         { type: Type.STRING },
+                  rightId:        { type: Type.STRING },
+                  connectionName: { type: Type.STRING },
+                  strength:       { type: Type.INTEGER },
+                  explanation:    { type: Type.STRING },
+                },
+                required: ["leftId", "rightId", "connectionName", "strength", "explanation"],
+              },
+            },
+          },
+          required: ["answer", "bridges"],
         },
       },
     });
     const parsed = JSON.parse(response.text || "{}");
-    return res.json({ answer: parsed.answer || fallback.answer });
+    const bridges = Array.isArray(parsed.bridges) && parsed.bridges.length > 0
+      ? parsed.bridges : fallback.bridges;
+    return res.json({ answer: parsed.answer || fallback.answer, bridges });
   } catch (err: any) {
     console.error("[bridge-question]", err);
     return res.json(fallback);
