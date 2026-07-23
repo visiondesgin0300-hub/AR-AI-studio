@@ -664,6 +664,254 @@ ${catalogue}
   }
 });
 
+// ── Feature: AI Flashcard Generator ──────────────────────────────────────────
+app.post("/api/generate-flashcards", async (req, res) => {
+  const { topic, imageData, count = 5 } = req.body || {};
+  if (!topic && !imageData) return res.status(400).json({ error: "topic or imageData required" });
+
+  const fallbackCards = [
+    { q: "ما هو الموضوع الرئيسي؟", a: "الموضوع المطلوب دراسته", difficulty: "easy" },
+    { q: "ما المفاهيم الأساسية المرتبطة؟", a: "المفاهيم الجوهرية في المجال", difficulty: "medium" },
+    { q: "كيف يُطبَّق هذا الموضوع عملياً؟", a: "من خلال الأمثلة والتطبيقات العملية", difficulty: "hard" },
+  ];
+
+  const client = getGeminiClient();
+  if (!client) return res.json({ cards: fallbackCards });
+
+  try {
+    const parts: any[] = [];
+    if (imageData) parts.push({ inlineData: { mimeType: "image/jpeg", data: imageData } });
+    parts.push({
+      text: `أنت مساعد دراسي ذكي. ${imageData ? "انظر إلى هذه الصفحة من الكتاب و" : ""}أنشئ بالضبط ${count} بطاقة دراسية (flashcards) ${topic ? `عن الموضوع: "${topic}"` : "عن المحتوى في الصورة"}.
+
+أجب بـ JSON فقط (بدون markdown):
+{ "cards": [ { "q": "السؤال بالعربية", "a": "الإجابة الواضحة", "difficulty": "easy|medium|hard" } ] }
+
+القواعد: الأسئلة تدريبية متنوعة (تعريف، تطبيق، مقارنة). الإجابات مختصرة لا تتجاوز جملتين.`,
+    });
+
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{ role: "user", parts }] as any,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            cards: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  q: { type: Type.STRING },
+                  a: { type: Type.STRING },
+                  difficulty: { type: Type.STRING },
+                },
+                required: ["q", "a", "difficulty"],
+              },
+            },
+          },
+          required: ["cards"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ cards: parsed.cards ?? fallbackCards });
+  } catch (err: any) {
+    console.error("Flashcard generation error:", err);
+    return res.json({ cards: fallbackCards });
+  }
+});
+
+// ── Feature: Book Knowledge Graph ─────────────────────────────────────────────
+app.post("/api/knowledge-graph", async (req, res) => {
+  const { bookId, title, author, category } = req.body || {};
+  if (!title) return res.status(400).json({ error: "title required" });
+
+  const libraryLinks = MOCK_BOOKS
+    .filter((b) => b.id !== bookId && (b.category === category || b.author === author))
+    .slice(0, 6)
+    .map((b) => ({ id: b.id, title: b.title, shelf: b.shelf, relation: b.category === category ? "نفس التخصص" : "نفس المؤلف" }));
+
+  const fallback = { nodes: libraryLinks, externalTitles: [] };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{
+          text: `للكتاب "${title}" من تأليف ${author} (تخصص: ${category})، أعطني:
+1. قائمة بـ 4 كتب أكاديمية خارجية (غير موجودة في المكتبة) مرتبطة بنفس الموضوع مع اسم المؤلف.
+2. نوع العلاقة لكل كتاب (مكمِّل / متقدم / مدخل / مرجع جانبي).
+
+أجب بـ JSON فقط:
+{ "externalTitles": [ { "title": "...", "author": "...", "relation": "...", "why": "جملة واحدة تشرح الصلة" } ] }`,
+        }],
+      }] as any,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            externalTitles: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  author: { type: Type.STRING },
+                  relation: { type: Type.STRING },
+                  why: { type: Type.STRING },
+                },
+                required: ["title", "author", "relation"],
+              },
+            },
+          },
+          required: ["externalTitles"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ nodes: libraryLinks, externalTitles: parsed.externalTitles ?? [] });
+  } catch (err: any) {
+    console.error("Knowledge graph error:", err);
+    return res.json(fallback);
+  }
+});
+
+// ── Feature: AR Book Translation ──────────────────────────────────────────────
+app.post("/api/translate-book", async (req, res) => {
+  const { title, description, targetLang } = req.body || {};
+  if (!title) return res.status(400).json({ error: "title required" });
+
+  const fallback = { titleTranslated: title, descriptionTranslated: description ?? "", readingLevel: "جامعي", estimatedPages: null };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  const isToAr = targetLang === 'ar';
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{
+          text: `ترجم وحلّل الكتاب التالي:
+العنوان: ${title}
+الوصف: ${description ?? ''}
+
+أجب بـ JSON فقط:
+{
+  "titleTranslated": "الترجمة ${isToAr ? 'العربية' : 'الإنجليزية'} للعنوان",
+  "descriptionTranslated": "الترجمة ${isToAr ? 'العربية' : 'الإنجليزية'} للوصف في جملتين",
+  "readingLevel": "مستوى القراءة: ابتدائي / متوسط / ثانوي / جامعي / متخصص",
+  "tags": ["3 كلمات مفتاحية"]
+}`,
+        }],
+      }] as any,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            titleTranslated: { type: Type.STRING },
+            descriptionTranslated: { type: Type.STRING },
+            readingLevel: { type: Type.STRING },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+          },
+          required: ["titleTranslated", "descriptionTranslated"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ ...fallback, ...parsed });
+  } catch (err: any) {
+    console.error("Translation error:", err);
+    return res.json(fallback);
+  }
+});
+
+// ── Feature: AI Shelf Vision Audit ────────────────────────────────────────────
+app.post("/api/shelf-vision-audit", async (req, res) => {
+  const { imageData } = req.body || {};
+  if (!imageData) return res.status(400).json({ error: "imageData required" });
+
+  const fallback = {
+    status: "تحليل تجريبي",
+    issues: [
+      { type: "misplaced", description: "كتاب في موضع خاطئ — رمز LC لا يتطابق مع الرف", severity: "high" },
+      { type: "tilted", description: "كتب مائلة تحتاج إعادة ترتيب", severity: "medium" },
+    ],
+    score: 72,
+    recommendation: "يُنصح بإعادة ترتيب الكتب المائلة وفحص رموز LC للكتب المشار إليها.",
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [
+          { inlineData: { mimeType: "image/jpeg", data: imageData } } as any,
+          {
+            text: `أنت مفتش مكتبة ذكي. افحص هذه الصورة للرف وحدد:
+1. هل توجد كتب مائلة أو واقعة؟
+2. هل توجد فراغات غير طبيعية (كتب مفقودة)؟
+3. هل يبدو الترتيب منطقياً (حجم / لون / تسلسل)؟
+4. ما تقييمك للرف من 100؟
+
+أجب بـ JSON فقط:
+{
+  "status": "وصف مختصر للحالة العامة",
+  "issues": [
+    { "type": "misplaced|tilted|missing|damaged", "description": "وصف المشكلة", "severity": "high|medium|low" }
+  ],
+  "score": 85,
+  "recommendation": "توصية واحدة للتحسين"
+}`,
+          },
+        ],
+      }] as any,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            status: { type: Type.STRING },
+            issues: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  type: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  severity: { type: Type.STRING },
+                },
+                required: ["type", "description", "severity"],
+              },
+            },
+            score: { type: Type.NUMBER },
+            recommendation: { type: Type.STRING },
+          },
+          required: ["status", "issues", "score", "recommendation"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ ...fallback, ...parsed });
+  } catch (err: any) {
+    console.error("Shelf vision audit error:", err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

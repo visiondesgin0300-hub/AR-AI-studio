@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, MapPin, Sparkles, Navigation, BookOpen, Zap, Star, Clock, FileText, ChevronRight } from 'lucide-react';
+import { X, MapPin, Sparkles, Navigation, BookOpen, Zap, Star, Clock, FileText, ChevronRight, Languages, Loader2 } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
@@ -14,6 +14,13 @@ interface ARCard {
   book: Book;
   reason: string;
   whatISaw: string;
+}
+
+interface TranslationResult {
+  titleTranslated: string;
+  descriptionTranslated: string;
+  readingLevel: string;
+  tags: string[];
 }
 
 export function LibraryLens() {
@@ -36,6 +43,8 @@ export function LibraryLens() {
   const [scanning, setScanning] = useState(false);
   const [ripplePos, setRipplePos] = useState<{ x: number; y: number } | null>(null);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
+  const [translations, setTranslations] = useState<Record<string, TranslationResult>>({});
+  const [translating, setTranslating] = useState<Record<string, boolean>>({});
 
   // Gyroscope parallax — iOS 13+ needs explicit permission
   useEffect(() => {
@@ -167,6 +176,21 @@ export function LibraryLens() {
     scanningRef.current = false;
     setScanning(false);
   }, [captureFrame]);
+
+  const translateCard = useCallback(async (cardId: string, book: Book) => {
+    if (translations[cardId] || translating[cardId]) return;
+    setTranslating(prev => ({ ...prev, [cardId]: true }));
+    try {
+      const res = await fetch('/api/translate-book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: book.titleEn || book.title, description: book.description, targetLang: 'ar' }),
+      });
+      const data = await res.json();
+      setTranslations(prev => ({ ...prev, [cardId]: data }));
+    } catch { /* silent */ }
+    setTranslating(prev => ({ ...prev, [cardId]: false }));
+  }, [translations, translating]);
 
   // Scan on tap only — no auto-scan
 
@@ -440,6 +464,32 @@ export function LibraryLens() {
                         </div>
                       )}
 
+                      {/* ── AR Translation panel ── */}
+                      <AnimatePresence>
+                        {translations[card.id] && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mx-3 mb-2 p-2.5 rounded-xl bg-accent/10 border border-accent/25 space-y-1"
+                            dir="rtl"
+                          >
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <Languages className="w-3 h-3 text-accent" />
+                              <span className="text-[9px] font-black text-accent uppercase tracking-widest">ترجمة AR فورية</span>
+                            </div>
+                            <p className="text-white font-black text-[11px] leading-tight">{translations[card.id].titleTranslated}</p>
+                            <p className="text-white/55 text-[9px] leading-relaxed line-clamp-3">{translations[card.id].descriptionTranslated}</p>
+                            <div className="flex flex-wrap gap-1 pt-0.5">
+                              <span className="px-1.5 py-0.5 rounded bg-primary/50 text-white/60 text-[8px] font-bold">{translations[card.id].readingLevel}</span>
+                              {translations[card.id].tags?.slice(0, 3).map(tag => (
+                                <span key={tag} className="px-1.5 py-0.5 rounded bg-white/10 text-white/50 text-[8px]">{tag}</span>
+                              ))}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
                       {/* ── Action buttons ── */}
                       <div className="px-3 pb-3 flex flex-col gap-1.5">
                         <button
@@ -450,13 +500,25 @@ export function LibraryLens() {
                           {ar ? 'تفاصيل الكتاب الكاملة' : 'Full Book Details'}
                           <ChevronRight className="w-3 h-3" />
                         </button>
-                        <button
-                          onClick={e => { e.stopPropagation(); navigate('/map', { state: { bookId: b.id } }); }}
-                          className="w-full py-1.5 bg-white/8 border border-white/12 rounded-xl text-white/70 font-bold text-[10px] flex items-center justify-center gap-1.5"
-                        >
-                          <Navigation className="w-3 h-3" />
-                          {ar ? 'الملاحة للرف' : 'Navigate to shelf'}
-                        </button>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={e => { e.stopPropagation(); navigate('/map', { state: { bookId: b.id } }); }}
+                            className="flex-1 py-1.5 bg-white/8 border border-white/12 rounded-xl text-white/70 font-bold text-[10px] flex items-center justify-center gap-1.5"
+                          >
+                            <Navigation className="w-3 h-3" />
+                            {ar ? 'الملاحة للرف' : 'Navigate'}
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); translateCard(card.id, b); }}
+                            disabled={!!translations[card.id] || translating[card.id]}
+                            className="flex-1 py-1.5 bg-accent/15 border border-accent/25 rounded-xl text-accent font-bold text-[10px] flex items-center justify-center gap-1.5 disabled:opacity-50"
+                          >
+                            {translating[card.id]
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : <Languages className="w-3 h-3" />}
+                            {ar ? 'ترجمة AR' : 'Translate'}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
