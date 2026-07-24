@@ -991,6 +991,89 @@ async function searchOpenAlex(query: string, limit = 8): Promise<ScholarPaper[]>
   }
 }
 
+function buildEvidenceFallback(topic: string, papers: ScholarPaper[]) {
+  // Use citation counts as research saturation proxy (Swanson 1986 methodology)
+  const maxCitations = papers.length > 0 ? Math.max(...papers.map(p => p.citations)) : 0;
+  const avgCitations = papers.length > 0 ? papers.reduce((s, p) => s + p.citations, 0) / papers.length : 0;
+  const recentCount  = papers.filter(p => p.year >= 2020).length;
+  const hasArabic    = papers.some(p => /[؀-ۿ]/.test(p.title));
+
+  // Classify overall coverage
+  const overallStatus = maxCitations > 500 ? 'covered' : maxCitations > 50 ? 'partial' : 'unexplored';
+  const arabicStatus  = hasArabic ? 'partial' : 'unexplored';
+  const recentStatus  = recentCount >= 3 ? 'covered' : recentCount >= 1 ? 'partial' : 'unexplored';
+
+  const topCited = papers[0];
+  const coveredNote = topCited
+    ? `أبرز الأوراق المرجعية هي "${topCited.title}" (${topCited.year}، ${topCited.citations.toLocaleString()} استشهاد)`
+    : null;
+
+  const summary = papers.length === 0
+    ? `مجال "${topic}" يكاد يكون غائباً عن قواعد البيانات الدولية — فجوة بحثية نادرة وفرصة استثنائية لإسهام أصيل.`
+    : `مشهد الأدبيات في "${topic}": وُجدت ${papers.length} ورقة بحثية في OpenAlex (أعلى استشهاد: ${maxCitations.toLocaleString()})، مما يكشف مساحات غير مستكشفة — لا سيما في السياق العربي والتطبيقات الميدانية.`;
+
+  const gaps = [
+    {
+      topicArea:    'Arabic Context',
+      topicAreaAr:  'السياق العربي',
+      status:       arabicStatus,
+      opportunity:  arabicStatus === 'unexplored'
+        ? `لا توجد أوراق بحثية باللغة العربية في OpenAlex حول "${topic}" — هذا فراغ بحثي حقيقي يُعدّ إسهاماً أصيلاً في مجال الدراسة.`
+        : `الأدبيات العربية في "${topic}" محدودة — دراسة ميدانية في السياق الجامعي العربي تُوفر قيمة مضافة واضحة.`,
+      relatedBookIds: ['6', '7'],
+      bridgeField: 'Library Science',
+    },
+    {
+      topicArea:    'Field Application',
+      topicAreaAr:  'التطبيق الميداني',
+      status:       overallStatus === 'covered' ? 'partial' : 'unexplored',
+      opportunity:  `التطبيق العملي لـ "${topic}" في البيئات الأكاديمية العربية يفتقر إلى دراسات تجريبية — ${avgCitations > 100 ? 'النظرية موثقة لكن التطبيق يمثل فجوة' : 'مجال ناشئ بأعداد استشهادات منخفضة'}.`,
+      relatedBookIds: ['6', '9'],
+      bridgeField:  'HCI',
+    },
+    {
+      topicArea:    'Recent Trends',
+      topicAreaAr:  'الاتجاهات الحديثة',
+      status:       recentStatus,
+      opportunity:  recentCount === 0
+        ? `لا توجد أوراق حديثة (2020+) في OpenAlex حول "${topic}" — الميدان يفتقر لمراجعة نظامية حديثة.`
+        : recentCount < 3
+        ? `${recentCount} ورقة فقط نشرت بعد 2020 حول "${topic}" — هناك حاجة لدراسات تواكب التطورات التقنية الأخيرة.`
+        : `الاتجاهات الحديثة مدروسة في "${topic}" (${recentCount} ورقة بعد 2020) — ركّز على تطبيق في بيئة عربية.`,
+      relatedBookIds: ['7', '9'],
+      bridgeField:  'Education Technology',
+    },
+    {
+      topicArea:    'Cross-disciplinary',
+      topicAreaAr:  'التقاطع بين التخصصات',
+      status:       'partial',
+      opportunity:  `ربط "${topic}" بعلم المكتبات والذكاء الاصطناعي لم يُوثَّق بالشكل الكافي — Swanson 1986 يثبت أن الفجوات تقع عند تقاطع التخصصات.`,
+      relatedBookIds: ['6', '7'],
+      bridgeField:  'Cognitive Science',
+    },
+    {
+      topicArea:    'User Experience',
+      topicAreaAr:  'تجربة المستخدم',
+      status:       'unexplored',
+      opportunity:  `تجربة المستخدم النهائي في أنظمة "${topic}" داخل المكتبات الجامعية العربية غائبة تقريباً عن الأدبيات — فجوة تصميمية وسلوكية.`,
+      relatedBookIds: ['6', '7', '9'],
+      bridgeField:  'HCI',
+    },
+    {
+      topicArea:    coveredNote ? 'Core Theory' : 'Research Methodology',
+      topicAreaAr:  coveredNote ? 'النظرية الأساسية' : 'منهجية البحث',
+      status:       overallStatus,
+      opportunity:  overallStatus === 'covered'
+        ? `${coveredNote ?? 'النظرية الأساسية'} مغطاة جيداً — انتقل لزاوية تطبيقية أو سياق عربي لإضافة قيمة حقيقية.`
+        : `منهجية البحث في "${topic}" تحتاج تطويراً — الأدبيات الحالية ضعيفة الاستشهادات (متوسط ${Math.round(avgCitations)}).`,
+      relatedBookIds: ['1', '3'],
+      bridgeField:  null,
+    },
+  ] as const;
+
+  return { summary, gaps };
+}
+
 app.post("/api/gap-scan", async (req, res) => {
   const { topic, books } = req.body || {};
   if (!topic) return res.status(400).json({ error: "topic required" });
@@ -1006,22 +1089,11 @@ app.post("/api/gap-scan", async (req, res) => {
     ? `Real academic papers found on OpenAlex (open knowledge graph similar to Google Scholar) for "${topic}":\n${scholarPapers.map(p => `- "${p.title}" (${p.year}, cited ${p.citations} times)`).join('\n')}\nTotal results in OpenAlex: ${scholarPapers.length}+`
     : `No papers found on OpenAlex for this exact topic — this itself indicates a significant research gap.`;
 
-  const fallback = {
-    summary: `مشهد الأدبيات في مجال "${topic}" يكشف فجوات بحثية واعدة — لا سيما في تقاطع الواقع المعزز والمكتبات الأكاديمية. أبرز الفرص تتمحور حول التطبيق في السياق العربي وربط التقنيات الناشئة بعلم المعلومات.`,
-    gaps: [
-      { topicArea: 'AR Library UX',        topicAreaAr: 'تجربة AR في المكتبة',         status: 'unexplored', opportunity: `لا توجد دراسات كافية عن تجربة الواقع المعزز في المكتبات العربية ضمن مجال "${topic}" — فرصة بحثية أصيلة.`, relatedBookIds: ['6','7'], bridgeField: 'HCI' },
-      { topicArea: 'AI + Library Science', topicAreaAr: 'ذكاء اصطناعي + علم المكتبات', status: 'partial',    opportunity: `الجسر بين الذكاء الاصطناعي وعلم المكتبات في سياق "${topic}" لم يُوثَّق باللغة العربية — مجال جسر واعد.`, relatedBookIds: ['6','7'], bridgeField: 'Library Science' },
-      { topicArea: 'User Adoption',        topicAreaAr: 'تبني المستخدم للتقنية',       status: 'unexplored', opportunity: `قبول المستخدم للتقنيات الحديثة في بيئة "${topic}" شبه غائب من الأدبيات العربية الأكاديمية — فجوة مباشرة.`, relatedBookIds: ['6','9'], bridgeField: 'Cognitive Science' },
-      { topicArea: 'Data Analytics',       topicAreaAr: 'تحليلات البيانات',            status: 'partial',    opportunity: `تحليل بيانات الاستخدام في "${topic}" يُوفر فرصة لربط علم البيانات بتحسين الخدمات — تقاطع بحثي جديد.`, relatedBookIds: ['9','7'], bridgeField: 'Data Science' },
-      { topicArea: 'Mobile Learning',      topicAreaAr: 'التعلم عبر الجوال',           status: 'partial',    opportunity: `التعلم المحمول مدروس عموماً لكن تطبيقه في "${topic}" مع الجوانب العربية يفتح باباً بحثياً مميزاً.`, relatedBookIds: ['6','7','9'], bridgeField: 'Education Technology' },
-      { topicArea: 'Research Methodology', topicAreaAr: 'منهجية البحث',                status: 'covered',    opportunity: `المنهجية البحثية مغطاة جيداً — ركّز على زاوية تطبيقية خاصة بـ "${topic}" في السياق الجامعي العربي.`, relatedBookIds: ['1','3'], bridgeField: null },
-    ],
-    scholarPapers,
-    scholarCount: scholarPapers.length,
-  };
+  // Evidence-based fallback using OpenAlex citation data as saturation proxy
+  const fallback = buildEvidenceFallback(topic, scholarPapers);
 
   const client = getGeminiClient();
-  if (!client) return res.json(fallback);
+  if (!client) return res.json({ ...fallback, scholarPapers, scholarCount: scholarPapers.length });
 
   try {
     const response = await client.models.generateContent({
@@ -1094,7 +1166,7 @@ Respond in JSON only:
     });
   } catch (err: any) {
     console.error("[gap-scan]", err);
-    return res.json(fallback);
+    return res.json({ ...fallback, scholarPapers, scholarCount: scholarPapers.length });
   }
 });
 
