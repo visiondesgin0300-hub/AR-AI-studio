@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ScanLine, Sparkles, X, Cpu, Compass, Scan } from 'lucide-react';
+import { ScanLine, Sparkles, X, Cpu } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { Book } from '../types';
@@ -110,20 +110,6 @@ export function ArHub() {
               >
                 <Cpu className="w-4 h-4" />
                 {t('arLabEntryLabel')}
-              </button>
-              <button
-                onClick={() => navigate('/compass-ar')}
-                className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-xl text-white text-[11px] font-black uppercase tracking-widest transition-all active:scale-95"
-              >
-                <Compass className="w-4 h-4 text-accent" />
-                {language === 'ar' ? 'بوصلة AR' : 'Compass AR'}
-              </button>
-              <button
-                onClick={() => navigate('/webxr-ar')}
-                className="pointer-events-auto flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-400 text-[11px] font-black uppercase tracking-widest transition-all active:scale-95"
-              >
-                <Scan className="w-4 h-4" />
-                {language === 'ar' ? 'WebXR حقيقي' : 'Real WebXR'}
               </button>
             </div>
           </motion.div>

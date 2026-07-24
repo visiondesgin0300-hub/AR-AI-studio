@@ -150,6 +150,7 @@ export function ShelfAuditPanel() {
           )}
         </motion.div>
       )}
+
     </div>
   );
 }

@@ -664,6 +664,440 @@ ${catalogue}
   }
 });
 
+// ── Feature: AI Flashcard Generator ──────────────────────────────────────────
+// ── Feature: AR Book Translation (overlaid on live camera AR card) ──────────
+app.post("/api/translate-book", async (req, res) => {
+  const { title, description, targetLang } = req.body || {};
+  if (!title) return res.status(400).json({ error: "title required" });
+
+  const fallback = { titleTranslated: title, descriptionTranslated: description ?? "", readingLevel: "جامعي", estimatedPages: null };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  const isToAr = targetLang === 'ar';
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{
+          text: `ترجم وحلّل الكتاب التالي:
+العنوان: ${title}
+الوصف: ${description ?? ''}
+
+أجب بـ JSON فقط:
+{
+  "titleTranslated": "الترجمة ${isToAr ? 'العربية' : 'الإنجليزية'} للعنوان",
+  "descriptionTranslated": "الترجمة ${isToAr ? 'العربية' : 'الإنجليزية'} للوصف في جملتين",
+  "readingLevel": "مستوى القراءة: ابتدائي / متوسط / ثانوي / جامعي / متخصص",
+  "tags": ["3 كلمات مفتاحية"]
+}`,
+        }],
+      }] as any,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            titleTranslated: { type: Type.STRING },
+            descriptionTranslated: { type: Type.STRING },
+            readingLevel: { type: Type.STRING },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+          },
+          required: ["titleTranslated", "descriptionTranslated"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ ...fallback, ...parsed });
+  } catch (err: any) {
+    console.error("Translation error:", err);
+    return res.json(fallback);
+  }
+});
+
+// ── Feature: The Speaking Book — AR speech bubbles from the book's POV ───────
+app.post("/api/book-speaks", async (req, res) => {
+  const { title, author, description, category, year } = req.body || {};
+  if (!title) return res.status(400).json({ error: "title required" });
+
+  const fallback = {
+    bubbles: [
+      { text: `لستُ مجرد كتاب عن ${category || 'هذا الموضوع'}… أنا الإجابة التي تبحث عنها`, delay: 0 },
+      { text: `${author ? author + ' كتبني ليُغيّر طريقة تفكيرك، لا ليضيف رقماً لقائمة مراجعك' : 'كُتبت لأبقى معك بعد إغلاق صفحتي الأخيرة'}`, delay: 700 },
+      { text: `الفصل الأول وحده يستحق الرحلة إليّ`, delay: 1400 },
+    ],
+    stats: { readTime: '6-8 ساعات', completionRate: '87%' },
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{
+          text: `أنت كتاب أكاديمي اسمك "${title}" تأليف ${author || 'مؤلف'} (${year || ''}, تخصص: ${category || 'عام'}).
+وصفك: ${description || ''}
+
+تكلّم بصوت الكتاب نفسه — شخصيّاً ومفاجئاً. اكتب 3 فقاعات حوار قصيرة (جملة واحدة لكل منها) كأنك تقنع الطالب الواقف أمامك.
+
+القواعد:
+- لا تبدأ بـ "أنا كتاب عن..."
+- الجملة الأولى: حقيقة غير متوقعة أو مفارقة
+- الجملة الثانية: ربط بحياة الطالب أو مشكلة يعيشها
+- الجملة الثالثة: وعد بتجربة أو تحوّل محدد
+
+أجب بـ JSON فقط:
+{
+  "bubbles": [
+    { "text": "...", "delay": 0 },
+    { "text": "...", "delay": 700 },
+    { "text": "...", "delay": 1400 }
+  ],
+  "stats": { "readTime": "X ساعات", "completionRate": "X%" }
+}`,
+        }],
+      }] as any,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            bubbles: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  text: { type: Type.STRING },
+                  delay: { type: Type.NUMBER },
+                },
+                required: ["text", "delay"],
+              },
+            },
+            stats: {
+              type: Type.OBJECT,
+              properties: {
+                readTime: { type: Type.STRING },
+                completionRate: { type: Type.STRING },
+              },
+            },
+          },
+          required: ["bubbles"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ ...fallback, ...parsed });
+  } catch (err: any) {
+    console.error("Book speaks error:", err);
+    return res.json(fallback);
+  }
+});
+
+// Knowledge Stars: AI insight explaining why two books form a spatial knowledge link.
+// Always returns 200 — Gemini when a key is configured, local fallback otherwise.
+app.post("/api/knowledge-relations", async (req, res) => {
+  const { bookA, bookB, relationType } = req.body || {};
+  if (!bookA || !bookB) return res.status(400).json({ error: "bookA and bookB required" });
+
+  const fallback = {
+    insight: `يتقاطع "${bookA.title}" و"${bookB.title}" في مجال ${relationType} — قراءتهما معاً تمنح الطالب رؤية أعمق مما يمنحه كل كتاب منفرداً.`,
+    sharedConcepts: [relationType],
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{ text: `أنت مساعد مكتبة أكاديمية متخصص في الربط المعرفي بين الكتب.
+
+الكتاب الأول: "${bookA.title}" بقلم ${bookA.author} — ${bookA.description ?? ''}
+الكتاب الثاني: "${bookB.title}" بقلم ${bookB.author} — ${bookB.description ?? ''}
+نوع العلاقة المعرفية: ${relationType}
+
+في جملتين بالعربية فقط: لماذا يكسب الطالب من قراءة هذين الكتابين معاً أكثر مما يكسبه من أيٍّ منهما وحده؟ ركّز على الفهم الأعمق الذي يمنحه التقاطع بينهما.` }],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            insight: { type: Type.STRING },
+            sharedConcepts: { type: Type.ARRAY, items: { type: Type.STRING } },
+          },
+          required: ["insight"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({
+      insight: parsed.insight || fallback.insight,
+      sharedConcepts: parsed.sharedConcepts || fallback.sharedConcepts,
+    });
+  } catch (err: any) {
+    console.error("[knowledge-relations]", err);
+    return res.json(fallback);
+  }
+});
+
+app.post("/api/hidden-bridges", async (req, res) => {
+  const { leftBook, rightBook, discoveryType } = req.body || {};
+  if (!leftBook || !rightBook) return res.status(400).json({ error: "leftBook and rightBook required" });
+
+  const fallback = {
+    insight: `"${leftBook.title}" و"${rightBook.title}" يُخفيان رابطاً لم يُكتشف بعد في مجال ${discoveryType} — هذا بالضبط ما عناه سوانسون بـ"المعرفة العامة غير المكتشفة".`,
+    swanskLink: `${discoveryType}: تقاطع بين ${leftBook.subject ?? 'الفيزياء'} و${rightBook.subject ?? 'علوم الحاسب'}`,
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{ text: `أنت باحث متخصص في "المعرفة العامة غير المكتشفة" (Swanson 1986).
+
+الكتاب الأيسر (الفيزياء): "${leftBook.title}" بقلم ${leftBook.author}
+الكتاب الأيمن (علوم الحاسب): "${rightBook.title}" بقلم ${rightBook.author}
+نوع الجسر المعرفي المكتشف: ${discoveryType}
+
+في جملتين بالعربية فقط: صِف الاكتشاف المعرفي الذي يظهر حين يُدرس الباحث هذين الكتابين معاً، وهو اكتشاف موجود في الأدبيات لكن لم يُوثَّق رسمياً كرابط. لا تُعطِ نصائح عامة، بل صِف الرابط الخفي تحديداً.` }],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            insight:     { type: Type.STRING },
+            swanskLink:  { type: Type.STRING },
+          },
+          required: ["insight"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({
+      insight:    parsed.insight    || fallback.insight,
+      swanskLink: parsed.swanskLink || fallback.swanskLink,
+    });
+  } catch (err: any) {
+    console.error("[hidden-bridges]", err);
+    return res.json(fallback);
+  }
+});
+
+app.post("/api/bridge-question", async (req, res) => {
+  const { question, books, leftIds, rightIds } = req.body || {};
+  if (!question) return res.status(400).json({ error: "question required" });
+
+  const bookById = (id: string) => Array.isArray(books) ? books.find((b: any) => b.id === id) : null;
+  const leftList  = Array.isArray(leftIds)  ? leftIds.map((id: string)  => { const b = bookById(id);  return b ? `ID "${id}": "${b.title}" — ${b.author}` : `ID "${id}"`; }).join('\n') : '';
+  const rightList = Array.isArray(rightIds) ? rightIds.map((id: string) => { const b = bookById(id); return b ? `ID "${id}": "${b.title}" — ${b.author}` : `ID "${id}"`; }).join('\n') : '';
+
+  const fallback = {
+    answer: `الجسور المخفية المرتبطة بسؤالك تُظهر روابط معرفية بين الفيزياء وعلوم الحاسب لم تُوثَّق رسمياً — جوهر نظرية Swanson 1986.`,
+    bridges: [{ leftId: '1', rightId: '6', connectionName: 'حدود المعرفة', strength: 3, explanation: 'هوكينج والذكاء الاصطناعي يُحددان معاً ما لا يمكن معرفته — الكون ومعالج البيانات يواجهان نفس الحدود.' }],
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{ text: `أنت باحث في نظرية "المعرفة العامة غير المكتشفة" (Swanson 1986).
+
+الكتب في المنطقة اليسرى (العلوم الطبيعية — الفيزياء):
+${leftList}
+
+الكتب في المنطقة اليمنى (علوم الحاسب والهندسة):
+${rightList}
+
+سؤال الباحث: "${question}"
+
+حدد 1-3 جسور معرفية مخفية ترتبط بهذا السؤال. لكل جسر:
+- leftId: أحد المعرّفات من المنطقة اليسرى فقط
+- rightId: أحد المعرّفات من المنطقة اليمنى فقط
+- connectionName: اسم الجسر بالعربية (3-5 كلمات)
+- strength: قوة الرابط من 1 إلى 3
+- explanation: جملة واحدة بالعربية تصف الجسر المخفي تحديداً
+ثم answer: فقرة 2-3 جمل بالعربية تشرح أهمية هذه الجسور في سياق السؤال.` }],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            answer: { type: Type.STRING },
+            bridges: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  leftId:         { type: Type.STRING },
+                  rightId:        { type: Type.STRING },
+                  connectionName: { type: Type.STRING },
+                  strength:       { type: Type.INTEGER },
+                  explanation:    { type: Type.STRING },
+                },
+                required: ["leftId", "rightId", "connectionName", "strength", "explanation"],
+              },
+            },
+          },
+          required: ["answer", "bridges"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    const bridges = Array.isArray(parsed.bridges) && parsed.bridges.length > 0
+      ? parsed.bridges : fallback.bridges;
+    return res.json({ answer: parsed.answer || fallback.answer, bridges });
+  } catch (err: any) {
+    console.error("[bridge-question]", err);
+    return res.json(fallback);
+  }
+});
+
+interface ScholarPaper {
+  title: string;
+  year: number;
+  citations: number;
+  doi: string | null;
+}
+
+async function searchOpenAlex(query: string, limit = 8): Promise<ScholarPaper[]> {
+  try {
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&per_page=${limit}&sort=cited_by_count:desc&mailto=library@research.edu`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    if (!res.ok) return [];
+    const data = await res.json() as any;
+    return ((data.results ?? []) as any[])
+      .map((w: any) => ({ title: w.title ?? '', year: w.publication_year ?? 0, citations: w.cited_by_count ?? 0, doi: w.doi ?? null }))
+      .filter((w: any) => w.title);
+  } catch {
+    return [];
+  }
+}
+
+app.post("/api/gap-scan", async (req, res) => {
+  const { topic, books } = req.body || {};
+  if (!topic) return res.status(400).json({ error: "topic required" });
+
+  const bookList = (Array.isArray(books) ? books : MOCK_BOOKS)
+    .map((b: any) => `ID:${b.id} "${b.title}" by ${b.author}`)
+    .join('\n');
+
+  // Search OpenAlex in parallel with client initialization
+  const scholarPapers = await searchOpenAlex(topic, 8);
+
+  const paperContext = scholarPapers.length > 0
+    ? `Real academic papers found on OpenAlex (open knowledge graph similar to Google Scholar) for "${topic}":\n${scholarPapers.map(p => `- "${p.title}" (${p.year}, cited ${p.citations} times)`).join('\n')}\nTotal results in OpenAlex: ${scholarPapers.length}+`
+    : `No papers found on OpenAlex for this exact topic — this itself indicates a significant research gap.`;
+
+  const fallback = {
+    summary: `مشهد الأدبيات في مجال "${topic}" يكشف فجوات بحثية واعدة — لا سيما في تقاطع الواقع المعزز والمكتبات الأكاديمية. أبرز الفرص تتمحور حول التطبيق في السياق العربي وربط التقنيات الناشئة بعلم المعلومات.`,
+    gaps: [
+      { topicArea: 'AR Library UX',        topicAreaAr: 'تجربة AR في المكتبة',         status: 'unexplored', opportunity: `لا توجد دراسات كافية عن تجربة الواقع المعزز في المكتبات العربية ضمن مجال "${topic}" — فرصة بحثية أصيلة.`, relatedBookIds: ['6','7'], bridgeField: 'HCI' },
+      { topicArea: 'AI + Library Science', topicAreaAr: 'ذكاء اصطناعي + علم المكتبات', status: 'partial',    opportunity: `الجسر بين الذكاء الاصطناعي وعلم المكتبات في سياق "${topic}" لم يُوثَّق باللغة العربية — مجال جسر واعد.`, relatedBookIds: ['6','7'], bridgeField: 'Library Science' },
+      { topicArea: 'User Adoption',        topicAreaAr: 'تبني المستخدم للتقنية',       status: 'unexplored', opportunity: `قبول المستخدم للتقنيات الحديثة في بيئة "${topic}" شبه غائب من الأدبيات العربية الأكاديمية — فجوة مباشرة.`, relatedBookIds: ['6','9'], bridgeField: 'Cognitive Science' },
+      { topicArea: 'Data Analytics',       topicAreaAr: 'تحليلات البيانات',            status: 'partial',    opportunity: `تحليل بيانات الاستخدام في "${topic}" يُوفر فرصة لربط علم البيانات بتحسين الخدمات — تقاطع بحثي جديد.`, relatedBookIds: ['9','7'], bridgeField: 'Data Science' },
+      { topicArea: 'Mobile Learning',      topicAreaAr: 'التعلم عبر الجوال',           status: 'partial',    opportunity: `التعلم المحمول مدروس عموماً لكن تطبيقه في "${topic}" مع الجوانب العربية يفتح باباً بحثياً مميزاً.`, relatedBookIds: ['6','7','9'], bridgeField: 'Education Technology' },
+      { topicArea: 'Research Methodology', topicAreaAr: 'منهجية البحث',                status: 'covered',    opportunity: `المنهجية البحثية مغطاة جيداً — ركّز على زاوية تطبيقية خاصة بـ "${topic}" في السياق الجامعي العربي.`, relatedBookIds: ['1','3'], bridgeField: null },
+    ],
+    scholarPapers,
+    scholarCount: scholarPapers.length,
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{ text: `You are a research methodology expert helping a PhD student identify literature gaps.
+
+Research topic: "${topic}"
+
+Library books available:
+${bookList}
+
+${paperContext}
+
+Using the real paper data above, identify 4-6 distinct research territory zones for this topic. For each zone:
+- A concise name in English (2-4 words) and Arabic
+- Status: "unexplored" (few/no papers found, clear gap), "partial" (some papers, cross-disciplinary bridge possible), "covered" (many highly-cited papers, try a different angle)
+- A concrete Arabic description of the contribution opportunity or why it is well-covered
+- Which book IDs from the library are most relevant (1-3 IDs)
+- If status is "partial", one bridge discipline (e.g. "HCI", "Library Science") or null
+
+Respond in JSON only:
+{
+  "summary": "2 Arabic sentences describing the research landscape based on the real paper data",
+  "gaps": [
+    {
+      "topicArea": "English name",
+      "topicAreaAr": "الاسم بالعربي",
+      "status": "unexplored|partial|covered",
+      "opportunity": "Arabic 1-2 sentences with concrete advice",
+      "relatedBookIds": ["id1"],
+      "bridgeField": "discipline or null"
+    }
+  ]
+}` }],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            gaps: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  topicArea:      { type: Type.STRING },
+                  topicAreaAr:    { type: Type.STRING },
+                  status:         { type: Type.STRING },
+                  opportunity:    { type: Type.STRING },
+                  relatedBookIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  bridgeField:    { type: Type.STRING },
+                },
+                required: ["topicArea", "topicAreaAr", "status", "opportunity", "relatedBookIds"],
+              },
+            },
+          },
+          required: ["summary", "gaps"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({
+      summary: parsed.summary || fallback.summary,
+      gaps: Array.isArray(parsed.gaps) && parsed.gaps.length > 0 ? parsed.gaps : fallback.gaps,
+      scholarPapers,
+      scholarCount: scholarPapers.length,
+    });
+  } catch (err: any) {
+    console.error("[gap-scan]", err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
