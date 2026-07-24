@@ -970,6 +970,27 @@ ${rightList}
   }
 });
 
+interface ScholarPaper {
+  title: string;
+  year: number;
+  citations: number;
+  doi: string | null;
+}
+
+async function searchOpenAlex(query: string, limit = 8): Promise<ScholarPaper[]> {
+  try {
+    const url = `https://api.openalex.org/works?search=${encodeURIComponent(query)}&per_page=${limit}&sort=cited_by_count:desc&mailto=library@research.edu`;
+    const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    if (!res.ok) return [];
+    const data = await res.json() as any;
+    return ((data.results ?? []) as any[])
+      .map((w: any) => ({ title: w.title ?? '', year: w.publication_year ?? 0, citations: w.cited_by_count ?? 0, doi: w.doi ?? null }))
+      .filter((w: any) => w.title);
+  } catch {
+    return [];
+  }
+}
+
 app.post("/api/gap-scan", async (req, res) => {
   const { topic, books } = req.body || {};
   if (!topic) return res.status(400).json({ error: "topic required" });
@@ -978,6 +999,13 @@ app.post("/api/gap-scan", async (req, res) => {
     .map((b: any) => `ID:${b.id} "${b.title}" by ${b.author}`)
     .join('\n');
 
+  // Search OpenAlex in parallel with client initialization
+  const scholarPapers = await searchOpenAlex(topic, 8);
+
+  const paperContext = scholarPapers.length > 0
+    ? `Real academic papers found on OpenAlex (open knowledge graph similar to Google Scholar) for "${topic}":\n${scholarPapers.map(p => `- "${p.title}" (${p.year}, cited ${p.citations} times)`).join('\n')}\nTotal results in OpenAlex: ${scholarPapers.length}+`
+    : `No papers found on OpenAlex for this exact topic — this itself indicates a significant research gap.`;
+
   const fallback = {
     summary: `مشهد الأدبيات في مجال "${topic}" يكشف فجوات بحثية واعدة — لا سيما في تقاطع الواقع المعزز والمكتبات الأكاديمية.`,
     gaps: [
@@ -985,6 +1013,8 @@ app.post("/api/gap-scan", async (req, res) => {
       { topicArea: 'AI + Library Science', topicAreaAr: 'ذكاء اصطناعي + علم المكتبات', status: 'partial', opportunity: 'الجسر بين الذكاء الاصطناعي وعلم المكتبات لم يُوثَّق في السياق العربي', relatedBookIds: ['6','7'], bridgeField: 'Library Science' },
       { topicArea: 'Research Methodology', topicAreaAr: 'منهجية البحث', status: 'covered', opportunity: 'مغطى جيداً — تخصص زاوية تطبيقية في مجالك', relatedBookIds: ['1','3'], bridgeField: null },
     ],
+    scholarPapers,
+    scholarCount: scholarPapers.length,
   };
 
   const client = getGeminiClient();
@@ -1002,24 +1032,26 @@ Research topic: "${topic}"
 Library books available:
 ${bookList}
 
-Identify 4-6 distinct research territory zones for this topic. For each zone determine:
+${paperContext}
+
+Using the real paper data above, identify 4-6 distinct research territory zones for this topic. For each zone:
 - A concise name in English (2-4 words) and Arabic
-- Status: "unexplored" (significant gap, opportunity to contribute), "partial" (partially covered, cross-disciplinary bridge possible), or "covered" (well-researched, pick a different angle)
-- A concrete description of what a PhD student could contribute or why it's already covered
+- Status: "unexplored" (few/no papers found, clear gap), "partial" (some papers, cross-disciplinary bridge possible), "covered" (many highly-cited papers, try a different angle)
+- A concrete Arabic description of the contribution opportunity or why it is well-covered
 - Which book IDs from the library are most relevant (1-3 IDs)
-- If status is "partial", identify one bridge discipline (e.g. "HCI", "Cognitive Science") or null
+- If status is "partial", one bridge discipline (e.g. "HCI", "Library Science") or null
 
 Respond in JSON only:
 {
-  "summary": "2 sentences in Arabic describing the overall research landscape",
+  "summary": "2 Arabic sentences describing the research landscape based on the real paper data",
   "gaps": [
     {
       "topicArea": "English name",
       "topicAreaAr": "الاسم بالعربي",
       "status": "unexplored|partial|covered",
-      "opportunity": "Arabic description (1-2 sentences) of the contribution opportunity or why it is covered",
+      "opportunity": "Arabic 1-2 sentences with concrete advice",
       "relatedBookIds": ["id1"],
-      "bridgeField": "discipline name or null"
+      "bridgeField": "discipline or null"
     }
   ]
 }` }],
@@ -1054,6 +1086,8 @@ Respond in JSON only:
     return res.json({
       summary: parsed.summary || fallback.summary,
       gaps: Array.isArray(parsed.gaps) && parsed.gaps.length > 0 ? parsed.gaps : fallback.gaps,
+      scholarPapers,
+      scholarCount: scholarPapers.length,
     });
   } catch (err: any) {
     console.error("[gap-scan]", err);

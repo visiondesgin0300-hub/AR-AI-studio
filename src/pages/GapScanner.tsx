@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Loader2, Search, FlaskConical, Zap } from 'lucide-react';
+import { X, Loader2, Search, FlaskConical, Zap, BookOpen, ExternalLink } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
@@ -94,6 +94,8 @@ export function GapScanner() {
   const [summary, setSummary]           = useState<string | null>(null);
   const [selectedGap, setSelectedGap]   = useState<ResearchGap | null>(null);
   const [showInput, setShowInput]       = useState(false);
+  const [scholarPapers, setScholarPapers] = useState<{ title: string; year: number; citations: number; doi: string | null }[]>([]);
+  const [scholarCount, setScholarCount]   = useState<number | null>(null);
 
   // Camera
   useEffect(() => {
@@ -145,6 +147,8 @@ export function GapScanner() {
     setSummary(null);
     setSelectedGap(null);
     setShowInput(false);
+    setScholarPapers([]);
+    setScholarCount(null);
 
     try {
       const res = await fetch('/api/gap-scan', {
@@ -166,6 +170,8 @@ export function GapScanner() {
         }));
         setGaps(positioned);
         setSummary(data.summary ?? null);
+        setScholarPapers(Array.isArray(data.scholarPapers) ? data.scholarPapers : []);
+        setScholarCount(typeof data.scholarCount === 'number' ? data.scholarCount : null);
         setPhase('results');
         return;
       }
@@ -380,9 +386,19 @@ export function GapScanner() {
           className="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3 px-5">
           {summary && (
             <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}
-              className="w-full max-w-sm px-4 py-2.5 rounded-2xl text-center"
+              className="w-full max-w-sm px-4 py-2.5 rounded-2xl text-center space-y-1.5"
               style={{ background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(16px)', border: '1px solid rgba(52,211,153,0.18)' }}>
               <p className="text-xs font-bold text-white/65 leading-snug" dir={ar ? 'rtl' : 'ltr'}>{summary}</p>
+              {scholarCount !== null && (
+                <div className="flex items-center justify-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-[#34D399]" />
+                  <p className="text-[9px] font-black text-[#34D399]/70">
+                    {ar
+                      ? `${scholarCount}+ ورقة بحثية حقيقية من OpenAlex`
+                      : `${scholarCount}+ real papers from OpenAlex`}
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
           <div className="flex items-center gap-3">
@@ -519,6 +535,41 @@ export function GapScanner() {
                   <p className="text-[9px] text-white/40 font-bold mt-0.5">
                     {ar ? 'استخدم تطبيق الجسور المخفية لاكتشاف الرابط' : 'Use Hidden Bridges app to discover the link'}
                   </p>
+                </div>
+              </div>
+            )}
+
+            {/* Real scholar papers from OpenAlex */}
+            {scholarPapers.length > 0 && (
+              <div dir={ar ? 'rtl' : 'ltr'}>
+                <div className="flex items-center gap-2 mb-2">
+                  <BookOpen className="w-3 h-3 text-white/30 shrink-0" />
+                  <p className="text-[10px] font-black text-white/30 uppercase tracking-widest">
+                    {ar
+                      ? `أوراق بحثية حقيقية — OpenAlex (${scholarCount ?? scholarPapers.length}+ نتيجة)`
+                      : `Real papers — OpenAlex (${scholarCount ?? scholarPapers.length}+ results)`}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {scholarPapers.slice(0, 4).map((p, i) => (
+                    <div key={i} className="px-3 py-2 rounded-xl"
+                      style={{ background: 'rgba(52,211,153,0.05)', border: '1px solid rgba(52,211,153,0.12)' }}>
+                      <p className="text-[10px] font-bold text-white/75 leading-tight line-clamp-2">{p.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[9px] text-[#34D399]/60 font-bold">{p.year}</span>
+                        <span className="text-[9px] text-white/25">·</span>
+                        <span className="text-[9px] text-white/35 font-bold">{p.citations.toLocaleString()} {ar ? 'استشهاد' : 'citations'}</span>
+                        {p.doi && (
+                          <>
+                            <span className="text-[9px] text-white/25">·</span>
+                            <span className="text-[9px] text-[#34D399]/50 font-bold flex items-center gap-0.5">
+                              <ExternalLink className="w-2.5 h-2.5" />DOI
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
