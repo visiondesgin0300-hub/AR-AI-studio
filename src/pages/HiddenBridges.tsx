@@ -89,6 +89,19 @@ export function HiddenBridges() {
   const leftNodes  = useMemo(() => LEFT_BOOKS.map((book, i)  => ({ book, x: leftX,  y: ys[i] ?? 0 })), [leftX,  ys]);
   const rightNodes = useMemo(() => RIGHT_BOOKS.map((book, i) => ({ book, x: rightX, y: ys[i] ?? 0 })), [rightX, ys]);
 
+  const allPotentialPaths = useMemo(() => {
+    const paths: string[] = [];
+    for (let li = 0; li < 3; li++) {
+      for (let ri = 0; ri < 3; ri++) {
+        const x1 = leftX, y1 = ys[li] ?? 0;
+        const x2 = rightX, y2 = ys[ri] ?? 0;
+        const cx = (x2 - x1) * 0.38;
+        paths.push(`M ${x1} ${y1} C ${x1+cx} ${y1} ${x2-cx} ${y2} ${x2} ${y2}`);
+      }
+    }
+    return paths;
+  }, [leftX, rightX, ys]);
+
   const bridgeGeometry = useMemo(() => dynBridges.map(b => {
     const li = LEFT_IDS.indexOf(b.leftId);
     const ri = RIGHT_IDS.indexOf(b.rightId);
@@ -237,14 +250,14 @@ export function HiddenBridges() {
             {zonesVisible && (
               <>
                 <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}
-                  className="absolute top-[22%] bottom-[20%] rounded-r-2xl border-r border-t border-b border-blue-400/20 flex flex-col justify-between py-4 px-2"
-                  style={{ left: 0, width: '22%', background: 'rgba(96,165,250,0.06)' }}>
+                  className="absolute top-[22%] bottom-[20%] rounded-r-2xl border-r border-t border-b border-blue-400/40 flex flex-col justify-between py-4 px-2"
+                  style={{ left: 0, width: '22%', background: 'rgba(96,165,250,0.14)' }}>
                   <div className="text-[8px] font-black text-blue-300/70 uppercase tracking-widest leading-tight text-center">{ar ? 'العلوم\nالطبيعية' : 'Natural\nSciences'}</div>
                   <div className="text-[8px] font-black text-blue-300/40 text-center">{ar ? 'فيزياء' : 'Physics'}</div>
                 </motion.div>
                 <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.6 }}
-                  className="absolute top-[22%] bottom-[20%] rounded-l-2xl border-l border-t border-b border-purple-400/20 flex flex-col justify-between py-4 px-2"
-                  style={{ right: 0, width: '22%', background: 'rgba(167,139,250,0.06)' }}>
+                  className="absolute top-[22%] bottom-[20%] rounded-l-2xl border-l border-t border-b border-purple-400/40 flex flex-col justify-between py-4 px-2"
+                  style={{ right: 0, width: '22%', background: 'rgba(167,139,250,0.14)' }}>
                   <div className="text-[8px] font-black text-purple-300/70 uppercase tracking-widest leading-tight text-center">{ar ? 'علوم\nالحاسب' : 'Computer\nScience'}</div>
                   <div className="text-[8px] font-black text-purple-300/40 text-center">{ar ? 'هندسة' : 'Engineering'}</div>
                 </motion.div>
@@ -280,6 +293,15 @@ export function HiddenBridges() {
                 transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }} />
             )}
 
+            {zonesVisible && !hasBridges && allPotentialPaths.map((path, i) => (
+              <motion.path key={`pot-${i}`} d={path}
+                stroke="rgba(255,255,255,0.10)" strokeWidth={0.8} strokeDasharray="6 10"
+                fill="none" strokeLinecap="round"
+                initial={{ opacity: 0, pathLength: 0 }}
+                animate={{ opacity: 1, pathLength: 1 }}
+                transition={{ delay: 0.5 + i * 0.06, duration: 1 }} />
+            ))}
+
             {dynBridges.map((bridge, i) => {
               const geo = bridgeGeometry[i];
               if (!geo) return null;
@@ -296,17 +318,17 @@ export function HiddenBridges() {
 
             {leftNodes.map(({ x, y }, i) => (
               <motion.g key={`ln-${i}`} initial={{ opacity: 0 }} animate={zonesVisible ? { opacity: 1 } : { opacity: 0 }} transition={{ delay: 0.3+i*0.12 }}>
-                <motion.circle cx={x} cy={y} r={9} fill="none" stroke="rgba(96,165,250,0.4)" strokeWidth={0.8}
+                <motion.circle cx={x} cy={y} r={18} fill="none" stroke="rgba(96,165,250,0.5)" strokeWidth={2}
                   animate={{ opacity: [0.4,0.08,0.4] }} transition={{ duration: 2.5+i*0.4, repeat: Infinity, delay: i*0.3 }} />
-                <circle cx={x} cy={y} r={4} fill="#60A5FA" filter="url(#hb-node)" />
+                <circle cx={x} cy={y} r={8} fill="#60A5FA" filter="url(#hb-node)" />
               </motion.g>
             ))}
 
             {rightNodes.map(({ x, y }, i) => (
               <motion.g key={`rn-${i}`} initial={{ opacity: 0 }} animate={zonesVisible ? { opacity: 1 } : { opacity: 0 }} transition={{ delay: 0.3+i*0.12 }}>
-                <motion.circle cx={x} cy={y} r={9} fill="none" stroke="rgba(167,139,250,0.4)" strokeWidth={0.8}
+                <motion.circle cx={x} cy={y} r={18} fill="none" stroke="rgba(167,139,250,0.5)" strokeWidth={2}
                   animate={{ opacity: [0.4,0.08,0.4] }} transition={{ duration: 2.5+i*0.4, repeat: Infinity, delay: i*0.3 }} />
-                <circle cx={x} cy={y} r={4} fill="#A78BFA" filter="url(#hb-node)" />
+                <circle cx={x} cy={y} r={8} fill="#A78BFA" filter="url(#hb-node)" />
               </motion.g>
             ))}
 
@@ -323,19 +345,19 @@ export function HiddenBridges() {
               {leftNodes.map(({ book, x, y }, i) => (
                 <motion.div key={`ll-${i}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5+i*0.12 }}
                   className="absolute pointer-events-none"
-                  style={{ left: x+14, top: y, transform: 'translateY(-50%)', maxWidth: 70 }}>
-                  <div className="text-[7px] font-bold text-blue-200/60 leading-tight"
-                    style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  style={{ left: 4, top: y + 22, width: '20%' }}>
+                  <div className="text-[10px] font-bold text-blue-200 leading-tight text-center px-1.5 py-0.5 rounded-lg"
+                    style={{ background: 'rgba(96,165,250,0.20)', backdropFilter: 'blur(6px)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {ar ? book.title : (book.titleEn ?? book.title)}
                   </div>
                 </motion.div>
               ))}
               {rightNodes.map(({ book, x, y }, i) => (
                 <motion.div key={`rl-${i}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5+i*0.12 }}
-                  className="absolute pointer-events-none text-right"
-                  style={{ right: svgDims.w-x+14, top: y, transform: 'translateY(-50%)', maxWidth: 70 }}>
-                  <div className="text-[7px] font-bold text-purple-200/60 leading-tight"
-                    style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                  className="absolute pointer-events-none"
+                  style={{ right: 4, top: y + 22, width: '20%' }}>
+                  <div className="text-[10px] font-bold text-purple-200 leading-tight text-center px-1.5 py-0.5 rounded-lg"
+                    style={{ background: 'rgba(167,139,250,0.20)', backdropFilter: 'blur(6px)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {ar ? book.title : (book.titleEn ?? book.title)}
                   </div>
                 </motion.div>
@@ -365,7 +387,7 @@ export function HiddenBridges() {
                 initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.4+i*0.12, type: 'spring', stiffness: 270, damping: 22 }}
                 onClick={() => { setSelectedBridge(bridge); setShowQA(false); }}
-                className="absolute text-[8px] font-black tracking-wide whitespace-nowrap rounded-full px-2 py-0.5 border active:scale-95 transition-all"
+                className="absolute text-[11px] font-black tracking-wide whitespace-nowrap rounded-full px-3 py-1 border active:scale-95 transition-all"
                 style={{
                   left: geo.midX, top: geo.midY, transform: 'translate(-50%,-50%)', zIndex: 15,
                   background: sel ? bridge.color : 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
