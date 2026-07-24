@@ -970,6 +970,97 @@ ${rightList}
   }
 });
 
+app.post("/api/gap-scan", async (req, res) => {
+  const { topic, books } = req.body || {};
+  if (!topic) return res.status(400).json({ error: "topic required" });
+
+  const bookList = (Array.isArray(books) ? books : MOCK_BOOKS)
+    .map((b: any) => `ID:${b.id} "${b.title}" by ${b.author}`)
+    .join('\n');
+
+  const fallback = {
+    summary: `مشهد الأدبيات في مجال "${topic}" يكشف فجوات بحثية واعدة — لا سيما في تقاطع الواقع المعزز والمكتبات الأكاديمية.`,
+    gaps: [
+      { topicArea: 'AR Library UX', topicAreaAr: 'تجربة AR في المكتبة', status: 'unexplored', opportunity: 'لا توجد دراسات كافية عن تجربة الواقع المعزز في المكتبات العربية', relatedBookIds: ['6','7'], bridgeField: 'HCI' },
+      { topicArea: 'AI + Library Science', topicAreaAr: 'ذكاء اصطناعي + علم المكتبات', status: 'partial', opportunity: 'الجسر بين الذكاء الاصطناعي وعلم المكتبات لم يُوثَّق في السياق العربي', relatedBookIds: ['6','7'], bridgeField: 'Library Science' },
+      { topicArea: 'Research Methodology', topicAreaAr: 'منهجية البحث', status: 'covered', opportunity: 'مغطى جيداً — تخصص زاوية تطبيقية في مجالك', relatedBookIds: ['1','3'], bridgeField: null },
+    ],
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{
+        role: "user",
+        parts: [{ text: `You are a research methodology expert helping a PhD student identify literature gaps.
+
+Research topic: "${topic}"
+
+Library books available:
+${bookList}
+
+Identify 4-6 distinct research territory zones for this topic. For each zone determine:
+- A concise name in English (2-4 words) and Arabic
+- Status: "unexplored" (significant gap, opportunity to contribute), "partial" (partially covered, cross-disciplinary bridge possible), or "covered" (well-researched, pick a different angle)
+- A concrete description of what a PhD student could contribute or why it's already covered
+- Which book IDs from the library are most relevant (1-3 IDs)
+- If status is "partial", identify one bridge discipline (e.g. "HCI", "Cognitive Science") or null
+
+Respond in JSON only:
+{
+  "summary": "2 sentences in Arabic describing the overall research landscape",
+  "gaps": [
+    {
+      "topicArea": "English name",
+      "topicAreaAr": "الاسم بالعربي",
+      "status": "unexplored|partial|covered",
+      "opportunity": "Arabic description (1-2 sentences) of the contribution opportunity or why it is covered",
+      "relatedBookIds": ["id1"],
+      "bridgeField": "discipline name or null"
+    }
+  ]
+}` }],
+      }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            gaps: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  topicArea:      { type: Type.STRING },
+                  topicAreaAr:    { type: Type.STRING },
+                  status:         { type: Type.STRING },
+                  opportunity:    { type: Type.STRING },
+                  relatedBookIds: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  bridgeField:    { type: Type.STRING },
+                },
+                required: ["topicArea", "topicAreaAr", "status", "opportunity", "relatedBookIds"],
+              },
+            },
+          },
+          required: ["summary", "gaps"],
+        },
+      },
+    });
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({
+      summary: parsed.summary || fallback.summary,
+      gaps: Array.isArray(parsed.gaps) && parsed.gaps.length > 0 ? parsed.gaps : fallback.gaps,
+    });
+  } catch (err: any) {
+    console.error("[gap-scan]", err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

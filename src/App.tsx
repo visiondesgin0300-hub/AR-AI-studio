@@ -25,6 +25,7 @@ import { CameraARSim } from './pages/CameraARSim';
 import { LibraryLens } from './pages/LibraryLens';
 import { KnowledgeStars } from './pages/KnowledgeStars';
 import { HiddenBridges } from './pages/HiddenBridges';
+import { GapScanner } from './pages/GapScanner';
 import { BookQRPrint } from './pages/BookQRPrint';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
@@ -180,6 +181,10 @@ function AppContent() {
         <Route
           path="/hidden-bridges"
           element={user ? <HiddenBridges /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/gap-scanner"
+          element={user ? <GapScanner /> : <Navigate to="/login" />}
         />
         <Route
           path="/book-codes"
