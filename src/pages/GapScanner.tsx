@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Loader2, Search, FlaskConical, Zap, BookOpen, ExternalLink, QrCode } from 'lucide-react';
+import { X, Loader2, Search, FlaskConical, Zap, BookOpen, ExternalLink, QrCode, GraduationCap, CheckCircle2, ChevronRight } from 'lucide-react';
 import jsQR from 'jsqr';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
@@ -114,6 +114,8 @@ export function GapScanner() {
   const [scholarCount, setScholarCount]   = useState<number | null>(null);
   const [anchorPt, setAnchorPt]       = useState<AnchorPt | null>(null);
   const [qrVisible, setQrVisible]     = useState(false);
+  // Practice mode: 0=off 1=choose-topic 2=waiting-scan 3=tap-bubble 4=done
+  const [practiceStep, setPracticeStep] = useState(0);
 
   const setPhase = useCallback((p: Phase) => { phaseRef.current = p; _setPhase(p); }, []);
 
@@ -220,10 +222,21 @@ export function GapScanner() {
     if (showInput) setTimeout(() => inputRef.current?.focus(), 150);
   }, [showInput]);
 
+  // Auto-advance practice step when results appear
+  useEffect(() => {
+    if (practiceStep === 2 && phase === 'results') setPracticeStep(3);
+  }, [phase, practiceStep]);
+
+  // Auto-advance practice step when user taps a bubble
+  useEffect(() => {
+    if (practiceStep === 3 && selectedGap) setPracticeStep(4);
+  }, [selectedGap, practiceStep]);
+
   // ── scan topic ──────────────────────────────────────────────────────────────
   const scanTopic = useCallback(async (q: string) => {
     const t = q.trim();
     if (!t) return;
+    if (practiceStep === 1) setPracticeStep(2);
     setTopic(t);
     setInputText(t);
     setPhase('scanning');
@@ -521,26 +534,44 @@ export function GapScanner() {
                 {ar ? 'اكتب موضوعك لتظهر الفجوات على الرف الحقيقي' : 'Enter your topic — gaps will appear on the real shelf'}
               </p>
             </div>
-            <div className="flex flex-col gap-2 w-full max-w-xs">
+            <div className="flex flex-col gap-2 w-full max-w-xs" style={practiceStep === 1 ? { position: 'relative' } : {}}>
+              {practiceStep === 1 && (
+                <motion.div
+                  className="absolute -inset-2 rounded-3xl pointer-events-none"
+                  animate={{ boxShadow: ['0 0 0 2px rgba(52,211,153,0.3)', '0 0 0 6px rgba(52,211,153,0.12)', '0 0 0 2px rgba(52,211,153,0.3)'] }}
+                  transition={{ duration: 1.4, repeat: Infinity }}
+                />
+              )}
               {(ar ? EXAMPLES_AR : EXAMPLES_EN).map((ex, i) => (
                 <motion.button key={i}
                   initial={{ opacity: 0, x: ar ? 10 : -10 }} animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.3 + i * 0.08 }}
                   onClick={() => scanTopic(ex)}
                   className="px-4 py-2.5 rounded-2xl text-xs font-bold text-white/75 active:scale-95 transition-all text-start"
-                  style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.10)', backdropFilter: 'blur(10px)' }}
+                  style={{ background: 'rgba(255,255,255,0.06)', border: `1px solid ${practiceStep === 1 ? 'rgba(52,211,153,0.35)' : 'rgba(255,255,255,0.10)'}`, backdropFilter: 'blur(10px)' }}
                   dir={ar ? 'rtl' : 'ltr'}>
                   <span className="text-[#34D399]">→ </span>{ex}
                 </motion.button>
               ))}
             </div>
-            <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
-              onClick={() => setShowInput(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm"
-              style={{ background: '#34D399', color: '#001a00' }}>
-              <Search className="w-4 h-4" />
-              {ar ? 'اكتب موضوعك' : 'Enter your topic'}
-            </motion.button>
+            <div className="flex items-center gap-3">
+              <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
+                onClick={() => setShowInput(true)}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-sm"
+                style={{ background: '#34D399', color: '#001a00' }}>
+                <Search className="w-4 h-4" />
+                {ar ? 'اكتب موضوعك' : 'Enter your topic'}
+              </motion.button>
+              {practiceStep === 0 && (
+                <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.0 }}
+                  onClick={() => setPracticeStep(1)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-full font-black text-xs"
+                  style={{ background: 'rgba(52,211,153,0.12)', border: '1px solid rgba(52,211,153,0.30)', color: '#34D399', backdropFilter: 'blur(10px)' }}>
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  {ar ? 'جرّب الآن' : 'Try it'}
+                </motion.button>
+              )}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -675,6 +706,122 @@ export function GapScanner() {
                   : 'Real data from OpenAlex · Gemini AI analysis · Swanson 1986'}
               </span>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Practice mode coach overlays ───────────────────────────────────── */}
+      <AnimatePresence>
+        {/* Step 1: choose a topic */}
+        {practiceStep === 1 && phase === 'idle' && (
+          <motion.div
+            key="practice-1"
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+            className="absolute z-40 left-0 right-0 flex justify-center"
+            style={{ top: 166 }}>
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl mx-5"
+              style={{ background: 'rgba(0,20,10,0.92)', border: '1px solid rgba(52,211,153,0.40)', backdropFilter: 'blur(20px)' }}>
+              <GraduationCap className="w-4 h-4 text-[#34D399] shrink-0" />
+              <div dir={ar ? 'rtl' : 'ltr'}>
+                <p className="text-[11px] font-black text-[#34D399]">
+                  {ar ? '① اختر موضوعاً من الأمثلة أدناه' : '① Choose a topic from the examples below'}
+                </p>
+                <p className="text-[9px] text-white/40 font-bold">
+                  {ar ? 'اضغط على أي موضوع لبدء المسح البحثي' : 'Tap any topic to start the literature scan'}
+                </p>
+              </div>
+              <button onClick={() => setPracticeStep(0)} className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(255,255,255,0.08)' }}>
+                <X className="w-3 h-3 text-white/30" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 3: tap a bubble */}
+        {practiceStep === 3 && phase === 'results' && !selectedGap && (
+          <motion.div
+            key="practice-3"
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+            className="absolute z-40 left-0 right-0 flex justify-center"
+            style={{ top: 166 }}>
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl mx-5"
+              style={{ background: 'rgba(0,20,10,0.92)', border: '1px solid rgba(52,211,153,0.40)', backdropFilter: 'blur(20px)' }}>
+              <GraduationCap className="w-4 h-4 text-[#34D399] shrink-0" />
+              <div dir={ar ? 'rtl' : 'ltr'}>
+                <p className="text-[11px] font-black text-[#34D399]">
+                  {ar ? '③ اضغط على أي فقاعة لتقرأ الفجوة البحثية' : '③ Tap any bubble to read the research gap'}
+                </p>
+                <p className="text-[9px] text-white/40 font-bold">
+                  {ar ? 'الفقاعات الخضراء = فجوات مفتوحة — فرصة للنشر!' : 'Green = open gap — a publication opportunity!'}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Step 4: completion */}
+        {practiceStep === 4 && (
+          <motion.div
+            key="practice-4"
+            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
+            className="absolute inset-0 z-50 flex items-center justify-center p-6"
+            style={{ background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)' }}>
+            <motion.div
+              initial={{ y: 20 }} animate={{ y: 0 }}
+              className="w-full max-w-sm rounded-[2rem] p-7 space-y-5 text-center"
+              style={{ background: 'rgba(0,18,10,0.97)', border: '1px solid rgba(52,211,153,0.30)', backdropFilter: 'blur(30px)' }}>
+              {/* Animated check */}
+              <motion.div
+                initial={{ scale: 0 }} animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 280, damping: 18, delay: 0.1 }}
+                className="w-16 h-16 rounded-full mx-auto flex items-center justify-center"
+                style={{ background: 'rgba(52,211,153,0.15)', border: '2px solid #34D399' }}>
+                <CheckCircle2 className="w-8 h-8 text-[#34D399]" />
+              </motion.div>
+
+              <div dir={ar ? 'rtl' : 'ltr'} className="space-y-2">
+                <h3 className="text-lg font-black text-white">
+                  {ar ? '✦ أتقنت ماسح الفجوات!' : '✦ You mastered the Gap Scanner!'}
+                </h3>
+                <p className="text-sm text-white/55 font-semibold leading-relaxed">
+                  {ar
+                    ? 'الآن تعرف كيف تكتشف الفجوات البحثية باستخدام الذكاء الاصطناعي والواقع المعزز على أرفف المكتبة الحقيقية.'
+                    : 'You now know how to discover research gaps using AI + AR anchored to real library shelves.'}
+                </p>
+              </div>
+
+              {/* Steps recap */}
+              <div className="rounded-2xl p-4 space-y-2" style={{ background: 'rgba(52,211,153,0.06)', border: '1px solid rgba(52,211,153,0.15)' }} dir={ar ? 'rtl' : 'ltr'}>
+                {[
+                  ar ? 'اخترت موضوعاً بحثياً' : 'Selected a research topic',
+                  ar ? 'انتظرت تحليل الأدبيات بالذكاء الاصطناعي' : 'Waited for AI literature analysis',
+                  ar ? 'استكشفت فجوة بحثية على الرف الحقيقي' : 'Explored a gap on the real shelf',
+                ].map((step, i) => (
+                  <div key={i} className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ background: 'rgba(52,211,153,0.20)', border: '1px solid #34D399' }}>
+                      <span className="text-[9px] font-black text-[#34D399]">{i + 1}</span>
+                    </div>
+                    <span className="text-xs font-bold text-[#34D399]/80">{step}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setPracticeStep(0); setSelectedGap(null); }}
+                  className="flex-1 py-3 rounded-2xl text-sm font-black text-white/50"
+                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  {ar ? 'إغلاق' : 'Close'}
+                </button>
+                <button
+                  onClick={() => { setPracticeStep(0); setSelectedGap(null); setPhase('idle'); setGaps([]); setSummary(null); setTopic(''); setInputText(''); setShowInput(true); }}
+                  className="flex-1 py-3 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
+                  style={{ background: '#34D399', color: '#001a00' }}>
+                  {ar ? 'ابدأ بحثك الخاص' : 'Start your search'}
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
