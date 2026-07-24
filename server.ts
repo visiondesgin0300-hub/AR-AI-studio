@@ -1007,11 +1007,14 @@ app.post("/api/gap-scan", async (req, res) => {
     : `No papers found on OpenAlex for this exact topic — this itself indicates a significant research gap.`;
 
   const fallback = {
-    summary: `مشهد الأدبيات في مجال "${topic}" يكشف فجوات بحثية واعدة — لا سيما في تقاطع الواقع المعزز والمكتبات الأكاديمية.`,
+    summary: `مشهد الأدبيات في مجال "${topic}" يكشف فجوات بحثية واعدة — لا سيما في تقاطع الواقع المعزز والمكتبات الأكاديمية. أبرز الفرص تتمحور حول التطبيق في السياق العربي وربط التقنيات الناشئة بعلم المعلومات.`,
     gaps: [
-      { topicArea: 'AR Library UX', topicAreaAr: 'تجربة AR في المكتبة', status: 'unexplored', opportunity: 'لا توجد دراسات كافية عن تجربة الواقع المعزز في المكتبات العربية', relatedBookIds: ['6','7'], bridgeField: 'HCI' },
-      { topicArea: 'AI + Library Science', topicAreaAr: 'ذكاء اصطناعي + علم المكتبات', status: 'partial', opportunity: 'الجسر بين الذكاء الاصطناعي وعلم المكتبات لم يُوثَّق في السياق العربي', relatedBookIds: ['6','7'], bridgeField: 'Library Science' },
-      { topicArea: 'Research Methodology', topicAreaAr: 'منهجية البحث', status: 'covered', opportunity: 'مغطى جيداً — تخصص زاوية تطبيقية في مجالك', relatedBookIds: ['1','3'], bridgeField: null },
+      { topicArea: 'AR Library UX',        topicAreaAr: 'تجربة AR في المكتبة',         status: 'unexplored', opportunity: `لا توجد دراسات كافية عن تجربة الواقع المعزز في المكتبات العربية ضمن مجال "${topic}" — فرصة بحثية أصيلة.`, relatedBookIds: ['6','7'], bridgeField: 'HCI' },
+      { topicArea: 'AI + Library Science', topicAreaAr: 'ذكاء اصطناعي + علم المكتبات', status: 'partial',    opportunity: `الجسر بين الذكاء الاصطناعي وعلم المكتبات في سياق "${topic}" لم يُوثَّق باللغة العربية — مجال جسر واعد.`, relatedBookIds: ['6','7'], bridgeField: 'Library Science' },
+      { topicArea: 'User Adoption',        topicAreaAr: 'تبني المستخدم للتقنية',       status: 'unexplored', opportunity: `قبول المستخدم للتقنيات الحديثة في بيئة "${topic}" شبه غائب من الأدبيات العربية الأكاديمية — فجوة مباشرة.`, relatedBookIds: ['6','9'], bridgeField: 'Cognitive Science' },
+      { topicArea: 'Data Analytics',       topicAreaAr: 'تحليلات البيانات',            status: 'partial',    opportunity: `تحليل بيانات الاستخدام في "${topic}" يُوفر فرصة لربط علم البيانات بتحسين الخدمات — تقاطع بحثي جديد.`, relatedBookIds: ['9','7'], bridgeField: 'Data Science' },
+      { topicArea: 'Mobile Learning',      topicAreaAr: 'التعلم عبر الجوال',           status: 'partial',    opportunity: `التعلم المحمول مدروس عموماً لكن تطبيقه في "${topic}" مع الجوانب العربية يفتح باباً بحثياً مميزاً.`, relatedBookIds: ['6','7','9'], bridgeField: 'Education Technology' },
+      { topicArea: 'Research Methodology', topicAreaAr: 'منهجية البحث',                status: 'covered',    opportunity: `المنهجية البحثية مغطاة جيداً — ركّز على زاوية تطبيقية خاصة بـ "${topic}" في السياق الجامعي العربي.`, relatedBookIds: ['1','3'], bridgeField: null },
     ],
     scholarPapers,
     scholarCount: scholarPapers.length,
