@@ -291,14 +291,17 @@ export function GapScanner() {
   // ── render ──────────────────────────────────────────────────────────────────
   return (
     <div className="fixed inset-0 z-50 bg-black overflow-hidden">
-      <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover opacity-40" />
+      <video ref={videoRef} autoPlay playsInline muted className="absolute inset-0 w-full h-full object-cover opacity-90" />
       {/* Hidden canvas used for jsQR frame analysis */}
       <canvas ref={canvasRef} className="hidden" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/85 via-black/20 to-black/85 pointer-events-none" />
+      {/* Thin vignette only — keep real world visible for true AR effect */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: 'linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.05) 30%, rgba(0,0,0,0.05) 70%, rgba(0,0,0,0.60) 100%)'
+      }} />
 
       {/* Loading */}
       {phase === 'loading' && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none" style={{ background: 'rgba(0,0,0,0.7)' }}>
           <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
             <Search className="w-10 h-10 text-[#34D399]" />
           </motion.div>
@@ -542,11 +545,12 @@ export function GapScanner() {
         )}
       </AnimatePresence>
 
-      {/* Scanning */}
+      {/* Scanning - semi-transparent backdrop so camera stays visible */}
       <AnimatePresence>
         {phase === 'scanning' && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none">
+            className="absolute inset-0 flex flex-col items-center justify-center gap-4 pointer-events-none"
+            style={{ background: 'rgba(0,0,0,0.35)' }}>
             <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.4, repeat: Infinity, ease: 'linear' }}>
               <Loader2 className="w-10 h-10 text-[#34D399]" />
             </motion.div>
