@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Star, Compass, BookOpen, Navigation, GraduationCap, Lock, Zap } from 'lucide-react';
+import { Search, Star, Compass, Lock, Zap } from 'lucide-react';
 import { motion } from 'motion/react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
@@ -41,36 +41,6 @@ const ALL_BADGES = [
     unlockEn: 'Reach 200 XP points',
     xp: 100,
   },
-  {
-    id: 'قارئ',
-    icon: BookOpen,
-    colorEarned: 'text-purple-600 bg-purple-500/10 border-purple-500/20',
-    titleAr: 'قارئ نهم',
-    titleEn: 'Avid Reader',
-    unlockAr: 'استعر 5 كتب',
-    unlockEn: 'Borrow 5 books',
-    xp: 120,
-  },
-  {
-    id: 'ملاح',
-    icon: Navigation,
-    colorEarned: 'text-cyan-600 bg-cyan-500/10 border-cyan-500/20',
-    titleAr: 'ملاح',
-    titleEn: 'Navigator',
-    unlockAr: 'تنقّل إلى 10 أرفف',
-    unlockEn: 'Navigate to 10 shelves',
-    xp: 150,
-  },
-  {
-    id: 'أكاديمي',
-    icon: GraduationCap,
-    colorEarned: 'text-rose-600 bg-rose-500/10 border-rose-500/20',
-    titleAr: 'أكاديمي',
-    titleEn: 'Scholar',
-    unlockAr: 'أكمل 3 فجوات بحثية',
-    unlockEn: 'Complete 3 gap scans',
-    xp: 200,
-  },
 ];
 
 export function BadgesCabinet({ user }: BadgesCabinetProps) {
@@ -97,8 +67,8 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
         </span>
       </div>
 
-      {/* 2×3 grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+      {/* 3-column grid */}
+      <div className="grid grid-cols-3 gap-3">
         {ALL_BADGES.map((badge, i) => {
           const isEarned = earnedBadges.includes(badge.id);
           const Icon = badge.icon;
