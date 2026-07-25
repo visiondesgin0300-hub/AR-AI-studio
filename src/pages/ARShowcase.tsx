@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrCode, MapPin, Copy, Check, Zap, Layers, Compass, Cpu } from 'lucide-react';
+import { QrCode, MapPin, Copy, Check, Zap, Layers, Compass, Cpu, FlaskConical, Star, GitBranch, ChevronRight } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { BookCover } from '../components/BookCover';
@@ -113,6 +113,112 @@ export function ARShowcase() {
               ? 'محاكاة تفاعلية لتجربة مسح الكتب بالواقع المعزز — اضغط على أي كتاب'
               : 'Interactive simulation of the AR book scanning experience — tap any book'}
           </p>
+        </div>
+      </div>
+
+      {/* ── Featured AR Experiences ── */}
+      <div className="space-y-4">
+        <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+          <Zap className="w-4 h-4 text-accent" />
+          <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+            {language === 'ar' ? 'تجارب AR المميزة' : 'Featured AR Experiences'}
+          </span>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              icon: FlaskConical,
+              route: '/gap-scanner',
+              gradient: 'from-violet-500/20 to-indigo-500/10',
+              iconBg: 'bg-violet-500/10 text-violet-500 border-violet-500/20',
+              accentColor: 'text-violet-500',
+              badgeColor: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+              titleAr: 'ماسح الفجوات AR',
+              titleEn: 'Gap Scanner AR',
+              descAr: 'اكتشف الفجوات البحثية في مجالك باستخدام الذكاء الاصطناعي — خريطة تفاعلية لثغرات الأدبيات.',
+              descEn: 'Discover research gaps in your field using AI — an interactive map of literature blind spots.',
+              badgeAr: 'ابتكار أكاديمي',
+              badgeEn: 'Academic Innovation',
+            },
+            {
+              icon: Star,
+              route: '/knowledge-stars',
+              gradient: 'from-amber-500/20 to-yellow-500/10',
+              iconBg: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+              accentColor: 'text-amber-500',
+              badgeColor: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+              titleAr: 'نجوم المعرفة AR',
+              titleEn: 'Knowledge Stars AR',
+              descAr: 'رسم بياني مرئي ثلاثي الأبعاد للمفاهيم المرتبطة بكتاب ما — استكشف شبكة المعرفة بالواقع المعزز.',
+              descEn: 'A 3D visual graph of concepts linked to any book — explore the knowledge network in AR.',
+              badgeAr: 'رسم بياني تفاعلي',
+              badgeEn: 'Interactive Graph',
+            },
+            {
+              icon: GitBranch,
+              route: '/hidden-bridges',
+              gradient: 'from-emerald-500/20 to-teal-500/10',
+              iconBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+              accentColor: 'text-emerald-500',
+              badgeColor: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+              titleAr: 'الجسور الخفية AR',
+              titleEn: 'Hidden Bridges AR',
+              descAr: 'اكتشف الروابط غير المتوقعة بين تخصصات مختلفة — ابحث عن التقاطعات العلمية المخفية.',
+              descEn: 'Reveal unexpected links between different disciplines — find hidden cross-field intersections.',
+              badgeAr: 'اكتشاف متعدد التخصصات',
+              badgeEn: 'Cross-Disciplinary',
+            },
+          ].map((feature, i) => {
+            const Icon = feature.icon;
+            return (
+              <motion.button
+                key={feature.route}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.1, type: 'spring', stiffness: 280, damping: 22 }}
+                whileHover={{ y: -4, transition: { duration: 0.2 } }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => navigate(feature.route)}
+                className={cn(
+                  'official-card p-5 text-left bg-white dark:bg-slate-900 overflow-hidden relative group cursor-pointer w-full',
+                  dir === 'rtl' ? 'text-right' : 'text-left'
+                )}
+              >
+                {/* Background gradient */}
+                <div className={cn('absolute inset-0 bg-gradient-to-br opacity-60 dark:opacity-40 pointer-events-none', feature.gradient)} />
+
+                <div className="relative space-y-3.5">
+                  {/* Icon + badge row */}
+                  <div className={cn('flex items-start justify-between', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                    <div className={cn('w-11 h-11 rounded-2xl border flex items-center justify-center', feature.iconBg)}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span className={cn('text-[8px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full', feature.badgeColor)}>
+                      {language === 'ar' ? feature.badgeAr : feature.badgeEn}
+                    </span>
+                  </div>
+
+                  {/* Title */}
+                  <div>
+                    <h3 className={cn('text-base font-black text-primary dark:text-white tracking-tight leading-tight', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                      {language === 'ar' ? feature.titleAr : feature.titleEn}
+                    </h3>
+                    <p className={cn('text-[11px] font-bold text-slate-400 dark:text-slate-500 mt-1.5 leading-relaxed', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                      {language === 'ar' ? feature.descAr : feature.descEn}
+                    </p>
+                  </div>
+
+                  {/* CTA row */}
+                  <div className={cn('flex items-center gap-1.5 pt-1', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                    <span className={cn('text-[10px] font-black uppercase tracking-wider', feature.accentColor)}>
+                      {language === 'ar' ? 'استكشف الآن' : 'Explore now'}
+                    </span>
+                    <ChevronRight className={cn('w-3.5 h-3.5 transition-transform group-hover:translate-x-1', feature.accentColor, dir === 'rtl' ? 'rotate-180 group-hover:-translate-x-1 group-hover:translate-x-0' : '')} />
+                  </div>
+                </div>
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
