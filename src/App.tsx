@@ -31,6 +31,7 @@ import { BookQRPrint } from './pages/BookQRPrint';
 import { ResearchMirror } from './pages/ResearchMirror';
 import { ResearchDNA } from './pages/ResearchDNA';
 import { BookDuel } from './pages/BookDuel';
+import { ReadingRoadmap } from './pages/ReadingRoadmap';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -209,6 +210,10 @@ function AppContent() {
         <Route
           path="/book-duel"
           element={user ? <Layout user={user} onLogout={handleLogout}><BookDuel /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/reading-roadmap"
+          element={user ? <Layout user={user} onLogout={handleLogout}><ReadingRoadmap /></Layout> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

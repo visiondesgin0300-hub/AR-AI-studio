@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
   FlaskConical, Star, GitBranch, ChevronRight, ScanSearch, Navigation,
-  Target, Dna, Swords,
+  Target, Dna, Swords, Map,
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -403,6 +403,15 @@ export function ARShowcase() {
               titleEn: 'Book Duel',
               descAr: 'قارن بين كتابين',
               descEn: 'Compare Two Books',
+            },
+            {
+              icon: Map,
+              route: '/reading-roadmap',
+              colorClass: 'text-sky-500 bg-sky-500/10 border-sky-500/20',
+              titleAr: 'مسار القراءة',
+              titleEn: 'Reading Roadmap',
+              descAr: 'خطة متدرجة بالذكاء',
+              descEn: 'AI-Staged Reading Plan',
             },
           ].map((f, i) => {
             const Icon = f.icon;

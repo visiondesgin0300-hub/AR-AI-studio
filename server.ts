@@ -1454,6 +1454,113 @@ app.post("/api/book-duel", async (req, res) => {
   }
 });
 
+// ── Reading Roadmap: 3-stage sequential reading plan from the library catalog ──
+app.post("/api/reading-roadmap", async (req, res) => {
+  const { topic } = req.body || {};
+  if (!topic) return res.status(400).json({ error: "topic required" });
+
+  const cleanTopic = sanitizeInput(topic, 120);
+
+  const catalogSample = MOCK_BOOKS.slice(0, 30).map(b =>
+    `"${b.title}" — ${b.author} [${b.category}]`
+  ).join('\n');
+
+  const fallback = {
+    stages: [
+      {
+        label: ar_label('مبتدئ', 'Beginner'),
+        icon: '🌱',
+        books: [
+          { title: `مقدمة في ${cleanTopic}`, author: '', reason: ar_label('أساسيات المجال', 'Foundational overview'), estimatedHours: 6, difficulty: 'beginner' },
+        ],
+      },
+      {
+        label: ar_label('متوسط', 'Intermediate'),
+        icon: '🔬',
+        books: [
+          { title: `تعمق في ${cleanTopic}`, author: '', reason: ar_label('بناء الفهم التحليلي', 'Build analytical depth'), estimatedHours: 8, difficulty: 'intermediate' },
+        ],
+      },
+      {
+        label: ar_label('متقدم', 'Advanced'),
+        icon: '🏆',
+        books: [
+          { title: `إتقان ${cleanTopic}`, author: '', reason: ar_label('إتقان المجال', 'Master the field'), estimatedHours: 10, difficulty: 'advanced' },
+        ],
+      },
+    ],
+    totalHours: 24,
+    overview: ar_label(
+      `مسار قراءة متدرج في موضوع "${cleanTopic}" — من الأساسيات إلى الإتقان`,
+      `A progressive reading path on "${cleanTopic}" — from foundations to mastery`
+    ),
+  };
+
+  function ar_label(arabic: string, english: string) { return arabic; }
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{ role: "user", parts: [{ text:
+        `أنت مكتبي ذكي. الطالب يريد خطة قراءة متدرجة في موضوع: "${cleanTopic}".
+
+فيما يلي كتب المكتبة المتاحة:
+${catalogSample}
+
+ابنِ خطة قراءة من 3 مراحل (مبتدئ → متوسط → متقدم). لكل مرحلة اختر 2-3 كتب من الكتالوج أعلاه إذا وجدت ما يناسب، وإلا اقترح كتباً مناسبة.
+أجب بـ JSON فقط.` }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            overview:   { type: Type.STRING },
+            totalHours: { type: Type.INTEGER },
+            stages: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  label: { type: Type.STRING },
+                  icon:  { type: Type.STRING },
+                  books: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        title:          { type: Type.STRING },
+                        author:         { type: Type.STRING },
+                        reason:         { type: Type.STRING },
+                        estimatedHours: { type: Type.INTEGER },
+                        difficulty:     { type: Type.STRING },
+                      },
+                      required: ["title", "reason", "estimatedHours", "difficulty"],
+                    },
+                  },
+                },
+                required: ["label", "icon", "books"],
+              },
+            },
+          },
+          required: ["stages", "totalHours", "overview"],
+        },
+      },
+    });
+    const p = JSON.parse(response.text || "{}");
+    return res.json({
+      stages:     Array.isArray(p.stages) && p.stages.length ? p.stages : fallback.stages,
+      totalHours: p.totalHours ?? fallback.totalHours,
+      overview:   p.overview   || fallback.overview,
+    });
+  } catch (err: any) {
+    console.error("[reading-roadmap]", err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
