@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
   FlaskConical, Star, GitBranch, ChevronRight, ScanSearch, Navigation,
-  Target, Dna, Swords, Map,
+  Target, Dna, Swords, Map, Gamepad2,
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -412,6 +412,15 @@ export function ARShowcase() {
               titleEn: 'Reading Roadmap',
               descAr: 'خطة متدرجة بالذكاء',
               descEn: 'AI-Staged Reading Plan',
+            },
+            {
+              icon: Gamepad2,
+              route: '/library-quest',
+              colorClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+              titleAr: 'مغامرة المكتبة',
+              titleEn: 'Library Adventure',
+              descAr: 'ألغاز واكتشاف الكتب',
+              descEn: 'Riddles & Book Discovery',
             },
           ].map((f, i) => {
             const Icon = f.icon;
