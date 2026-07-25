@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layers, MessageCircle, Gamepad2, Map, Star, ScanSearch, Swords, Landmark } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layers, MessageCircle, Gamepad2, Map, Star, ScanSearch, Swords, Landmark, Trophy } from 'lucide-react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
@@ -357,7 +357,32 @@ export function Dashboard({ user }: DashboardProps) {
               </span>
             </motion.button>
 
-            {/* Card 6 — Book Duel */}
+            {/* Card 6 — Cognitive AR Game */}
+            <motion.button
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/cognitive-ar')}
+              className="relative overflow-hidden rounded-2xl border border-indigo-200/60 dark:border-indigo-500/20 bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-950/30 dark:to-slate-900 p-5 flex flex-col gap-3 text-start shadow-sm hover:shadow-lg hover:shadow-indigo-200/40 dark:hover:shadow-indigo-900/20 transition-all cursor-pointer"
+            >
+              <div className="absolute top-0 end-0 w-20 h-20 rounded-full bg-indigo-400/10 -translate-y-8 translate-x-8" />
+              <div className="w-10 h-10 rounded-xl bg-indigo-500/15 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                <Trophy className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-primary dark:text-white leading-tight">
+                  {language === 'ar' ? 'الوعي المعلوماتي AR' : 'Info Literacy AR'}
+                </p>
+                <p className="text-[9px] text-indigo-600/70 dark:text-indigo-400/60 font-bold mt-0.5">
+                  {language === 'ar' ? 'أوسمة · تحديات · XP' : 'Badges · Challenges · XP'}
+                </p>
+              </div>
+              <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest flex items-center gap-1">
+                {language === 'ar' ? 'العب واكسب' : 'Play & Earn'}
+                <ChevronRight className={cn('w-2.5 h-2.5', dir === 'rtl' ? 'rotate-180' : '')} />
+              </span>
+            </motion.button>
+
+            {/* Card 7 — Book Duel */}
             <motion.button
               whileHover={{ y: -4, scale: 1.01 }}
               whileTap={{ scale: 0.97 }}

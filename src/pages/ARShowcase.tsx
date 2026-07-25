@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
   Star, GitBranch, ChevronRight, ScanSearch, Navigation,
-  Dna, Swords, Map, Gamepad2, Landmark,
+  Dna, Swords, Map, Gamepad2, Landmark, Trophy,
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -421,6 +421,15 @@ export function ARShowcase() {
               titleEn: 'Living Oman Corner',
               descAr: 'تراث وثقافة بالواقع المعزز',
               descEn: 'Heritage & Culture via AR',
+            },
+            {
+              icon: Trophy,
+              route: '/cognitive-ar',
+              colorClass: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
+              titleAr: 'الوعي المعلوماتي AR',
+              titleEn: 'Info Literacy AR',
+              descAr: 'لعبة الأوسمة المعرفية',
+              descEn: 'Cognitive Badge Game',
             },
           ].map((f, i) => {
             const Icon = f.icon;

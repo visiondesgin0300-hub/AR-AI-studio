@@ -26,6 +26,7 @@ import { BookDuel } from './pages/BookDuel';
 import { ReadingRoadmap } from './pages/ReadingRoadmap';
 import { LibraryQuest } from './pages/LibraryQuest';
 import { OmanCornerAR } from './pages/OmanCornerAR';
+import { CognitiveARGame } from './pages/CognitiveARGame';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -180,6 +181,10 @@ function AppContent() {
         <Route
           path="/oman-corner"
           element={user ? <Layout user={user} onLogout={handleLogout}><OmanCornerAR /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/cognitive-ar"
+          element={user ? <Layout user={user} onLogout={handleLogout}><CognitiveARGame /></Layout> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
