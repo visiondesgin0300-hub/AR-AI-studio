@@ -569,6 +569,31 @@ export function LibraryMap() {
                       <Camera className="w-4 h-4" />
                     </button>
 
+                    {/* 3D Perspective Corridor — sits between shelf (z-10) and SVG path (z-20) */}
+                    <div
+                      className="absolute inset-0 z-[18] pointer-events-none overflow-hidden flex items-end justify-center"
+                      style={{ paddingBottom: '160px' }}
+                    >
+                      <div
+                        style={{
+                          width: '280px',
+                          height: '500px',
+                          flexShrink: 0,
+                          transform: 'perspective(220px) rotateX(54deg)',
+                          transformOrigin: 'bottom center',
+                          maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.75) 35%, transparent 62%)',
+                          WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.75) 35%, transparent 62%)',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {/* Corridor walls / rails */}
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(217,179,16,0.04)', borderLeft: '2.5px solid rgba(217,179,16,0.45)', borderRight: '2.5px solid rgba(217,179,16,0.45)' }} />
+                        {/* Animated lane dashes flowing toward viewer */}
+                        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(180deg, rgba(217,179,16,0.9) 0px, rgba(217,179,16,0.9) 12px, transparent 12px, transparent 36px)', animation: 'roadFlow 0.65s linear infinite' }} />
+                      </div>
+                    </div>
+                    <style>{`@keyframes roadFlow { from { background-position: 0 0; } to { background-position: 0 36px; } }`}</style>
+
                     <svg className="absolute inset-0 w-full h-full z-20 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
                       <defs>
                         <linearGradient id="darkPathGradient" x1="0%" y1="100%" x2="0%" y2="0%">
