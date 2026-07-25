@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
   FlaskConical, Star, GitBranch, ChevronRight, ScanSearch, Navigation,
+  Target, Dna, Swords,
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -369,7 +370,71 @@ export function ARShowcase() {
         )}
       </AnimatePresence>
 
-      {/* ── 4. EXPLORE MORE — only after the demo ── */}
+      {/* ── 4. STUDENT RESEARCH TOOLS ── */}
+      <div className="space-y-3">
+        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+          {ar ? 'أدوات الباحث الذكية' : 'Student Research Tools'}
+        </span>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            {
+              icon: Target,
+              route: '/research-mirror',
+              colorClass: 'text-primary bg-primary/10 border-primary/20 dark:text-white dark:bg-white/10 dark:border-white/20',
+              titleAr: 'مرآة الباحث',
+              titleEn: 'Research Mirror',
+              descAr: 'تغطية الأدبيات',
+              descEn: 'Literature Coverage',
+            },
+            {
+              icon: Dna,
+              route: '/research-dna',
+              colorClass: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
+              titleAr: 'الحمض النووي',
+              titleEn: 'Research DNA',
+              descAr: 'خارطة معرفتك',
+              descEn: 'Knowledge Profile',
+            },
+            {
+              icon: Swords,
+              route: '/book-duel',
+              colorClass: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
+              titleAr: 'مبارزة الكتب',
+              titleEn: 'Book Duel',
+              descAr: 'قارن بين كتابين',
+              descEn: 'Compare Two Books',
+            },
+          ].map((f, i) => {
+            const Icon = f.icon;
+            return (
+              <motion.button
+                key={f.route}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06, type: 'spring', stiffness: 300, damping: 24 }}
+                whileHover={{ y: -3 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => navigate(f.route)}
+                className={cn(
+                  'official-card p-4 bg-white dark:bg-slate-900 flex flex-col items-start gap-3 group cursor-pointer w-full',
+                  dir === 'rtl' ? 'items-end text-right' : ''
+                )}
+              >
+                <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center', f.colorClass)}>
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-xs font-black text-primary dark:text-white">{ar ? f.titleAr : f.titleEn}</p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-0.5">{ar ? f.descAr : f.descEn}</p>
+                </div>
+                <ChevronRight className={cn('w-3.5 h-3.5 text-slate-300 dark:text-slate-600 transition-transform group-hover:translate-x-1', dir === 'rtl' ? 'rotate-180 self-start group-hover:-translate-x-1 group-hover:translate-x-0' : 'self-end')} />
+              </motion.button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── 5. EXPLORE MORE — only after the demo ── */}
       <div className="space-y-3">
         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
           {ar ? 'استكشف تجارب AR أخرى' : 'Explore More AR Experiences'}

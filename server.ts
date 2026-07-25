@@ -1231,6 +1231,229 @@ Respond in JSON only:
   }
 });
 
+// ── Research Mirror: analyzes library coverage for a dissertation topic ────────
+app.post("/api/research-mirror", async (req, res) => {
+  const { topic: rawTopic, abstract: rawAbstract } = req.body || {};
+  if (!rawTopic) return res.status(400).json({ error: "topic required" });
+  const topic    = sanitizeInput(rawTopic, 200);
+  const abstract = sanitizeInput(rawAbstract ?? '', 500);
+
+  const catalogue = MOCK_BOOKS.map(b =>
+    `ID:${b.id} | "${b.title}" | ${b.author} | ${b.category} | ${(b as any).description ?? ''}`
+  ).join('\n');
+
+  const fallback = {
+    coverageScore: 58,
+    criticalBooks: MOCK_BOOKS.slice(0, 5).map((b, i) => ({
+      id: b.id, title: b.title, author: b.author,
+      reason: `مرجع أساسي في مجال ${b.category}`, priority: i + 1,
+    })),
+    missingTopics: [
+      'الدراسات التجريبية في البيئة العربية',
+      'تقييم جودة واجهات AR في المكتبات',
+      'أثر الواقع المعزز على اكتساب المعلومات',
+    ],
+    disciplines: [
+      { name: 'علم المكتبات', nameEn: 'Library Science', coverage: 'medium' },
+      { name: 'الواقع المعزز', nameEn: 'Augmented Reality', coverage: 'low' },
+      { name: 'تجربة المستخدم', nameEn: 'UX', coverage: 'low' },
+      { name: 'الذكاء الاصطناعي', nameEn: 'Artificial Intelligence', coverage: 'medium' },
+      { name: 'المنهجية البحثية', nameEn: 'Research Methods', coverage: 'high' },
+    ],
+    summary: `المكتبة تُغطي حوالي 58% من الأدبيات الأساسية لموضوع "${topic}". توجد فجوات واضحة في الدراسات الميدانية العربية وتطبيقات AR في بيئات المكتبات.`,
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{ role: "user", parts: [{ text:
+        `أنت مستشار بحثي متخصص في علم المكتبات.
+موضوع رسالة الطالب: "${topic}"${abstract ? `\nملخص: "${abstract}"` : ''}
+
+فهرس المكتبة:
+${catalogue}
+
+حلّل مدى تغطية هذه المكتبة لمتطلبات الأدبيات الأكاديمية لهذه الرسالة. أجب بـ JSON:
+{
+  "coverageScore": رقم 0-100,
+  "criticalBooks": [{ "id":"...", "title":"...", "author":"...", "reason":"جملة واحدة", "priority":1 }] (أهم 5 مرتبة),
+  "missingTopics": ["موضوع 1"] (3-5 مواضيع أساسية غير مغطاة),
+  "disciplines": [{ "name":"عربي", "nameEn":"English", "coverage":"high|medium|low" }] (4-6),
+  "summary": "جملتان تلخصان حالة التغطية"
+}` }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            coverageScore: { type: Type.INTEGER },
+            criticalBooks: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, title: { type: Type.STRING }, author: { type: Type.STRING }, reason: { type: Type.STRING }, priority: { type: Type.INTEGER } }, required: ["id","title","author","reason","priority"] } },
+            missingTopics: { type: Type.ARRAY, items: { type: Type.STRING } },
+            disciplines: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, nameEn: { type: Type.STRING }, coverage: { type: Type.STRING } }, required: ["name","coverage"] } },
+            summary: { type: Type.STRING },
+          },
+          required: ["coverageScore","criticalBooks","missingTopics","disciplines","summary"],
+        },
+      },
+    });
+    const p = JSON.parse(response.text || "{}");
+    return res.json({
+      coverageScore: p.coverageScore ?? fallback.coverageScore,
+      criticalBooks: p.criticalBooks?.length ? p.criticalBooks : fallback.criticalBooks,
+      missingTopics: p.missingTopics?.length ? p.missingTopics : fallback.missingTopics,
+      disciplines:   p.disciplines?.length   ? p.disciplines   : fallback.disciplines,
+      summary:       p.summary               || fallback.summary,
+    });
+  } catch (err: any) {
+    console.error("[research-mirror]", err);
+    return res.json(fallback);
+  }
+});
+
+// ── Research DNA: personalised knowledge-profile from books read ───────────────
+app.post("/api/research-dna", async (req, res) => {
+  const { readBooks, topic: rawTopic } = req.body || {};
+  if (!Array.isArray(readBooks) || readBooks.length === 0)
+    return res.status(400).json({ error: "readBooks required" });
+
+  const topic    = sanitizeInput(rawTopic ?? '', 200);
+  const bookList = readBooks.slice(0, 20).map((b: any) => `- "${b.title}" (${b.category})`).join('\n');
+  const unread   = MOCK_BOOKS.filter(b => !readBooks.find((r: any) => r.id === b.id));
+  const catalogue = unread.map(b => `ID:${b.id} | "${b.title}" | ${b.author} | ${b.category}`).join('\n');
+
+  const fallback = {
+    disciplines: [
+      { name: 'علم المكتبات', score: 40 },
+      { name: 'الواقع المعزز', score: 20 },
+      { name: 'تجربة المستخدم', score: 15 },
+      { name: 'الذكاء الاصطناعي', score: 55 },
+      { name: 'المنهجية', score: 35 },
+    ],
+    blindSpot: 'أنت تُركّز على الجانب التقني وتفتقر للعمق في الدراسات الميدانية وتجربة المستخدم',
+    nextBook: { id: unread[0]?.id ?? '', title: unread[0]?.title ?? '', reason: 'يُغطي الجانب الأكثر غياباً في قراءاتك' },
+    readinessScore: 42,
+    pattern: 'تقني-نظري',
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{ role: "user", parts: [{ text:
+        `أنت مرشد بحثي. حلّل نمط قراءة الطالب:
+الكتب التي قرأها:\n${bookList}
+${topic ? `موضوع اهتمامه: "${topic}"` : ''}
+الكتب المتبقية (للتوصية):\n${catalogue}
+
+أجب بـ JSON:
+{
+  "disciplines": [{ "name":"عربي قصير", "score":0-100 }] (5 تخصصات),
+  "blindSpot": "جملة واحدة: أهم نقطة ضعف في نمط قراءته",
+  "nextBook": { "id":"من المتبقية", "title":"...", "reason":"جملة واحدة" },
+  "readinessScore": 0-100,
+  "pattern": "وصف النمط بكلمتين"
+}` }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            disciplines: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, score: { type: Type.INTEGER } }, required: ["name","score"] } },
+            blindSpot: { type: Type.STRING },
+            nextBook: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, title: { type: Type.STRING }, reason: { type: Type.STRING } }, required: ["id","title","reason"] },
+            readinessScore: { type: Type.INTEGER },
+            pattern: { type: Type.STRING },
+          },
+          required: ["disciplines","blindSpot","nextBook","readinessScore"],
+        },
+      },
+    });
+    const p = JSON.parse(response.text || "{}");
+    return res.json({
+      disciplines:   p.disciplines?.length ? p.disciplines : fallback.disciplines,
+      blindSpot:     p.blindSpot           || fallback.blindSpot,
+      nextBook:      p.nextBook            || fallback.nextBook,
+      readinessScore:p.readinessScore      ?? fallback.readinessScore,
+      pattern:       p.pattern             || fallback.pattern,
+    });
+  } catch (err: any) {
+    console.error("[research-dna]", err);
+    return res.json(fallback);
+  }
+});
+
+// ── Book Duel: AI head-to-head comparison of two books ────────────────────────
+app.post("/api/book-duel", async (req, res) => {
+  const { bookA, bookB } = req.body || {};
+  if (!bookA || !bookB) return res.status(400).json({ error: "bookA and bookB required" });
+
+  const fallback = {
+    readFirst: 'A',
+    readFirstReason: `ابدأ بـ "${sanitizeInput(bookA.title, 80)}" لأنه يُرسّخ الأساس النظري الذي يبني عليه الكتاب الثاني`,
+    similarities: ['كلاهما يتناول نفس المجال الأكاديمي', 'يشتركان في المنهجية التحليلية'],
+    differences: ['أحدهما نظري والآخر تطبيقي', 'يختلفان في المستوى المطلوب من القارئ'],
+    complementary: `معاً يُكوّنان صورة متكاملة — الأول يُجيب على "لماذا؟" والثاني على "كيف؟"`,
+    synergy: 82,
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: [{ role: "user", parts: [{ text:
+        `قارن بين هذين الكتابين للطالب:
+(A) "${sanitizeInput(bookA.title,100)}" — ${sanitizeInput(bookA.author,80)} — ${sanitizeInput(bookA.category,60)}
+    ${sanitizeInput(bookA.description ?? '',300)}
+(B) "${sanitizeInput(bookB.title,100)}" — ${sanitizeInput(bookB.author,80)} — ${sanitizeInput(bookB.category,60)}
+    ${sanitizeInput(bookB.description ?? '',300)}
+
+أجب بـ JSON:
+{
+  "readFirst": "A" أو "B",
+  "readFirstReason": "جملة واحدة بالعربية",
+  "similarities": ["وجه 1","وجه 2"] (2-3),
+  "differences": ["فارق 1","فارق 2"] (2-3),
+  "complementary": "جملة واحدة: كيف يُكملان بعضهما",
+  "synergy": 0-100
+}` }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            readFirst:      { type: Type.STRING },
+            readFirstReason:{ type: Type.STRING },
+            similarities:   { type: Type.ARRAY, items: { type: Type.STRING } },
+            differences:    { type: Type.ARRAY, items: { type: Type.STRING } },
+            complementary:  { type: Type.STRING },
+            synergy:        { type: Type.INTEGER },
+          },
+          required: ["readFirst","readFirstReason","similarities","differences","complementary","synergy"],
+        },
+      },
+    });
+    const p = JSON.parse(response.text || "{}");
+    return res.json({
+      readFirst:       p.readFirst                           || fallback.readFirst,
+      readFirstReason: p.readFirstReason                    || fallback.readFirstReason,
+      similarities:    p.similarities?.length ? p.similarities : fallback.similarities,
+      differences:     p.differences?.length  ? p.differences  : fallback.differences,
+      complementary:   p.complementary                      || fallback.complementary,
+      synergy:         p.synergy                            ?? fallback.synergy,
+    });
+  } catch (err: any) {
+    console.error("[book-duel]", err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

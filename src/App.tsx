@@ -28,6 +28,9 @@ import { HiddenBridges } from './pages/HiddenBridges';
 import { GapScanner } from './pages/GapScanner';
 import { SmartLens } from './pages/SmartLens';
 import { BookQRPrint } from './pages/BookQRPrint';
+import { ResearchMirror } from './pages/ResearchMirror';
+import { ResearchDNA } from './pages/ResearchDNA';
+import { BookDuel } from './pages/BookDuel';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -194,6 +197,18 @@ function AppContent() {
         <Route
           path="/book-codes"
           element={user ? <Layout user={user} onLogout={handleLogout}><BookQRPrint /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/research-mirror"
+          element={user ? <Layout user={user} onLogout={handleLogout}><ResearchMirror /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/research-dna"
+          element={user ? <Layout user={user} onLogout={handleLogout}><ResearchDNA /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/book-duel"
+          element={user ? <Layout user={user} onLogout={handleLogout}><BookDuel /></Layout> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
