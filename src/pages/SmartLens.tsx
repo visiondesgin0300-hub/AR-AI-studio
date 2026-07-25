@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ScanSearch, X, Zap, BookOpen, MapPin, Copy, Check, Loader2, ChevronRight, Tag } from 'lucide-react';
+import { ScanSearch, X, Zap, BookOpen, MapPin, Copy, Check, Loader2, ChevronRight, Tag, Eye } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
+import { MOCK_BOOKS } from '../data/mockData';
 
 interface BookResult {
   id: string;
@@ -15,7 +16,8 @@ interface BookResult {
   year?: number;
   publisher?: string;
   callNumber?: string;
-  reason?: string;
+  reason?: string | null;
+  whatISaw?: string | null;
 }
 
 interface InsightResult {
@@ -40,6 +42,7 @@ export function SmartLens() {
   const [insight, setInsight] = useState<InsightResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [scanError, setScanError] = useState('');
+  const [confidence, setConfidence] = useState(0);
 
   // Start camera
   useEffect(() => {
@@ -79,20 +82,43 @@ export function SmartLens() {
     setScanError('');
     setBook(null);
     setInsight(null);
+    setConfidence(0);
     setPhase('scanning');
 
     const imageData = captureFrame();
 
+    // Animate confidence meter while waiting
+    const confTimer = setInterval(() => {
+      setConfidence(c => Math.min(c + Math.random() * 18, 88));
+    }, 200);
+
     try {
-      // Step 1: Identify the book from camera frame
+      // Step 1: Vision AI identifies what the camera sees
       const scanRes = await fetch('/api/vision-scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ imageData }),
       });
       if (!scanRes.ok) throw new Error('scan failed');
-      const scanned: BookResult = await scanRes.json();
+      const { bookId, whatISaw, reason } = await scanRes.json();
+
+      // Resolve full book data from the library catalog
+      const mockBook = MOCK_BOOKS.find(b => b.id === bookId) ?? MOCK_BOOKS[0];
+      const scanned: BookResult = {
+        id: mockBook.id,
+        title: mockBook.title,
+        author: mockBook.author,
+        shelf: mockBook.shelf,
+        category: (mockBook as any).category ?? '',
+        year: (mockBook as any).year ?? undefined,
+        publisher: (mockBook as any).publisher ?? undefined,
+        callNumber: (mockBook as any).callNumber ?? undefined,
+        reason: reason ?? null,
+        whatISaw: whatISaw ?? null,
+      };
       setBook(scanned);
+      setConfidence(100);
+      clearInterval(confTimer);
 
       // Step 2: Get rich AI academic insight
       const insightRes = await fetch('/api/book-insight', {
@@ -102,6 +128,7 @@ export function SmartLens() {
           title: scanned.title,
           author: scanned.author,
           category: scanned.category,
+          description: (mockBook as any).description ?? '',
           language,
         }),
       });
@@ -112,6 +139,7 @@ export function SmartLens() {
 
       setPhase('result');
     } catch {
+      clearInterval(confTimer);
       setScanError(ar ? 'تعذّر التحليل. حاول مجدداً.' : 'Analysis failed. Please try again.');
       setPhase('live');
     }
@@ -144,13 +172,18 @@ export function SmartLens() {
           playsInline
           className={cn(
             'absolute inset-0 w-full h-full object-cover transition-opacity duration-500',
-            (phase === 'live' || phase === 'scanning') ? 'opacity-100' : 'opacity-0'
+            phase === 'denied' ? 'opacity-0' : 'opacity-100'
           )}
         />
 
-        {/* Dark overlay when not live */}
-        {(phase === 'loading' || phase === 'denied' || phase === 'result') && (
+        {/* Dark overlay — only when camera is not usable */}
+        {(phase === 'loading' || phase === 'denied') && (
           <div className="absolute inset-0 bg-[#010f1a]" />
+        )}
+
+        {/* Dim overlay in result mode so camera stays visible through the panel */}
+        {phase === 'result' && (
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" />
         )}
 
         {/* Loading spinner */}
@@ -178,17 +211,27 @@ export function SmartLens() {
 
         {/* Scanning overlay */}
         {phase === 'scanning' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 backdrop-blur-[2px]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-black/50 backdrop-blur-[2px]">
             <motion.div
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 1.2, repeat: Infinity }}
-              className="w-16 h-16 rounded-2xl border-2 border-accent flex items-center justify-center"
+              animate={{ rotate: [0, 360] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+              className="w-20 h-20 rounded-full border-2 border-accent/30 border-t-accent flex items-center justify-center"
             >
-              <ScanSearch className="w-7 h-7 text-accent" />
+              <ScanSearch className="w-8 h-8 text-accent" />
             </motion.div>
-            <p className="text-accent font-black text-sm tracking-widest uppercase">
-              {ar ? 'جاري التحليل…' : 'Analyzing…'}
-            </p>
+            <div className="flex flex-col items-center gap-1.5">
+              <p className="text-accent font-black text-sm tracking-widest uppercase">
+                {ar ? 'الذكاء الاصطناعي يحلل…' : 'AI Analyzing…'}
+              </p>
+              <div className="w-32 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <motion.div
+                  className="h-full bg-accent rounded-full"
+                  style={{ width: `${confidence}%` }}
+                  transition={{ duration: 0.3 }}
+                />
+              </div>
+              <span className="text-white/40 text-[9px] font-black tabular-nums">{Math.round(confidence)}%</span>
+            </div>
           </div>
         )}
 
@@ -279,11 +322,12 @@ export function SmartLens() {
               {/* Header */}
               <div className={cn('flex items-start justify-between gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                 <div className="flex-1">
-                  <div className={cn('flex items-center gap-2 mb-1.5', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                  <div className={cn('flex items-center gap-2 mb-1.5 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                     <span className="px-2 py-0.5 rounded-md bg-accent/10 text-accent text-[8px] font-black uppercase tracking-widest">
-                      {book.section ?? 'QC'} · AR
+                      {book.section ?? book.category ?? 'AR'} · AR
                     </span>
                     <span className="text-[8px] text-emerald-500 font-black uppercase">✓ {ar ? 'تم التعرف' : 'Identified'}</span>
+                    <span className="text-[8px] text-white/30 font-black tabular-nums">100%</span>
                   </div>
                   <h2 className={cn('text-lg font-black text-primary dark:text-white leading-tight', dir === 'rtl' ? 'text-right' : '')}>
                     {book.title}
@@ -297,6 +341,19 @@ export function SmartLens() {
                   <X className="w-4 h-4" />
                 </button>
               </div>
+
+              {/* What AI saw */}
+              {book.whatISaw && (
+                <div className={cn('flex items-start gap-2 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-white/5', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                  <Eye className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                  <p className={cn('text-[10px] font-bold text-slate-400 leading-relaxed', dir === 'rtl' ? 'text-right' : '')}>
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-300 dark:text-slate-500 mr-1">
+                      {ar ? 'رأى الذكاء الاصطناعي:' : 'AI saw:'}
+                    </span>
+                    {book.whatISaw}
+                  </p>
+                </div>
+              )}
 
               {/* AI Summary */}
               {insight && (

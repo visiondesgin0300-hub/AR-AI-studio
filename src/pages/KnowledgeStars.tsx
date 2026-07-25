@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Star, GitBranch, Loader2 } from 'lucide-react';
+import { cn } from '../lib/utils';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
@@ -46,6 +47,18 @@ const STAR_BOOKS: Book[] = STAR_BOOK_IDS
 
 const N = STAR_BOOKS.length;
 
+// 2-D constellation positions [x%, y%] — distributed across the screen like real stars
+const STAR_POSITIONS: [number, number][] = [
+  [0.16, 0.22],  // Book 1 — top-left (Hawking)
+  [0.48, 0.12],  // Book 2 — top-center (Greene)
+  [0.80, 0.27],  // Book 3 — top-right (Feynman)
+  [0.65, 0.52],  // Book 4 — right-center (Rovelli)
+  [0.20, 0.57],  // Book 5 — left-center (Tyson)
+  [0.86, 0.72],  // Book 6 — bottom-right (Cormen)
+  [0.33, 0.80],  // Book 7 — bottom-left (Martin)
+  [0.60, 0.83],  // Book 8/9 — bottom-center (Russell)
+];
+
 // ── Component ──────────────────────────────────────────────────────────────────
 export function KnowledgeStars() {
   const navigate = useNavigate();
@@ -64,15 +77,28 @@ export function KnowledgeStars() {
   const [loadingInsight, setLoadingInsight] = useState(false);
   const [svgDims, setSvgDims] = useState({ w: 375, h: 812 });
 
-  // Memoised node positions — recomputed only when SVG dimensions change
+  // Connection count per book — drives star size
+  const connectionCount = useMemo(() => {
+    const counts: Record<string, number> = {};
+    RELATIONS.forEach(r => {
+      counts[r.from] = (counts[r.from] || 0) + 1;
+      counts[r.to] = (counts[r.to] || 0) + 1;
+    });
+    return counts;
+  }, []);
+
+  // 2-D constellation positions — spread across the full screen
   const nodes = useMemo(() => {
-    const nY = svgDims.h * 0.78;
-    return STAR_BOOKS.map((book, i) => ({
-      book,
-      x: ((i + 0.5) / N) * svgDims.w,
-      y: nY,
-    }));
-  }, [svgDims.w, svgDims.h]);
+    return STAR_BOOKS.map((book, i) => {
+      const [px, py] = STAR_POSITIONS[i] ?? [0.5, 0.5];
+      return {
+        book,
+        x: px * svgDims.w,
+        y: py * svgDims.h,
+        r: 3.5 + Math.min((connectionCount[book.id] || 0) * 1.0, 3.5),
+      };
+    });
+  }, [svgDims.w, svgDims.h, connectionCount]);
 
   const getArcPath = useCallback((fromId: string, toId: string): string => {
     const fi = STAR_BOOKS.findIndex(b => b.id === fromId);
@@ -279,35 +305,47 @@ export function KnowledgeStars() {
             })}
 
             {/* Star nodes */}
-            {nodes.map(({ x, y }, i) => (
-              <motion.g
-                key={`node-${i}`}
-                initial={{ opacity: 0 }}
-                animate={constellationReady ? { opacity: 1 } : { opacity: 0 }}
-                transition={{ delay: 0.4 + i * 0.1 }}
-              >
-                {/* Outer pulsing ring */}
-                <motion.circle
-                  cx={x} cy={y} r={11}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.3)"
-                  strokeWidth={0.6}
-                  animate={{ opacity: [0.3, 0.04, 0.3] }}
-                  transition={{ duration: 2.8 + i * 0.35, repeat: Infinity, delay: i * 0.22, ease: 'easeInOut' }}
-                />
-                {/* Mid ring */}
-                <motion.circle
-                  cx={x} cy={y} r={6.5}
-                  fill="none"
-                  stroke="rgba(255,255,255,0.45)"
-                  strokeWidth={0.5}
-                  animate={{ opacity: [0.45, 0.08, 0.45] }}
-                  transition={{ duration: 2.3 + i * 0.3, repeat: Infinity, delay: 0.5 + i * 0.18, ease: 'easeInOut' }}
-                />
-                {/* Core star */}
-                <circle cx={x} cy={y} r={3.5} fill="white" filter="url(#ks-star)" />
-              </motion.g>
-            ))}
+            {nodes.map(({ x, y, r, book }, i) => {
+              const isEndpoint = selectedRelation
+                ? (selectedRelation.from === book.id || selectedRelation.to === book.id)
+                : false;
+              const starColor = isEndpoint ? selectedRelation?.color ?? 'white' : 'white';
+              return (
+                <motion.g
+                  key={`node-${i}`}
+                  initial={{ opacity: 0, scale: 0 }}
+                  animate={constellationReady ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
+                  transition={{ delay: 0.4 + i * 0.1, type: 'spring', stiffness: 250, damping: 20 }}
+                >
+                  {/* Outer pulsing ring */}
+                  <motion.circle
+                    cx={x} cy={y} r={r * 3.2}
+                    fill="none"
+                    stroke={isEndpoint ? (selectedRelation?.color ?? 'white') : 'rgba(255,255,255,0.3)'}
+                    strokeWidth={isEndpoint ? 1 : 0.6}
+                    animate={{ opacity: [0.3, 0.04, 0.3] }}
+                    transition={{ duration: 2.8 + i * 0.35, repeat: Infinity, delay: i * 0.22, ease: 'easeInOut' }}
+                  />
+                  {/* Mid ring */}
+                  <motion.circle
+                    cx={x} cy={y} r={r * 1.8}
+                    fill="none"
+                    stroke={isEndpoint ? (selectedRelation?.color ?? 'rgba(255,255,255,0.45)') : 'rgba(255,255,255,0.45)'}
+                    strokeWidth={isEndpoint ? 0.8 : 0.5}
+                    animate={{ opacity: [0.45, 0.08, 0.45] }}
+                    transition={{ duration: 2.3 + i * 0.3, repeat: Infinity, delay: 0.5 + i * 0.18, ease: 'easeInOut' }}
+                  />
+                  {/* Core star — size proportional to connections */}
+                  <motion.circle
+                    cx={x} cy={y} r={isEndpoint ? r * 1.6 : r}
+                    fill={starColor}
+                    filter="url(#ks-star)"
+                    animate={isEndpoint ? { opacity: [0.8, 1, 0.8] } : {}}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
+                </motion.g>
+              );
+            })}
           </svg>
 
           {/* ── Relation midpoint badges ── */}
@@ -340,23 +378,31 @@ export function KnowledgeStars() {
           })}
 
           {/* ── Book title labels ── */}
-          {constellationReady && nodes.map(({ book, x, y }, i) => (
-            <motion.div
-              key={`lbl-${book.id}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.55 + i * 0.1 }}
-              className="absolute pointer-events-none text-center"
-              style={{ left: x, top: y + 13, transform: 'translateX(-50%)', width: 58 }}
-            >
-              <div
-                className="text-[7px] font-bold text-white/55 leading-tight"
-                style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+          {constellationReady && nodes.map(({ book, x, y, r }, i) => {
+            const isEndpoint = selectedRelation
+              ? (selectedRelation.from === book.id || selectedRelation.to === book.id)
+              : false;
+            return (
+              <motion.div
+                key={`lbl-${book.id}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.55 + i * 0.1 }}
+                className="absolute pointer-events-none text-center"
+                style={{ left: x, top: y + r * 3.6 + 4, transform: 'translateX(-50%)', width: 68 }}
               >
-                {ar ? book.title : (book.titleEn ?? book.title)}
-              </div>
-            </motion.div>
-          ))}
+                <div
+                  className={cn(
+                    'font-bold leading-tight transition-all duration-300',
+                    isEndpoint ? 'text-[9px] text-white/90' : 'text-[7px] text-white/50'
+                  )}
+                  style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+                >
+                  {ar ? book.title : ((book as any).titleEn ?? book.title)}
+                </div>
+              </motion.div>
+            );
+          })}
 
           {/* ── Pre-constellation hint ── */}
           {!constellationReady && (
