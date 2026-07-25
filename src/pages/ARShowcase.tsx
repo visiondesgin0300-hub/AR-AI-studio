@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrCode, MapPin, Copy, Check, Zap, Layers, Compass, Cpu, FlaskConical, Star, GitBranch, ChevronRight, ScanSearch } from 'lucide-react';
+import { QrCode, MapPin, Copy, Check, Zap, Layers, Compass, FlaskConical, Star, GitBranch, ChevronRight, ScanSearch } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { BookCover } from '../components/BookCover';
@@ -16,12 +16,6 @@ const SPINE_COLORS = [
 
 const ALL_SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
 
-const AI_SUMMARIES: Record<string, { ar: string; en: string }> = {
-  default: {
-    ar: 'يُعدّ هذا الكتاب من أبرز المراجع الأكاديمية في مجاله، إذ يجمع بين العمق الفكري والوضوح المنهجي. يُوصى به للباحثين والطلاب على حدٍّ سواء لاستيعاب المفاهيم الجوهرية في التخصص.',
-    en: 'This title ranks among the most prominent academic references in its field, combining intellectual depth with methodological clarity. Recommended for researchers and students seeking foundational and advanced coverage.',
-  },
-};
 
 function getCitation(book: Book, fmt: 'apa' | 'mla' | 'chicago' | 'bibtex'): string {
   const y = book.year ?? 2022;
@@ -44,13 +38,8 @@ export function ARShowcase() {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [citeFmt, setCiteFmt] = useState<'apa' | 'mla' | 'chicago' | 'bibtex'>('apa');
   const [copied, setCopied] = useState(false);
-  const [summaryText, setSummaryText] = useState('');
-  const [summaryDone, setSummaryDone] = useState(false);
-
-  // Live telemetry oscillation — simulates real AR camera sensors
-  const [pitch, setPitch] = useState(-5.6);
-  const [roll, setRoll] = useState(7.6);
-  const [fps, setFps] = useState(60);
+  const [aiSummary, setAiSummary] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
 
   const shelfBooks = MOCK_BOOKS.filter(b => b.shelf === activeShelf);
 
@@ -59,31 +48,28 @@ export function ARShowcase() {
     setSelectedBook(shelfBooks[0] ?? null);
   }, [activeShelf]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Telemetry oscillation
-  useEffect(() => {
-    const id = setInterval(() => {
-      setPitch(p => parseFloat((p + (Math.random() - 0.5) * 0.4).toFixed(1)));
-      setRoll(r => parseFloat((r + (Math.random() - 0.5) * 0.4).toFixed(1)));
-      setFps(Math.floor(57 + Math.random() * 5));
-    }, 700);
-    return () => clearInterval(id);
-  }, []);
-
-  // Typewriter AI summary
+  // Real Gemini AI summary via /api/book-insight
   useEffect(() => {
     if (!selectedBook) return;
-    const full = language === 'ar'
-      ? AI_SUMMARIES.default.ar
-      : AI_SUMMARIES.default.en;
-    setSummaryText('');
-    setSummaryDone(false);
-    let i = 0;
-    const id = setInterval(() => {
-      i++;
-      setSummaryText(full.slice(0, i));
-      if (i >= full.length) { clearInterval(id); setSummaryDone(true); }
-    }, 16);
-    return () => clearInterval(id);
+    let cancelled = false;
+    setAiSummary('');
+    setAiLoading(true);
+    fetch('/api/book-insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: selectedBook.title,
+        author: selectedBook.author,
+        category: selectedBook.category,
+        description: selectedBook.description,
+        language,
+      }),
+    })
+      .then(r => r.json())
+      .then(data => { if (!cancelled) setAiSummary(data.summary || ''); })
+      .catch(() => { if (!cancelled) setAiSummary(language === 'ar' ? 'تعذّر تحميل الملخص.' : 'Could not load summary.'); })
+      .finally(() => { if (!cancelled) setAiLoading(false); });
+    return () => { cancelled = true; };
   }, [selectedBook, language]);
 
   const handleCopy = () => {
@@ -267,15 +253,7 @@ export function ARShowcase() {
             className="flex items-center justify-center gap-2.5 px-8 py-4 bg-white/10 text-white border border-white/20 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-white/20 active:scale-95 transition-all"
           >
             <Compass className="w-5 h-5" />
-            {language === 'ar' ? 'ابحث عن كتاب' : 'Search a Book'}
-          </motion.button>
-          <motion.button
-            whileTap={{ scale: 0.96 }}
-            onClick={() => navigate('/ar-sim')}
-            className="flex items-center justify-center gap-2.5 px-8 py-4 bg-accent/20 text-accent border border-accent/30 rounded-2xl text-sm font-black uppercase tracking-widest hover:bg-accent/30 active:scale-95 transition-all"
-          >
-            <Cpu className="w-5 h-5" />
-            {language === 'ar' ? 'محاكاة AR بالذكاء الاصطناعي' : 'AR AI Simulation'}
+            {language === 'ar' ? 'ابحث في الفهرس' : 'Search the Catalog'}
           </motion.button>
         </div>
       </div>
@@ -355,26 +333,12 @@ export function ARShowcase() {
           {/* Wooden plank */}
           <div className="mx-4 h-2 rounded-sm bg-[#6b4423] mt-0" />
 
-          {/* Telemetry strip */}
+          {/* Hint strip */}
           <div className="px-5 py-4 border-t border-white/5">
-            <div className="grid grid-cols-5 gap-2 mb-3">
-              {[
-                { label: 'PITCH',     value: `${pitch.toFixed(1)}°` },
-                { label: 'ROLL',      value: `${roll.toFixed(1)}°` },
-                { label: 'COMPASS',   value: '189° N' },
-                { label: 'EST.DEPTH', value: '1.05m' },
-                { label: 'SYS FPS',   value: String(fps) },
-              ].map(({ label, value }) => (
-                <div key={label} className="text-center">
-                  <div className="text-[7px] font-black text-white/25 uppercase tracking-widest">{label}</div>
-                  <div className="text-[12px] font-black text-accent/70 mt-0.5 tabular-nums">{value}</div>
-                </div>
-              ))}
-            </div>
-            <p className="text-[8px] text-white/25 font-bold uppercase tracking-wider text-center">
+            <p className="text-[9px] text-white/40 font-bold text-center tracking-wider">
               {language === 'ar'
-                ? 'اضغط على أي كتاب لمحاكاة مسح علامة AR الخاصة به'
-                : 'Tap any book on the shelf to simulate scanning its AR marker'}
+                ? '↑ اضغط على أي كتاب لعرض تفاصيله وملخصه الأكاديمي'
+                : '↑ Tap any book to view its details and AI academic summary'}
             </p>
           </div>
         </div>
@@ -443,16 +407,23 @@ export function ARShowcase() {
 
                   {/* AI Analysis */}
                   <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 space-y-2">
-                    <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                      <Zap className="w-3.5 h-3.5 text-accent shrink-0" />
-                      <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">AI ANALYSIS (GEMINI)</span>
+                    <div className={cn('flex items-center justify-between gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                      <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                        <Zap className="w-3.5 h-3.5 text-accent shrink-0" />
+                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">AI ANALYSIS (GEMINI)</span>
+                      </div>
+                      {aiLoading && (
+                        <span className="text-[7px] font-black text-accent uppercase tracking-widest animate-pulse">
+                          {language === 'ar' ? 'جاري التحليل…' : 'Analyzing…'}
+                        </span>
+                      )}
                     </div>
                     <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">ACADEMIC SUMMARY</div>
                     <p className={cn('text-[11px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed min-h-[3rem]', dir === 'rtl' ? 'text-right' : 'text-left')}>
-                      {summaryText}
-                      {!summaryDone && (
-                        <span className="inline-block w-0.5 h-3 bg-accent/70 animate-pulse align-middle ml-0.5" />
-                      )}
+                      {aiLoading
+                        ? <span className="text-slate-300 dark:text-slate-600">{language === 'ar' ? 'يُحلّل الذكاء الاصطناعي الكتاب…' : 'AI is analyzing this book…'}</span>
+                        : aiSummary
+                      }
                     </p>
                   </div>
 

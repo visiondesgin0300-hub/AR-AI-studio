@@ -26,6 +26,7 @@ import { LibraryLens } from './pages/LibraryLens';
 import { KnowledgeStars } from './pages/KnowledgeStars';
 import { HiddenBridges } from './pages/HiddenBridges';
 import { GapScanner } from './pages/GapScanner';
+import { SmartLens } from './pages/SmartLens';
 import { BookQRPrint } from './pages/BookQRPrint';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
@@ -185,6 +186,10 @@ function AppContent() {
         <Route
           path="/gap-scanner"
           element={user ? <GapScanner /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/smart-lens"
+          element={user ? <SmartLens /> : <Navigate to="/login" />}
         />
         <Route
           path="/book-codes"
