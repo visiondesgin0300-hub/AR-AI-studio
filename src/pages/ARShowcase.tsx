@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrCode, MapPin, Copy, Check, Zap, Layers, Compass, Cpu, FlaskConical, Star, GitBranch, ChevronRight } from 'lucide-react';
+import { QrCode, MapPin, Copy, Check, Zap, Layers, Compass, Cpu, FlaskConical, Star, GitBranch, ChevronRight, ScanSearch } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { BookCover } from '../components/BookCover';
@@ -124,7 +124,7 @@ export function ARShowcase() {
             {language === 'ar' ? 'تجارب AR المميزة' : 'Featured AR Experiences'}
           </span>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             {
               icon: FlaskConical,
@@ -167,6 +167,20 @@ export function ARShowcase() {
               descEn: 'Reveal unexpected links between different disciplines — find hidden cross-field intersections.',
               badgeAr: 'اكتشاف متعدد التخصصات',
               badgeEn: 'Cross-Disciplinary',
+            },
+            {
+              icon: ScanSearch,
+              route: '/smart-lens',
+              gradient: 'from-cyan-500/20 to-sky-500/10',
+              iconBg: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
+              accentColor: 'text-cyan-500',
+              badgeColor: 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
+              titleAr: 'العدسة الذكية AR',
+              titleEn: 'Smart Lens AR',
+              descAr: 'وجّه كاميرتك نحو أي غلاف كتاب لتحصل فوراً على ملخص ذكي، مراجعات أكاديمية، وتوصيات مرتبطة.',
+              descEn: 'Point your camera at any book cover for an instant AI summary, academic reviews, and smart recommendations.',
+              badgeAr: 'رؤية AR ذكية',
+              badgeEn: 'Smart AR Vision',
             },
           ].map((feature, i) => {
             const Icon = feature.icon;
