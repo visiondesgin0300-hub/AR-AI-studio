@@ -4,13 +4,31 @@ import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
 import { MOCK_BOOKS } from "./src/data/mockData";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-app.use(express.json());
+// Limit body size — prevents oversized payloads on all routes
+app.use(express.json({ limit: "2mb" }));
+
+// Rate limiting — AI routes are expensive; cap each IP to 30 req/min
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a minute and try again." },
+});
+app.use("/api/", aiLimiter);
+
+// Strip characters that could escape prompt string boundaries or inject instructions
+function sanitizeInput(raw: unknown, maxLen = 300): string {
+  if (typeof raw !== "string") return "";
+  return raw.replace(/["""'''`\\]/g, "").replace(/\n{3,}/g, "\n\n").trim().slice(0, maxLen);
+}
 
 // Initialize Gemini client lazily
 let ai: GoogleGenAI | null = null;
@@ -31,14 +49,9 @@ function getGeminiClient(): GoogleGenAI | null {
   return ai;
 }
 
-// REST api route: check API connection health
-app.get("/api/health", (req, res) => {
-  const hasKey = !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY";
-  res.json({
-    status: "ok",
-    hasApiKey: hasKey,
-    time: new Date().toISOString()
-  });
+// REST api route: basic liveness check — no internal config exposed
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", time: new Date().toISOString() });
 });
 
 // AI-picked book for the camera-free AR simulation demo, so each run lands
@@ -394,7 +407,11 @@ function localInsight(book: { title?: string; author?: string; category?: string
 // when a key is configured, otherwise a composed local one) so the demo never
 // shows a broken card.
 app.post("/api/book-insight", async (req, res) => {
-  const { title, author, category, description } = req.body || {};
+  const raw = req.body || {};
+  const title       = sanitizeInput(raw.title, 150);
+  const author      = sanitizeInput(raw.author, 100);
+  const category    = sanitizeInput(raw.category, 60);
+  const description = sanitizeInput(raw.description, 500);
   if (!title) {
     return res.status(400).json({ error: "Missing title" });
   }
@@ -719,7 +736,12 @@ app.post("/api/translate-book", async (req, res) => {
 
 // ── Feature: The Speaking Book — AR speech bubbles from the book's POV ───────
 app.post("/api/book-speaks", async (req, res) => {
-  const { title, author, description, category, year } = req.body || {};
+  const raw = req.body || {};
+  const title       = sanitizeInput(raw.title, 150);
+  const author      = sanitizeInput(raw.author, 100);
+  const description = sanitizeInput(raw.description, 400);
+  const category    = sanitizeInput(raw.category, 60);
+  const year        = sanitizeInput(String(raw.year ?? ""), 10);
   if (!title) return res.status(400).json({ error: "title required" });
 
   const fallback = {
@@ -897,7 +919,8 @@ app.post("/api/hidden-bridges", async (req, res) => {
 });
 
 app.post("/api/bridge-question", async (req, res) => {
-  const { question, books, leftIds, rightIds } = req.body || {};
+  const { books, leftIds, rightIds } = req.body || {};
+  const question = sanitizeInput(req.body?.question, 300);
   if (!question) return res.status(400).json({ error: "question required" });
 
   const bookById = (id: string) => Array.isArray(books) ? books.find((b: any) => b.id === id) : null;
@@ -1075,8 +1098,9 @@ function buildEvidenceFallback(topic: string, papers: ScholarPaper[]) {
 }
 
 app.post("/api/gap-scan", async (req, res) => {
-  const { topic, books } = req.body || {};
-  if (!topic) return res.status(400).json({ error: "topic required" });
+  const { topic: rawTopic, books } = req.body || {};
+  if (!rawTopic) return res.status(400).json({ error: "topic required" });
+  const topic = sanitizeInput(rawTopic, 200);
 
   const bookList = (Array.isArray(books) ? books : MOCK_BOOKS)
     .map((b: any) => `ID:${b.id} "${b.title}" by ${b.author}`)

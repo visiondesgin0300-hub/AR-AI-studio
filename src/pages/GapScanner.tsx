@@ -814,7 +814,18 @@ export function GapScanner() {
                   {ar ? 'إغلاق' : 'Close'}
                 </button>
                 <button
-                  onClick={() => { setPracticeStep(0); setSelectedGap(null); setPhase('idle'); setGaps([]); setSummary(null); setTopic(''); setInputText(''); setShowInput(true); }}
+                  onClick={() => {
+                    setPracticeStep(0);
+                    setSelectedGap(null);
+                    setGaps([]);
+                    setSummary(null);
+                    setTopic('');
+                    setInputText('');
+                    setScholarPapers([]);
+                    setScholarCount(null);
+                    setPhase('idle');
+                    setTimeout(() => setShowInput(true), 80);
+                  }}
                   className="flex-1 py-3 rounded-2xl text-sm font-black flex items-center justify-center gap-2"
                   style={{ background: '#34D399', color: '#001a00' }}>
                   {ar ? 'ابدأ بحثك الخاص' : 'Start your search'}

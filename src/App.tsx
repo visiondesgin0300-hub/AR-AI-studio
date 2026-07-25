@@ -160,7 +160,7 @@ function AppContent() {
         />
         <Route
           path="/qr-print"
-          element={user ? <Layout user={user} onLogout={handleLogout}><ShelfQRPrint /></Layout> : <Navigate to="/login" />}
+          element={user?.role === 'admin' ? <Layout user={user} onLogout={handleLogout}><ShelfQRPrint /></Layout> : <Navigate to="/" />}
         />
         <Route
           path="/ar-sim"

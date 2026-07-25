@@ -345,6 +345,19 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             </motion.button>
 
 
+            {/* Guided Tour trigger */}
+            {!isAdmin && (
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowTour(true)}
+                title={language === 'ar' ? 'جولة إرشادية' : 'Guided Tour'}
+                className="p-3 rounded-2xl bg-white/10 text-white/80 border border-white/15 hover:bg-white/20 hover:border-white/25 transition-all"
+              >
+                <Sparkles className="w-5 h-5" />
+              </motion.button>
+            )}
+
             {/* Help Center - always one tap away, since students hitting a
                 snag shouldn't have to hunt for support in a submenu. */}
             <motion.button
@@ -561,9 +574,9 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               </Link>
             );
           })}
-          {/* Logout — mobile only */}
+          {/* Logout — mobile only — confirm to prevent accidental tap */}
           <button
-            onClick={onLogout}
+            onClick={() => { if (window.confirm(language === 'ar' ? 'هل تريد تسجيل الخروج؟' : 'Sign out?')) onLogout(); }}
             className="flex flex-col items-center gap-1.5 px-3 text-red-400 hover:text-red-500 transition-all duration-300 group"
           >
             <div className="p-2.5 rounded-2xl group-hover:bg-red-50 dark:group-hover:bg-red-500/10 transition-all duration-300">
@@ -600,5 +613,3 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   );
 }
 
-// Helper to get count for sidebar logic
-const borrowedBooksCount = 1; // Dummy for placeholder logic above
