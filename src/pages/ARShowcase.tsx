@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
-  FlaskConical, Star, GitBranch, ChevronRight, ScanSearch, Navigation,
-  Target, Dna, Swords, Map, Gamepad2, Landmark,
+  Star, GitBranch, ChevronRight, ScanSearch, Navigation,
+  Dna, Swords, Map, Gamepad2, Landmark,
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -378,15 +378,6 @@ export function ARShowcase() {
         <div className="grid grid-cols-3 gap-3">
           {[
             {
-              icon: Target,
-              route: '/research-mirror',
-              colorClass: 'text-primary bg-primary/10 border-primary/20 dark:text-white dark:bg-white/10 dark:border-white/20',
-              titleAr: 'مرآة الباحث',
-              titleEn: 'Research Mirror',
-              descAr: 'تغطية الأدبيات',
-              descEn: 'Literature Coverage',
-            },
-            {
               icon: Dna,
               route: '/research-dna',
               colorClass: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
@@ -476,15 +467,6 @@ export function ARShowcase() {
               titleEn: 'Smart Lens',
               tagAr: 'كاميرا حقيقية',
               tagEn: 'Real Camera',
-            },
-            {
-              icon: FlaskConical,
-              route: '/gap-scanner',
-              colorClass: 'text-violet-500 bg-violet-500/10 border-violet-500/20',
-              titleAr: 'ماسح الفجوات',
-              titleEn: 'Gap Scanner',
-              tagAr: 'بحث أكاديمي',
-              tagEn: 'Research',
             },
             {
               icon: Star,

@@ -275,9 +275,6 @@ export function AdminDashboard() {
           <p className="text-slate-400 dark:text-slate-500 font-bold text-sm">{t('fullControlDesc')}</p>
         </div>
         <div className={cn('flex items-center gap-3 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-          <button onClick={() => navigate('/qr-print')} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
-            <QrCode className="w-4 h-4 text-accent" />{ar ? 'طباعة رموز AR' : 'Print AR Codes'}
-          </button>
           <button className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
             <Download className="w-4 h-4" />{t('exportReports')}
           </button>

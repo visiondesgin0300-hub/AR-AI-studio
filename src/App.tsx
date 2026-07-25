@@ -16,19 +16,11 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { Search } from './pages/Search';
 import { Landing } from './pages/Landing';
 import { HelpCenter } from './pages/HelpCenter';
-import { ArLab } from './pages/ArLab';
 import { QRScanner } from './pages/QRScanner';
 import { ARShowcase } from './pages/ARShowcase';
-import { ShelfQRPrint } from './pages/ShelfQRPrint';
-import { ARSimulation } from './pages/ARSimulation';
-import { CameraARSim } from './pages/CameraARSim';
-import { LibraryLens } from './pages/LibraryLens';
 import { KnowledgeStars } from './pages/KnowledgeStars';
 import { HiddenBridges } from './pages/HiddenBridges';
-import { GapScanner } from './pages/GapScanner';
 import { SmartLens } from './pages/SmartLens';
-import { BookQRPrint } from './pages/BookQRPrint';
-import { ResearchMirror } from './pages/ResearchMirror';
 import { ResearchDNA } from './pages/ResearchDNA';
 import { BookDuel } from './pages/BookDuel';
 import { ReadingRoadmap } from './pages/ReadingRoadmap';
@@ -109,10 +101,6 @@ function AppContent() {
             )
           } 
         />
-        <Route 
-          path="/landing" 
-          element={<Landing />} 
-        />
         <Route
           path="/book/:id"
           element={user ? <Layout user={user} onLogout={handleLogout}><BookDetails user={user} onUpdateUser={handleUpdateUser} /></Layout> : <Navigate to="/login" />}
@@ -154,32 +142,12 @@ function AppContent() {
           element={user ? <Layout user={user} onLogout={handleLogout}><HelpCenter /></Layout> : <Navigate to="/login" />}
         />
         <Route
-          path="/ar-lab"
-          element={user ? <Layout user={user} onLogout={handleLogout}><ArLab /></Layout> : <Navigate to="/login" />}
-        />
-        <Route
           path="/ar-showcase"
           element={user ? <Layout user={user} onLogout={handleLogout}><ARShowcase /></Layout> : <Navigate to="/login" />}
         />
         <Route
           path="/scan"
           element={user ? <QRScanner /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/qr-print"
-          element={user?.role === 'admin' ? <Layout user={user} onLogout={handleLogout}><ShelfQRPrint /></Layout> : <Navigate to="/" />}
-        />
-        <Route
-          path="/ar-sim"
-          element={user ? <Layout user={user} onLogout={handleLogout}><ARSimulation /></Layout> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/ar-camera"
-          element={user ? <Layout user={user} onLogout={handleLogout}><CameraARSim /></Layout> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/lens-ar"
-          element={user ? <LibraryLens /> : <Navigate to="/login" />}
         />
         <Route
           path="/knowledge-stars"
@@ -190,20 +158,8 @@ function AppContent() {
           element={user ? <HiddenBridges /> : <Navigate to="/login" />}
         />
         <Route
-          path="/gap-scanner"
-          element={user ? <GapScanner /> : <Navigate to="/login" />}
-        />
-        <Route
           path="/smart-lens"
           element={user ? <SmartLens /> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/book-codes"
-          element={user ? <Layout user={user} onLogout={handleLogout}><BookQRPrint /></Layout> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/research-mirror"
-          element={user ? <Layout user={user} onLogout={handleLogout}><ResearchMirror /></Layout> : <Navigate to="/login" />}
         />
         <Route
           path="/research-dna"
