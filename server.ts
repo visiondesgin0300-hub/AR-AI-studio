@@ -1561,6 +1561,43 @@ ${catalogSample}
   }
 });
 
+// ── Feature: Oman Corner AR — Heritage Station AI Guide ──────────────────────
+// Returns an AI narrative for the selected heritage station from عارف (Arif),
+// the AR guide character. Always 200 — Gemini when a key is present, local otherwise.
+app.post("/api/oman-corner", async (req, res) => {
+  const stationId  = sanitizeInput(req.body?.stationId, 40);
+  const contextAr  = sanitizeInput(req.body?.contextAr, 200);
+
+  const FALLBACKS: Record<string, string> = {
+    architecture: 'العمارة العُمانية لم تكن مجرد بناء — كانت علماً في خدمة الحياة. أفلاج الري وحدها أروت آلاف القرى لثلاثة آلاف عام بدون مضخة واحدة. تخيّل الهندسة التي تطلّبها ذلك!',
+    literature:   'الأدب العُماني بحر لا قاع له. تقاليد الشعر الشفهي (النبطي) هي ذكاء اصطناعي قديم: شفرة حفظت ثقافة كاملة في صدور البشر قبل آلاف السنين، قبل أي خوارزمية.',
+    geography:    'في عُمان وحدها يمكنك أن تسبح في البحر وتتجوّل في ثلوج الجبال في يوم واحد. هذا التنوع الجغرافي النادر هو سرّ تكيّف العُمانيين الفريد عبر التاريخ.',
+    arts:         'الرزحة ليست رقصة للمتفرجين، بل ذاكرة المجتمع تُعاد كتابتها جسداً بجسد عبر الأجيال. والخنجر؟ ليس سلاحاً بل لغة يقرأها كل عُماني بلحظة واحدة.',
+  };
+
+  const fallback = { guideNarrative: FALLBACKS[stationId] ?? 'تراث عُمان يعكس حضارة راسخة عمرها آلاف السنين.' };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: `أنت "عارف" — مرشد ثقافي ذكي في ركن عُمان بالمكتبة الجامعية. تتحدث بأسلوب حماسي وعلمي موجز.
+الموضوع: ${contextAr || stationId}
+اكتب 2-3 جمل بالعربية تُدهش الطالب بمعلومة غير متوقعة وتربطها بالفكر العلمي أو الحداثي.
+لا تبدأ بـ "أنا عارف" أو تُعرّف بنفسك.`,
+      config: {
+        systemInstruction: 'أجب بجملتين إلى ثلاث جمل فقط — موجز، مدهش، علمي.',
+      },
+    });
+    return res.json({ guideNarrative: response.text?.trim() || fallback.guideNarrative });
+  } catch (err: any) {
+    console.error('[oman-corner]', err);
+    return res.json(fallback);
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

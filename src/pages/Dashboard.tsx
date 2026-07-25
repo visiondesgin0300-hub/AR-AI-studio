@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layers, MessageCircle } from 'lucide-react';
+import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layers, MessageCircle, Gamepad2, Map, Star, ScanSearch, Swords, Landmark } from 'lucide-react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
@@ -219,6 +219,170 @@ export function Dashboard({ user }: DashboardProps) {
               <ChevronRight className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
             </span>
           </button>
+        </div>
+
+        {/* ── Creative AR Feature Cards ── */}
+        <div className="space-y-3 pt-2">
+          <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+            <Sparkles className="w-3.5 h-3.5 text-accent" />
+            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.22em]">
+              {language === 'ar' ? 'تجارب AR الإبداعية' : 'Creative AR Experiences'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+
+            {/* Card 1 — Oman Corner AR */}
+            <motion.button
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/oman-corner')}
+              className="relative overflow-hidden rounded-2xl border border-amber-200/60 dark:border-amber-500/20 bg-gradient-to-br from-amber-50 to-white dark:from-amber-950/30 dark:to-slate-900 p-5 flex flex-col gap-3 text-start shadow-sm hover:shadow-lg hover:shadow-amber-200/40 dark:hover:shadow-amber-900/20 transition-all cursor-pointer"
+            >
+              <div className="absolute top-0 end-0 w-20 h-20 rounded-full bg-amber-400/10 -translate-y-8 translate-x-8" />
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
+                <Landmark className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-primary dark:text-white leading-tight">
+                  {language === 'ar' ? 'ركن عُمان الحي' : 'Living Oman Corner'}
+                </p>
+                <p className="text-[9px] text-amber-600/70 dark:text-amber-400/60 font-bold mt-0.5">
+                  {language === 'ar' ? 'تراث · ثقافة · واقع معزز' : 'Heritage · Culture · AR'}
+                </p>
+              </div>
+              <span className="text-[8px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest flex items-center gap-1">
+                {language === 'ar' ? 'استكشف' : 'Explore'}
+                <ChevronRight className={cn('w-2.5 h-2.5', dir === 'rtl' ? 'rotate-180' : '')} />
+              </span>
+            </motion.button>
+
+            {/* Card 2 — Library Adventure */}
+            <motion.button
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/library-quest')}
+              className="relative overflow-hidden rounded-2xl border border-emerald-200/60 dark:border-emerald-500/20 bg-gradient-to-br from-emerald-50 to-white dark:from-emerald-950/30 dark:to-slate-900 p-5 flex flex-col gap-3 text-start shadow-sm hover:shadow-lg hover:shadow-emerald-200/40 dark:hover:shadow-emerald-900/20 transition-all cursor-pointer"
+            >
+              <div className="absolute top-0 end-0 w-20 h-20 rounded-full bg-emerald-400/10 -translate-y-8 translate-x-8" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/15 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                <Gamepad2 className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-primary dark:text-white leading-tight">
+                  {language === 'ar' ? 'مغامرة المكتبة' : 'Library Adventure'}
+                </p>
+                <p className="text-[9px] text-emerald-600/70 dark:text-emerald-400/60 font-bold mt-0.5">
+                  {language === 'ar' ? 'ألغاز · نقاط XP · اكتشاف' : 'Riddles · XP · Discovery'}
+                </p>
+              </div>
+              <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest flex items-center gap-1">
+                {language === 'ar' ? 'العب الآن' : 'Play Now'}
+                <ChevronRight className={cn('w-2.5 h-2.5', dir === 'rtl' ? 'rotate-180' : '')} />
+              </span>
+            </motion.button>
+
+            {/* Card 3 — Reading Roadmap */}
+            <motion.button
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/reading-roadmap')}
+              className="relative overflow-hidden rounded-2xl border border-sky-200/60 dark:border-sky-500/20 bg-gradient-to-br from-sky-50 to-white dark:from-sky-950/30 dark:to-slate-900 p-5 flex flex-col gap-3 text-start shadow-sm hover:shadow-lg hover:shadow-sky-200/40 dark:hover:shadow-sky-900/20 transition-all cursor-pointer"
+            >
+              <div className="absolute top-0 end-0 w-20 h-20 rounded-full bg-sky-400/10 -translate-y-8 translate-x-8" />
+              <div className="w-10 h-10 rounded-xl bg-sky-500/15 flex items-center justify-center text-sky-600 dark:text-sky-400 shrink-0">
+                <Map className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-primary dark:text-white leading-tight">
+                  {language === 'ar' ? 'مسار القراءة' : 'Reading Roadmap'}
+                </p>
+                <p className="text-[9px] text-sky-600/70 dark:text-sky-400/60 font-bold mt-0.5">
+                  {language === 'ar' ? 'خطة ذكية · 3 مراحل' : 'AI Plan · 3 Stages'}
+                </p>
+              </div>
+              <span className="text-[8px] font-black text-sky-600 dark:text-sky-400 uppercase tracking-widest flex items-center gap-1">
+                {language === 'ar' ? 'ابدأ مسارك' : 'Start Plan'}
+                <ChevronRight className={cn('w-2.5 h-2.5', dir === 'rtl' ? 'rotate-180' : '')} />
+              </span>
+            </motion.button>
+
+            {/* Card 4 — Knowledge Stars */}
+            <motion.button
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/knowledge-stars')}
+              className="relative overflow-hidden rounded-2xl border border-violet-200/60 dark:border-violet-500/20 bg-gradient-to-br from-violet-50 to-white dark:from-violet-950/30 dark:to-slate-900 p-5 flex flex-col gap-3 text-start shadow-sm hover:shadow-lg hover:shadow-violet-200/40 dark:hover:shadow-violet-900/20 transition-all cursor-pointer"
+            >
+              <div className="absolute top-0 end-0 w-20 h-20 rounded-full bg-violet-400/10 -translate-y-8 translate-x-8" />
+              <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center text-violet-600 dark:text-violet-400 shrink-0">
+                <Star className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-primary dark:text-white leading-tight">
+                  {language === 'ar' ? 'نجوم المعرفة' : 'Knowledge Stars'}
+                </p>
+                <p className="text-[9px] text-violet-600/70 dark:text-violet-400/60 font-bold mt-0.5">
+                  {language === 'ar' ? 'خريطة المعرفة ثلاثية الأبعاد' : '3D Knowledge Graph'}
+                </p>
+              </div>
+              <span className="text-[8px] font-black text-violet-600 dark:text-violet-400 uppercase tracking-widest flex items-center gap-1">
+                {language === 'ar' ? 'استكشف' : 'Explore'}
+                <ChevronRight className={cn('w-2.5 h-2.5', dir === 'rtl' ? 'rotate-180' : '')} />
+              </span>
+            </motion.button>
+
+            {/* Card 5 — Smart Lens */}
+            <motion.button
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/smart-lens')}
+              className="relative overflow-hidden rounded-2xl border border-cyan-200/60 dark:border-cyan-500/20 bg-gradient-to-br from-cyan-50 to-white dark:from-cyan-950/30 dark:to-slate-900 p-5 flex flex-col gap-3 text-start shadow-sm hover:shadow-lg hover:shadow-cyan-200/40 dark:hover:shadow-cyan-900/20 transition-all cursor-pointer"
+            >
+              <div className="absolute top-0 end-0 w-20 h-20 rounded-full bg-cyan-400/10 -translate-y-8 translate-x-8" />
+              <div className="w-10 h-10 rounded-xl bg-cyan-500/15 flex items-center justify-center text-cyan-600 dark:text-cyan-400 shrink-0">
+                <ScanSearch className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-primary dark:text-white leading-tight">
+                  {language === 'ar' ? 'العدسة الذكية' : 'Smart Lens'}
+                </p>
+                <p className="text-[9px] text-cyan-600/70 dark:text-cyan-400/60 font-bold mt-0.5">
+                  {language === 'ar' ? 'كاميرا حقيقية · Gemini AI' : 'Real Camera · Gemini AI'}
+                </p>
+              </div>
+              <span className="text-[8px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-widest flex items-center gap-1">
+                {language === 'ar' ? 'امسح الآن' : 'Scan Now'}
+                <ChevronRight className={cn('w-2.5 h-2.5', dir === 'rtl' ? 'rotate-180' : '')} />
+              </span>
+            </motion.button>
+
+            {/* Card 6 — Book Duel */}
+            <motion.button
+              whileHover={{ y: -4, scale: 1.01 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => navigate('/book-duel')}
+              className="relative overflow-hidden rounded-2xl border border-rose-200/60 dark:border-rose-500/20 bg-gradient-to-br from-rose-50 to-white dark:from-rose-950/30 dark:to-slate-900 p-5 flex flex-col gap-3 text-start shadow-sm hover:shadow-lg hover:shadow-rose-200/40 dark:hover:shadow-rose-900/20 transition-all cursor-pointer"
+            >
+              <div className="absolute top-0 end-0 w-20 h-20 rounded-full bg-rose-400/10 -translate-y-8 translate-x-8" />
+              <div className="w-10 h-10 rounded-xl bg-rose-500/15 flex items-center justify-center text-rose-600 dark:text-rose-400 shrink-0">
+                <Swords className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-black text-primary dark:text-white leading-tight">
+                  {language === 'ar' ? 'مبارزة الكتب' : 'Book Duel'}
+                </p>
+                <p className="text-[9px] text-rose-600/70 dark:text-rose-400/60 font-bold mt-0.5">
+                  {language === 'ar' ? 'قارن بين كتابين بالذكاء' : 'AI Book Comparison'}
+                </p>
+              </div>
+              <span className="text-[8px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest flex items-center gap-1">
+                {language === 'ar' ? 'ابدأ المبارزة' : 'Start Duel'}
+                <ChevronRight className={cn('w-2.5 h-2.5', dir === 'rtl' ? 'rotate-180' : '')} />
+              </span>
+            </motion.button>
+
+          </div>
         </div>
       </div>
 

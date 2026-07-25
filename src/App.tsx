@@ -33,6 +33,7 @@ import { ResearchDNA } from './pages/ResearchDNA';
 import { BookDuel } from './pages/BookDuel';
 import { ReadingRoadmap } from './pages/ReadingRoadmap';
 import { LibraryQuest } from './pages/LibraryQuest';
+import { OmanCornerAR } from './pages/OmanCornerAR';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -219,6 +220,10 @@ function AppContent() {
         <Route
           path="/library-quest"
           element={user ? <Layout user={user} onLogout={handleLogout}><LibraryQuest /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/oman-corner"
+          element={user ? <Layout user={user} onLogout={handleLogout}><OmanCornerAR /></Layout> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

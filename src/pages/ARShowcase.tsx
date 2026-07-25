@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
   FlaskConical, Star, GitBranch, ChevronRight, ScanSearch, Navigation,
-  Target, Dna, Swords, Map, Gamepad2,
+  Target, Dna, Swords, Map, Gamepad2, Landmark,
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -421,6 +421,15 @@ export function ARShowcase() {
               titleEn: 'Library Adventure',
               descAr: 'ألغاز واكتشاف الكتب',
               descEn: 'Riddles & Book Discovery',
+            },
+            {
+              icon: Landmark,
+              route: '/oman-corner',
+              colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+              titleAr: 'ركن عُمان الحي',
+              titleEn: 'Living Oman Corner',
+              descAr: 'تراث وثقافة بالواقع المعزز',
+              descEn: 'Heritage & Culture via AR',
             },
           ].map((f, i) => {
             const Icon = f.icon;
