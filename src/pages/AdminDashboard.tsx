@@ -61,6 +61,20 @@ export function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [bookFilter, setBookFilter] = useState('all');
   const [qrSection, setQrSection] = useState<'shelves' | 'books' | 'facilities'>('shelves');
+  const [realFeedback, setRealFeedback] = useState<any[]>([]);
+  const [newFeedbackCount, setNewFeedbackCount] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/feedback')
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data.entries)) {
+          setRealFeedback(data.entries);
+          setNewFeedbackCount(data.count || 0);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const WEEKLY_DATA = useMemo(() => [
     { day: t('saturday'), value: 400 }, { day: t('sunday'), value: 300 },
@@ -117,18 +131,37 @@ export function AdminDashboard() {
     { name: '😕', value: 5, label: ar ? 'يحتاج تحسين' : 'Needs work', fill: '#004C6D' },
   ];
 
-  const feedbackEntries = ar ? [
-    { id: 1, mood: '😍', moodLabel: 'رائع', moodColor: 'bg-rose-100 dark:bg-rose-950/40 text-rose-700', categories: ['تجربة AR'], text: 'التنقل بواسطة AR رائع جداً، أشعر وكأنني في مكتبة المستقبل!', time: 'منذ ١٠ دقائق', user: 'فاطمة المعمري' },
-    { id: 2, mood: '😊', moodLabel: 'جيد', moodColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700', categories: ['البحث', 'الواجهة'], text: 'البحث يعمل بشكل جيد لكن يمكن تحسين سرعته.', time: 'منذ ساعة', user: 'محمد علي' },
-    { id: 3, mood: '🤩', moodLabel: 'ممتاز', moodColor: 'bg-orange-100 dark:bg-orange-950/40 text-orange-700', categories: ['الخريطة'], text: 'الخريطة ثنائية الأبعاد مفيدة جداً في إيجاد الكتب.', time: 'منذ ٣ ساعات', user: 'سارة أحمد' },
-    { id: 4, mood: '😐', moodLabel: 'مقبول', moodColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600', categories: ['اقتراح'], text: 'أقترح إضافة المزيد من تصنيفات الكتب.', time: 'منذ يوم', user: 'عمر خالد' },
-    { id: 5, mood: '😕', moodLabel: 'يحتاج تحسين', moodColor: 'bg-primary/10 text-primary', categories: ['البحث'], text: 'أحياناً تظهر نتائج بحث غير دقيقة.', time: 'منذ يومين', user: 'نورة سالم' },
+  const MOOD_COLOR_MAP: Record<string, string> = {
+    '😍': 'bg-rose-100 dark:bg-rose-950/40 text-rose-700',
+    '🤩': 'bg-orange-100 dark:bg-orange-950/40 text-orange-700',
+    '😊': 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700',
+    '😐': 'bg-slate-100 dark:bg-slate-800 text-slate-600',
+    '😕': 'bg-primary/10 text-primary',
+  };
+
+  const mockFeedbackEntries = ar ? [
+    { id: 'm1', mood: '😍', moodLabel: 'رائع', moodColor: MOOD_COLOR_MAP['😍'], categories: ['تجربة AR'], text: 'التنقل بواسطة AR رائع جداً، أشعر وكأنني في مكتبة المستقبل!', time: 'منذ يوم', user: 'فاطمة المعمري', isDemo: true },
+    { id: 'm2', mood: '😊', moodLabel: 'جيد', moodColor: MOOD_COLOR_MAP['😊'], categories: ['البحث', 'الواجهة'], text: 'البحث يعمل بشكل جيد لكن يمكن تحسين سرعته.', time: 'منذ يومين', user: 'محمد علي', isDemo: true },
+    { id: 'm3', mood: '🤩', moodLabel: 'ممتاز', moodColor: MOOD_COLOR_MAP['🤩'], categories: ['الخريطة'], text: 'الخريطة ثنائية الأبعاد مفيدة جداً في إيجاد الكتب.', time: 'منذ ٣ أيام', user: 'سارة أحمد', isDemo: true },
   ] : [
-    { id: 1, mood: '😍', moodLabel: 'Amazing', moodColor: 'bg-rose-100 dark:bg-rose-950/40 text-rose-700', categories: ['AR Experience'], text: 'The AR navigation is incredible, feels like the library of the future!', time: '10 mins ago', user: 'Fatima Al-Maamari' },
-    { id: 2, mood: '😊', moodLabel: 'Good', moodColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700', categories: ['Search', 'UI/Design'], text: 'Search works well but could be faster.', time: '1 hour ago', user: 'Mohamed Ali' },
-    { id: 3, mood: '🤩', moodLabel: 'Excellent', moodColor: 'bg-orange-100 dark:bg-orange-950/40 text-orange-700', categories: ['Map'], text: 'The 2D map is super helpful for finding books.', time: '3 hours ago', user: 'Sara Ahmed' },
-    { id: 4, mood: '😐', moodLabel: 'Okay', moodColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600', categories: ['Suggestion'], text: 'Would love more book categories to choose from.', time: '1 day ago', user: 'Omar Khalid' },
-    { id: 5, mood: '😕', moodLabel: 'Needs work', moodColor: 'bg-primary/10 text-primary', categories: ['Search'], text: 'Sometimes search returns irrelevant results.', time: '2 days ago', user: 'Noura Salem' },
+    { id: 'm1', mood: '😍', moodLabel: 'Amazing', moodColor: MOOD_COLOR_MAP['😍'], categories: ['AR Experience'], text: 'The AR navigation is incredible, feels like the library of the future!', time: '1 day ago', user: 'Fatima Al-Maamari', isDemo: true },
+    { id: 'm2', mood: '😊', moodLabel: 'Good', moodColor: MOOD_COLOR_MAP['😊'], categories: ['Search', 'UI/Design'], text: 'Search works well but could be faster.', time: '2 days ago', user: 'Mohamed Ali', isDemo: true },
+    { id: 'm3', mood: '🤩', moodLabel: 'Excellent', moodColor: MOOD_COLOR_MAP['🤩'], categories: ['Map'], text: 'The 2D map is super helpful for finding books.', time: '3 days ago', user: 'Sara Ahmed', isDemo: true },
+  ];
+
+  const feedbackEntries = [
+    ...realFeedback.map(e => ({
+      id: e.id,
+      mood: e.mood,
+      moodLabel: e.moodLabel,
+      moodColor: MOOD_COLOR_MAP[e.mood] || 'bg-slate-100 dark:bg-slate-800 text-slate-600',
+      categories: e.categories,
+      text: e.text,
+      time: new Date(e.time).toLocaleString(ar ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
+      user: e.user,
+      isDemo: false,
+    })),
+    ...mockFeedbackEntries,
   ];
 
   const openModal = (type: 'user' | 'book' | 'facility', data: any = {}) => {
@@ -204,7 +237,7 @@ export function AdminDashboard() {
     { id: 'qr', label: ar ? 'رموز AR' : 'AR Codes', icon: QrCode },
     { id: 'stats', label: t('statsTab'), icon: BarChart3 },
     { id: 'logs', label: t('logsTab'), icon: Activity },
-    { id: 'feedback', label: ar ? 'آراء المستخدمين' : 'Feedback', icon: TrendingUp },
+    { id: 'feedback', label: ar ? 'طلبات المستخدمين' : 'My Requests', icon: TrendingUp, count: newFeedbackCount },
   ];
 
   const statusBadge = (status: string) => {
@@ -272,11 +305,16 @@ export function AdminDashboard() {
       {/* Tab bar */}
       <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 p-2 rounded-[2rem] w-fit mx-auto lg:mx-0 shadow-inner flex-wrap justify-center">
         {tabs.map(tab => (
-          <button key={tab.id} onClick={() => { setActiveTab(tab.id as AdminTab); setSearchQuery(''); }}
-            className={cn('flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap',
+          <button key={tab.id} onClick={() => { setActiveTab(tab.id as AdminTab); setSearchQuery(''); if (tab.id === 'feedback') setNewFeedbackCount(0); }}
+            className={cn('relative flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap',
               activeTab === tab.id ? 'bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-xl shadow-black/5' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300')}>
             <tab.icon className={cn('w-4 h-4', activeTab === tab.id ? 'text-accent' : 'text-slate-400')} />
             <span>{tab.label}</span>
+            {(tab as any).count > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-lg animate-pulse">
+                {(tab as any).count > 99 ? '99+' : (tab as any).count}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -652,12 +690,23 @@ export function AdminDashboard() {
               </motion.div>
             )}
 
-            {/* ── FEEDBACK RESULTS ── */}
+            {/* ── MY REQUESTS (FEEDBACK) ── */}
             {activeTab === 'feedback' && (
               <motion.div key="feedback" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
-                <div className={cn('flex items-center justify-between', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                  <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'آراء المستخدمين المُستلمة' : 'Received User Feedback'}</h3>
-                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{feedbackEntries.length} {ar ? 'رأي' : 'entries'}</div>
+                <div className={cn('flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3', dir === 'rtl' ? 'sm:flex-row-reverse' : '')}>
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'طلبات المستخدمين' : 'My Requests'}</h3>
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{ar ? 'آراء وملاحظات المستخدمين المُستلمة من تطبيق ARLibrary' : 'User feedback received from the ARLibrary app'}</p>
+                  </div>
+                  <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                    {realFeedback.length > 0 && (
+                      <span className="flex items-center gap-1.5 text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                        {realFeedback.length} {ar ? 'جديد' : 'live'}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{feedbackEntries.length} {ar ? 'إجمالي' : 'total'}</span>
+                  </div>
                 </div>
 
                 {/* Mood summary */}
@@ -677,7 +726,24 @@ export function AdminDashboard() {
                 {/* Feedback entries */}
                 <div className="space-y-4">
                   {feedbackEntries.map(entry => (
-                    <div key={entry.id} className={cn('official-card p-6 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-xl shadow-black/5 space-y-3', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                    <motion.div
+                      key={entry.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn(
+                        'official-card p-6 bg-white dark:bg-slate-900 shadow-xl shadow-black/5 space-y-3 relative overflow-hidden',
+                        (entry as any).isDemo
+                          ? 'border-slate-100 dark:border-white/5 opacity-70'
+                          : 'border-emerald-200 dark:border-emerald-800/50',
+                        dir === 'rtl' ? 'text-right' : 'text-left'
+                      )}
+                    >
+                      {!(entry as any).isDemo && (
+                        <div className={cn('absolute top-4 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/50', dir === 'rtl' ? 'left-4' : 'right-4')}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          {ar ? 'مباشر' : 'LIVE'}
+                        </div>
+                      )}
                       <div className={cn('flex items-center justify-between gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                         <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                           <span className="text-2xl">{entry.mood}</span>
@@ -690,11 +756,11 @@ export function AdminDashboard() {
                       </div>
                       {entry.text && <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{entry.text}</p>}
                       <div className={cn('flex flex-wrap gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                        {entry.categories.map((cat, ci) => (
+                        {entry.categories.map((cat: string, ci: number) => (
                           <span key={ci} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10">{cat}</span>
                         ))}
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               </motion.div>

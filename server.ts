@@ -30,6 +30,19 @@ function sanitizeInput(raw: unknown, maxLen = 300): string {
   return raw.replace(/["""'''`\\]/g, "").replace(/\n{3,}/g, "\n\n").trim().slice(0, maxLen);
 }
 
+// In-memory feedback store — resets on server restart (acceptable for a dissertation demo)
+interface FeedbackEntry {
+  id: string;
+  mood: string;
+  moodLabel: string;
+  categories: string[];
+  text: string;
+  user: string;
+  time: string;
+  timestamp: number;
+}
+const feedbackStore: FeedbackEntry[] = [];
+
 // Initialize Gemini client lazily
 let ai: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI | null {
@@ -52,6 +65,30 @@ function getGeminiClient(): GoogleGenAI | null {
 // REST api route: basic liveness check — no internal config exposed
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+// User feedback submission — stored in-memory for admin review
+app.post("/api/feedback", (req, res) => {
+  const { mood, moodLabel, categories, text, user } = req.body || {};
+  if (!mood) return res.status(400).json({ error: "mood required" });
+  const entry: FeedbackEntry = {
+    id: Math.random().toString(36).substr(2, 9),
+    mood: String(mood).slice(0, 4),
+    moodLabel: String(moodLabel || '').slice(0, 20),
+    categories: Array.isArray(categories) ? categories.map((c: unknown) => String(c).slice(0, 30)) : [],
+    text: String(text || '').slice(0, 280),
+    user: String(user || 'Anonymous').slice(0, 50),
+    time: new Date().toISOString(),
+    timestamp: Date.now(),
+  };
+  feedbackStore.unshift(entry);
+  if (feedbackStore.length > 100) feedbackStore.pop();
+  return res.json({ ok: true, id: entry.id });
+});
+
+// Admin retrieves all submitted feedback
+app.get("/api/feedback", (_req, res) => {
+  return res.json({ entries: feedbackStore, count: feedbackStore.length });
 });
 
 // AI-picked book for the camera-free AR simulation demo, so each run lands

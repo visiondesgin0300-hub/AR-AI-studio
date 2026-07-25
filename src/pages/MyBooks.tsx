@@ -577,6 +577,49 @@ export function MyBooks({ user }: MyBooksProps) {
               </div>
             </section>
 
+            {/* How to earn XP */}
+            <section className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Zap className="w-5 h-5 text-accent" />
+                <h4 className="text-lg font-black text-primary dark:text-white uppercase tracking-widest">{t('level') === 'المستوى' || language === 'ar' ? 'كيف تكسب نقاط XP؟' : 'How to Earn XP'}</h4>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {[
+                  { icon: '📚', labelAr: 'استعارة كتاب', labelEn: 'Borrow a book', pts: 50 },
+                  { icon: '🔍', labelAr: 'بحث ذكي', labelEn: 'Smart search', pts: 10 },
+                  { icon: '📍', labelAr: 'الوصول للرف', labelEn: 'Navigate to shelf', pts: 20 },
+                  { icon: '🔬', labelAr: 'ماسح الفجوات', labelEn: 'Gap scanner', pts: 100 },
+                  { icon: '🏆', labelAr: 'فتح وسام', labelEn: 'Unlock badge', pts: 150 },
+                  { icon: '📖', labelAr: 'قراءة فصل', labelEn: 'Read a chapter', pts: 30 },
+                ].map((item, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.06 }}
+                    className="glass-panel p-4 border border-slate-100 dark:border-white/5 rounded-2xl flex items-center gap-3 bg-white/70 dark:bg-slate-900/70"
+                  >
+                    <span className="text-xl shrink-0">{item.icon}</span>
+                    <div className={cn('flex-1 min-w-0', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                      <div className="text-[11px] font-black text-primary dark:text-white truncate">{language === 'ar' ? item.labelAr : item.labelEn}</div>
+                      <div className="text-[10px] font-black text-accent">+{item.pts} XP</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              <div className={cn('p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{language === 'ar' ? 'صيغة المستوى' : 'Level formula'}</div>
+                <div className="text-sm font-black text-primary dark:text-white font-mono">
+                  {language === 'ar' ? 'المستوى = floor(النقاط ÷ 100) + 1' : 'Level = floor(XP ÷ 100) + 1'}
+                </div>
+                <div className="text-[11px] font-bold text-slate-500 mt-1">
+                  {language === 'ar'
+                    ? `${user.points} XP → المستوى ${getUserLevel(user.points)} — يلزمك ${100 - (user.points % 100)} نقطة للمستوى التالي`
+                    : `${user.points} XP → Level ${getUserLevel(user.points)} — ${100 - (user.points % 100)} XP to next level`}
+                </div>
+              </div>
+            </section>
+
             {/* XP Progress in achievements tab */}
             <div className="glass-panel p-8 bg-primary shadow-2xl relative overflow-hidden flex flex-col gap-6 group">
               <div className={cn("absolute top-0 w-48 h-48 bg-accent/20 rounded-full blur-3xl -translate-y-1/2", dir === 'rtl' ? 'right-0 translate-x-1/2' : 'left-0 -translate-x-1/2')}></div>
