@@ -132,22 +132,6 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
         })}
       </div>
 
-      {/* Points → Level formula */}
-      <div className="mt-4 p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 space-y-2">
-        <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-          {isAr ? 'كيف يُحسب المستوى؟' : 'How is level calculated?'}
-        </div>
-        <div className="text-xs font-black text-primary dark:text-white font-mono">
-          {isAr
-            ? `المستوى = floor(النقاط ÷ 100) + 1`
-            : `Level = floor(XP ÷ 100) + 1`}
-        </div>
-        <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
-          {isAr
-            ? `نقاطك الحالية: ${user.points} XP → المستوى ${level}`
-            : `Your XP: ${user.points} → Level ${level}`}
-        </div>
-      </div>
     </div>
   );
 }

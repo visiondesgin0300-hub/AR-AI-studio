@@ -607,17 +607,6 @@ export function MyBooks({ user }: MyBooksProps) {
                   </motion.div>
                 ))}
               </div>
-              <div className={cn('p-4 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10', dir === 'rtl' ? 'text-right' : 'text-left')}>
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{language === 'ar' ? 'صيغة المستوى' : 'Level formula'}</div>
-                <div className="text-sm font-black text-primary dark:text-white font-mono">
-                  {language === 'ar' ? 'المستوى = floor(النقاط ÷ 100) + 1' : 'Level = floor(XP ÷ 100) + 1'}
-                </div>
-                <div className="text-[11px] font-bold text-slate-500 mt-1">
-                  {language === 'ar'
-                    ? `${user.points} XP → المستوى ${getUserLevel(user.points)} — يلزمك ${100 - (user.points % 100)} نقطة للمستوى التالي`
-                    : `${user.points} XP → Level ${getUserLevel(user.points)} — ${100 - (user.points % 100)} XP to next level`}
-                </div>
-              </div>
             </section>
 
             {/* XP Progress in achievements tab */}
