@@ -6,11 +6,11 @@ import { cn } from '../lib/utils';
 import { MOCK_BOOKS } from '../data/mockData';
 
 interface DuelResult {
-  readFirst: string;
+  readFirst: 'A' | 'B';
   readFirstReason: string;
   similarities: string[];
   differences: string[];
-  complementary: boolean;
+  complementary: string;
   synergy: number;
 }
 
@@ -26,6 +26,9 @@ export function BookDuel() {
 
   const bookAObj = MOCK_BOOKS.find(b => b.id === bookA);
   const bookBObj = MOCK_BOOKS.find(b => b.id === bookB);
+  const winnerTitle = result
+    ? (result.readFirst === 'A' ? bookAObj?.title : bookBObj?.title) ?? ''
+    : '';
 
   const handleDuel = async () => {
     if (!bookAObj || !bookBObj) return;
@@ -164,7 +167,9 @@ export function BookDuel() {
                   {ar ? 'اقرأه أولاً' : 'Read This First'}
                 </p>
               </div>
-              <p className="text-sm font-black text-primary dark:text-white">{result.readFirst}</p>
+              <p className="text-sm font-black text-primary dark:text-white">
+                {winnerTitle}
+              </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1.5 leading-relaxed">{result.readFirstReason}</p>
             </div>
 
@@ -218,9 +223,9 @@ export function BookDuel() {
                 />
               </div>
               {result.complementary && (
-                <div className={cn('flex items-center gap-1.5 text-[10px] font-bold text-violet-600 dark:text-violet-400', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                  <GitMerge className="w-3 h-3 shrink-0" />
-                  <span>{ar ? 'هذان الكتابان يُكمّل أحدهما الآخر — يُنصح بقراءتهما معاً' : 'These books complement each other — highly recommended to read both'}</span>
+                <div className={cn('flex items-start gap-1.5 text-[10px] font-bold text-violet-600 dark:text-violet-400', dir === 'rtl' ? 'flex-row-reverse text-right' : '')}>
+                  <GitMerge className="w-3 h-3 shrink-0 mt-0.5" />
+                  <span>{result.complementary}</span>
                 </div>
               )}
             </div>

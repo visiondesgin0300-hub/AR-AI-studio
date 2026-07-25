@@ -6,11 +6,11 @@ import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
 import { MOCK_BOOKS } from '../data/mockData';
 
-interface Discipline { name: string; nameEn: string; score: number; }
+interface Discipline { name: string; score: number; }
 interface DNAResult {
   disciplines: Discipline[];
   blindSpot: string;
-  nextBook: { id?: string; title: string; author: string; reason: string; };
+  nextBook: { id?: string; title: string; author?: string; reason: string; };
   readinessScore: number;
   pattern: string;
 }
@@ -26,7 +26,7 @@ function RadarChart({ disciplines }: { disciplines: Discipline[] }) {
   const labelPoints = angles.map((a, i) => ({
     x: cx + (r + 20) * Math.cos(a),
     y: cy + (r + 20) * Math.sin(a),
-    label: disciplines[i].nameEn.length > 10 ? disciplines[i].nameEn.slice(0, 9) + '…' : disciplines[i].nameEn,
+    label: (disciplines[i].name || '').length > 8 ? disciplines[i].name.slice(0, 7) + '…' : disciplines[i].name,
     score: disciplines[i].score,
   }));
   const polyStr = dataPoints.map(p => `${p.x},${p.y}`).join(' ');
@@ -102,7 +102,7 @@ export function ResearchDNA() {
       const res = await fetch('/api/research-dna', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ books }),
+        body: JSON.stringify({ readBooks: books }),
       });
       if (!res.ok) throw new Error('failed');
       setResult(await res.json());
