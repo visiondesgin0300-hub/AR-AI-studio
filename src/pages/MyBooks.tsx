@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, getUserLevel, getEarnedBadges } from '../lib/utils';
+import { cn, getUserLevel, getEarnedBadges, calcXP } from '../lib/utils';
 import {
   AreaChart, Area, BarChart, Bar, XAxis,
   Tooltip, ResponsiveContainer, Cell, CartesianGrid,
@@ -30,6 +30,10 @@ export function MyBooks({ user }: MyBooksProps) {
   const [activeStatTab, setActiveStatTab] = useState<'weekly' | 'categories'>('weekly');
 
   const earnedBadges = getEarnedBadges(user);
+  const xp           = calcXP();
+  const xpLevel      = getUserLevel(xp);
+  const xpInLevel    = xp % 100;
+  const xpToNext     = 100 - xpInLevel;
 
   // ─── day labels ──────────────────────────────────────────────────────────────
   const dayMap: Record<string, string> = {
@@ -83,7 +87,7 @@ export function MyBooks({ user }: MyBooksProps) {
   const stats = {
     books:    user.borrowedBooks.length + 3,
     hours:    borrowedBooks.reduce((s, b) => s + Math.round((b.progress / 100) * 6), 0) + 12,
-    streak:   7 + Math.floor(user.points / 200),
+    streak:   7 + Math.floor(xp / 200),
     badges:   earnedBadges.length,
   };
 
@@ -120,7 +124,7 @@ export function MyBooks({ user }: MyBooksProps) {
               <div className={cn('flex items-center gap-2 flex-wrap', ar ? 'flex-row-reverse' : '')}>
                 <h1 className="text-2xl font-black text-white">{user.name}</h1>
                 <span className="text-[10px] font-black bg-accent text-primary px-2.5 py-1 rounded-lg uppercase tracking-widest">
-                  {t('level')} {getUserLevel(user.points)}
+                  {t('level')} {xpLevel}
                 </span>
               </div>
               <p className="text-white/50 text-xs font-bold mt-1">
@@ -154,19 +158,19 @@ export function MyBooks({ user }: MyBooksProps) {
         <div className="relative mt-8 space-y-2">
           <div className={cn('flex items-center justify-between text-[10px] font-black text-white/50 uppercase tracking-widest', ar ? 'flex-row-reverse' : '')}>
             <span>{t('currentRank')} — {t('eliteReader')}</span>
-            <span>{t('pointsToNextRank', { points: 500 - (user.points % 500) })}</span>
+            <span>{xpToNext} XP {ar ? 'للمستوى التالي' : 'to next level'}</span>
           </div>
           <div className="h-2 rounded-full bg-white/10 border border-white/5 overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${(user.points % 500) / 5}%` }}
+              animate={{ width: `${xpInLevel}%` }}
               transition={{ duration: 1.4, ease: 'easeOut' }}
               className="h-full bg-accent rounded-full shadow-[0_0_12px_rgba(217,179,16,0.5)]"
             />
           </div>
           <div className={cn('flex items-center justify-between text-[10px] font-black text-white/40', ar ? 'flex-row-reverse' : '')}>
-            <span>{user.points} XP</span>
-            <span>{t('level')} {getUserLevel(user.points)}</span>
+            <span>{xp} XP</span>
+            <span>{t('level')} {xpLevel}</span>
           </div>
         </div>
       </div>
@@ -288,7 +292,7 @@ export function MyBooks({ user }: MyBooksProps) {
                     <TrendingUp className="w-4 h-4 text-accent" />
                   </div>
                   <div className={cn('flex items-baseline gap-1.5', ar ? 'flex-row-reverse' : '')}>
-                    <span className="text-5xl font-black text-primary dark:text-white">{user.points}</span>
+                    <span className="text-5xl font-black text-primary dark:text-white">{xp}</span>
                     <span className="text-slate-300 dark:text-slate-600 font-black text-sm uppercase">XP</span>
                   </div>
                 </div>
@@ -301,13 +305,13 @@ export function MyBooks({ user }: MyBooksProps) {
                   <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${(user.points % 500) / 5}%` }}
+                      animate={{ width: `${xpInLevel}%` }}
                       transition={{ duration: 1.2, ease: 'easeOut' }}
                       className="h-full bg-accent rounded-full"
                     />
                   </div>
                   <div className="text-[10px] font-black text-slate-400 text-end">
-                    {t('pointsToNextRank', { points: 500 - (user.points % 500) })}
+                    {t('pointsToNextRank', { points: xpToNext })}
                   </div>
                 </div>
 
