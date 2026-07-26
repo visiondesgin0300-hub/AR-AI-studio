@@ -1,810 +1,689 @@
-import { useState } from 'react';
+/**
+ * Cognitive AR Badge Game — real-time reaction game.
+ * Items (knowledge sources) appear in 6 portal slots.
+ * GREEN items (reliable) must be clicked before they vanish → +score.
+ * RED items (unreliable) must NOT be clicked → let them auto-expire.
+ * Wrong action = −life. 3 lives per level. Combo multiplier rewards streaks.
+ */
+
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Compass, Search, Star, CheckCircle2, XCircle, Lock, X, Zap, Trophy, RotateCcw } from 'lucide-react';
+import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
-const STORAGE_KEY = 'cognitive_ar_game_v1';
+const STORAGE_KEY = 'cognitive_ar_v4';
+const TICK = 100; // ms per game tick
+const SLOTS = 6;
 
-// ── Data ─────────────────────────────────────────────────────────────
+// ── Knowledge source pool ─────────────────────────────────────────────
 
-interface Zone { labelAr: string; labelEn: string; emoji: string; factAr: string; factEn: string; }
-interface Question {
-  qAr: string; qEn: string;
-  options: { ar: string; en: string }[];
-  correct: number;
-  expAr: string; expEn: string;
-}
-interface SortItem { ar: string; en: string; reliable: boolean; }
+const SOURCES = [
+  { ar: 'مقال محكّم في Nature', en: 'Nature peer-reviewed article', reliable: true },
+  { ar: 'تقرير UNESCO الرسمي', en: 'Official UNESCO report', reliable: true },
+  { ar: 'بحث أكاديمي من MIT', en: 'MIT academic research paper', reliable: true },
+  { ar: 'كتاب من جامعة أكسفورد', en: 'Oxford University textbook', reliable: true },
+  { ar: 'إحصائيات منظمة الصحة العالمية', en: 'WHO statistics', reliable: true },
+  { ar: 'مجلة Science المحكّمة', en: 'Science peer-reviewed journal', reliable: true },
+  { ar: 'تقرير البنك الدولي', en: 'World Bank report', reliable: true },
+  { ar: 'ورقة بحثية معتمدة دولياً', en: 'Internationally accredited paper', reliable: true },
+  { ar: 'منشور تويتر بلا مصادر', en: 'Twitter post without sources', reliable: false },
+  { ar: 'مدونة شخصية مجهولة', en: 'Anonymous personal blog', reliable: false },
+  { ar: 'فيديو يوتيوب غير موثق', en: 'Undocumented YouTube video', reliable: false },
+  { ar: 'منتدى إنترنت عشوائي', en: 'Random internet forum', reliable: false },
+  { ar: 'موقع إخباري مجهول المصدر', en: 'Unknown news site', reliable: false },
+  { ar: 'رسالة واتساب غير موثقة', en: 'Unverified WhatsApp message', reliable: false },
+  { ar: 'مدوّنة بلا مراجع', en: 'Blog post without references', reliable: false },
+  { ar: 'إعلان تجاري يتنكّر كبحث', en: 'Commercial ad disguised as research', reliable: false },
+];
 
-interface Badge {
+// ── Level definitions ─────────────────────────────────────────────────
+
+interface Level {
   id: string;
-  Icon: React.ElementType;
   nameAr: string; nameEn: string;
   descAr: string; descEn: string;
+  hintAr: string; hintEn: string;
   xp: number;
-  colorText: string; colorBg: string; colorBorder: string; colorShadow: string;
-  type: 'explore' | 'quiz' | 'sort';
-  titleAr: string; titleEn: string;
-  instructionAr: string; instructionEn: string;
-  zones?: Zone[];
-  questions?: Question[];
-  items?: SortItem[];
+  Icon: React.ElementType;
+  color: string; bg: string; border: string; shadow: string;
+  itemMs: number;    // how long each item stays
+  scanMs: number;    // initial grey "scan" phase before colour shows
+  spawnMs: number;   // interval between spawns
+  maxItems: number;  // max simultaneous items
+  winScore: number;
 }
 
-const BADGES: Badge[] = [
+const LEVELS: Level[] = [
   {
-    id: 'explorer',
-    Icon: Compass,
-    nameAr: 'المستكشف', nameEn: 'Explorer',
-    descAr: 'استكشف أقسام المكتبة بالواقع المعزز', descEn: 'Explore library sections in AR',
-    xp: 50,
-    colorText: 'text-teal-500', colorBg: 'bg-teal-500/10', colorBorder: 'border-teal-500/30', colorShadow: 'shadow-teal-500/20',
-    type: 'explore',
-    titleAr: 'مهمة الاستكشاف', titleEn: 'Exploration Mission',
-    instructionAr: 'امسح ثلاثة أقسام في المكتبة الرقمية لاكتساب المعرفة', instructionEn: 'Scan three digital library sections to gain knowledge',
-    zones: [
-      { labelAr: 'قسم العلوم والتقنية', labelEn: 'Science & Technology', emoji: '🔬',
-        factAr: 'تحتوي المكتبة على أكثر من 50,000 مرجع علمي ومجلة محكّمة في مجالات العلوم والتقنية، متاحة للباحثين رقمياً.',
-        factEn: 'The library holds over 50,000 scientific references and peer-reviewed journals in science and technology, digitally accessible.' },
-      { labelAr: 'قسم الدوريات الأكاديمية', labelEn: 'Academic Journals', emoji: '📰',
-        factAr: 'يمكنك الوصول إلى آلاف المجلات المحكّمة دولياً وتحميل الأبحاث مباشرةً دون الحاجة إلى زيارة المكتبة.',
-        factEn: 'Access thousands of internationally peer-reviewed journals and download research directly without visiting the library.' },
-      { labelAr: 'نظام تصنيف ديوي', labelEn: 'Dewey Classification', emoji: '🗂️',
-        factAr: 'يُنظّم نظام ديوي العشري الكتب في 10 فئات رئيسية (000–900)، مما يسهّل تحديد مكان أي مرجع بدقة متناهية.',
-        factEn: 'The Dewey Decimal System organizes books into 10 main categories (000–900), making any reference precisely locatable.' },
-    ],
+    id: 'explorer', nameAr: 'المستكشف', nameEn: 'Explorer',
+    descAr: 'انقر المصادر الخضراء قبل أن تختفي — تجنّب الحمراء!', descEn: 'Click green sources before they vanish — avoid red ones!',
+    hintAr: 'الأخضر = موثوق ← انقر | الأحمر = تجنّب ← لا تنقر', hintEn: 'Green = reliable → click | Red = avoid → don\'t click',
+    xp: 50, Icon: Compass,
+    color: 'text-teal-400', bg: 'bg-teal-500/15', border: 'border-teal-500/40', shadow: 'shadow-teal-500/30',
+    itemMs: 3200, scanMs: 500, spawnMs: 2000, maxItems: 1, winScore: 80,
   },
   {
-    id: 'researcher',
-    Icon: Search,
-    nameAr: 'الباحث', nameEn: 'Researcher',
-    descAr: 'أثبت إتقانك لمهارات البحث العلمي', descEn: 'Prove your research skills mastery',
-    xp: 75,
-    colorText: 'text-emerald-500', colorBg: 'bg-emerald-500/10', colorBorder: 'border-emerald-500/30', colorShadow: 'shadow-emerald-500/20',
-    type: 'quiz',
-    titleAr: 'اختبار الوعي المعلوماتي', titleEn: 'Information Literacy Quiz',
-    instructionAr: 'أجب على 3 أسئلة بحثية بدقة لإثبات كفاءتك', instructionEn: 'Answer 3 research questions correctly to prove your competency',
-    questions: [
-      {
-        qAr: 'ما أفضل طريقة للتحقق من مصداقية مصدر علمي؟',
-        qEn: 'What is the best way to verify a scientific source\'s credibility?',
-        options: [
-          { ar: 'عدد الإعجابات على وسائل التواصل', en: 'Number of social media likes' },
-          { ar: 'التحكيم العلمي والاستشهادات الأكاديمية', en: 'Peer review and academic citations' },
-          { ar: 'تاريخ النشر فقط', en: 'Publication date only' },
-          { ar: 'شهرة الكاتب فقط', en: 'Author fame only' },
-        ],
-        correct: 1,
-        expAr: 'التحكيم العلمي يضمن مراجعة الأقران للبحث، والاستشهادات تعكس تأثيره في المجتمع العلمي.',
-        expEn: 'Peer review ensures research quality, and citations reflect its impact in the scientific community.',
-      },
-      {
-        qAr: 'ما الفرق بين المصادر الأولية والثانوية؟',
-        qEn: 'What is the difference between primary and secondary sources?',
-        options: [
-          { ar: 'المصادر الأولية أقدم تاريخياً دائماً', en: 'Primary sources are always historically older' },
-          { ar: 'لا فرق بينهما في البحث العلمي', en: 'There is no difference in scientific research' },
-          { ar: 'المصادر الأولية هي البيانات الأصلية، والثانوية تحللها', en: 'Primary sources are original data; secondary sources analyze them' },
-          { ar: 'المصادر الثانوية دائماً أكثر موثوقية', en: 'Secondary sources are always more reliable' },
-        ],
-        correct: 2,
-        expAr: 'المصادر الأولية (كالأبحاث الأصلية) توفر البيانات الخام، بينما تقدم الثانوية تحليلاً ومراجعة لتلك البيانات.',
-        expEn: 'Primary sources (like original research) provide raw data, while secondary sources offer analysis and review of that data.',
-      },
-      {
-        qAr: 'ما هو مؤشر h-index للباحثين؟',
-        qEn: 'What is the h-index citation metric for researchers?',
-        options: [
-          { ar: 'عدد الكتب المنشورة فقط', en: 'Number of books published only' },
-          { ar: 'مقياس يعكس الإنتاجية والتأثير العلمي معاً', en: 'A measure reflecting scientific productivity and impact together' },
-          { ar: 'ترتيب جامعة الباحث دولياً', en: 'Researcher\'s university international ranking' },
-          { ar: 'عدد مؤلفي البحث الواحد', en: 'Number of co-authors per paper' },
-        ],
-        correct: 1,
-        expAr: 'مؤشر h-index يعني أن الباحث نشر (h) ورقة حظيت كل منها بـ(h) اقتباس على الأقل، موازناً الكمية بالتأثير.',
-        expEn: 'The h-index means a researcher published (h) papers each cited at least (h) times, balancing quantity and impact.',
-      },
-    ],
+    id: 'researcher', nameAr: 'الباحث', nameEn: 'Researcher',
+    descAr: 'مصادر متعددة تظهر معاً — سرعة ودقة!', descEn: 'Multiple sources appear together — speed and precision!',
+    hintAr: 'اثنان في وقت واحد — وقت المسح أطول!', hintEn: 'Two at once — scan time is longer now!',
+    xp: 75, Icon: Search,
+    color: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', shadow: 'shadow-emerald-500/30',
+    itemMs: 2600, scanMs: 700, spawnMs: 1700, maxItems: 2, winScore: 130,
   },
   {
-    id: 'distinguished',
-    Icon: Star,
-    nameAr: 'المتميز', nameEn: 'Distinguished',
-    descAr: 'ميّز المصادر الموثوقة من غير الموثوقة', descEn: 'Identify reliable from unreliable sources',
-    xp: 100,
-    colorText: 'text-amber-500', colorBg: 'bg-amber-500/10', colorBorder: 'border-amber-500/30', colorShadow: 'shadow-amber-500/20',
-    type: 'sort',
-    titleAr: 'تحدي تمييز المصادر', titleEn: 'Source Credibility Challenge',
-    instructionAr: 'صنّف 6 مصادر: موثوق أم غير موثوق؟ (5/6 للنجاح)', instructionEn: 'Classify 6 sources: reliable or unreliable? (5/6 to pass)',
-    items: [
-      { ar: 'مقال محكّم في مجلة Nature', en: 'Peer-reviewed article in Nature journal', reliable: true },
-      { ar: 'منشور على تويتر بدون مراجع', en: 'Twitter post without references', reliable: false },
-      { ar: 'كتاب أكاديمي من جامعة أكسفورد', en: 'Academic book from Oxford University', reliable: true },
-      { ar: 'مدونة شخصية بدون مصادر', en: 'Personal blog without sources', reliable: false },
-      { ar: 'تقرير من منظمة الصحة العالمية', en: 'World Health Organization report', reliable: true },
-      { ar: 'فيديو يوتيوب بدون استشهادات', en: 'YouTube video without citations', reliable: false },
-    ],
+    id: 'distinguished', nameAr: 'المتميز', nameEn: 'Distinguished',
+    descAr: 'ثلاثة مصادر دفعة واحدة — ردود خاطفة!', descEn: 'Three sources at once — lightning-fast reactions!',
+    hintAr: 'أصعب مستوى — التمييز في ثانية واحدة', hintEn: 'Hardest level — classify in under a second',
+    xp: 100, Icon: Star,
+    color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/40', shadow: 'shadow-amber-500/30',
+    itemMs: 1900, scanMs: 900, spawnMs: 1400, maxItems: 3, winScore: 160,
   },
 ];
 
-// ── Helpers ───────────────────────────────────────────────────────────
+// ── Game state (held in a ref so the interval closure is always fresh) ──
+
+interface GameItem {
+  id: string;
+  slot: number;
+  src: typeof SOURCES[0];
+  elapsed: number;
+  total: number;   // = level.itemMs
+  scanEnd: number; // = level.scanMs — elapsed before this means grey
+}
+
+interface GS {
+  items: GameItem[];
+  lives: number;
+  score: number;
+  combo: number;
+  maxCombo: number;
+  timeLeft: number; // ms
+  spawnIn: number;  // ms until next spawn
+  feedback: Array<{ id: string; correct: boolean; slot: number }>; // flashes
+}
+
+function newGS(level: Level): GS {
+  return { items: [], lives: 3, score: 0, combo: 0, maxCombo: 0, timeLeft: 45_000, spawnIn: 600, feedback: [] };
+}
+
+let uid = 0;
+function spawnItem(level: Level, occupiedSlots: number[]): GameItem | null {
+  const free: number[] = [];
+  for (let i = 0; i < SLOTS; i++) if (!occupiedSlots.includes(i)) free.push(i);
+  if (free.length === 0) return null;
+  const slot = free[Math.floor(Math.random() * free.length)];
+  const src = SOURCES[Math.floor(Math.random() * SOURCES.length)];
+  return { id: String(++uid), slot, src, elapsed: 0, total: level.itemMs, scanEnd: level.scanMs };
+}
+
+// ── Component ─────────────────────────────────────────────────────────
 
 function loadCompleted(): string[] {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
 }
-function saveCompleted(ids: string[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
-}
-
-// ── Component ─────────────────────────────────────────────────────────
 
 export function CognitiveARGame() {
   const { language } = useLanguage();
   const ar = language === 'ar';
 
   const [completed, setCompleted] = useState<string[]>(loadCompleted);
-  const [activeBadge, setActiveBadge] = useState<Badge | null>(null);
-  const [phase, setPhase] = useState<'hub' | 'challenge' | 'reward'>('hub');
+  const [phase, setPhase] = useState<'hub' | 'countdown' | 'playing' | 'result'>('hub');
+  const [activeLevel, setActiveLevel] = useState<Level | null>(null);
+  const [won, setWon] = useState(false);
+  const [countdown, setCountdown] = useState(3);
 
-  // Explore state
-  const [scanning, setScanning] = useState<number | null>(null);
-  const [scanned, setScanned] = useState<number[]>([]);
+  // render trigger
+  const [tick, setTick] = useState(0);
+  const gsRef = useRef<GS | null>(null);
 
-  // Quiz state
-  const [qIndex, setQIndex] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [showExp, setShowExp] = useState(false);
-  const [score, setScore] = useState(0);
+  const gs = gsRef.current;
+  const totalXP = completed.reduce((s, id) => s + (LEVELS.find(l => l.id === id)?.xp ?? 0), 0);
 
-  // Sort state
-  const [sortIndex, setSortIndex] = useState(0);
-  const [sortFeedback, setSortFeedback] = useState<'correct' | 'wrong' | null>(null);
-  const [sortScore, setSortScore] = useState(0);
-  const [sortDone, setSortDone] = useState(false);
+  // ── Countdown before game starts ──
+  useEffect(() => {
+    if (phase !== 'countdown') return;
+    setCountdown(3);
+    let n = 3;
+    const id = setInterval(() => {
+      n -= 1;
+      setCountdown(n);
+      if (n <= 0) { clearInterval(id); setPhase('playing'); }
+    }, 800);
+    return () => clearInterval(id);
+  }, [phase]);
 
-  const totalXP = completed.reduce((sum, id) => sum + (BADGES.find(b => b.id === id)?.xp ?? 0), 0);
+  // ── Main game loop ──
+  useEffect(() => {
+    if (phase !== 'playing' || !activeLevel) return;
+    if (!gsRef.current) gsRef.current = newGS(activeLevel);
 
-  function startChallenge(badge: Badge) {
-    if (completed.includes(badge.id)) return;
-    setActiveBadge(badge);
-    setPhase('challenge');
-    setScanning(null); setScanned([]);
-    setQIndex(0); setSelected(null); setShowExp(false); setScore(0);
-    setSortIndex(0); setSortFeedback(null); setSortScore(0); setSortDone(false);
+    const id = setInterval(() => {
+      const g = gsRef.current!;
+      let { items, lives, score, combo, maxCombo, timeLeft, spawnIn, feedback } = g;
+
+      timeLeft -= TICK;
+      spawnIn -= TICK;
+
+      // Clear old feedback
+      feedback = feedback.filter(f => {
+        // We'll just keep them briefly — handled via CSS delay
+        (f as any)._age = ((f as any)._age ?? 0) + TICK;
+        return (f as any)._age < 700;
+      });
+
+      // Tick each item
+      const expired: GameItem[] = [];
+      items = items.map(it => {
+        const next = { ...it, elapsed: it.elapsed + TICK };
+        if (next.elapsed >= next.total) expired.push(next);
+        return next;
+      });
+
+      // Process expirations
+      for (const it of expired) {
+        items = items.filter(x => x.id !== it.id);
+        if (it.src.reliable) {
+          // Missed a good source
+          lives = Math.max(0, lives - 1);
+          combo = 0;
+          feedback = [...feedback, { id: it.id, correct: false, slot: it.slot }];
+        }
+        // Unreliable auto-expires → no penalty (player correctly avoided it)
+      }
+
+      // Spawn new item
+      const activeSlots = items.map(x => x.slot);
+      if (spawnIn <= 0 && items.length < activeLevel.maxItems) {
+        const newItem = spawnItem(activeLevel, activeSlots);
+        if (newItem) items = [...items, newItem];
+        spawnIn = activeLevel.spawnMs;
+      }
+
+      maxCombo = Math.max(maxCombo, combo);
+
+      // Check end
+      const over = lives <= 0 || timeLeft <= 0;
+
+      gsRef.current = { items, lives, score, combo, maxCombo, timeLeft, spawnIn, feedback };
+      setTick(t => t + 1);
+
+      if (over) {
+        clearInterval(id);
+        const didWin = score >= activeLevel.winScore;
+        setWon(didWin);
+        if (didWin && !completed.includes(activeLevel.id)) {
+          const next = [...completed, activeLevel.id];
+          setCompleted(next);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        }
+        setPhase('result');
+      }
+    }, TICK);
+
+    return () => clearInterval(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, activeLevel]);
+
+  // ── Click handler ──
+  function handleClick(item: GameItem) {
+    const g = gsRef.current;
+    if (!g || !activeLevel) return;
+    // Must be revealed (scan phase over)
+    if (item.elapsed < item.scanEnd) return;
+
+    let { items, lives, score, combo, maxCombo, feedback } = g;
+    items = items.filter(x => x.id !== item.id);
+
+    if (item.src.reliable) {
+      const multiplier = Math.min(4, 1 + Math.floor(combo / 3));
+      score += 10 * multiplier;
+      combo += 1;
+      maxCombo = Math.max(maxCombo, combo);
+      feedback = [...feedback, { id: item.id, correct: true, slot: item.slot }];
+    } else {
+      lives = Math.max(0, lives - 1);
+      combo = 0;
+      feedback = [...feedback, { id: item.id, correct: false, slot: item.slot }];
+    }
+
+    gsRef.current = { ...g, items, lives, score, combo, maxCombo, feedback };
+    setTick(t => t + 1);
   }
 
-  function earnBadge() {
-    if (!activeBadge) return;
-    const next = [...completed, activeBadge.id];
-    setCompleted(next);
-    saveCompleted(next);
-    setPhase('reward');
+  function startLevel(level: Level) {
+    gsRef.current = null;
+    setActiveLevel(level);
+    setPhase('countdown');
   }
 
-  function closeChallenge() { setPhase('hub'); setActiveBadge(null); }
+  function backToHub() { setPhase('hub'); setActiveLevel(null); gsRef.current = null; }
+  function retry() { gsRef.current = null; if (activeLevel) setPhase('countdown'); }
 
-  // ── Explore handlers ──
-  function handleScan(idx: number) {
-    if (scanning !== null || scanned.includes(idx)) return;
-    setScanning(idx);
-    setTimeout(() => { setScanning(null); setScanned(prev => [...prev, idx]); }, 1600);
-  }
-
-  // ── Quiz handlers ──
-  function handleAnswer(idx: number) {
-    if (selected !== null) return;
-    setSelected(idx);
-    setShowExp(true);
-    if (idx === activeBadge!.questions![qIndex].correct) setScore(s => s + 1);
-  }
-  function nextQuestion() {
-    const total = activeBadge!.questions!.length;
-    if (qIndex + 1 >= total) { earnBadge(); }
-    else { setQIndex(i => i + 1); setSelected(null); setShowExp(false); }
-  }
-
-  // ── Sort handlers ──
-  function handleSort(guess: boolean) {
-    if (sortFeedback !== null) return;
-    const items = activeBadge!.items!;
-    const isCorrect = guess === items[sortIndex].reliable;
-    const fb: 'correct' | 'wrong' = isCorrect ? 'correct' : 'wrong';
-    setSortFeedback(fb);
-    if (isCorrect) setSortScore(s => s + 1);
-    setTimeout(() => {
-      setSortFeedback(null);
-      const next = sortIndex + 1;
-      if (next >= items.length) { setSortDone(true); }
-      else { setSortIndex(next); }
-    }, 900);
-  }
+  // ── Slot positions in a 2×3 grid ──
+  const slotPositions = [
+    { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 },
+    { col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 },
+  ];
 
   // ─────────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-8 pb-10">
+    <div className="space-y-6 pb-10">
 
-      {/* ── Page Header ── */}
-      <div className="space-y-1">
-        <div className="flex items-center gap-3 flex-wrap">
+      {/* ── PAGE HEADER ── */}
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
           <h1 className="text-2xl font-black text-primary dark:text-white tracking-tight">
-            {ar ? 'الوعي المعلوماتي AR' : 'Information Literacy AR'}
+            {ar ? 'لعبة الوعي المعلوماتي AR' : 'Info Literacy AR Game'}
           </h1>
-          <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 text-[10px] font-black uppercase tracking-widest">
-            {ar ? 'لعبة تعليمية' : 'Educational Game'}
-          </span>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">
+            {ar ? 'حدّد المصادر الموثوقة في الوقت الفعلي — اكسب الأوسمة والنقاط'
+                : 'Identify reliable sources in real time — earn badges & XP'}
+          </p>
         </div>
-        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">
-          {ar
-            ? 'أكمل تحديات الواقع المعزز لكسب الأوسمة المعرفية ورفع وعيك المعلوماتي'
-            : 'Complete AR challenges to earn cognitive badges and raise your information awareness'}
-        </p>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/20">
+          <Zap className="w-4 h-4 text-amber-500" />
+          <span className="text-sm font-black text-amber-600 dark:text-amber-400">{totalXP} XP</span>
+        </div>
       </div>
 
-      {/* ── XP & Progress Banner ── */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="official-card p-6 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 dark:from-primary/10 dark:to-primary/10 border border-primary/10 dark:border-white/5"
-      >
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-accent flex items-center justify-center shadow-lg shadow-accent/20">
-              <Zap className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                {ar ? 'نقاط الخبرة المكتسبة' : 'Earned Experience Points'}
-              </div>
-              <div className="text-2xl font-black text-primary dark:text-white">
-                {totalXP} <span className="text-sm font-bold text-slate-400">XP</span>
-              </div>
-            </div>
+      {/* ═══════════════════════════ HUB ═══════════════════════════ */}
+      {phase === 'hub' && (
+        <div className="space-y-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {LEVELS.map((lvl, i) => {
+              const isEarned = completed.includes(lvl.id);
+              const Icon = lvl.Icon;
+              const prevEarned = i === 0 || completed.includes(LEVELS[i - 1].id);
+              return (
+                <motion.div
+                  key={lvl.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1, type: 'spring', stiffness: 280, damping: 24 }}
+                  className={cn(
+                    'official-card p-6 bg-white dark:bg-slate-900 flex flex-col gap-5 relative overflow-hidden',
+                    isEarned && cn('ring-2 ring-offset-2', lvl.border.replace('border-', 'ring-'))
+                  )}
+                >
+                  {/* Earned shimmer */}
+                  {isEarned && <div className={cn('absolute inset-0 opacity-[0.06] pointer-events-none', lvl.bg)} />}
+
+                  {/* Badge icon + level */}
+                  <div className="flex items-start justify-between">
+                    <div className={cn('w-14 h-14 rounded-2xl border-2 flex items-center justify-center shadow-lg', isEarned ? cn(lvl.bg, lvl.border, lvl.shadow) : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700')}>
+                      {isEarned
+                        ? <Icon className={cn('w-7 h-7', lvl.color)} />
+                        : !prevEarned
+                        ? <Lock className="w-6 h-6 text-slate-300 dark:text-slate-600" />
+                        : <Icon className={cn('w-7 h-7', lvl.color)} />}
+                    </div>
+                    <span className={cn('text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest', isEarned ? cn(lvl.bg, lvl.color) : 'bg-slate-100 dark:bg-slate-800 text-slate-400')}>
+                      {isEarned ? (ar ? '✓ مكتسب' : '✓ Earned') : `+${lvl.xp} XP`}
+                    </span>
+                  </div>
+
+                  {/* Info */}
+                  <div>
+                    <div className={cn('text-xs font-black uppercase tracking-widest mb-1', lvl.color)}>
+                      {ar ? lvl.nameAr : lvl.nameEn}
+                    </div>
+                    <p className="text-sm font-bold text-primary dark:text-white leading-snug">
+                      {ar ? lvl.descAr : lvl.descEn}
+                    </p>
+                    <p className="text-[10px] text-slate-400 mt-2 font-medium leading-snug">
+                      {ar ? lvl.hintAr : lvl.hintEn}
+                    </p>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <span>⏱ 45s</span>
+                    <span>❤️ ×3</span>
+                    <span className={lvl.color}>{ar ? 'هدف' : 'Target'}: {lvl.winScore}pts</span>
+                  </div>
+
+                  {/* CTA */}
+                  <motion.button
+                    whileHover={{ scale: prevEarned ? 1.02 : 1 }}
+                    whileTap={{ scale: prevEarned ? 0.97 : 1 }}
+                    disabled={!prevEarned}
+                    onClick={() => startLevel(lvl)}
+                    className={cn(
+                      'mt-auto w-full py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all',
+                      isEarned
+                        ? cn('border-2', lvl.border, lvl.color, lvl.bg)
+                        : prevEarned
+                        ? 'bg-primary dark:bg-white text-white dark:text-primary shadow-xl shadow-primary/20 hover:brightness-110'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed'
+                    )}
+                  >
+                    {!prevEarned
+                      ? (ar ? '🔒 أكمل المستوى السابق' : '🔒 Complete previous level')
+                      : isEarned
+                      ? (ar ? '🔄 العب مجدداً' : '🔄 Play Again')
+                      : (ar ? '▶ ابدأ اللعبة' : '▶ Start Game')}
+                  </motion.button>
+                </motion.div>
+              );
+            })}
           </div>
-          <div className="flex items-center gap-2">
-            {BADGES.map(b => (
-              <div
-                key={b.id}
-                className={cn(
-                  'w-9 h-9 rounded-xl border flex items-center justify-center transition-all',
-                  completed.includes(b.id) ? cn(b.colorBg, b.colorBorder) : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-                )}
-              >
-                <b.Icon className={cn('w-4 h-4', completed.includes(b.id) ? b.colorText : 'text-slate-300 dark:text-slate-600')} />
-              </div>
-            ))}
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest ms-1">
-              {completed.length}/3
-            </span>
-          </div>
-        </div>
 
-        {/* Progress bar */}
-        <div className="mt-4 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-          <motion.div
-            className="h-full bg-accent rounded-full"
-            initial={{ width: 0 }}
-            animate={{ width: `${(completed.length / 3) * 100}%` }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-          />
-        </div>
-      </motion.div>
-
-      {/* ── Badge Cards ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {BADGES.map((badge, i) => {
-          const isEarned = completed.includes(badge.id);
-          const Icon = badge.Icon;
-          return (
-            <motion.div
-              key={badge.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1, type: 'spring', stiffness: 280, damping: 24 }}
-              className={cn(
-                'official-card p-6 bg-white dark:bg-slate-900 flex flex-col gap-5 relative overflow-hidden',
-                isEarned && 'ring-2 ring-offset-2 ring-offset-bg-light dark:ring-offset-bg-dark',
-                isEarned && badge.colorBorder.replace('border-', 'ring-')
-              )}
-            >
-              {/* Earned glow */}
-              {isEarned && (
-                <div className={cn('absolute inset-0 opacity-5 pointer-events-none', badge.colorBg.replace('/10', ''))} />
-              )}
-
-              {/* Lock / earned badge */}
-              <div className="absolute top-4 end-4">
-                {isEarned
-                  ? <CheckCircle2 className={cn('w-5 h-5', badge.colorText)} />
-                  : <Lock className="w-4 h-4 text-slate-300 dark:text-slate-600" />
-                }
-              </div>
-
-              {/* Icon */}
-              <div className={cn(
-                'w-16 h-16 rounded-2xl border flex items-center justify-center shadow-lg',
-                isEarned ? cn(badge.colorBg, badge.colorBorder, badge.colorShadow) : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
-              )}>
-                <Icon className={cn('w-8 h-8', isEarned ? badge.colorText : 'text-slate-300 dark:text-slate-500')} />
-              </div>
-
-              {/* Info */}
-              <div>
-                <div className={cn('text-xs font-black uppercase tracking-widest mb-1', isEarned ? badge.colorText : 'text-slate-400')}>
-                  {ar ? badge.nameAr : badge.nameEn}
+          {/* How to play */}
+          <div className="official-card p-5 bg-white dark:bg-slate-900">
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
+              {ar ? 'كيف تلعب؟' : 'How to Play?'}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { emoji: '🟢', ar: 'المصدر الأخضر = موثوق، انقر عليه قبل انتهاء وقته', en: 'Green source = reliable, click it before time runs out' },
+                { emoji: '🔴', ar: 'المصدر الأحمر = غير موثوق، لا تنقر عليه، دعه يختفي', en: 'Red source = unreliable, don\'t click — let it disappear' },
+                { emoji: '⚡', ar: 'كومبو 3+ تضاعف نقاطك × 2 × 3 × 4', en: 'Combo 3+ multiplies your score ×2 ×3 ×4' },
+                { emoji: '❤️', ar: '3 أرواح — المصدر الأخضر الفائت أو نقر الأحمر تكلفك روحاً', en: '3 lives — missing green or clicking red costs one life' },
+              ].map((h, i) => (
+                <div key={i} className="flex items-start gap-2.5">
+                  <span className="text-xl shrink-0">{h.emoji}</span>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug font-medium">{ar ? h.ar : h.en}</p>
                 </div>
-                <p className="text-sm font-bold text-primary dark:text-white leading-snug">
-                  {ar ? badge.descAr : badge.descEn}
-                </p>
-              </div>
-
-              {/* XP chip */}
-              <div className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black self-start',
-                isEarned ? cn(badge.colorBg, badge.colorText) : 'bg-slate-50 dark:bg-slate-800 text-slate-400'
-              )}>
-                <Zap className="w-3 h-3" />
-                +{badge.xp} XP
-              </div>
-
-              {/* CTA */}
-              <motion.button
-                whileHover={isEarned ? {} : { scale: 1.02 }}
-                whileTap={isEarned ? {} : { scale: 0.97 }}
-                onClick={() => startChallenge(badge)}
-                disabled={isEarned}
-                className={cn(
-                  'mt-auto w-full py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all',
-                  isEarned
-                    ? cn('border-2', badge.colorBorder, badge.colorText, badge.colorBg)
-                    : 'bg-primary dark:bg-accent text-white dark:text-primary shadow-lg shadow-primary/20 dark:shadow-accent/20 hover:brightness-110'
-                )}
-              >
-                {isEarned
-                  ? (ar ? '✓ مكتسب' : '✓ Earned')
-                  : (ar ? 'ابدأ التحدي' : 'Start Challenge')}
-              </motion.button>
-            </motion.div>
-          );
-        })}
-      </div>
-
-      {/* ── How it works ── */}
-      <div className="official-card p-6 bg-white dark:bg-slate-900">
-        <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">
-          {ar ? 'كيف تعمل اللعبة؟' : 'How does it work?'}
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            { emoji: '🔍', titleAr: 'المستكشف', titleEn: 'Explorer', descAr: 'امسح 3 أقسام بالواقع المعزز واكتشف معلومات المكتبة', descEn: 'Scan 3 sections in AR and discover library information' },
-            { emoji: '📚', titleAr: 'الباحث', titleEn: 'Researcher', descAr: 'أجب على 3 أسئلة عن الوعي المعلوماتي والبحث العلمي', descEn: 'Answer 3 questions about information literacy and research' },
-            { emoji: '⭐', titleAr: 'المتميز', titleEn: 'Distinguished', descAr: 'صنّف 6 مصادر وميّز الموثوق من غير الموثوق', descEn: 'Classify 6 sources and identify reliable vs unreliable' },
-          ].map((step, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-xl shrink-0">{step.emoji}</div>
-              <div>
-                <div className="text-xs font-black text-primary dark:text-white">{ar ? step.titleAr : step.titleEn}</div>
-                <div className="text-[11px] text-slate-400 leading-snug mt-0.5">{ar ? step.descAr : step.descEn}</div>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ═══════════════ CHALLENGE OVERLAY ═══════════════ */}
+      {/* ═══════════════════ COUNTDOWN ═══════════════════ */}
       <AnimatePresence>
-        {phase === 'challenge' && activeBadge && (
+        {phase === 'countdown' && activeLevel && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-xl flex flex-col"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950"
           >
-            {/* Decorative AR grid */}
-            <div className="absolute inset-0 pointer-events-none opacity-5"
-              style={{ backgroundImage: 'linear-gradient(rgba(0,200,180,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(0,200,180,.5) 1px,transparent 1px)', backgroundSize: '40px 40px' }}
-            />
-
-            {/* Top bar */}
-            <div className="relative z-10 flex items-center justify-between px-6 py-5 border-b border-white/5">
-              <div className="flex items-center gap-3">
-                <div className={cn('w-8 h-8 rounded-xl border flex items-center justify-center', activeBadge.colorBg, activeBadge.colorBorder)}>
-                  <activeBadge.Icon className={cn('w-4 h-4', activeBadge.colorText)} />
-                </div>
-                <div>
-                  <div className={cn('text-[10px] font-black uppercase tracking-widest', activeBadge.colorText)}>
-                    {ar ? activeBadge.titleAr : activeBadge.titleEn}
-                  </div>
-                  <div className="text-white/50 text-[10px] font-medium">
-                    {ar ? activeBadge.instructionAr : activeBadge.instructionEn}
-                  </div>
-                </div>
+            <div className="absolute inset-0 pointer-events-none opacity-[0.07]"
+              style={{ backgroundImage: 'linear-gradient(rgba(0,220,180,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,180,1) 1px,transparent 1px)', backgroundSize: '44px 44px' }} />
+            <div className="text-center space-y-4 relative z-10">
+              <div className={cn('text-[11px] font-black uppercase tracking-[0.3em]', activeLevel.color)}>
+                {ar ? activeLevel.nameAr : activeLevel.nameEn}
               </div>
-              <button onClick={closeChallenge} className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white transition-all">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Challenge body */}
-            <div className="flex-1 overflow-y-auto p-6 relative z-10">
-
-              {/* ── EXPLORE ── */}
-              {activeBadge.type === 'explore' && (
-                <div className="max-w-lg mx-auto space-y-4">
-                  {activeBadge.zones!.map((zone, idx) => {
-                    const isScanning = scanning === idx;
-                    const isScanned = scanned.includes(idx);
-                    return (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, x: ar ? -20 : 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.1 }}
-                        className={cn(
-                          'rounded-2xl border p-5 transition-all duration-300',
-                          isScanned
-                            ? cn('bg-teal-500/10 border-teal-500/30')
-                            : 'bg-white/5 border-white/10'
-                        )}
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className="relative w-12 h-12 flex items-center justify-center text-2xl">
-                              {zone.emoji}
-                              {isScanning && (
-                                <motion.div
-                                  className="absolute inset-0 rounded-full border-2 border-teal-400"
-                                  animate={{ scale: [1, 1.8], opacity: [1, 0] }}
-                                  transition={{ repeat: Infinity, duration: 0.8 }}
-                                />
-                              )}
-                            </div>
-                            <div className={cn('text-sm font-black', isScanned ? 'text-teal-300' : 'text-white/80')}>
-                              {ar ? zone.labelAr : zone.labelEn}
-                            </div>
-                          </div>
-                          {!isScanned ? (
-                            <motion.button
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => handleScan(idx)}
-                              disabled={isScanning || scanning !== null}
-                              className={cn(
-                                'px-4 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shrink-0',
-                                isScanning
-                                  ? 'bg-teal-500/20 text-teal-300 cursor-wait'
-                                  : scanning !== null
-                                  ? 'bg-white/5 text-white/30 cursor-not-allowed'
-                                  : 'bg-teal-500 text-white hover:bg-teal-400 active:scale-95'
-                              )}
-                            >
-                              {isScanning ? (ar ? 'يمسح...' : 'Scanning...') : (ar ? 'امسح' : 'Scan')}
-                            </motion.button>
-                          ) : (
-                            <div className="flex items-center gap-1.5 text-teal-400 text-[11px] font-black shrink-0">
-                              <CheckCircle2 className="w-4 h-4" /> {ar ? 'مكتشف' : 'Scanned'}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Revealed fact */}
-                        <AnimatePresence>
-                          {isScanned && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0 }}
-                              animate={{ opacity: 1, height: 'auto' }}
-                              className="mt-4 pt-4 border-t border-teal-500/20"
-                            >
-                              <p className="text-sm text-teal-200/80 font-medium leading-relaxed">
-                                💡 {ar ? zone.factAr : zone.factEn}
-                              </p>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </motion.div>
-                    );
-                  })}
-
-                  {/* Complete button */}
-                  <AnimatePresence>
-                    {scanned.length === activeBadge.zones!.length && (
-                      <motion.button
-                        initial={{ opacity: 0, y: 12 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        whileTap={{ scale: 0.97 }}
-                        onClick={earnBadge}
-                        className="w-full py-4 rounded-2xl bg-teal-500 text-white font-black text-sm uppercase tracking-widest shadow-xl shadow-teal-500/30 hover:bg-teal-400 transition-all"
-                      >
-                        {ar ? '🏅 احصل على الوسام' : '🏅 Claim Your Badge'}
-                      </motion.button>
-                    )}
-                  </AnimatePresence>
-                </div>
-              )}
-
-              {/* ── QUIZ ── */}
-              {activeBadge.type === 'quiz' && (
-                <div className="max-w-lg mx-auto space-y-5">
-                  {/* Progress dots */}
-                  <div className="flex items-center justify-center gap-2">
-                    {activeBadge.questions!.map((_, i) => (
-                      <div key={i} className={cn(
-                        'h-1.5 rounded-full transition-all duration-300',
-                        i < qIndex ? 'w-6 bg-emerald-500' : i === qIndex ? 'w-10 bg-emerald-400' : 'w-6 bg-white/10'
-                      )} />
-                    ))}
-                  </div>
-
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={qIndex}
-                      initial={{ opacity: 0, x: ar ? -30 : 30 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: ar ? 30 : -30 }}
-                      className="space-y-4"
-                    >
-                      {/* Question */}
-                      <div className="rounded-2xl bg-white/5 border border-white/10 p-6">
-                        <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-2">
-                          {ar ? `سؤال ${qIndex + 1} من ${activeBadge.questions!.length}` : `Question ${qIndex + 1} of ${activeBadge.questions!.length}`}
-                        </div>
-                        <p className="text-white font-bold text-base leading-relaxed">
-                          {ar ? activeBadge.questions![qIndex].qAr : activeBadge.questions![qIndex].qEn}
-                        </p>
-                      </div>
-
-                      {/* Options */}
-                      <div className="space-y-2">
-                        {activeBadge.questions![qIndex].options.map((opt, oi) => {
-                          const isCorrect = oi === activeBadge.questions![qIndex].correct;
-                          const isSelected = selected === oi;
-                          return (
-                            <motion.button
-                              key={oi}
-                              whileTap={selected === null ? { scale: 0.98 } : {}}
-                              onClick={() => handleAnswer(oi)}
-                              disabled={selected !== null}
-                              className={cn(
-                                'w-full text-start px-5 py-4 rounded-2xl border text-sm font-bold transition-all',
-                                !showExp
-                                  ? 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10 hover:border-white/20'
-                                  : isCorrect
-                                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
-                                  : isSelected
-                                  ? 'bg-red-500/20 border-red-500/50 text-red-300'
-                                  : 'bg-white/3 border-white/5 text-white/30'
-                              )}
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className={cn(
-                                  'w-6 h-6 rounded-lg border text-[10px] font-black flex items-center justify-center shrink-0',
-                                  !showExp ? 'border-white/20 text-white/40' :
-                                  isCorrect ? 'border-emerald-400 text-emerald-400' :
-                                  isSelected ? 'border-red-400 text-red-400' : 'border-white/10 text-white/20'
-                                )}>
-                                  {['A','B','C','D'][oi]}
-                                </div>
-                                {ar ? opt.ar : opt.en}
-                              </div>
-                            </motion.button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Explanation */}
-                      <AnimatePresence>
-                        {showExp && (
-                          <motion.div
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className={cn(
-                              'rounded-2xl p-4 text-sm font-medium leading-relaxed',
-                              selected === activeBadge.questions![qIndex].correct
-                                ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-200'
-                                : 'bg-red-500/10 border border-red-500/30 text-red-200'
-                            )}
-                          >
-                            <div className="flex items-start gap-2">
-                              {selected === activeBadge.questions![qIndex].correct
-                                ? <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0 text-emerald-400" />
-                                : <XCircle className="w-4 h-4 mt-0.5 shrink-0 text-red-400" />}
-                              {ar ? activeBadge.questions![qIndex].expAr : activeBadge.questions![qIndex].expEn}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      {/* Next */}
-                      {showExp && (
-                        <motion.button
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={nextQuestion}
-                          className="w-full py-4 rounded-2xl bg-emerald-500 text-white font-black text-sm uppercase tracking-widest hover:bg-emerald-400 transition-all shadow-xl shadow-emerald-500/20"
-                        >
-                          {qIndex + 1 >= activeBadge.questions!.length
-                            ? (ar ? '🏅 احصل على الوسام' : '🏅 Claim Your Badge')
-                            : (ar ? 'السؤال التالي →' : 'Next Question →')}
-                        </motion.button>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-              )}
-
-              {/* ── SORT ── */}
-              {activeBadge.type === 'sort' && !sortDone && (
-                <div className="max-w-sm mx-auto space-y-5">
-                  {/* Counter */}
-                  <div className="text-center">
-                    <div className="text-[10px] font-black text-amber-400 uppercase tracking-widest">
-                      {ar ? `مصدر ${sortIndex + 1} من ${activeBadge.items!.length}` : `Source ${sortIndex + 1} of ${activeBadge.items!.length}`}
-                    </div>
-                    <div className="mt-2 flex gap-1.5 justify-center">
-                      {activeBadge.items!.map((_, i) => (
-                        <div key={i} className={cn('h-1 rounded-full transition-all', i < sortIndex ? 'w-5 bg-amber-400' : i === sortIndex ? 'w-8 bg-amber-300' : 'w-5 bg-white/10')} />
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Source card */}
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={sortIndex}
-                      initial={{ opacity: 0, scale: 0.92 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 1.05 }}
-                      className={cn(
-                        'rounded-3xl border p-8 text-center transition-all duration-200',
-                        sortFeedback === 'correct' ? 'bg-emerald-500/20 border-emerald-500/40' :
-                        sortFeedback === 'wrong' ? 'bg-red-500/20 border-red-500/40' :
-                        'bg-white/5 border-white/10'
-                      )}
-                    >
-                      <div className="text-4xl mb-4">
-                        {activeBadge.items![sortIndex].reliable ? '📄' : '⚠️'}
-                      </div>
-                      <p className="text-white font-bold text-lg leading-snug">
-                        {ar ? activeBadge.items![sortIndex].ar : activeBadge.items![sortIndex].en}
-                      </p>
-                      {sortFeedback && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={cn('mt-4 text-sm font-black', sortFeedback === 'correct' ? 'text-emerald-400' : 'text-red-400')}
-                        >
-                          {sortFeedback === 'correct' ? (ar ? '✓ إجابة صحيحة!' : '✓ Correct!') : (ar ? '✗ إجابة خاطئة' : '✗ Incorrect')}
-                        </motion.div>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-
-                  {/* Buttons */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleSort(true)}
-                      disabled={sortFeedback !== null}
-                      className="py-5 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 font-black text-sm uppercase tracking-wider hover:bg-emerald-500/30 transition-all disabled:opacity-40"
-                    >
-                      ✅ {ar ? 'موثوق' : 'Reliable'}
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => handleSort(false)}
-                      disabled={sortFeedback !== null}
-                      className="py-5 rounded-2xl bg-red-500/20 border border-red-500/30 text-red-300 font-black text-sm uppercase tracking-wider hover:bg-red-500/30 transition-all disabled:opacity-40"
-                    >
-                      ❌ {ar ? 'غير موثوق' : 'Unreliable'}
-                    </motion.button>
-                  </div>
-                </div>
-              )}
-
-              {/* Sort result */}
-              {activeBadge.type === 'sort' && sortDone && (
-                <div className="max-w-sm mx-auto text-center space-y-6 pt-4">
-                  <div className="text-6xl">{sortScore >= 5 ? '🏆' : '📖'}</div>
-                  <div>
-                    <div className="text-3xl font-black text-white">{sortScore}/{activeBadge.items!.length}</div>
-                    <div className={cn('text-sm font-bold mt-1', sortScore >= 5 ? 'text-emerald-400' : 'text-amber-400')}>
-                      {sortScore >= 5
-                        ? (ar ? 'ممتاز! لديك قدرة على تمييز المصادر' : 'Excellent! You can identify reliable sources')
-                        : (ar ? 'جيد، استمر في التعلم!' : 'Good, keep learning!')}
-                    </div>
-                  </div>
-                  {sortScore >= 5 ? (
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={earnBadge}
-                      className="w-full py-4 rounded-2xl bg-amber-500 text-primary font-black text-sm uppercase tracking-widest shadow-xl shadow-amber-500/30 hover:bg-amber-400 transition-all"
-                    >
-                      {ar ? '🏅 احصل على وسام المتميز' : '🏅 Claim Distinguished Badge'}
-                    </motion.button>
-                  ) : (
-                    <motion.button
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => { setSortIndex(0); setSortFeedback(null); setSortScore(0); setSortDone(false); }}
-                      className="w-full py-4 rounded-2xl bg-white/10 border border-white/20 text-white font-black text-sm uppercase tracking-widest hover:bg-white/15 transition-all flex items-center justify-center gap-2"
-                    >
-                      <RotateCcw className="w-4 h-4" /> {ar ? 'حاول مجدداً' : 'Try Again'}
-                    </motion.button>
-                  )}
-                </div>
-              )}
+              <motion.div
+                key={countdown}
+                initial={{ scale: 2, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="text-[120px] font-black text-white leading-none"
+              >
+                {countdown}
+              </motion.div>
+              <div className="text-white/50 font-bold text-sm">{ar ? 'استعدّ...' : 'Get ready...'}</div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ═══════════════ REWARD MODAL ═══════════════ */}
+      {/* ═══════════════════ GAME SCREEN ═══════════════════ */}
       <AnimatePresence>
-        {phase === 'reward' && activeBadge && (
+        {phase === 'playing' && activeLevel && gs && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-6"
+            className="fixed inset-0 z-50 bg-slate-950 flex flex-col select-none"
+          >
+            {/* AR grid background */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.07]"
+              style={{ backgroundImage: 'linear-gradient(rgba(0,220,180,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,180,1) 1px,transparent 1px)', backgroundSize: '44px 44px' }} />
+
+            {/* ── HUD ── */}
+            <div className="relative z-10 px-4 pt-4 pb-3 border-b border-white/5 flex items-center justify-between gap-4">
+              {/* Lives */}
+              <div className="flex items-center gap-1.5">
+                {[0, 1, 2].map(i => (
+                  <motion.div
+                    key={i}
+                    animate={i >= gs.lives ? { scale: [1.3, 0.8, 1] } : {}}
+                    transition={{ duration: 0.3 }}
+                  >
+                    {i < gs.lives
+                      ? <Heart className="w-5 h-5 text-rose-400 fill-rose-400" />
+                      : <HeartCrack className="w-5 h-5 text-slate-700" />}
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Timer */}
+              <div className="flex flex-col items-center">
+                <div className={cn(
+                  'text-2xl font-black tabular-nums',
+                  gs.timeLeft <= 10000 ? 'text-red-400' : gs.timeLeft <= 20000 ? 'text-amber-400' : 'text-white'
+                )}>
+                  {Math.ceil(gs.timeLeft / 1000)}
+                </div>
+                <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden mt-1">
+                  <motion.div
+                    className={cn('h-full rounded-full', gs.timeLeft <= 10000 ? 'bg-red-400' : 'bg-teal-400')}
+                    style={{ width: `${(gs.timeLeft / 45000) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Score + combo */}
+              <div className="text-end">
+                <div className="text-lg font-black text-white tabular-nums">{gs.score}</div>
+                <div className={cn(
+                  'text-[10px] font-black uppercase tracking-widest transition-colors',
+                  gs.combo >= 6 ? 'text-amber-400' : gs.combo >= 3 ? 'text-emerald-400' : 'text-slate-600'
+                )}>
+                  {gs.combo >= 3 ? `×${Math.min(4, 1 + Math.floor(gs.combo / 3))} 🔥` : `COMBO ${gs.combo}`}
+                </div>
+              </div>
+            </div>
+
+            {/* ── PORTAL GRID ── */}
+            <div className="relative z-10 flex-1 flex items-center justify-center p-4">
+              <div className="grid grid-cols-3 gap-4 w-full max-w-md">
+                {slotPositions.map((pos, slotIdx) => {
+                  const item = gs.items.find(x => x.slot === slotIdx);
+                  const isRevealed = item ? item.elapsed >= item.scanEnd : false;
+
+                  return (
+                    <div key={slotIdx} className="relative aspect-square">
+                      {/* Empty portal */}
+                      <div className="absolute inset-0 rounded-2xl border border-white/5 bg-white/3" />
+
+                      {/* Active item */}
+                      <AnimatePresence>
+                        {item && (
+                          <motion.button
+                            key={item.id}
+                            initial={{ scale: 0.4, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.4, opacity: 0 }}
+                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                            onClick={() => handleClick(item)}
+                            className={cn(
+                              'absolute inset-0 rounded-2xl border-2 flex flex-col items-center justify-center gap-1.5 p-2 overflow-hidden',
+                              !isRevealed
+                                ? 'bg-slate-800/80 border-slate-600/40 cursor-wait'
+                                : item.src.reliable
+                                ? 'bg-teal-950/60 border-teal-400/70 cursor-pointer shadow-[0_0_20px_rgba(20,184,166,0.25)]'
+                                : 'bg-red-950/60 border-red-500/60 cursor-not-allowed shadow-[0_0_20px_rgba(239,68,68,0.2)]'
+                            )}
+                          >
+                            {/* Countdown ring overlay */}
+                            <div
+                              className="absolute inset-0 rounded-2xl pointer-events-none"
+                              style={{
+                                background: `conic-gradient(transparent ${(1 - item.elapsed / item.total) * 360}deg, rgba(255,255,255,0.04) 0deg)`,
+                              }}
+                            />
+
+                            {/* Scan phase: pulsing dots */}
+                            {!isRevealed ? (
+                              <div className="flex gap-1">
+                                {[0, 1, 2].map(i => (
+                                  <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-500"
+                                    animate={{ opacity: [0.3, 1, 0.3] }}
+                                    transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.2 }}
+                                  />
+                                ))}
+                              </div>
+                            ) : (
+                              <>
+                                {/* Reliable: teal glow icon; Unreliable: red danger */}
+                                <div className={cn('text-lg', item.src.reliable ? 'text-teal-300' : 'text-red-400')}>
+                                  {item.src.reliable ? '✓' : '✗'}
+                                </div>
+                                <p className={cn(
+                                  'text-[9px] font-black text-center leading-tight px-1 uppercase tracking-wide',
+                                  item.src.reliable ? 'text-teal-200' : 'text-red-300'
+                                )}>
+                                  {ar ? item.src.ar : item.src.en}
+                                </p>
+                              </>
+                            )}
+
+                            {/* Time bar at bottom */}
+                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20 rounded-b-2xl overflow-hidden">
+                              <div
+                                className={cn('h-full transition-none', isRevealed ? (item.src.reliable ? 'bg-teal-400' : 'bg-red-400') : 'bg-slate-600')}
+                                style={{ width: `${Math.max(0, (1 - item.elapsed / item.total) * 100)}%` }}
+                              />
+                            </div>
+                          </motion.button>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Feedback flash */}
+                      <AnimatePresence>
+                        {gs.feedback.filter(f => f.slot === slotIdx).map(f => (
+                          <motion.div
+                            key={f.id}
+                            initial={{ opacity: 1, scale: 0.5, y: 0 }}
+                            animate={{ opacity: 0, scale: 1.5, y: -30 }}
+                            transition={{ duration: 0.5 }}
+                            className={cn(
+                              'absolute inset-0 rounded-2xl pointer-events-none flex items-center justify-center text-2xl font-black',
+                              f.correct ? 'text-emerald-400' : 'text-red-400'
+                            )}
+                          >
+                            {f.correct ? '+10' : '−♥'}
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Target score indicator */}
+            <div className="relative z-10 px-4 pb-4 flex items-center justify-center gap-3">
+              <div className="h-2 flex-1 max-w-xs bg-white/5 rounded-full overflow-hidden">
+                <motion.div
+                  className={cn('h-full rounded-full', activeLevel.bg.replace('/15', ''))}
+                  style={{ width: `${Math.min(100, (gs.score / activeLevel.winScore) * 100)}%` }}
+                />
+              </div>
+              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
+                {gs.score} / {activeLevel.winScore} {ar ? 'للفوز' : 'to win'}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════════════ RESULT SCREEN ═══════════════════ */}
+      <AnimatePresence>
+        {phase === 'result' && activeLevel && gs && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6"
           >
             <motion.div
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-              className="bg-slate-900 border border-white/10 rounded-3xl p-10 max-w-sm w-full text-center space-y-6 relative overflow-hidden"
+              initial={{ scale: 0.8, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+              className="bg-slate-900 border border-white/10 rounded-3xl p-8 max-w-sm w-full text-center space-y-5 relative overflow-hidden"
             >
-              {/* Glow bg */}
-              <div className={cn('absolute inset-0 opacity-10 pointer-events-none', activeBadge.colorBg)} />
+              <div className={cn('absolute inset-0 opacity-[0.08] pointer-events-none', activeLevel.bg)} />
 
-              {/* Animated badge */}
+              {/* Result icon */}
               <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+                animate={won ? { y: [0, -8, 0] } : { rotate: [0, -5, 5, -3, 0] }}
+                transition={{ repeat: Infinity, duration: won ? 2 : 1, ease: 'easeInOut' }}
                 className={cn(
-                  'w-24 h-24 rounded-3xl border-2 flex items-center justify-center mx-auto shadow-2xl',
-                  activeBadge.colorBg, activeBadge.colorBorder, activeBadge.colorShadow
+                  'w-20 h-20 rounded-3xl border-2 mx-auto flex items-center justify-center shadow-2xl relative z-10',
+                  won ? cn(activeLevel.bg, activeLevel.border) : 'bg-slate-800 border-slate-700'
                 )}
               >
-                <activeBadge.Icon className={cn('w-12 h-12', activeBadge.colorText)} />
+                {won
+                  ? <activeLevel.Icon className={cn('w-10 h-10', activeLevel.color)} />
+                  : <RotateCcw className="w-9 h-9 text-slate-500" />}
               </motion.div>
 
-              {/* Sparkle dots */}
-              {[...Array(6)].map((_, i) => (
+              {/* Particles on win */}
+              {won && [...Array(8)].map((_, i) => (
                 <motion.div
                   key={i}
-                  className={cn('absolute w-2 h-2 rounded-full', activeBadge.colorBg.replace('/10', ''))}
-                  style={{ top: `${20 + Math.sin(i * 60 * Math.PI / 180) * 40}%`, left: `${50 + Math.cos(i * 60 * Math.PI / 180) * 35}%` }}
-                  animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
-                  transition={{ repeat: Infinity, duration: 1.5, delay: i * 0.25 }}
+                  className={cn('absolute w-2 h-2 rounded-full pointer-events-none', activeLevel.bg.replace('/15', ''))}
+                  style={{ top: '35%', left: '50%' }}
+                  animate={{ x: Math.cos(i * 45 * Math.PI / 180) * 80, y: Math.sin(i * 45 * Math.PI / 180) * 80, opacity: [1, 0], scale: [1, 0] }}
+                  transition={{ duration: 0.8, delay: i * 0.05, repeat: Infinity, repeatDelay: 1.5 }}
                 />
               ))}
 
-              <div className="relative z-10">
-                <div className={cn('text-[11px] font-black uppercase tracking-widest mb-1', activeBadge.colorText)}>
-                  {ar ? 'تهانيك! حصلت على وسام' : 'Congratulations! You earned the badge'}
+              <div className="relative z-10 space-y-2">
+                <div className={cn('text-[11px] font-black uppercase tracking-widest', won ? activeLevel.color : 'text-slate-500')}>
+                  {won ? (ar ? '🏆 فزت!' : '🏆 You Won!') : (ar ? 'حاول مجدداً' : 'Try Again')}
                 </div>
-                <div className="text-2xl font-black text-white">
-                  {ar ? activeBadge.nameAr : activeBadge.nameEn}
-                </div>
-                <div className="mt-3 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-black">
-                  <Zap className="w-4 h-4" />
-                  +{activeBadge.xp} XP {ar ? 'مكتسبة' : 'earned'}
-                </div>
+                <div className="text-3xl font-black text-white">{gs.score} pts</div>
+                {won && (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-black">
+                    <Zap className="w-4 h-4" /> +{activeLevel.xp} XP {ar ? 'مكتسبة' : 'earned'}
+                  </div>
+                )}
+                {!won && (
+                  <div className="text-sm text-slate-400 font-medium">
+                    {ar ? `تحتاج ${activeLevel.winScore} نقطة للفوز — حصلت على ${gs.score}` : `Need ${activeLevel.winScore} pts — you scored ${gs.score}`}
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center justify-center gap-2 text-slate-400 text-xs font-medium">
-                <Trophy className="w-4 h-4 text-amber-500" />
-                {completed.length}/3 {ar ? 'أوسمة مكتملة' : 'badges completed'}
+              {/* Stats */}
+              <div className="relative z-10 grid grid-cols-3 gap-3 pt-2 border-t border-white/5">
+                {[
+                  { label: ar ? 'أعلى كومبو' : 'Max Combo', val: `×${gs.maxCombo}` },
+                  { label: ar ? 'الأرواح المتبقية' : 'Lives Left', val: `${gs.lives}/3` },
+                  { label: ar ? 'الوقت المتبقي' : 'Time Left', val: `${Math.floor(gs.timeLeft / 1000)}s` },
+                ].map(stat => (
+                  <div key={stat.label} className="text-center">
+                    <div className="text-base font-black text-white">{stat.val}</div>
+                    <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mt-0.5">{stat.label}</div>
+                  </div>
+                ))}
               </div>
 
-              <motion.button
-                whileTap={{ scale: 0.97 }}
-                onClick={closeChallenge}
-                className="w-full py-4 rounded-2xl bg-white text-primary font-black text-sm uppercase tracking-widest hover:bg-white/90 transition-all"
-              >
-                {completed.length === 3
-                  ? (ar ? '🎉 أكملت جميع التحديات!' : '🎉 All challenges complete!')
-                  : (ar ? 'العودة للتحديات' : 'Back to Challenges')}
-              </motion.button>
+              {/* Buttons */}
+              <div className="relative z-10 flex flex-col gap-2">
+                {!won && (
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={retry}
+                    className="w-full py-3.5 rounded-2xl bg-white text-primary font-black text-sm uppercase tracking-widest hover:bg-white/90 transition-all flex items-center justify-center gap-2">
+                    <RotateCcw className="w-4 h-4" /> {ar ? 'أعد المحاولة' : 'Try Again'}
+                  </motion.button>
+                )}
+                {won && (
+                  <motion.button whileTap={{ scale: 0.97 }} onClick={retry}
+                    className={cn('w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest border-2 flex items-center justify-center gap-2', activeLevel.border, activeLevel.color, activeLevel.bg)}>
+                    <Trophy className="w-4 h-4" /> {ar ? 'العب مجدداً' : 'Play Again'}
+                  </motion.button>
+                )}
+                <motion.button whileTap={{ scale: 0.97 }} onClick={backToHub}
+                  className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-bold text-sm hover:bg-white/10 transition-all">
+                  {ar ? 'العودة للمستويات' : 'Back to Levels'}
+                </motion.button>
+              </div>
             </motion.div>
           </motion.div>
         )}
