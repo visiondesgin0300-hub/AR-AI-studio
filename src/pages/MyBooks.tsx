@@ -2,19 +2,15 @@ import React, { useState, useMemo } from 'react';
 import { User } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import {
-  Award, BookOpen, Clock, MapPin, Zap,
-  TrendingUp, Activity, User as UserIcon,
+  Award, BookOpen, Clock,
+  TrendingUp, User as UserIcon,
   Navigation, Flame, Target, BookMarked, Timer,
-  Lock, CheckCircle2, Search, Star, Compass,
+  Lock, Search, Star, Compass,
   GraduationCap, Trophy, ArrowDown, ArrowUp, ChevronRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, getUserLevel, getEarnedBadges, calcXP } from '../lib/utils';
-import {
-  AreaChart, Area, BarChart, Bar, XAxis,
-  Tooltip, ResponsiveContainer, Cell, CartesianGrid,
-} from 'recharts';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
 
@@ -27,30 +23,11 @@ export function MyBooks({ user }: MyBooksProps) {
 
   const [activeTab, setActiveTab]         = useState<'books' | 'achievements'>('books');
   const [sortOrder, setSortOrder]         = useState<'newest' | 'oldest'>('newest');
-  const [activeStatTab, setActiveStatTab] = useState<'weekly' | 'categories'>('weekly');
-
   const earnedBadges = getEarnedBadges(user);
   const xp           = calcXP();
   const xpLevel      = getUserLevel(xp);
   const xpInLevel    = xp % 100;
   const xpToNext     = 100 - xpInLevel;
-
-  // ─── day labels ──────────────────────────────────────────────────────────────
-  const dayMap: Record<string, string> = {
-    'السبت': t('saturday'), 'الأحد': t('sunday'), 'الاثنين': t('monday'),
-    'الثلاثاء': t('tuesday'), 'الأربعاء': t('wednesday'),
-    'الخميس': t('thursday'),  'الجمعة': t('friday'),
-  };
-
-  const ACTIVITY = useMemo(() => [
-    { day: dayMap['السبت'],    pages: 45 },
-    { day: dayMap['الأحد'],    pages: 52 },
-    { day: dayMap['الاثنين'],  pages: 38 },
-    { day: dayMap['الثلاثاء'], pages: 65 },
-    { day: dayMap['الأربعاء'], pages: 48 },
-    { day: dayMap['الخميس'],   pages: 70 },
-    { day: dayMap['الجمعة'],   pages: 95 },
-  ], [language]);
 
   const catLabel: Record<string, string> = {
     'فيزياء': t('physics'), 'هندسة': t('engineering'),
@@ -78,12 +55,6 @@ export function MyBooks({ user }: MyBooksProps) {
       .sort((a, b) => sortOrder === 'newest' ? b.borrowTs - a.borrowTs : a.borrowTs - b.borrowTs);
   }, [user.borrowedBooks, sortOrder, language]);
 
-  const catStats = useMemo(() => {
-    const counts: Record<string, number> = {};
-    borrowedBooks.forEach(b => { const c = catLabel[b.category] || b.category; counts[c] = (counts[c] || 0) + 1; });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [borrowedBooks]);
-
   const stats = {
     books:    user.borrowedBooks.length + 3,
     hours:    borrowedBooks.reduce((s, b) => s + Math.round((b.progress / 100) * 6), 0) + 12,
@@ -102,8 +73,6 @@ export function MyBooks({ user }: MyBooksProps) {
     { key: 'ملاح',    title: t('badgeNavigator'), desc: t('badgeNavigatorDesc'), Icon: Navigation   },
     { key: 'أكاديمي', title: t('badgeScholar'),  desc: t('badgeScholarDesc'),  Icon: GraduationCap },
   ];
-
-  const CHART_COLORS = ['#004C6D', '#D9B310', '#0B3C5D', '#84cc16'];
 
   return (
     <div dir={dir} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto pb-20">
@@ -226,66 +195,8 @@ export function MyBooks({ user }: MyBooksProps) {
         {activeTab === 'books' && (
           <motion.div key="books" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
 
-            {/* Reading analytics + XP */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-              {/* Chart card */}
-              <div className="official-card lg:col-span-2 p-8 bg-white dark:bg-slate-900 space-y-6">
-                <div className="text-center space-y-2">
-                  <h4 className="text-xl font-black text-primary dark:text-white">{t('weeklyReadingAnalysis')}</h4>
-                  <div className="w-10 h-[3px] bg-accent rounded-full mx-auto" />
-                  <p className="text-[11px] text-slate-400 font-bold">{t('dailyCognitiveProgress')}</p>
-                </div>
-
-                <div className="flex justify-center">
-                  <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    {(['weekly', 'categories'] as const).map(tab => (
-                      <button
-                        key={tab}
-                        onClick={() => setActiveStatTab(tab)}
-                        className={cn(
-                          'px-4 py-1.5 rounded-lg text-[10px] font-black transition-all',
-                          activeStatTab === tab
-                            ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm'
-                            : 'text-slate-400'
-                        )}
-                      >
-                        {tab === 'weekly' ? t('weekly') : t('specialties')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="h-[200px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    {activeStatTab === 'weekly' ? (
-                      <AreaChart data={ACTIVITY} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%"  stopColor="#004C6D" stopOpacity={0.12} />
-                            <stop offset="95%" stopColor="#004C6D" stopOpacity={0}    />
-                          </linearGradient>
-                        </defs>
-                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: 11, fontWeight: 700 }} cursor={{ stroke: '#004C6D', strokeWidth: 1, strokeDasharray: '4 2' }} />
-                        <XAxis dataKey="day" hide />
-                        <Area type="monotone" dataKey="pages" stroke="#004C6D" strokeWidth={2.5} fillOpacity={1} fill="url(#grad)" dot={false} animationDuration={1200} />
-                      </AreaChart>
-                    ) : (
-                      <BarChart data={catStats} margin={{ top: 5, right: 5, left: 5, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#94a3b8' }} />
-                        <Tooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 8px 24px rgba(0,0,0,0.08)', fontSize: 11 }} cursor={{ fill: '#f8fafc' }} />
-                        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                          {catStats.map((_, i) => <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />)}
-                        </Bar>
-                      </BarChart>
-                    )}
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* XP card */}
-              <div className="official-card p-8 bg-white dark:bg-slate-900 space-y-6 flex flex-col justify-between">
+            {/* XP card */}
+            <div className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
                 <div>
                   <div className={cn('flex items-center justify-between mb-6', ar ? 'flex-row-reverse' : '')}>
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('experiencePointsTitle')}</span>
@@ -322,7 +233,6 @@ export function MyBooks({ user }: MyBooksProps) {
                     </span>
                   ))}
                 </div>
-              </div>
             </div>
 
             {/* ── Borrowed books ─────────────────────────────────────────────── */}
