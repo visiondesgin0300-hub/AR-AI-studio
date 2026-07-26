@@ -49,15 +49,15 @@ export function MyBooks({ user }: MyBooksProps) {
           returnDate: ret.toLocaleDateString(locale, fmt),
           borrowTs:   borrow.getTime(),
           daysLeft,
-          progress:   Math.floor(Math.random() * 60) + 20,
+          progress:   ((parseInt(book.id) * 13) % 61) + 20,
         };
       })
       .sort((a, b) => sortOrder === 'newest' ? b.borrowTs - a.borrowTs : a.borrowTs - b.borrowTs);
   }, [user.borrowedBooks, sortOrder, language]);
 
   const stats = {
-    books:    user.borrowedBooks.length + 3,
-    hours:    borrowedBooks.reduce((s, b) => s + Math.round((b.progress / 100) * 6), 0) + 12,
+    books:    user.borrowedBooks.length,
+    hours:    borrowedBooks.reduce((s, b) => s + Math.round((b.progress / 100) * 6), 0),
     streak:   7 + Math.floor(xp / 200),
     badges:   earnedBadges.length,
   };

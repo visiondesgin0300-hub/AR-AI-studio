@@ -23,7 +23,6 @@ export function Dashboard({ user }: DashboardProps) {
   const mostRead = MOCK_BOOKS.slice(0, 4);
   const categories: string[] = Array.from(new Set(MOCK_BOOKS.map(b => b.category)));
   const [selectedCategory, setSelectedCategory] = React.useState(categories[0]);
-  const [searchQuery, setSearchQuery] = React.useState('');
 
   const categoryTranslationMap: Record<string, string> = {
     'فيزياء': t('physics'),
@@ -33,20 +32,9 @@ export function Dashboard({ user }: DashboardProps) {
   };
 
   const filteredBooks = React.useMemo(() => {
-    let books = MOCK_BOOKS;
-    if (selectedCategory) {
-      books = books.filter(b => b.category === selectedCategory);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      books = books.filter(b => 
-        b.title.toLowerCase().includes(q) || 
-        b.author.toLowerCase().includes(q) || 
-        b.description.toLowerCase().includes(q)
-      );
-    }
-    return books;
-  }, [selectedCategory, searchQuery]);
+    if (!selectedCategory) return MOCK_BOOKS;
+    return MOCK_BOOKS.filter(b => b.category === selectedCategory);
+  }, [selectedCategory]);
 
   // Smart Recommendations Logic
   const recommendationCategories = Array.from(new Set(
