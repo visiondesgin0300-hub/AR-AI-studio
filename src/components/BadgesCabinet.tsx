@@ -6,6 +6,7 @@ import { User } from '../types';
 import { cn } from '../lib/utils';
 import { getEarnedBadges } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
+import { calcXP } from '../lib/utils';
 
 interface BadgesCabinetProps {
   user: User;
@@ -23,6 +24,7 @@ const ALL_BADGES = [
     unlockAr: 'افتح خريطة المكتبة أو العب مستوى المستكشف',
     unlockEn: 'Open the library map or play Explorer level',
     xp: 50,
+    xpRequired: 20,
   },
   {
     id: 'باحث',
@@ -35,6 +37,7 @@ const ALL_BADGES = [
     unlockAr: 'تنقّل بين 3 رفوف أو العب مستوى الباحث',
     unlockEn: 'Visit 3 shelves or play Researcher level',
     xp: 75,
+    xpRequired: 45,
   },
   {
     id: 'متميز',
@@ -47,6 +50,7 @@ const ALL_BADGES = [
     unlockAr: 'رحلة عبر جميع أقسام المكتبة أو العب مستوى المتميز',
     unlockEn: 'Journey all library sections or play Distinguished level',
     xp: 100,
+    xpRequired: 80,
   },
 ];
 
@@ -75,6 +79,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
   const earnedCount  = earnedBadges.length;
   const totalCount   = ALL_BADGES.length;
   const allEarned    = earnedCount === totalCount;
+  const currentXP    = calcXP();
 
   // Show celebration once when all badges are first earned this session
   const [showCelebration, setShowCelebration] = useState(false);
@@ -218,15 +223,30 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                 +{badge.xp} XP
               </div>
 
-              {!isEarned && (
+              {!isEarned && currentXP >= badge.xpRequired && (
                 <Link
                   to="/cognitive-ar"
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/8 dark:bg-white/5 border border-primary/15 dark:border-white/10 text-primary dark:text-white/70 hover:bg-primary/15 dark:hover:bg-white/10 transition-colors"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-colors"
                   onClick={e => e.stopPropagation()}
                 >
                   <Gamepad2 className="w-3 h-3" />
                   <span className="text-[9px] font-black">{isAr ? 'العب لاكتسابه' : 'Play to earn'}</span>
                 </Link>
+              )}
+              {!isEarned && currentXP < badge.xpRequired && (
+                <div className="w-full flex flex-col items-center gap-1">
+                  <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-accent/50 transition-all"
+                      style={{ width: `${Math.min((currentXP / badge.xpRequired) * 100, 100)}%` }}
+                    />
+                  </div>
+                  <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
+                    {isAr
+                      ? `${badge.xpRequired - currentXP} XP إضافية`
+                      : `${badge.xpRequired - currentXP} XP needed`}
+                  </span>
+                </div>
               )}
             </motion.div>
           );
