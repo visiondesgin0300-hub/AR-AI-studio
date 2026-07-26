@@ -62,6 +62,24 @@ function getGeminiClient(): GoogleGenAI | null {
   return ai;
 }
 
+// Retry Gemini calls up to 3 times on 429 with exponential backoff
+async function withGeminiRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      const status = (err as { status?: number })?.status ?? (err as { code?: number })?.code;
+      const isQuota = status === 429 || String(err).includes('RESOURCE_EXHAUSTED');
+      if (isQuota && attempt < retries - 1) {
+        await new Promise(r => setTimeout(r, 1500 * 2 ** attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('Gemini retry limit reached');
+}
+
 // REST api route: basic liveness check — no internal config exposed
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
@@ -120,7 +138,7 @@ ${catalogue}
 - reason: جملة قصيرة جداً (أقل من 15 كلمة) بالعربية تشرح سبب اقتراح هذا الكتاب للطالب.`;
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "أنت مساعد يختار كتباً متنوعة لمحاكاة تجريبية داخل تطبيق مكتبة ذكية.",
@@ -275,7 +293,7 @@ app.post("/api/chat", async (req, res) => {
     }));
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: conversation as any,
       config: {
         systemInstruction: sysInstruction,
@@ -356,7 +374,7 @@ app.post("/api/search-insights", async (req, res) => {
     `;
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "أنت بروفيسور أكاديمي ومحلل معلومات بمكتبة جامعية متطورة تقدم توجيهات بحثية بالغة الدقة."
@@ -401,7 +419,7 @@ app.post("/api/summarize-chapter", async (req, res) => {
     `;
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "You are an elite academic tutor helping students study smartly."
@@ -472,8 +490,8 @@ app.post("/api/book-insight", async (req, res) => {
     - keyThemes: مصفوفة من 3 مواضيع رئيسية يغطيها الكتاب.
     - recommendedReading: مصفوفة من 2 إلى 3 عناوين أو مواضيع مقترحة للقراءة قبله أو بعده.`;
 
-    const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+    const response = await withGeminiRetry(() => client.models.generateContent({
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "أنت أمين مكتبة أكاديمي يكتب ملفات معرفية موجزة ودقيقة للكتب.",
@@ -488,7 +506,7 @@ app.post("/api/book-insight", async (req, res) => {
           required: ["summary"],
         },
       },
-    });
+    }));
 
     const parsed = JSON.parse(response.text || "{}");
     return res.json({
@@ -497,7 +515,8 @@ app.post("/api/book-insight", async (req, res) => {
       recommendedReading: parsed.recommendedReading?.length ? parsed.recommendedReading : fallback.recommendedReading,
     });
   } catch (error: any) {
-    console.error("Gemini Book Insight Error: ", error);
+    const isQuota = String(error).includes('RESOURCE_EXHAUSTED') || error?.status === 429;
+    if (!isQuota) console.error("Gemini Book Insight Error: ", error);
     return res.json(fallback);
   }
 });
@@ -529,7 +548,7 @@ app.post("/api/vision-scan", async (req, res) => {
       .join('\n');
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [
         {
           role: "user",
@@ -686,7 +705,7 @@ app.post("/api/librarian-chat", async (req, res) => {
     }));
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: conversation as any,
       config: {
         systemInstruction: `أنت "رفيق"، المساعد الذكي لمكتبة جامعية متطورة. أجب بالعربية بإيجاز ووضوح.
@@ -732,7 +751,7 @@ app.post("/api/translate-book", async (req, res) => {
   const isToAr = targetLang === 'ar';
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{
@@ -795,7 +814,7 @@ app.post("/api/book-speaks", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{
@@ -873,7 +892,7 @@ app.post("/api/knowledge-relations", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{ text: `أنت مساعد مكتبة أكاديمية متخصص في الربط المعرفي بين الكتب.
@@ -921,7 +940,7 @@ app.post("/api/hidden-bridges", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{ text: `أنت باحث متخصص في "المعرفة العامة غير المكتشفة" (Swanson 1986).
@@ -974,7 +993,7 @@ app.post("/api/bridge-question", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{ text: `أنت باحث في نظرية "المعرفة العامة غير المكتشفة" (Swanson 1986).
@@ -1158,7 +1177,7 @@ app.post("/api/gap-scan", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{ text: `You are a research methodology expert helping a PhD student identify literature gaps.
@@ -1268,7 +1287,7 @@ app.post("/api/research-mirror", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{ role: "user", parts: [{ text:
         `أنت مستشار بحثي متخصص في علم المكتبات.
 موضوع رسالة الطالب: "${topic}"${abstract ? `\nملخص: "${abstract}"` : ''}
@@ -1343,7 +1362,7 @@ app.post("/api/research-dna", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{ role: "user", parts: [{ text:
         `أنت مرشد بحثي. حلّل نمط قراءة الطالب:
 الكتب التي قرأها:\n${bookList}
@@ -1406,7 +1425,7 @@ app.post("/api/book-duel", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{ role: "user", parts: [{ text:
         `قارن بين هذين الكتابين للطالب:
 (A) "${sanitizeInput(bookA.title,100)}" — ${sanitizeInput(bookA.author,80)} — ${sanitizeInput(bookA.category,60)}
@@ -1503,7 +1522,7 @@ app.post("/api/reading-roadmap", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{ role: "user", parts: [{ text:
         `أنت مكتبي ذكي. الطالب يريد خطة قراءة متدرجة في موضوع: "${cleanTopic}".
 
@@ -1582,7 +1601,7 @@ app.post("/api/oman-corner", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: `أنت "عارف" — مرشد ثقافي ذكي في ركن عُمان بالمكتبة الجامعية. تتحدث بأسلوب حماسي وعلمي موجز.
 الموضوع: ${contextAr || stationId}
 اكتب 2-3 جمل بالعربية تُدهش الطالب بمعلومة غير متوقعة وتربطها بالفكر العلمي أو الحداثي.
@@ -1651,8 +1670,8 @@ app.post("/api/quiz-questions", async (req, res) => {
 لكل سؤال: نص السؤال بالعربية والإنجليزية، و3 خيارات، خيار واحد فقط صحيح.
 الأسئلة يجب أن تكون متنوعة وتقيس فهماً حقيقياً لمصادر المعلومات الأكاديمية.`;
 
-    const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+    const response = await withGeminiRetry(() => client.models.generateContent({
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "أنت خبير تربوي في محو الأمية المعلوماتية. أجب بـ JSON فقط.",
@@ -1687,14 +1706,15 @@ app.post("/api/quiz-questions", async (req, res) => {
           required: ["questions"],
         },
       },
-    });
+    }));
 
     const parsed = JSON.parse(response.text || "{}");
     const questions = parsed.questions?.slice(0, 3);
     if (!questions || questions.length < 2) return res.json({ questions: fallbackQuestions });
     return res.json({ questions });
   } catch (err: any) {
-    console.error('[quiz-questions]', err);
+    const isQuota = String(err).includes('RESOURCE_EXHAUSTED') || (err as any)?.status === 429;
+    if (!isQuota) console.error('[quiz-questions]', err);
     return res.json({ questions: fallbackQuestions });
   }
 });
