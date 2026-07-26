@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Sparkles, FlaskConical } from 'lucide-react';
+import { Home, BookOpen, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, X, Sparkles } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
 import { cn, calcXP } from '../lib/utils';
@@ -25,7 +25,6 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showLibrarian, setShowLibrarian] = useState(false);
-  const [showCameraMenu, setShowCameraMenu] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showFabHint, setShowFabHint] = useState(() => !localStorage.getItem('ar_fab_seen'));
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'));
@@ -185,60 +184,13 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         </div>
       </aside>
 
-      {/* Camera action FAB — tapping opens a quick menu: scan a shelf QR
-          code, open the books map with AR guide, or open facilities map. */}
-      {showCameraMenu && (
-        <div className="fixed inset-0 z-30" onClick={() => setShowCameraMenu(false)} />
-      )}
+      {/* Smart Lens FAB — direct entry point to the AR camera experience */}
       <div className={cn(
         'fixed z-40 bottom-28 lg:bottom-10 flex flex-col items-end gap-2',
         dir === 'rtl' ? 'left-5 lg:left-10 items-start' : 'right-5 lg:right-10 items-end'
       )}>
         <AnimatePresence>
-          {showCameraMenu && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.85, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.85, y: 10 }}
-              transition={{ type: 'spring', damping: 26, stiffness: 320 }}
-              className="flex flex-col gap-2 mb-1"
-            >
-              {[
-                { icon: Sparkles,     labelAr: 'نجوم المعرفة AR',   labelEn: 'Knowledge Stars AR', path: '/knowledge-stars', accent: false, green: false, adminOnly: false },
-                { icon: FlaskConical, labelAr: 'الجسور المخفية AR', labelEn: 'Hidden Bridges AR',  path: '/hidden-bridges',  accent: false, green: false, adminOnly: false },
-                { icon: QrCode,       labelAr: 'مسح رمز QR',        labelEn: 'Scan Shelf QR',      path: '/scan',            accent: false, green: false, adminOnly: false },
-                { icon: Map,          labelAr: 'خريطة المراجع AR',  labelEn: 'Books Map AR',       path: '/map',             accent: false, green: false, adminOnly: false },
-                { icon: Compass,      labelAr: 'مرافق AR',          labelEn: 'Facilities AR',      path: '/facilities',      accent: false, green: false, adminOnly: false },
-              ].filter(item => !item.adminOnly || isAdmin).map((item, i) => {
-                const Icon = item.icon;
-                return (
-                  <motion.button
-                    key={item.path}
-                    initial={{ opacity: 0, x: dir === 'rtl' ? -16 : 16 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.04 }}
-                    onClick={() => { setShowCameraMenu(false); navigate(item.path); }}
-                    className={cn(
-                      'flex items-center gap-3 px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-widest shadow-xl whitespace-nowrap active:scale-95 transition-transform',
-                      item.accent
-                        ? 'bg-accent text-primary shadow-accent/30'
-                        : item.green
-                        ? 'bg-emerald-500 text-white shadow-emerald-500/30'
-                        : 'bg-primary text-white shadow-primary/30',
-                      dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'
-                    )}
-                  >
-                    <Icon className="w-4 h-4 shrink-0" />
-                    <span>{language === 'ar' ? item.labelAr : item.labelEn}</span>
-                  </motion.button>
-                );
-              })}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence>
-          {showFabHint && !showCameraMenu && (
+          {showFabHint && (
             <motion.div
               initial={{ opacity: 0, y: 8, scale: 0.92 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -250,7 +202,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 "px-4 py-3 bg-primary dark:bg-slate-800 text-white rounded-2xl shadow-2xl text-[11px] font-black leading-snug max-w-[160px] text-center",
                 dir === 'rtl' ? 'text-right' : 'text-left'
               )}>
-                {language === 'ar' ? 'اضغط لفتح قائمة AR' : 'Tap to open AR menu'}
+                {language === 'ar' ? 'العدسة الذكية — كاميرا AR' : 'Smart Lens — AR Camera'}
                 <button
                   onClick={(e) => { e.stopPropagation(); dismissFabHint(); }}
                   className="absolute -top-2 -right-2 w-5 h-5 bg-slate-600 hover:bg-slate-500 rounded-full flex items-center justify-center transition-colors"
@@ -258,7 +210,6 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                   <X className="w-2.5 h-2.5 text-white" />
                 </button>
               </div>
-              {/* Arrow pointing down toward the FAB */}
               <div className={cn(
                 "absolute -bottom-2 w-4 h-2 overflow-hidden",
                 dir === 'rtl' ? 'left-5' : 'right-5'
@@ -270,30 +221,18 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         </AnimatePresence>
 
         <motion.button
-          onClick={() => { dismissFabHint(); setShowCameraMenu(!showCameraMenu); }}
+          onClick={() => { dismissFabHint(); navigate('/smart-lens'); }}
           whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.92 }}
-          title={t('arHubFabLabel')}
+          title={language === 'ar' ? 'العدسة الذكية' : 'Smart Lens'}
           className={cn(
             'flex items-center gap-3 pl-4 pr-5 py-4 rounded-full bg-accent text-primary shadow-[0_15px_40px_rgba(217,179,16,0.45)] group relative',
           )}
         >
-          {!showCameraMenu && (
-            <span className="absolute inset-0 rounded-full bg-accent animate-ping opacity-30 pointer-events-none" />
-          )}
-          <AnimatePresence mode="wait" initial={false}>
-            {showCameraMenu ? (
-              <motion.div key="x" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                <X className="w-5 h-5 relative z-10 shrink-0" />
-              </motion.div>
-            ) : (
-              <motion.div key="cam" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                <Camera className="w-5 h-5 relative z-10 shrink-0" />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          <span className="absolute inset-0 rounded-full bg-accent animate-ping opacity-30 pointer-events-none" />
+          <Camera className="w-5 h-5 relative z-10 shrink-0" />
           <span className="hidden sm:inline lg:max-w-0 lg:overflow-hidden lg:group-hover:max-w-[220px] whitespace-nowrap text-[11px] font-black uppercase tracking-widest relative z-10 transition-all duration-300">
-            {t('arHubFabLabel')}
+            {language === 'ar' ? 'العدسة الذكية' : 'Smart Lens'}
           </span>
         </motion.button>
       </div>
