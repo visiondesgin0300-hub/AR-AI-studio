@@ -4,6 +4,7 @@ import {
   Lock, Flame, Timer, Trophy, BookMarked,
   TrendingUp, Mail, BookOpen, Gamepad2, MapPin,
   Search as SearchIcon, ChevronRight,
+  Bell, AlertTriangle, Info, CheckCircle2, Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
@@ -13,6 +14,7 @@ import {
 } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface ProfileProps { user: User }
 
@@ -31,6 +33,8 @@ export function Profile({ user }: ProfileProps) {
   const navigate  = useNavigate();
   const { language, dir } = useLanguage();
   const ar        = language === 'ar';
+
+  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
 
   const xp           = calcXP();
   const level        = getUserLevel(xp);
@@ -329,6 +333,115 @@ export function Profile({ user }: ProfileProps) {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* ── Notifications ───────────────────────────────────────────────────── */}
+      <div className="official-card p-8 bg-white dark:bg-slate-900 space-y-5">
+        {/* header */}
+        <div className={cn('flex items-center justify-between', ar ? 'flex-row-reverse' : '')}>
+          <div className={cn('flex items-center gap-3', ar ? 'flex-row-reverse' : '')}>
+            <div className="relative">
+              <Bell className="w-5 h-5 text-primary dark:text-accent" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">
+                  {unreadCount}
+                </span>
+              )}
+            </div>
+            <h3 className="text-lg font-black text-primary dark:text-white">
+              {ar ? 'الإشعارات' : 'Notifications'}
+            </h3>
+            {unreadCount > 0 && (
+              <span className="text-[9px] font-black bg-red-50 dark:bg-red-900/20 text-red-500 px-2 py-0.5 rounded-lg">
+                {unreadCount} {ar ? 'جديد' : 'new'}
+              </span>
+            )}
+          </div>
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllAsRead}
+              className={cn('flex items-center gap-1.5 text-[10px] font-black text-accent uppercase tracking-widest hover:opacity-70 transition-opacity', ar ? 'flex-row-reverse' : '')}
+            >
+              <Check className="w-3 h-3" />
+              {ar ? 'تعيين الكل مقروءاً' : 'Mark all read'}
+            </button>
+          )}
+        </div>
+
+        {/* list */}
+        {notifications.length === 0 ? (
+          <div className="py-10 text-center space-y-3">
+            <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center mx-auto">
+              <Bell className="w-6 h-6 text-slate-200 dark:text-slate-600" />
+            </div>
+            <p className="text-xs font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">
+              {ar ? 'لا توجد إشعارات' : 'No notifications'}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {notifications.map((notif, i) => (
+              <motion.div
+                key={notif.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                onClick={() => {
+                  markAsRead(notif.id);
+                  if (notif.link) navigate(notif.link);
+                }}
+                className={cn(
+                  'flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer group',
+                  ar ? 'flex-row-reverse' : '',
+                  notif.isRead
+                    ? 'bg-slate-50/50 dark:bg-slate-800/20 border-slate-100 dark:border-white/5 hover:bg-slate-100/60 dark:hover:bg-slate-800/40'
+                    : 'bg-white dark:bg-slate-900 border-accent/20 shadow-sm hover:border-accent/40',
+                )}
+              >
+                {/* type icon */}
+                <div className={cn(
+                  'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                  notif.type === 'alert'   ? 'bg-red-100 dark:bg-red-900/20 text-red-500'
+                  : notif.type === 'warning' ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-500'
+                  : 'bg-blue-100 dark:bg-blue-900/20 text-blue-500',
+                )}>
+                  {notif.type === 'alert' || notif.type === 'warning'
+                    ? <AlertTriangle className="w-4.5 h-4.5" />
+                    : <Info className="w-4.5 h-4.5" />
+                  }
+                </div>
+
+                {/* content */}
+                <div className={cn('flex-1 min-w-0', ar ? 'text-right' : '')}>
+                  <div className={cn('flex items-start justify-between gap-2', ar ? 'flex-row-reverse' : '')}>
+                    <p className="text-xs font-black text-primary dark:text-white leading-snug">
+                      {notif.title}
+                    </p>
+                    <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 shrink-0 whitespace-nowrap">
+                      {ar ? 'منذ قليل' : 'just now'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] font-bold text-slate-400 mt-1 leading-relaxed line-clamp-2">
+                    {notif.message}
+                  </p>
+                  {notif.link && (
+                    <span className={cn('inline-flex items-center gap-1 mt-1.5 text-[9px] font-black text-accent uppercase tracking-widest', ar ? 'flex-row-reverse' : '')}>
+                      {ar ? 'عرض التفاصيل ←' : '→ View details'}
+                    </span>
+                  )}
+                </div>
+
+                {/* unread dot OR read check */}
+                <div className="shrink-0 mt-1">
+                  {notif.isRead
+                    ? <CheckCircle2 className="w-3.5 h-3.5 text-slate-200 dark:text-slate-700" />
+                    : <span className="w-2.5 h-2.5 rounded-full bg-accent block" />
+                  }
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Borrowed books quick-link ────────────────────────────────────────── */}
