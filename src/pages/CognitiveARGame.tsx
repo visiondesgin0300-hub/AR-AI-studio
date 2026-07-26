@@ -127,6 +127,8 @@ export function CognitiveARGame() {
   const { language } = useLanguage();
   const ar = language === 'ar';
 
+  useEffect(() => { import('../lib/utils').then(m => m.trackARVisit('cognitive-ar')); }, []);
+
   const [completed, setCompleted] = useState<string[]>(loadCompleted);
   const [phase, setPhase] = useState<'hub' | 'countdown' | 'playing' | 'result'>('hub');
   const [activeLevel, setActiveLevel] = useState<Level | null>(null);

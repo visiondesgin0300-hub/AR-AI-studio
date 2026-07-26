@@ -33,6 +33,8 @@ export function SmartLens() {
   const { language, dir } = useLanguage();
   const ar = language === 'ar';
 
+  useEffect(() => { import('../lib/utils').then(m => m.trackARVisit('smart-lens')); }, []);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);

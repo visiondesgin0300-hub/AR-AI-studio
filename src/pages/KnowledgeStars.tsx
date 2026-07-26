@@ -65,6 +65,8 @@ export function KnowledgeStars() {
   const { language } = useLanguage();
   const ar = language === 'ar';
 
+  useEffect(() => { import('../lib/utils').then(m => m.trackARVisit('knowledge-stars')); }, []);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);

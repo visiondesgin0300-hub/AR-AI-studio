@@ -64,6 +64,8 @@ export function HiddenBridges() {
   const { language } = useLanguage();
   const ar = language === 'ar';
 
+  useEffect(() => { import('../lib/utils').then(m => m.trackARVisit('hidden-bridges')); }, []);
+
   const videoRef  = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const svgRef    = useRef<SVGSVGElement>(null);

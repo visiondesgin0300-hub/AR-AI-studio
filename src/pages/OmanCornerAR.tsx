@@ -186,6 +186,8 @@ export function OmanCornerAR() {
   const { language, dir } = useLanguage();
   const ar = language === 'ar';
 
+  useEffect(() => { import('../lib/utils').then(m => m.trackARVisit('oman-corner')); }, []);
+
   const [active, setActive] = useState<Station | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(loadCompleted);
   const [guideText, setGuideText] = useState('');
