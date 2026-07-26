@@ -27,6 +27,7 @@ import { ReadingRoadmap } from './pages/ReadingRoadmap';
 import { LibraryQuest } from './pages/LibraryQuest';
 import { OmanCornerAR } from './pages/OmanCornerAR';
 import { CognitiveARGame } from './pages/CognitiveARGame';
+import { Profile } from './pages/Profile';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -129,8 +130,12 @@ function AppContent() {
           }
         />
         <Route
-          path="/my-books" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><MyBooks user={user} /></Layout> : <Navigate to="/login" />} 
+          path="/my-books"
+          element={user ? <Layout user={user} onLogout={handleLogout}><MyBooks user={user} /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/profile"
+          element={user ? <Layout user={user} onLogout={handleLogout}><Profile user={user} /></Layout> : <Navigate to="/login" />}
         />
         <Route 
           path="/admin" 

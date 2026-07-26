@@ -1,0 +1,358 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Lock, Flame, Timer, Trophy, BookMarked,
+  TrendingUp, Mail, BookOpen, Gamepad2, MapPin,
+  Search as SearchIcon, ChevronRight,
+} from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { User } from '../types';
+import {
+  cn, getUserLevel, getEarnedBadges, calcXP,
+  getLoginCount, getSearchCount, getMapVisits,
+} from '../lib/utils';
+import { useLanguage } from '../hooks/useLanguage';
+import { BadgesCabinet } from '../components/BadgesCabinet';
+
+interface ProfileProps { user: User }
+
+// ── XP source breakdown ───────────────────────────────────────────────────────
+function useXpBreakdown() {
+  const visits    = getMapVisits();
+  const mapXp     = visits.includes('map') ? 20 : 0;
+  const placeCount = visits.filter(v => /^[A-Z]-\d/.test(v) || v === 'facilities').length;
+  const shelvesXp = placeCount * 15;
+  const loginXp   = Math.min(getLoginCount(), 5) * 10;
+  const searchXp  = Math.min(getSearchCount(), 5) * 10;
+  return { mapXp, shelvesXp, loginXp, searchXp, placeCount };
+}
+
+export function Profile({ user }: ProfileProps) {
+  const navigate  = useNavigate();
+  const { language, dir } = useLanguage();
+  const ar        = language === 'ar';
+
+  const xp           = calcXP();
+  const level        = getUserLevel(xp);
+  const xpInLevel    = xp % 100;
+  const xpToNext     = 100 - xpInLevel;
+  const earnedBadges = getEarnedBadges(user);
+  const loginCount   = getLoginCount();
+  const bookCount    = user.borrowedBooks.length;
+  const { mapXp, shelvesXp, loginXp, searchXp, placeCount } = useXpBreakdown();
+
+  // ── Lock conditions ────────────────────────────────────────────────────────
+  const hoursLocked  = bookCount === 0;
+  const streakLocked = loginCount < 2;
+  const badgesLocked = earnedBadges.length === 0;
+  const xpZero       = xp === 0;
+
+  const statsData = [
+    {
+      id: 'books',
+      icon: BookMarked,
+      labelAr: 'كتب مستعارة',
+      labelEn: 'Borrowed Books',
+      value: bookCount,
+      locked: false,
+      hintAr: '',
+      hintEn: '',
+    },
+    {
+      id: 'hours',
+      icon: Timer,
+      labelAr: 'ساعات القراءة',
+      labelEn: 'Reading Hours',
+      value: bookCount * 3,
+      locked: hoursLocked,
+      hintAr: 'استعر كتاباً لفتح هذه الإحصائية',
+      hintEn: 'Borrow a book to unlock',
+    },
+    {
+      id: 'streak',
+      icon: Flame,
+      labelAr: 'جلسات الدخول',
+      labelEn: 'Login Sessions',
+      value: loginCount,
+      locked: streakLocked,
+      hintAr: 'سجّل دخولك مرتين لفتح هذه الإحصائية',
+      hintEn: 'Log in twice to unlock',
+    },
+    {
+      id: 'badges',
+      icon: Trophy,
+      labelAr: 'أوسمة مكتسبة',
+      labelEn: 'Badges Earned',
+      value: earnedBadges.length,
+      locked: badgesLocked,
+      hintAr: 'اكسب XP والعب لفتح الأوسمة',
+      hintEn: 'Earn XP & play to unlock',
+    },
+  ];
+
+  const xpSources = [
+    { icon: MapPin,       labelAr: 'خريطة المكتبة',  labelEn: 'Library Map',   earned: mapXp,     max: 20,   detail: ar ? 'مرة واحدة'  : 'once'       },
+    { icon: BookOpen,     labelAr: 'زيارة الرفوف',   labelEn: 'Shelf Visits',  earned: shelvesXp, max: null,  detail: ar ? `${placeCount} رف` : `${placeCount} shelves` },
+    { icon: Flame,        labelAr: 'تسجيل الدخول',  labelEn: 'Login Sessions', earned: loginXp,   max: 50,   detail: ar ? 'بحد أقصى ٥' : 'cap 5'       },
+    { icon: SearchIcon,   labelAr: 'البحث الذكي',    labelEn: 'Smart Search',  earned: searchXp,  max: 50,   detail: ar ? 'بحد أقصى ٥' : 'cap 5'       },
+  ];
+
+  return (
+    <div dir={dir} className="space-y-8 max-w-3xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-[2rem] bg-primary p-8 md:p-10">
+        <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+
+        <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-6">
+          {/* avatar */}
+          <div className="w-20 h-20 rounded-2xl bg-white/15 border-2 border-white/20 flex items-center justify-center shrink-0 shadow-xl">
+            <span className="text-3xl font-black text-white uppercase">{user.name.charAt(0)}</span>
+          </div>
+
+          {/* identity */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-black text-white leading-tight">{user.name}</h1>
+            <div className={cn('flex items-center gap-2 mt-1.5 flex-wrap', ar ? 'flex-row-reverse justify-end' : '')}>
+              <span className="flex items-center gap-1 text-[10px] text-white/50 font-bold truncate max-w-[200px]">
+                <Mail className="w-3 h-3 shrink-0" />{user.email}
+              </span>
+              <span className="text-[10px] font-black bg-accent text-primary px-2.5 py-0.5 rounded-lg uppercase tracking-widest shrink-0">
+                {ar ? 'المستوى' : 'Level'} {level}
+              </span>
+            </div>
+            {/* mini XP bar in hero */}
+            <div className="mt-3 space-y-1">
+              <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${xpInLevel}%` }}
+                  transition={{ duration: 1.4, ease: 'easeOut' }}
+                  className="h-full bg-accent rounded-full"
+                />
+              </div>
+              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">
+                {xp} XP — {ar ? `${xpToNext} للمستوى التالي` : `${xpToNext} to next level`}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── XP breakdown ─────────────────────────────────────────────────────── */}
+      <div className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
+        <div className={cn('flex items-center justify-between', ar ? 'flex-row-reverse' : '')}>
+          <div>
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              {ar ? 'نقاط الخبرة الشخصية' : 'Personal XP'}
+            </span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <span className="text-5xl font-black text-primary dark:text-white">{xp}</span>
+              <span className="text-slate-300 dark:text-slate-600 font-black text-sm uppercase">XP</span>
+            </div>
+          </div>
+          <TrendingUp className="w-5 h-5 text-accent" />
+        </div>
+
+        {/* level progress bar */}
+        <div className="space-y-2">
+          <div className="h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${xpInLevel}%` }}
+              transition={{ duration: 1.4, ease: 'easeOut' }}
+              className="h-full bg-accent rounded-full shadow-[0_0_12px_rgba(217,179,16,0.4)]"
+            />
+          </div>
+          <div className={cn('flex items-center justify-between text-[10px] font-black text-slate-400', ar ? 'flex-row-reverse' : '')}>
+            <span>{xp} / {level * 100} XP</span>
+            <span>{ar ? `${xpToNext} XP للمستوى التالي` : `${xpToNext} XP to next level`}</span>
+          </div>
+        </div>
+
+        {/* XP source breakdown */}
+        <div className="pt-2 border-t border-slate-100 dark:border-white/5 space-y-2">
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
+            {ar ? 'مصادر الخبرة' : 'XP Sources'}
+          </p>
+          {xpSources.map(({ icon: Icon, labelAr, labelEn, earned, max, detail }, i) => (
+            <div key={i} className={cn('flex items-center gap-3', ar ? 'flex-row-reverse' : '')}>
+              <div className="w-7 h-7 rounded-lg bg-primary/8 flex items-center justify-center shrink-0">
+                <Icon className="w-3.5 h-3.5 text-primary dark:text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className={cn('flex items-center justify-between gap-2', ar ? 'flex-row-reverse' : '')}>
+                  <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate">
+                    {ar ? labelAr : labelEn}
+                  </span>
+                  <span className={cn('text-[11px] font-black shrink-0', earned > 0 ? 'text-accent' : 'text-slate-300 dark:text-slate-600')}>
+                    +{earned} XP
+                  </span>
+                </div>
+                <div className="h-1 rounded-full bg-slate-100 dark:bg-slate-800 mt-1 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: max ? `${Math.min((earned / max) * 100, 100)}%` : earned > 0 ? '100%' : '0%' }}
+                    transition={{ duration: 0.8, ease: 'easeOut', delay: i * 0.1 }}
+                    className="h-full bg-accent rounded-full"
+                  />
+                </div>
+              </div>
+              <span className="text-[9px] font-bold text-slate-400 shrink-0 min-w-[40px] text-end">{detail}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* motivational CTA when XP = 0 */}
+        <AnimatePresence>
+          {xpZero && (
+            <motion.div
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="p-4 rounded-2xl bg-accent/8 border border-accent/20 text-center"
+            >
+              <p className="text-[11px] font-bold text-primary dark:text-accent leading-relaxed">
+                {ar
+                  ? '🗺️ افتح خريطة المكتبة لتبدأ رحلتك وتكسب أول نقاطك!'
+                  : '🗺️ Open the library map to start your journey and earn your first XP!'}
+              </p>
+              <button
+                onClick={() => navigate('/map')}
+                className="mt-3 px-5 py-2 bg-primary dark:bg-accent text-white dark:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all"
+              >
+                {ar ? 'اذهب للخريطة' : 'Open Map'}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Stats grid ───────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {statsData.map(({ id, icon: Icon, labelAr, labelEn, value, locked, hintAr, hintEn }, i) => (
+          <motion.div
+            key={id}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.07 }}
+            className={cn(
+              'official-card p-5 flex flex-col items-center text-center gap-2.5 relative overflow-hidden min-h-[110px]',
+              locked ? 'bg-slate-50 dark:bg-slate-900/40' : 'bg-white dark:bg-slate-900',
+            )}
+          >
+            {/* icon */}
+            <div className={cn(
+              'w-10 h-10 rounded-xl flex items-center justify-center',
+              locked ? 'bg-slate-100 dark:bg-slate-800' : 'bg-primary/10 dark:bg-accent/10',
+            )}>
+              {locked
+                ? <Lock className="w-4 h-4 text-slate-300 dark:text-slate-600" />
+                : <Icon className="w-4 h-4 text-primary dark:text-accent" />
+              }
+            </div>
+
+            {/* value */}
+            <div className={cn(
+              'text-2xl font-black',
+              locked ? 'blur-sm select-none text-slate-300 dark:text-slate-700' : 'text-primary dark:text-white',
+            )}>
+              {locked ? '??' : value}
+            </div>
+
+            {/* label */}
+            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-tight">
+              {ar ? labelAr : labelEn}
+            </div>
+
+            {/* lock overlay hint */}
+            {locked && (hintAr || hintEn) && (
+              <div className="absolute inset-0 flex items-end justify-center pb-3 px-2 bg-gradient-to-t from-slate-50/95 dark:from-slate-900/95 to-transparent rounded-[inherit]">
+                <p className="text-[8px] font-bold text-slate-400 text-center leading-snug">
+                  {ar ? hintAr : hintEn}
+                </p>
+              </div>
+            )}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* ── Badges & achievements ────────────────────────────────────────────── */}
+      <div className="official-card p-8 bg-white dark:bg-slate-900 space-y-6 relative overflow-hidden">
+        <div className={cn('flex items-center justify-between', ar ? 'flex-row-reverse' : '')}>
+          <div>
+            <h3 className="text-lg font-black text-primary dark:text-white">
+              {ar ? 'الأوسمة والإنجازات' : 'Badges & Achievements'}
+            </h3>
+            <div className="w-8 h-[3px] bg-accent rounded-full mt-1.5" />
+          </div>
+          <span className={cn(
+            'text-[10px] font-black px-3 py-1 rounded-xl',
+            earnedBadges.length === 3
+              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400'
+              : 'bg-accent/10 text-accent',
+          )}>
+            {earnedBadges.length === 3 && '🏆 '}{earnedBadges.length}/3 {ar ? 'مكتسب' : 'earned'}
+          </span>
+        </div>
+
+        <BadgesCabinet user={user} />
+
+        {/* locked section CTA — only when no badges yet */}
+        <AnimatePresence>
+          {badgesLocked && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className={cn('flex flex-col sm:flex-row items-center gap-4 p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-white/5', ar ? 'flex-row-reverse text-right' : '')}
+            >
+              <Lock className="w-6 h-6 text-slate-300 dark:text-slate-600 shrink-0" />
+              <div className="flex-1">
+                <p className="text-xs font-black text-primary dark:text-white">
+                  {ar ? 'الأوسمة مقفلة' : 'Badges Locked'}
+                </p>
+                <p className="text-[10px] font-bold text-slate-400 mt-0.5">
+                  {ar
+                    ? 'اكسب نقاط XP من الخريطة والبحث، ثم العب اللعبة لفتح الأوسمة'
+                    : 'Earn XP from the map and search, then play the game to unlock badges'}
+                </p>
+              </div>
+              <button
+                onClick={() => navigate('/cognitive-ar')}
+                className={cn('flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary dark:bg-accent text-white dark:text-primary text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all shrink-0', ar ? 'flex-row-reverse' : '')}
+              >
+                <Gamepad2 className="w-3.5 h-3.5" />
+                {ar ? 'العب الآن' : 'Play Now'}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Borrowed books quick-link ────────────────────────────────────────── */}
+      <button
+        onClick={() => navigate('/my-books')}
+        className={cn(
+          'w-full official-card p-5 bg-white dark:bg-slate-900 flex items-center gap-4 hover:border-accent hover:shadow-md transition-all group',
+          ar ? 'flex-row-reverse' : '',
+        )}
+      >
+        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors">
+          <BookOpen className="w-4 h-4 text-primary dark:text-accent" />
+        </div>
+        <div className={cn('flex-1 text-start', ar ? 'text-right' : '')}>
+          <p className="text-sm font-black text-primary dark:text-white">
+            {ar ? 'الكتب المستعارة' : 'Borrowed Books'}
+          </p>
+          <p className="text-[10px] font-bold text-slate-400">
+            {ar ? `${bookCount} كتاب حالياً` : `${bookCount} books currently`}
+          </p>
+        </div>
+        <ChevronRight className={cn('w-4 h-4 text-slate-300 group-hover:text-primary dark:group-hover:text-accent transition-colors shrink-0', ar ? 'rotate-180' : '')} />
+      </button>
+
+    </div>
+  );
+}
