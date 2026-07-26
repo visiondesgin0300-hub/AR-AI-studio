@@ -12,8 +12,19 @@ export function getUserLevel(points: number): number {
   return Math.floor(points / 100) + 1;
 }
 
-// Single source of truth for which badges a user has earned, shared across
-// the app's badges cabinets.
+// Badges are auto-calculated from user activity — no game required.
+// مستكشف  → XP ≥ 50  or borrowed/read ≥ 1 book
+// باحث     → XP ≥ 150 or total read ≥ 3 books
+// متميز    → XP ≥ 200
 export function getEarnedBadges(user: User): string[] {
-  return user.badges;
+  const earned: string[] = [];
+  const p = user.points ?? 0;
+  const r = user.totalReadCount ?? 0;
+  const b = user.borrowedBooks?.length ?? 0;
+
+  if (p >= 50  || b >= 1 || r >= 1) earned.push('مستكشف');
+  if (p >= 150 || r >= 3)            earned.push('باحث');
+  if (p >= 200)                       earned.push('متميز');
+
+  return earned;
 }

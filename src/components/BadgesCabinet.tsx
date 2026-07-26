@@ -17,8 +17,8 @@ const ALL_BADGES = [
     colorEarned: 'text-blue-600 bg-blue-500/10 border-blue-500/20',
     titleAr: 'مستكشف',
     titleEn: 'Explorer',
-    unlockAr: 'استكشف خريطة المكتبة',
-    unlockEn: 'Explore the library map',
+    unlockAr: 'استعر كتاباً واحداً أو اجمع 50 XP',
+    unlockEn: 'Borrow 1 book or reach 50 XP',
     xp: 50,
   },
   {
@@ -27,8 +27,8 @@ const ALL_BADGES = [
     colorEarned: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20',
     titleAr: 'باحث',
     titleEn: 'Researcher',
-    unlockAr: 'ابحث عن 5 كتب',
-    unlockEn: 'Search for 5 books',
+    unlockAr: 'اقرأ 3 كتب أو اجمع 150 XP',
+    unlockEn: 'Read 3 books or reach 150 XP',
     xp: 75,
   },
   {
@@ -37,8 +37,8 @@ const ALL_BADGES = [
     colorEarned: 'text-yellow-600 bg-yellow-500/10 border-yellow-500/20',
     titleAr: 'متميز',
     titleEn: 'Distinguished',
-    unlockAr: 'حقق 200 نقطة XP',
-    unlockEn: 'Reach 200 XP points',
+    unlockAr: 'اجمع 200 XP',
+    unlockEn: 'Reach 200 XP',
     xp: 100,
   },
 ];
