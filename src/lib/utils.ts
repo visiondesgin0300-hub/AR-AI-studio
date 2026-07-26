@@ -18,6 +18,11 @@ export function getUserLevel(points: number): number {
 const MAP_VISITS_KEY   = 'map_visits_v2';
 const LOGIN_COUNT_KEY  = 'login_count_v1';
 const SEARCH_COUNT_KEY = 'search_count_v1';
+const GAME_KEY         = 'cognitive_ar_v4';
+
+function getCompletedGameLevels(): string[] {
+  try { return JSON.parse(localStorage.getItem(GAME_KEY) || '[]'); } catch { return []; }
+}
 
 export function trackMapVisit(locationId: string): void {
   try {
@@ -71,30 +76,35 @@ export function calcXP(): number {
   return xp;
 }
 
-// Single source of truth for earned badges
+// Single source of truth for earned badges.
+// A badge can be earned via map/shelf navigation OR by completing the
+// corresponding level in CognitiveARGame (whichever comes first).
 export function getEarnedBadges(_user: User): string[] {
   const visits  = getMapVisits();
   const places  = getPlaceCount();
-  const logins  = getLoginCount();
+  const game    = getCompletedGameLevels();
   const earned: string[] = [];
 
-  // مستكشف: فتح الخريطة مرة واحدة
-  if (visits.includes('map') || visits.includes('facilities')) {
+  // مستكشف — فتح الخريطة  OR  إتمام مستوى المستكشف في اللعبة
+  if (visits.includes('map') || visits.includes('facilities') || game.includes('explorer')) {
     earned.push('مستكشف');
   }
 
-  // باحث: التنقل بين ≥ 3 رفوف أو أماكن مختلفة
-  if (places >= 3) {
+  // باحث — التنقل بين ≥ 3 رفوف  OR  إتمام مستوى الباحث في اللعبة
+  if (places >= 3 || game.includes('researcher')) {
     earned.push('باحث');
   }
 
-  // متميز: زيارة رف واحد على الأقل من كل قسم (A, B, C, D) — رحلة كاملة
+  // متميز — رحلة عبر جميع الأقسام  OR  إتمام مستوى المتميز في اللعبة
   const ALL_SECTIONS = ['A', 'B', 'C', 'D'];
   const visitedSections = new Set(
     visits.filter(v => /^[A-Z]-\d/.test(v)).map(v => v.split('-')[0])
   );
   const completedJourney = ALL_SECTIONS.every(s => visitedSections.has(s));
-  if (completedJourney && earned.includes('مستكشف') && earned.includes('باحث')) {
+  if (
+    (completedJourney || game.includes('distinguished')) &&
+    earned.includes('مستكشف') && earned.includes('باحث')
+  ) {
     earned.push('متميز');
   }
 

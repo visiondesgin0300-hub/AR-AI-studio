@@ -425,6 +425,27 @@ export function Dashboard({ user }: DashboardProps) {
           </p>
         </div>
         <BadgesCabinet user={user} />
+
+        {/* Game CTA */}
+        <Link
+          to="/cognitive-ar"
+          className="flex items-center justify-between px-5 py-3.5 rounded-2xl bg-primary/5 dark:bg-white/5 border border-primary/10 dark:border-white/10 hover:bg-primary/10 dark:hover:bg-white/8 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-white/10 flex items-center justify-center">
+              <Gamepad2 className="w-4 h-4 text-primary dark:text-white" />
+            </div>
+            <div>
+              <div className="text-xs font-black text-primary dark:text-white">
+                {language === 'ar' ? 'لعبة الوعي المعرفي' : 'Cognitive Awareness Game'}
+              </div>
+              <div className="text-[10px] text-slate-400 font-medium">
+                {language === 'ar' ? 'العب واجتز الاختبار لاكتساب الأوسمة مباشرةً' : 'Play & pass the quiz to earn badges instantly'}
+              </div>
+            </div>
+          </div>
+          <ChevronRight className={cn('w-4 h-4 text-slate-400 group-hover:text-primary dark:group-hover:text-white transition-colors', language === 'ar' && 'rotate-180')} />
+        </Link>
       </section>
 
       {/* ── Section divider: Explore ── */}

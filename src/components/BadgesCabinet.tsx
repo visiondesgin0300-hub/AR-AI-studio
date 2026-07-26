@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Star, Compass, Lock, Zap, Trophy } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, Star, Compass, Lock, Zap, Trophy, Gamepad2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
@@ -13,35 +14,38 @@ interface BadgesCabinetProps {
 const ALL_BADGES = [
   {
     id: 'مستكشف',
+    gameLevel: 'explorer',
     icon: Compass,
     colorEarned: 'text-blue-600 bg-blue-500/10 border-blue-500/20',
     glowClass: 'shadow-blue-500/30',
     titleAr: 'مستكشف',
     titleEn: 'Explorer',
-    unlockAr: 'افتح خريطة المكتبة مرة واحدة',
-    unlockEn: 'Open the library map once',
+    unlockAr: 'افتح خريطة المكتبة أو العب مستوى المستكشف',
+    unlockEn: 'Open the library map or play Explorer level',
     xp: 50,
   },
   {
     id: 'باحث',
+    gameLevel: 'researcher',
     icon: Search,
     colorEarned: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20',
     glowClass: 'shadow-emerald-500/30',
     titleAr: 'باحث',
     titleEn: 'Researcher',
-    unlockAr: 'تنقّل بين 3 رفوف أو أماكن مختلفة',
-    unlockEn: 'Navigate to 3 different shelves or places',
+    unlockAr: 'تنقّل بين 3 رفوف أو العب مستوى الباحث',
+    unlockEn: 'Visit 3 shelves or play Researcher level',
     xp: 75,
   },
   {
     id: 'متميز',
+    gameLevel: 'distinguished',
     icon: Star,
     colorEarned: 'text-yellow-600 bg-yellow-500/10 border-yellow-500/20',
     glowClass: 'shadow-yellow-500/30',
     titleAr: 'متميز',
     titleEn: 'Distinguished',
-    unlockAr: 'تنقّل في جميع أقسام المكتبة — رحلة كاملة',
-    unlockEn: 'Visit every library section — a complete journey',
+    unlockAr: 'رحلة عبر جميع أقسام المكتبة أو العب مستوى المتميز',
+    unlockEn: 'Journey all library sections or play Distinguished level',
     xp: 100,
   },
 ];
@@ -213,6 +217,17 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
               <div className={cn('text-[9px] font-black px-2 py-0.5 rounded-lg', isEarned ? 'bg-accent/10 text-accent' : 'bg-slate-100 dark:bg-slate-800 text-slate-400')}>
                 +{badge.xp} XP
               </div>
+
+              {!isEarned && (
+                <Link
+                  to="/cognitive-ar"
+                  className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-primary/8 dark:bg-white/5 border border-primary/15 dark:border-white/10 text-primary dark:text-white/70 hover:bg-primary/15 dark:hover:bg-white/10 transition-colors"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Gamepad2 className="w-3 h-3" />
+                  <span className="text-[9px] font-black">{isAr ? 'العب لاكتسابه' : 'Play to earn'}</span>
+                </Link>
+              )}
             </motion.div>
           );
         })}
