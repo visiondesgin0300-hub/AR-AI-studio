@@ -66,7 +66,7 @@ function getPlaceCount(): number {
   return getMapVisits().filter(v => /^[A-Z]-\d/.test(v) || v === 'facilities').length;
 }
 
-// XP for display: map open=20, each place/shelf=15, login bonus 10/session (cap 3)
+// XP for display: map open=20, each place/shelf=15, login bonus 10/session (cap 5)
 export function calcXP(): number {
   const visits = getMapVisits();
   let xp = 0;

@@ -346,14 +346,11 @@ export function MyBooks({ user }: MyBooksProps) {
                 </h4>
                 <div className="w-10 h-[3px] bg-accent rounded-full mx-auto" />
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {[
-                  { icon: '📚', ar: 'استعارة كتاب',  en: 'Borrow a book',   pts: 50  },
-                  { icon: '🔍', ar: 'بحث ذكي',       en: 'Smart search',    pts: 10  },
-                  { icon: '📍', ar: 'الوصول للرف',   en: 'Navigate shelf',  pts: 20  },
-                  { icon: '🔬', ar: 'ماسح الفجوات',  en: 'Gap scanner',     pts: 100 },
-                  { icon: '🏆', ar: 'فتح وسام',      en: 'Unlock badge',    pts: 150 },
-                  { icon: '📖', ar: 'قراءة فصل',     en: 'Read chapter',    pts: 30  },
+                  { icon: '🗺️', ar: 'فتح خريطة المكتبة',  en: 'Open library map',    pts: 20,  note: ar ? 'مرة واحدة'        : 'once'         },
+                  { icon: '📍', ar: 'زيارة رف أو قسم', en: 'Visit a shelf/section', pts: 15,  note: ar ? 'لكل رف'           : 'per shelf'    },
+                  { icon: '🔑', ar: 'تسجيل الدخول',    en: 'Login session',          pts: 10,  note: ar ? 'بحد أقصى ٥ مرات'  : 'max 5 times'  },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
@@ -364,8 +361,11 @@ export function MyBooks({ user }: MyBooksProps) {
                   >
                     <span className="text-xl shrink-0">{item.icon}</span>
                     <div className={cn('flex-1 min-w-0', ar ? 'text-right' : '')}>
-                      <div className="text-[11px] font-black text-primary dark:text-white truncate">{ar ? item.ar : item.en}</div>
-                      <div className="text-[10px] font-black text-accent">+{item.pts} XP</div>
+                      <div className="text-[11px] font-black text-primary dark:text-white">{ar ? item.ar : item.en}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span className="text-[10px] font-black text-accent">+{item.pts} XP</span>
+                        {'note' in item && <span className="text-[9px] font-bold text-slate-400">{(item as { note: string }).note}</span>}
+                      </div>
                     </div>
                   </motion.div>
                 ))}
