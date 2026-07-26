@@ -4,16 +4,18 @@
  * GREEN items (reliable) must be clicked before they vanish → +score.
  * RED items (unreliable) must NOT be clicked → let them auto-expire.
  * Wrong action = −life. 3 lives per level. Combo multiplier rewards streaks.
+ *
+ * After reaching the win score, a knowledge quiz unlocks the badge.
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy } from 'lucide-react';
+import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
 const STORAGE_KEY = 'cognitive_ar_v4';
-const TICK = 100; // ms per game tick
+const TICK = 100;
 const SLOTS = 6;
 
 // ── Knowledge source pool ─────────────────────────────────────────────
@@ -47,10 +49,10 @@ interface Level {
   xp: number;
   Icon: React.ElementType;
   color: string; bg: string; border: string; shadow: string;
-  itemMs: number;    // how long each item stays
-  scanMs: number;    // initial grey "scan" phase before colour shows
-  spawnMs: number;   // interval between spawns
-  maxItems: number;  // max simultaneous items
+  itemMs: number;
+  scanMs: number;
+  spawnMs: number;
+  maxItems: number;
   winScore: number;
 }
 
@@ -81,15 +83,112 @@ const LEVELS: Level[] = [
   },
 ];
 
-// ── Game state (held in a ref so the interval closure is always fresh) ──
+// ── Quiz questions per level ──────────────────────────────────────────
+
+interface QuizQuestion {
+  qAr: string; qEn: string;
+  options: { ar: string; en: string; correct: boolean }[];
+}
+
+const QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
+  explorer: [
+    {
+      qAr: 'ما المصدر الأكثر موثوقية للبحث العلمي؟',
+      qEn: 'Which is the most reliable source for scientific research?',
+      options: [
+        { ar: 'مقال محكّم في مجلة Nature', en: 'Peer-reviewed article in Nature', correct: true },
+        { ar: 'منشور في التواصل الاجتماعي', en: 'Social media post', correct: false },
+        { ar: 'مدونة شخصية مجهولة', en: 'Anonymous personal blog', correct: false },
+      ],
+    },
+    {
+      qAr: 'لماذا يجب التحقق من مصدر المعلومة؟',
+      qEn: 'Why should you verify the source of information?',
+      options: [
+        { ar: 'لضمان دقتها وموثوقيتها', en: 'To ensure its accuracy and reliability', correct: true },
+        { ar: 'لأن كل المعلومات خاطئة', en: 'Because all information is wrong', correct: false },
+        { ar: 'لا داعي للتحقق أبداً', en: 'Verification is never necessary', correct: false },
+      ],
+    },
+    {
+      qAr: 'أي من هذه يُعدّ مصدراً أولياً موثوقاً؟',
+      qEn: 'Which of these is a reliable primary source?',
+      options: [
+        { ar: 'ورقة بحثية أكاديمية محكّمة', en: 'Peer-reviewed academic paper', correct: true },
+        { ar: 'خبر منقول بلا مرجع', en: 'News story without references', correct: false },
+        { ar: 'تقرير من منتدى عشوائي', en: 'Report from a random forum', correct: false },
+      ],
+    },
+  ],
+  researcher: [
+    {
+      qAr: 'ما معنى "المراجعة من قِبل الأقران" في الأبحاث؟',
+      qEn: 'What does "peer review" mean in research?',
+      options: [
+        { ar: 'تقييم البحث من علماء متخصصين قبل النشر', en: 'Evaluation by expert scientists before publication', correct: true },
+        { ar: 'مشاركة البحث مع الأصدقاء', en: 'Sharing research with friends', correct: false },
+        { ar: 'نشر البحث دون مراجعة', en: 'Publishing without review', correct: false },
+      ],
+    },
+    {
+      qAr: 'أي هذه المصادر أكثر مصداقية لبيانات الصحة؟',
+      qEn: 'Which is the most credible source for health data?',
+      options: [
+        { ar: 'تقارير منظمة الصحة العالمية (WHO)', en: 'World Health Organization (WHO) reports', correct: true },
+        { ar: 'تغريدة من حساب مجهول', en: 'Tweet from unknown account', correct: false },
+        { ar: 'فيديو يوتيوب بدون مراجع', en: 'YouTube video without references', correct: false },
+      ],
+    },
+    {
+      qAr: 'ماذا تعني "تضارب المصالح" في البحث العلمي؟',
+      qEn: 'What does "conflict of interest" mean in research?',
+      options: [
+        { ar: 'مصلحة مالية تؤثر على نتائج البحث', en: 'Financial interest affecting research results', correct: true },
+        { ar: 'الاختلاف في آراء الباحثين', en: 'Disagreement among researchers', correct: false },
+        { ar: 'نقص في التمويل البحثي', en: 'Lack of research funding', correct: false },
+      ],
+    },
+  ],
+  distinguished: [
+    {
+      qAr: 'كيف تُميّز المعلومة الصحيحة من المضللة؟',
+      qEn: 'How do you distinguish accurate from misleading information?',
+      options: [
+        { ar: 'التحقق من عدة مصادر موثوقة ومراجعة الأدلة', en: 'Verify from multiple reliable sources and check evidence', correct: true },
+        { ar: 'قبولها إذا نشرتها جهة حكومية', en: 'Accept if published by a government body', correct: false },
+        { ar: 'الاعتماد على كثرة المشاركات', en: 'Rely on share count', correct: false },
+      ],
+    },
+    {
+      qAr: 'ما "الانتقائية التأكيدية" (Confirmation Bias)؟',
+      qEn: 'What is "Confirmation Bias"?',
+      options: [
+        { ar: 'الميل لقبول ما يؤكد معتقداتنا المسبقة', en: 'Tendency to accept info confirming our prior beliefs', correct: true },
+        { ar: 'التحقق الدقيق من المصادر', en: 'Careful verification of sources', correct: false },
+        { ar: 'الاعتماد على الإحصاءات الرسمية فقط', en: 'Relying only on official statistics', correct: false },
+      ],
+    },
+    {
+      qAr: 'أي الممارسات تدل على وعي معلوماتي عالٍ؟',
+      qEn: 'Which practice reflects high information literacy?',
+      options: [
+        { ar: 'مقارنة المصادر ومعرفة تاريخ النشر والمؤلف', en: 'Comparing sources, checking date and author', correct: true },
+        { ar: 'الاكتفاء بالعنوان الرئيسي للمقال', en: 'Reading only the headline', correct: false },
+        { ar: 'الثقة بأي مصدر ذي تصميم احترافي', en: 'Trusting any professionally designed source', correct: false },
+      ],
+    },
+  ],
+};
+
+// ── Game state ────────────────────────────────────────────────────────
 
 interface GameItem {
   id: string;
   slot: number;
   src: typeof SOURCES[0];
   elapsed: number;
-  total: number;   // = level.itemMs
-  scanEnd: number; // = level.scanMs — elapsed before this means grey
+  total: number;
+  scanEnd: number;
 }
 
 interface GS {
@@ -98,12 +197,12 @@ interface GS {
   score: number;
   combo: number;
   maxCombo: number;
-  timeLeft: number; // ms
-  spawnIn: number;  // ms until next spawn
-  feedback: Array<{ id: string; correct: boolean; slot: number }>; // flashes
+  timeLeft: number;
+  spawnIn: number;
+  feedback: Array<{ id: string; correct: boolean; slot: number }>;
 }
 
-function newGS(level: Level): GS {
+function newGS(): GS {
   return { items: [], lives: 3, score: 0, combo: 0, maxCombo: 0, timeLeft: 45_000, spawnIn: 600, feedback: [] };
 }
 
@@ -117,30 +216,36 @@ function spawnItem(level: Level, occupiedSlots: number[]): GameItem | null {
   return { id: String(++uid), slot, src, elapsed: 0, total: level.itemMs, scanEnd: level.scanMs };
 }
 
-// ── Component ─────────────────────────────────────────────────────────
-
 function loadCompleted(): string[] {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
 }
+
+// ── Component ─────────────────────────────────────────────────────────
 
 export function CognitiveARGame() {
   const { language } = useLanguage();
   const ar = language === 'ar';
 
   const [completed, setCompleted] = useState<string[]>(loadCompleted);
-  const [phase, setPhase] = useState<'hub' | 'countdown' | 'playing' | 'result'>('hub');
+  const [phase, setPhase] = useState<'hub' | 'countdown' | 'playing' | 'quiz' | 'result'>('hub');
   const [activeLevel, setActiveLevel] = useState<Level | null>(null);
   const [won, setWon] = useState(false);
   const [countdown, setCountdown] = useState(3);
 
-  // render trigger
+  // quiz state
+  const [quizIndex, setQuizIndex]       = useState(0);
+  const [quizCorrect, setQuizCorrect]   = useState(0);
+  const [quizSelected, setQuizSelected] = useState(-1);  // option index chosen
+  const [quizRevealed, setQuizRevealed] = useState(false);
+  const [quizDone, setQuizDone]         = useState(false);
+
   const [tick, setTick] = useState(0);
   const gsRef = useRef<GS | null>(null);
-
   const gs = gsRef.current;
+
   const totalXP = completed.reduce((s, id) => s + (LEVELS.find(l => l.id === id)?.xp ?? 0), 0);
 
-  // ── Countdown before game starts ──
+  // ── Countdown ──
   useEffect(() => {
     if (phase !== 'countdown') return;
     setCountdown(3);
@@ -156,23 +261,20 @@ export function CognitiveARGame() {
   // ── Main game loop ──
   useEffect(() => {
     if (phase !== 'playing' || !activeLevel) return;
-    if (!gsRef.current) gsRef.current = newGS(activeLevel);
+    if (!gsRef.current) gsRef.current = newGS();
 
     const id = setInterval(() => {
       const g = gsRef.current!;
       let { items, lives, score, combo, maxCombo, timeLeft, spawnIn, feedback } = g;
 
       timeLeft -= TICK;
-      spawnIn -= TICK;
+      spawnIn  -= TICK;
 
-      // Clear old feedback
       feedback = feedback.filter(f => {
-        // We'll just keep them briefly — handled via CSS delay
         (f as any)._age = ((f as any)._age ?? 0) + TICK;
         return (f as any)._age < 700;
       });
 
-      // Tick each item
       const expired: GameItem[] = [];
       items = items.map(it => {
         const next = { ...it, elapsed: it.elapsed + TICK };
@@ -180,19 +282,15 @@ export function CognitiveARGame() {
         return next;
       });
 
-      // Process expirations
       for (const it of expired) {
         items = items.filter(x => x.id !== it.id);
         if (it.src.reliable) {
-          // Missed a good source
           lives = Math.max(0, lives - 1);
           combo = 0;
           feedback = [...feedback, { id: it.id, correct: false, slot: it.slot }];
         }
-        // Unreliable auto-expires → no penalty (player correctly avoided it)
       }
 
-      // Spawn new item
       const activeSlots = items.map(x => x.slot);
       if (spawnIn <= 0 && items.length < activeLevel.maxItems) {
         const newItem = spawnItem(activeLevel, activeSlots);
@@ -201,8 +299,6 @@ export function CognitiveARGame() {
       }
 
       maxCombo = Math.max(maxCombo, combo);
-
-      // Check end
       const over = lives <= 0 || timeLeft <= 0;
 
       gsRef.current = { items, lives, score, combo, maxCombo, timeLeft, spawnIn, feedback };
@@ -211,13 +307,14 @@ export function CognitiveARGame() {
       if (over) {
         clearInterval(id);
         const didWin = score >= activeLevel.winScore;
-        setWon(didWin);
-        if (didWin && !completed.includes(activeLevel.id)) {
-          const next = [...completed, activeLevel.id];
-          setCompleted(next);
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        if (didWin) {
+          // Go to quiz before awarding the badge
+          resetQuizState();
+          setPhase('quiz');
+        } else {
+          setWon(false);
+          setPhase('result');
         }
-        setPhase('result');
       }
     }, TICK);
 
@@ -229,7 +326,6 @@ export function CognitiveARGame() {
   function handleClick(item: GameItem) {
     const g = gsRef.current;
     if (!g || !activeLevel) return;
-    // Must be revealed (scan phase over)
     if (item.elapsed < item.scanEnd) return;
 
     let { items, lives, score, combo, maxCombo, feedback } = g;
@@ -258,9 +354,55 @@ export function CognitiveARGame() {
   }
 
   function backToHub() { setPhase('hub'); setActiveLevel(null); gsRef.current = null; }
-  function retry() { gsRef.current = null; if (activeLevel) setPhase('countdown'); }
+  function retry()     { gsRef.current = null; if (activeLevel) setPhase('countdown'); }
 
-  // ── Slot positions in a 2×3 grid ──
+  // ── Quiz helpers ──
+  function resetQuizState() {
+    setQuizIndex(0);
+    setQuizCorrect(0);
+    setQuizSelected(-1);
+    setQuizRevealed(false);
+    setQuizDone(false);
+  }
+
+  function handleQuizSelect(optionIdx: number) {
+    if (quizRevealed || !activeLevel) return;
+    const questions = QUIZ_QUESTIONS[activeLevel.id] ?? [];
+    const q = questions[quizIndex];
+    const isCorrect = q.options[optionIdx].correct;
+    setQuizSelected(optionIdx);
+    setQuizRevealed(true);
+    if (isCorrect) setQuizCorrect(c => c + 1);
+  }
+
+  function handleQuizNext() {
+    if (!activeLevel) return;
+    const questions = QUIZ_QUESTIONS[activeLevel.id] ?? [];
+    if (quizIndex + 1 >= questions.length) {
+      // Quiz finished — check pass (need 2/3 correct)
+      const finalCorrect = quizCorrect + (quizRevealed && QUIZ_QUESTIONS[activeLevel.id][quizIndex].options[quizSelected]?.correct ? 0 : 0);
+      setQuizDone(true);
+    } else {
+      setQuizIndex(qi => qi + 1);
+      setQuizSelected(-1);
+      setQuizRevealed(false);
+    }
+  }
+
+  function finishQuiz() {
+    if (!activeLevel) return;
+    const questions = QUIZ_QUESTIONS[activeLevel.id] ?? [];
+    const passed = quizCorrect >= Math.ceil(questions.length * 0.67); // 2/3
+    setWon(passed);
+    if (passed && !completed.includes(activeLevel.id)) {
+      const next = [...completed, activeLevel.id];
+      setCompleted(next);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    }
+    setPhase('result');
+  }
+
+  // ── Slot grid layout ──
   const slotPositions = [
     { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 },
     { col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 },
@@ -277,8 +419,8 @@ export function CognitiveARGame() {
             {ar ? 'لعبة الوعي المعلوماتي AR' : 'Info Literacy AR Game'}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            {ar ? 'حدّد المصادر الموثوقة في الوقت الفعلي — اكسب الأوسمة والنقاط'
-                : 'Identify reliable sources in real time — earn badges & XP'}
+            {ar ? 'حدّد المصادر الموثوقة — اجتز الاختبار — اكسب الوسام'
+                : 'Identify reliable sources — pass the quiz — earn the badge'}
           </p>
         </div>
         <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/20">
@@ -306,10 +448,8 @@ export function CognitiveARGame() {
                     isEarned && cn('ring-2 ring-offset-2', lvl.border.replace('border-', 'ring-'))
                   )}
                 >
-                  {/* Earned shimmer */}
                   {isEarned && <div className={cn('absolute inset-0 opacity-[0.06] pointer-events-none', lvl.bg)} />}
 
-                  {/* Badge icon + level */}
                   <div className="flex items-start justify-between">
                     <div className={cn('w-14 h-14 rounded-2xl border-2 flex items-center justify-center shadow-lg', isEarned ? cn(lvl.bg, lvl.border, lvl.shadow) : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700')}>
                       {isEarned
@@ -323,7 +463,6 @@ export function CognitiveARGame() {
                     </span>
                   </div>
 
-                  {/* Info */}
                   <div>
                     <div className={cn('text-xs font-black uppercase tracking-widest mb-1', lvl.color)}>
                       {ar ? lvl.nameAr : lvl.nameEn}
@@ -336,14 +475,27 @@ export function CognitiveARGame() {
                     </p>
                   </div>
 
-                  {/* Stats row */}
+                  {/* Flow steps */}
+                  <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase">
+                    <span className={cn('px-1.5 py-0.5 rounded-md', lvl.bg, lvl.color)}>
+                      {ar ? '١ اللعبة' : '1 Game'}
+                    </span>
+                    <span>→</span>
+                    <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
+                      {ar ? '٢ اختبار' : '2 Quiz'}
+                    </span>
+                    <span>→</span>
+                    <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
+                      {ar ? '٣ وسام' : '3 Badge'}
+                    </span>
+                  </div>
+
                   <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <span>⏱ 45s</span>
                     <span>❤️ ×3</span>
                     <span className={lvl.color}>{ar ? 'هدف' : 'Target'}: {lvl.winScore}pts</span>
                   </div>
 
-                  {/* CTA */}
                   <motion.button
                     whileHover={{ scale: prevEarned ? 1.02 : 1 }}
                     whileTap={{ scale: prevEarned ? 0.97 : 1 }}
@@ -379,7 +531,7 @@ export function CognitiveARGame() {
                 { emoji: '🟢', ar: 'المصدر الأخضر = موثوق، انقر عليه قبل انتهاء وقته', en: 'Green source = reliable, click it before time runs out' },
                 { emoji: '🔴', ar: 'المصدر الأحمر = غير موثوق، لا تنقر عليه، دعه يختفي', en: 'Red source = unreliable, don\'t click — let it disappear' },
                 { emoji: '⚡', ar: 'كومبو 3+ تضاعف نقاطك × 2 × 3 × 4', en: 'Combo 3+ multiplies your score ×2 ×3 ×4' },
-                { emoji: '❤️', ar: '3 أرواح — المصدر الأخضر الفائت أو نقر الأحمر تكلفك روحاً', en: '3 lives — missing green or clicking red costs one life' },
+                { emoji: '📝', ar: 'بعد النقاط: اجتز اختبار المعرفة لتحصل على الوسام', en: 'After scoring: pass the knowledge quiz to earn the badge' },
               ].map((h, i) => (
                 <div key={i} className="flex items-start gap-2.5">
                   <span className="text-xl shrink-0">{h.emoji}</span>
@@ -429,20 +581,14 @@ export function CognitiveARGame() {
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-slate-950 flex flex-col select-none"
           >
-            {/* AR grid background */}
             <div className="absolute inset-0 pointer-events-none opacity-[0.07]"
               style={{ backgroundImage: 'linear-gradient(rgba(0,220,180,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,180,1) 1px,transparent 1px)', backgroundSize: '44px 44px' }} />
 
-            {/* ── HUD ── */}
+            {/* HUD */}
             <div className="relative z-10 px-4 pt-4 pb-3 border-b border-white/5 flex items-center justify-between gap-4">
-              {/* Lives */}
               <div className="flex items-center gap-1.5">
                 {[0, 1, 2].map(i => (
-                  <motion.div
-                    key={i}
-                    animate={i >= gs.lives ? { scale: [1.3, 0.8, 1] } : {}}
-                    transition={{ duration: 0.3 }}
-                  >
+                  <motion.div key={i} animate={i >= gs.lives ? { scale: [1.3, 0.8, 1] } : {}} transition={{ duration: 0.3 }}>
                     {i < gs.lives
                       ? <Heart className="w-5 h-5 text-rose-400 fill-rose-400" />
                       : <HeartCrack className="w-5 h-5 text-slate-700" />}
@@ -450,12 +596,8 @@ export function CognitiveARGame() {
                 ))}
               </div>
 
-              {/* Timer */}
               <div className="flex flex-col items-center">
-                <div className={cn(
-                  'text-2xl font-black tabular-nums',
-                  gs.timeLeft <= 10000 ? 'text-red-400' : gs.timeLeft <= 20000 ? 'text-amber-400' : 'text-white'
-                )}>
+                <div className={cn('text-2xl font-black tabular-nums', gs.timeLeft <= 10000 ? 'text-red-400' : gs.timeLeft <= 20000 ? 'text-amber-400' : 'text-white')}>
                   {Math.ceil(gs.timeLeft / 1000)}
                 </div>
                 <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden mt-1">
@@ -466,31 +608,24 @@ export function CognitiveARGame() {
                 </div>
               </div>
 
-              {/* Score + combo */}
               <div className="text-end">
                 <div className="text-lg font-black text-white tabular-nums">{gs.score}</div>
-                <div className={cn(
-                  'text-[10px] font-black uppercase tracking-widest transition-colors',
-                  gs.combo >= 6 ? 'text-amber-400' : gs.combo >= 3 ? 'text-emerald-400' : 'text-slate-600'
-                )}>
+                <div className={cn('text-[10px] font-black uppercase tracking-widest transition-colors', gs.combo >= 6 ? 'text-amber-400' : gs.combo >= 3 ? 'text-emerald-400' : 'text-slate-600')}>
                   {gs.combo >= 3 ? `×${Math.min(4, 1 + Math.floor(gs.combo / 3))} 🔥` : `COMBO ${gs.combo}`}
                 </div>
               </div>
             </div>
 
-            {/* ── PORTAL GRID ── */}
+            {/* PORTAL GRID */}
             <div className="relative z-10 flex-1 flex items-center justify-center p-4">
               <div className="grid grid-cols-3 gap-4 w-full max-w-md">
-                {slotPositions.map((pos, slotIdx) => {
+                {slotPositions.map((_, slotIdx) => {
                   const item = gs.items.find(x => x.slot === slotIdx);
                   const isRevealed = item ? item.elapsed >= item.scanEnd : false;
 
                   return (
                     <div key={slotIdx} className="relative aspect-square">
-                      {/* Empty portal */}
                       <div className="absolute inset-0 rounded-2xl border border-white/5 bg-white/3" />
-
-                      {/* Active item */}
                       <AnimatePresence>
                         {item && (
                           <motion.button
@@ -509,15 +644,9 @@ export function CognitiveARGame() {
                                 : 'bg-red-950/60 border-red-500/60 cursor-not-allowed shadow-[0_0_20px_rgba(239,68,68,0.2)]'
                             )}
                           >
-                            {/* Countdown ring overlay */}
-                            <div
-                              className="absolute inset-0 rounded-2xl pointer-events-none"
-                              style={{
-                                background: `conic-gradient(transparent ${(1 - item.elapsed / item.total) * 360}deg, rgba(255,255,255,0.04) 0deg)`,
-                              }}
-                            />
+                            <div className="absolute inset-0 rounded-2xl pointer-events-none"
+                              style={{ background: `conic-gradient(transparent ${(1 - item.elapsed / item.total) * 360}deg, rgba(255,255,255,0.04) 0deg)` }} />
 
-                            {/* Scan phase: pulsing dots */}
                             {!isRevealed ? (
                               <div className="flex gap-1">
                                 {[0, 1, 2].map(i => (
@@ -529,42 +658,30 @@ export function CognitiveARGame() {
                               </div>
                             ) : (
                               <>
-                                {/* Reliable: teal glow icon; Unreliable: red danger */}
                                 <div className={cn('text-lg', item.src.reliable ? 'text-teal-300' : 'text-red-400')}>
                                   {item.src.reliable ? '✓' : '✗'}
                                 </div>
-                                <p className={cn(
-                                  'text-[9px] font-black text-center leading-tight px-1 uppercase tracking-wide',
-                                  item.src.reliable ? 'text-teal-200' : 'text-red-300'
-                                )}>
+                                <p className={cn('text-[9px] font-black text-center leading-tight px-1 uppercase tracking-wide', item.src.reliable ? 'text-teal-200' : 'text-red-300')}>
                                   {ar ? item.src.ar : item.src.en}
                                 </p>
                               </>
                             )}
 
-                            {/* Time bar at bottom */}
                             <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20 rounded-b-2xl overflow-hidden">
-                              <div
-                                className={cn('h-full transition-none', isRevealed ? (item.src.reliable ? 'bg-teal-400' : 'bg-red-400') : 'bg-slate-600')}
-                                style={{ width: `${Math.max(0, (1 - item.elapsed / item.total) * 100)}%` }}
-                              />
+                              <div className={cn('h-full transition-none', isRevealed ? (item.src.reliable ? 'bg-teal-400' : 'bg-red-400') : 'bg-slate-600')}
+                                style={{ width: `${Math.max(0, (1 - item.elapsed / item.total) * 100)}%` }} />
                             </div>
                           </motion.button>
                         )}
                       </AnimatePresence>
 
-                      {/* Feedback flash */}
                       <AnimatePresence>
                         {gs.feedback.filter(f => f.slot === slotIdx).map(f => (
-                          <motion.div
-                            key={f.id}
+                          <motion.div key={f.id}
                             initial={{ opacity: 1, scale: 0.5, y: 0 }}
                             animate={{ opacity: 0, scale: 1.5, y: -30 }}
                             transition={{ duration: 0.5 }}
-                            className={cn(
-                              'absolute inset-0 rounded-2xl pointer-events-none flex items-center justify-center text-2xl font-black',
-                              f.correct ? 'text-emerald-400' : 'text-red-400'
-                            )}
+                            className={cn('absolute inset-0 rounded-2xl pointer-events-none flex items-center justify-center text-2xl font-black', f.correct ? 'text-emerald-400' : 'text-red-400')}
                           >
                             {f.correct ? '+10' : '−♥'}
                           </motion.div>
@@ -576,7 +693,7 @@ export function CognitiveARGame() {
               </div>
             </div>
 
-            {/* Target score indicator */}
+            {/* Score progress */}
             <div className="relative z-10 px-4 pb-4 flex items-center justify-center gap-3">
               <div className="h-2 flex-1 max-w-xs bg-white/5 rounded-full overflow-hidden">
                 <motion.div
@@ -590,6 +707,171 @@ export function CognitiveARGame() {
             </div>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* ═══════════════════ QUIZ SCREEN ═══════════════════ */}
+      <AnimatePresence>
+        {phase === 'quiz' && activeLevel && (() => {
+          const questions = QUIZ_QUESTIONS[activeLevel.id] ?? [];
+          const q = questions[quizIndex];
+          const total = questions.length;
+          const passThreshold = Math.ceil(total * 0.67);
+
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6"
+            >
+              <motion.div
+                initial={{ scale: 0.85, opacity: 0, y: 30 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+                className="bg-slate-900 border border-white/10 rounded-3xl p-7 max-w-sm w-full relative overflow-hidden space-y-6"
+              >
+                <div className={cn('absolute inset-0 opacity-[0.06] pointer-events-none', activeLevel.bg)} />
+
+                {/* Header */}
+                {!quizDone ? (
+                  <>
+                    <div className="relative z-10 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <HelpCircle className={cn('w-5 h-5', activeLevel.color)} />
+                        <span className={cn('text-xs font-black uppercase tracking-widest', activeLevel.color)}>
+                          {ar ? 'اختبار المعرفة' : 'Knowledge Quiz'}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                        {quizIndex + 1} / {total}
+                      </span>
+                    </div>
+
+                    {/* Progress dots */}
+                    <div className="relative z-10 flex gap-1.5 justify-center">
+                      {questions.map((_, i) => (
+                        <div key={i} className={cn('h-1.5 rounded-full transition-all', i < quizIndex ? activeLevel.bg.replace('/15', '/60') : i === quizIndex ? cn('w-6', activeLevel.bg.replace('/15', '')) : 'w-3 bg-white/10')} style={{ width: i === quizIndex ? 24 : 12 }} />
+                      ))}
+                    </div>
+
+                    {/* Question */}
+                    <motion.div
+                      key={quizIndex}
+                      initial={{ opacity: 0, x: ar ? -20 : 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="relative z-10 space-y-4"
+                    >
+                      <p className="text-white font-black text-base leading-snug text-center">
+                        {ar ? q.qAr : q.qEn}
+                      </p>
+
+                      <div className="space-y-2.5">
+                        {q.options.map((opt, oi) => {
+                          const isSelected = quizSelected === oi;
+                          const isCorrect  = opt.correct;
+                          let btnClass = 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10';
+                          if (quizRevealed) {
+                            if (isCorrect)          btnClass = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300';
+                            else if (isSelected)    btnClass = 'bg-red-500/20 border-red-500/50 text-red-300';
+                            else                    btnClass = 'bg-white/3 border-white/5 text-white/30';
+                          }
+
+                          return (
+                            <motion.button
+                              key={oi}
+                              whileHover={!quizRevealed ? { scale: 1.02 } : {}}
+                              whileTap={!quizRevealed ? { scale: 0.98 } : {}}
+                              onClick={() => handleQuizSelect(oi)}
+                              disabled={quizRevealed}
+                              className={cn('w-full px-4 py-3 rounded-2xl border text-sm font-bold text-start transition-all', btnClass)}
+                            >
+                              <span className="flex items-center gap-3">
+                                <span className={cn('w-6 h-6 rounded-full border flex items-center justify-center text-[10px] font-black shrink-0',
+                                  quizRevealed && isCorrect ? 'bg-emerald-500/30 border-emerald-400 text-emerald-300'
+                                  : quizRevealed && isSelected ? 'bg-red-500/30 border-red-400 text-red-300'
+                                  : 'border-white/20 text-white/50')}>
+                                  {quizRevealed ? (isCorrect ? '✓' : isSelected ? '✗' : String.fromCharCode(65 + oi)) : String.fromCharCode(65 + oi)}
+                                </span>
+                                {ar ? opt.ar : opt.en}
+                              </span>
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      {quizRevealed && (
+                        <motion.button
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => {
+                            if (quizIndex + 1 >= total) {
+                              setQuizDone(true);
+                            } else {
+                              setQuizIndex(qi => qi + 1);
+                              setQuizSelected(-1);
+                              setQuizRevealed(false);
+                            }
+                          }}
+                          className={cn('w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all', activeLevel.bg, activeLevel.color, 'border-2', activeLevel.border)}
+                        >
+                          {quizIndex + 1 >= total
+                            ? (ar ? 'عرض النتيجة ←' : 'See Result →')
+                            : (ar ? 'السؤال التالي ←' : 'Next Question →')}
+                        </motion.button>
+                      )}
+                    </motion.div>
+                  </>
+                ) : (
+                  /* Quiz result */
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="relative z-10 text-center space-y-5"
+                  >
+                    <div className={cn('w-20 h-20 rounded-3xl border-2 mx-auto flex items-center justify-center shadow-2xl',
+                      quizCorrect >= passThreshold ? cn(activeLevel.bg, activeLevel.border) : 'bg-slate-800 border-slate-700')}>
+                      {quizCorrect >= passThreshold
+                        ? <Trophy className={cn('w-10 h-10', activeLevel.color)} />
+                        : <RotateCcw className="w-9 h-9 text-slate-500" />}
+                    </div>
+
+                    <div>
+                      <div className={cn('text-[11px] font-black uppercase tracking-widest mb-1',
+                        quizCorrect >= passThreshold ? activeLevel.color : 'text-slate-500')}>
+                        {quizCorrect >= passThreshold
+                          ? (ar ? '🎉 اجتزت الاختبار!' : '🎉 Quiz Passed!')
+                          : (ar ? 'لم تجتز الاختبار' : 'Quiz Not Passed')}
+                      </div>
+                      <div className="text-3xl font-black text-white">{quizCorrect} / {total}</div>
+                      <div className="text-slate-400 text-xs font-medium mt-1">
+                        {ar ? `تحتاج ${passThreshold} إجابات صحيحة على الأقل` : `Need at least ${passThreshold} correct answers`}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <motion.button whileTap={{ scale: 0.97 }} onClick={finishQuiz}
+                        className={cn('w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest',
+                          quizCorrect >= passThreshold
+                            ? 'bg-white text-primary hover:bg-white/90'
+                            : cn('border-2', activeLevel.border, activeLevel.color, activeLevel.bg))}>
+                        {quizCorrect >= passThreshold
+                          ? (ar ? '🏆 احصل على الوسام' : '🏆 Claim Badge')
+                          : (ar ? 'عرض النتيجة' : 'See Result')}
+                      </motion.button>
+                      {quizCorrect < passThreshold && (
+                        <motion.button whileTap={{ scale: 0.97 }} onClick={resetQuizState}
+                          className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-bold text-sm hover:bg-white/10 transition-all">
+                          {ar ? '🔄 أعد الاختبار' : '🔄 Retry Quiz'}
+                        </motion.button>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
 
       {/* ═══════════════════ RESULT SCREEN ═══════════════════ */}
@@ -609,24 +891,19 @@ export function CognitiveARGame() {
             >
               <div className={cn('absolute inset-0 opacity-[0.08] pointer-events-none', activeLevel.bg)} />
 
-              {/* Result icon */}
               <motion.div
                 animate={won ? { y: [0, -8, 0] } : { rotate: [0, -5, 5, -3, 0] }}
                 transition={{ repeat: Infinity, duration: won ? 2 : 1, ease: 'easeInOut' }}
-                className={cn(
-                  'w-20 h-20 rounded-3xl border-2 mx-auto flex items-center justify-center shadow-2xl relative z-10',
-                  won ? cn(activeLevel.bg, activeLevel.border) : 'bg-slate-800 border-slate-700'
-                )}
+                className={cn('w-20 h-20 rounded-3xl border-2 mx-auto flex items-center justify-center shadow-2xl relative z-10',
+                  won ? cn(activeLevel.bg, activeLevel.border) : 'bg-slate-800 border-slate-700')}
               >
                 {won
                   ? <activeLevel.Icon className={cn('w-10 h-10', activeLevel.color)} />
                   : <RotateCcw className="w-9 h-9 text-slate-500" />}
               </motion.div>
 
-              {/* Particles on win */}
               {won && [...Array(8)].map((_, i) => (
-                <motion.div
-                  key={i}
+                <motion.div key={i}
                   className={cn('absolute w-2 h-2 rounded-full pointer-events-none', activeLevel.bg.replace('/15', ''))}
                   style={{ top: '35%', left: '50%' }}
                   animate={{ x: Math.cos(i * 45 * Math.PI / 180) * 80, y: Math.sin(i * 45 * Math.PI / 180) * 80, opacity: [1, 0], scale: [1, 0] }}
@@ -636,7 +913,7 @@ export function CognitiveARGame() {
 
               <div className="relative z-10 space-y-2">
                 <div className={cn('text-[11px] font-black uppercase tracking-widest', won ? activeLevel.color : 'text-slate-500')}>
-                  {won ? (ar ? '🏆 فزت!' : '🏆 You Won!') : (ar ? 'حاول مجدداً' : 'Try Again')}
+                  {won ? (ar ? '🏆 وسام مكتسب!' : '🏆 Badge Earned!') : (ar ? 'حاول مجدداً' : 'Try Again')}
                 </div>
                 <div className="text-3xl font-black text-white">{gs.score} pts</div>
                 {won && (
@@ -651,7 +928,6 @@ export function CognitiveARGame() {
                 )}
               </div>
 
-              {/* Stats */}
               <div className="relative z-10 grid grid-cols-3 gap-3 pt-2 border-t border-white/5">
                 {[
                   { label: ar ? 'أعلى كومبو' : 'Max Combo', val: `×${gs.maxCombo}` },
@@ -665,20 +941,14 @@ export function CognitiveARGame() {
                 ))}
               </div>
 
-              {/* Buttons */}
               <div className="relative z-10 flex flex-col gap-2">
-                {!won && (
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={retry}
-                    className="w-full py-3.5 rounded-2xl bg-white text-primary font-black text-sm uppercase tracking-widest hover:bg-white/90 transition-all flex items-center justify-center gap-2">
-                    <RotateCcw className="w-4 h-4" /> {ar ? 'أعد المحاولة' : 'Try Again'}
-                  </motion.button>
-                )}
-                {won && (
-                  <motion.button whileTap={{ scale: 0.97 }} onClick={retry}
-                    className={cn('w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest border-2 flex items-center justify-center gap-2', activeLevel.border, activeLevel.color, activeLevel.bg)}>
-                    <Trophy className="w-4 h-4" /> {ar ? 'العب مجدداً' : 'Play Again'}
-                  </motion.button>
-                )}
+                <motion.button whileTap={{ scale: 0.97 }} onClick={retry}
+                  className={cn('w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest border-2 flex items-center justify-center gap-2',
+                    won ? cn(activeLevel.border, activeLevel.color, activeLevel.bg) : 'bg-white text-primary hover:bg-white/90')}>
+                  {won
+                    ? <><Trophy className="w-4 h-4" /> {ar ? 'العب مجدداً' : 'Play Again'}</>
+                    : <><RotateCcw className="w-4 h-4" /> {ar ? 'أعد المحاولة' : 'Try Again'}</>}
+                </motion.button>
                 <motion.button whileTap={{ scale: 0.97 }} onClick={backToHub}
                   className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-bold text-sm hover:bg-white/10 transition-all">
                   {ar ? 'العودة للمستويات' : 'Back to Levels'}
