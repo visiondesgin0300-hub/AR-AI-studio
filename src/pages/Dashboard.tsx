@@ -18,6 +18,8 @@ export function Dashboard({ user }: DashboardProps) {
   const navigate = useNavigate();
   const { t, dir, language } = useLanguage();
 
+  const totalLearningHours = user.totalReadCount * 5 + user.borrowedBooks.length * 2;
+
   const mostRead = MOCK_BOOKS.slice(0, 4);
   const categories: string[] = Array.from(new Set(MOCK_BOOKS.map(b => b.category)));
   const [selectedCategory, setSelectedCategory] = React.useState(categories[0]);
@@ -99,7 +101,7 @@ export function Dashboard({ user }: DashboardProps) {
                 <div>
                   <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t('totalLearningTime')}</div>
                   <div className="text-xl font-black text-white leading-none mt-0.5">
-                    {language === 'ar' ? '١٤٢' : '142'} <span className="text-[10px] font-bold text-white/40">{t('hoursShort')}</span>
+                    {language === 'ar' ? totalLearningHours.toLocaleString('ar-EG') : totalLearningHours} <span className="text-[10px] font-bold text-white/40">{t('hoursShort')}</span>
                   </div>
                 </div>
               </div>
