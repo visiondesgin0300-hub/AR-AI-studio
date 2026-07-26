@@ -186,10 +186,12 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                 'relative p-4 rounded-2xl border flex flex-col items-center text-center gap-3 transition-all',
                 isEarned
                   ? cn('bg-white dark:bg-slate-900 border-accent/20 shadow-md', badge.glowClass)
-                  : 'bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-white/5 opacity-50 grayscale'
+                  : currentXP >= badge.xpRequired
+                    ? 'bg-white dark:bg-slate-900 border-accent/30 opacity-100'
+                    : 'bg-slate-50/50 dark:bg-slate-900/20 border-slate-100 dark:border-white/5 opacity-50 grayscale'
               )}
             >
-              {!isEarned && (
+              {!isEarned && currentXP < badge.xpRequired && (
                 <div className="absolute top-2.5 right-2.5">
                   <Lock className="w-3 h-3 text-slate-300 dark:text-slate-700" />
                 </div>
@@ -199,7 +201,9 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                 'w-12 h-12 rounded-full flex items-center justify-center border',
                 isEarned
                   ? badge.colorEarned
-                  : 'text-slate-300 dark:text-slate-700 bg-slate-100/50 dark:bg-slate-800/50 border-slate-100 dark:border-white/5'
+                  : currentXP >= badge.xpRequired
+                    ? badge.colorEarned
+                    : 'text-slate-300 dark:text-slate-700 bg-slate-100/50 dark:bg-slate-800/50 border-slate-100 dark:border-white/5'
               )}>
                 <Icon className="w-6 h-6" />
               </div>
@@ -208,7 +212,10 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                 <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-sm" />
               )}
 
-              <div className={cn('text-[11px] font-black uppercase tracking-wide leading-tight', isEarned ? 'text-primary dark:text-white' : 'text-slate-400 dark:text-slate-600')}>
+              <div className={cn(
+                'text-[11px] font-black uppercase tracking-wide leading-tight',
+                isEarned || currentXP >= badge.xpRequired ? 'text-primary dark:text-white' : 'text-slate-400 dark:text-slate-600'
+              )}>
                 {isAr ? badge.titleAr : badge.titleEn}
               </div>
 
@@ -223,30 +230,39 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                 +{badge.xp} XP
               </div>
 
+              {/* XP progress — shown only when not earned and below threshold */}
+              {!isEarned && currentXP < badge.xpRequired && (
+                <div className="w-full space-y-1.5">
+                  <div className="flex items-center justify-between px-0.5">
+                    <span className="text-[8px] font-bold text-slate-400">{currentXP} XP</span>
+                    <span className="text-[8px] font-bold text-slate-400">{badge.xpRequired} XP</span>
+                  </div>
+                  <div className="relative w-full h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                    <motion.div
+                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent/40 to-accent/70"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min((currentXP / badge.xpRequired) * 100, 100)}%` }}
+                      transition={{ duration: 0.8, ease: 'easeOut', delay: i * 0.1 }}
+                    />
+                  </div>
+                  <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
+                    {isAr
+                      ? `${badge.xpRequired - currentXP} XP للفتح`
+                      : `${badge.xpRequired - currentXP} XP to unlock`}
+                  </p>
+                </div>
+              )}
+
+              {/* Play button — appears only once XP threshold is met */}
               {!isEarned && currentXP >= badge.xpRequired && (
                 <Link
                   to="/cognitive-ar"
-                  className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-accent/10 border border-accent/20 text-accent hover:bg-accent/20 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent text-white hover:bg-accent/90 transition-colors shadow-sm shadow-accent/30"
                   onClick={e => e.stopPropagation()}
                 >
                   <Gamepad2 className="w-3 h-3" />
                   <span className="text-[9px] font-black">{isAr ? 'العب لاكتسابه' : 'Play to earn'}</span>
                 </Link>
-              )}
-              {!isEarned && currentXP < badge.xpRequired && (
-                <div className="w-full flex flex-col items-center gap-1">
-                  <div className="w-full h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                    <div
-                      className="h-full rounded-full bg-accent/50 transition-all"
-                      style={{ width: `${Math.min((currentXP / badge.xpRequired) * 100, 100)}%` }}
-                    />
-                  </div>
-                  <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
-                    {isAr
-                      ? `${badge.xpRequired - currentXP} XP إضافية`
-                      : `${badge.xpRequired - currentXP} XP needed`}
-                  </span>
-                </div>
               )}
             </motion.div>
           );
