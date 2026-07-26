@@ -36,9 +36,42 @@ export function Login({ onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showCreateAccountNotice, setShowCreateAccountNotice] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newName, setNewName]       = useState('');
+  const [newEmail, setNewEmail]     = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [createError, setCreateError] = useState('');
 
   const navigate = useNavigate();
+
+  const handleCreateAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError('');
+    if (!newName.trim()) {
+      setCreateError(language === 'ar' ? 'الرجاء إدخال الاسم' : 'Please enter your name');
+      return;
+    }
+    if (!newEmail.trim()) {
+      setCreateError(language === 'ar' ? 'الرجاء إدخال البريد الإلكتروني' : 'Please enter your email');
+      return;
+    }
+    if (!newPassword) {
+      setCreateError(language === 'ar' ? 'الرجاء إدخال كلمة المرور' : 'Please enter a password');
+      return;
+    }
+    const newUser: User = {
+      id: `user_${Date.now()}`,
+      name: newName.trim(),
+      email: newEmail.trim(),
+      role: 'student',
+      borrowedBooks: [],
+      totalReadCount: 0,
+      points: 0,
+      badges: [],
+    };
+    onLogin(newUser);
+    navigate('/');
+  };
 
   // Get matching mock users for quick access based on selected role
   const quickAccessProfiles = MOCK_USERS.filter(u => u.role === role);
@@ -306,22 +339,87 @@ export function Login({ onLogin }: LoginProps) {
             <span>{t('noAccountPrompt')} </span>
             <button
               type="button"
-              onClick={() => setShowCreateAccountNotice(true)}
+              onClick={() => { setShowCreateForm(!showCreateForm); setCreateError(''); }}
               className="inline-flex items-center gap-1.5 text-[#004C6D] dark:text-[#D7C826] font-black hover:underline cursor-pointer"
             >
               <UserPlus className="w-3.5 h-3.5" />
               {t('createNewAccount')}
             </button>
           </div>
-          {showCreateAccountNotice && (
-            <motion.p
-              initial={{ opacity: 0, y: -4 }}
+
+          {showCreateForm && (
+            <motion.form
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-[10px] font-bold text-slate-400 dark:text-slate-500"
+              onSubmit={handleCreateAccount}
+              className="space-y-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-white/5"
             >
-              {t('createAccountComingSoon')}
-            </motion.p>
+              {createError && (
+                <p className={cn("text-[10px] font-bold text-red-600 dark:text-red-400", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                  {createError}
+                </p>
+              )}
+              <div className="relative">
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-[#004C6D] dark:text-slate-500", dir === 'rtl' ? 'right-3' : 'left-3')}>
+                  <UserIcon className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  placeholder={language === 'ar' ? 'الاسم الكامل' : 'Full name'}
+                  value={newName}
+                  onChange={(e) => { setNewName(e.target.value); setCreateError(''); }}
+                  className={cn(
+                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
+                    dir === 'rtl' ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
+                  )}
+                />
+              </div>
+              <div className="relative">
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-[#004C6D] dark:text-slate-500", dir === 'rtl' ? 'right-3' : 'left-3')}>
+                  <Mail className="w-4 h-4" />
+                </div>
+                <input
+                  type="email"
+                  placeholder={language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+                  value={newEmail}
+                  onChange={(e) => { setNewEmail(e.target.value); setCreateError(''); }}
+                  className={cn(
+                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
+                    dir === 'rtl' ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
+                  )}
+                />
+              </div>
+              <div className="relative">
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-[#004C6D] dark:text-slate-500", dir === 'rtl' ? 'right-3' : 'left-3')}>
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={(e) => { setNewPassword(e.target.value); setCreateError(''); }}
+                  className={cn(
+                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
+                    dir === 'rtl' ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
+                  )}
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-[#D7C826] text-[#004C6D] py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                {language === 'ar' ? 'إنشاء الحساب' : 'Create Account'}
+              </button>
+            </motion.form>
           )}
+
+          <button
+            type="button"
+            onClick={handleGuestAccess}
+            className="text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-[#004C6D] dark:hover:text-[#D7C826] transition-colors cursor-pointer underline-offset-2 hover:underline"
+          >
+            {language === 'ar' ? '← الدخول كضيف' : 'Continue as Guest →'}
+          </button>
         </div>
 
         {/* Quick Demo Access Options */}
