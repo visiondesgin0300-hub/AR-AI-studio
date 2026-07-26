@@ -137,9 +137,9 @@ function AppContent() {
           path="/profile"
           element={user ? <Layout user={user} onLogout={handleLogout}><Profile user={user} /></Layout> : <Navigate to="/login" />}
         />
-        <Route 
-          path="/admin" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><AdminDashboard /></Layout> : <Navigate to="/login" />} 
+        <Route
+          path="/admin"
+          element={user ? (user.role === 'admin' ? <Layout user={user} onLogout={handleLogout}><AdminDashboard /></Layout> : <Navigate to="/" replace />) : <Navigate to="/login" />}
         />
         <Route
           path="/search"

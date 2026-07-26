@@ -151,7 +151,7 @@ export function Login({ onLogin }: LoginProps) {
           borrowedBooks: [],
           totalReadCount: 0,
           points: 100,
-          badges: role === 'admin' ? ['مشرف جديد'] : ['قارئ جديد']
+          badges: []
         };
 
         onLogin(dynamicUser);
@@ -335,19 +335,21 @@ export function Login({ onLogin }: LoginProps) {
 
         {/* Create account / guest access links */}
         <div className="mt-6 space-y-3 text-center">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            <span>{t('noAccountPrompt')} </span>
-            <button
-              type="button"
-              onClick={() => { setShowCreateForm(!showCreateForm); setCreateError(''); }}
-              className="inline-flex items-center gap-1.5 text-[#004C6D] dark:text-[#D7C826] font-black hover:underline cursor-pointer"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              {t('createNewAccount')}
-            </button>
-          </div>
+          {role === 'student' && (
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span>{t('noAccountPrompt')} </span>
+              <button
+                type="button"
+                onClick={() => { setShowCreateForm(!showCreateForm); setCreateError(''); }}
+                className="inline-flex items-center gap-1.5 text-[#004C6D] dark:text-[#D7C826] font-black hover:underline cursor-pointer"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                {t('createNewAccount')}
+              </button>
+            </div>
+          )}
 
-          {showCreateForm && (
+          {role === 'student' && showCreateForm && (
             <motion.form
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}

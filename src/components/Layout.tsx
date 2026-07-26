@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, X, Sparkles } from 'lucide-react';
+import { Home, BookOpen, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, X, Sparkles, MapPin } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
 import { cn, calcXP } from '../lib/utils';
@@ -69,10 +69,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         { icon: Compass, label: t('libraryFacilities'), path: '/facilities' },
       ]
     : [
-        { icon: Home,     label: t('dashboard'),        path: '/'         },
-        { icon: Search,   label: t('smartSearchCard'),  path: '/search'   },
-        { icon: UserIcon, label: language === 'ar' ? 'ملفي' : 'Profile', path: '/profile' },
-        { icon: Compass,  label: t('libraryFacilities'), path: '/facilities' },
+        { icon: Home,     label: t('dashboard'),          path: '/'           },
+        { icon: Search,   label: t('smartSearchCard'),    path: '/search'     },
+        { icon: MapPin,   label: t('libraryMap'),         path: '/map'        },
+        { icon: UserIcon, label: t('profile'),            path: '/profile'    },
       ];
 
   return (
@@ -186,8 +186,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         </div>
       </aside>
 
-      {/* Smart Lens FAB — direct entry point to the AR camera experience */}
-      <div className={cn(
+      {/* Smart Lens FAB — direct entry point to the AR camera experience (students only) */}
+      {!isAdmin && <div className={cn(
         'fixed z-40 bottom-28 lg:bottom-10 flex flex-col items-end gap-2',
         dir === 'rtl' ? 'left-5 lg:left-10 items-start' : 'right-5 lg:right-10 items-end'
       )}>
@@ -237,7 +237,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             {language === 'ar' ? 'العدسة الذكية' : 'Smart Lens'}
           </span>
         </motion.button>
-      </div>
+      </div>}
 
       {/* Persistent AI Librarian entry point - a chat helper one tap away from
           every page, stacked just above the AR button on the same side so the
@@ -394,7 +394,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                                   <div className="flex-1 space-y-1">
                                     <div className="flex justify-between items-start">
                                       <h4 className="text-xs font-black text-primary leading-tight">{notif.title}</h4>
-                                      <span className="text-[8px] font-bold text-slate-300 uppercase shrink-0">منذ قليل</span>
+                                      <span className="text-[8px] font-bold text-slate-300 uppercase shrink-0">{language === 'ar' ? 'منذ قليل' : 'Just now'}</span>
                                     </div>
                                     <p className="text-[11px] text-slate-400 font-bold leading-relaxed line-clamp-2">
                                       {notif.message}
@@ -412,7 +412,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                              <div className="w-16 h-16 bg-slate-50 rounded-full mx-auto flex items-center justify-center text-slate-200">
                                 <Bell className="w-8 h-8" />
                              </div>
-                             <div className="text-xs font-black text-slate-300 uppercase tracking-widest">لا توجد تنبيهات حالياً</div>
+                             <div className="text-xs font-black text-slate-300 uppercase tracking-widest">{language === 'ar' ? 'لا توجد تنبيهات حالياً' : 'No notifications yet'}</div>
                           </div>
                         )}
                       </div>
