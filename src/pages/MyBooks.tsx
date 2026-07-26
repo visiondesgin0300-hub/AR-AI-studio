@@ -5,14 +5,14 @@ import {
   Award, BookOpen, Clock,
   TrendingUp, User as UserIcon,
   Navigation, Flame, Target, BookMarked, Timer,
-  Lock, Search, Star, Compass,
-  GraduationCap, Trophy, ArrowDown, ArrowUp, ChevronRight,
+  Trophy, ArrowDown, ArrowUp, ChevronRight,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn, getUserLevel, getEarnedBadges, calcXP } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
+import { BadgesCabinet } from '../components/BadgesCabinet';
 
 interface MyBooksProps { user: User }
 
@@ -61,18 +61,6 @@ export function MyBooks({ user }: MyBooksProps) {
     streak:   7 + Math.floor(xp / 200),
     badges:   earnedBadges.length,
   };
-
-  // ─── badge definitions ────────────────────────────────────────────────────────
-  const BADGE_DEF: Record<string, { title: string; desc: string; Icon: React.FC<{ className?: string }>; earned: string; dot: string }> = {
-    'مستكشف': { title: t('badgeExplorer'),      desc: t('badgeExplorerDesc'),      Icon: Compass,   earned: 'text-blue-600 bg-blue-500/10 border-blue-500/20',    dot: 'bg-blue-500'    },
-    'باحث':   { title: t('badgeResearcher'),   desc: t('badgeResearcherDesc'),   Icon: Search,    earned: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20', dot: 'bg-emerald-500' },
-    'متميز':  { title: t('badgeDistinguished'), desc: t('badgeDistinguishedDesc'), Icon: Star,      earned: 'text-yellow-600 bg-yellow-500/10 border-yellow-500/20',  dot: 'bg-yellow-500'  },
-  };
-  const LOCKED = [
-    { key: 'قارئ',    title: t('badgeAvid'),     desc: t('badgeAvidDesc'),     Icon: BookOpen      },
-    { key: 'ملاح',    title: t('badgeNavigator'), desc: t('badgeNavigatorDesc'), Icon: Navigation   },
-    { key: 'أكاديمي', title: t('badgeScholar'),  desc: t('badgeScholarDesc'),  Icon: GraduationCap },
-  ];
 
   return (
     <div dir={dir} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto pb-20">
@@ -341,75 +329,13 @@ export function MyBooks({ user }: MyBooksProps) {
         {activeTab === 'achievements' && (
           <motion.div key="ach" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
 
-            {/* Earned badges */}
+            {/* Badges cabinet — same component as Dashboard */}
             <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
               <div className="text-center space-y-2">
                 <h4 className="text-xl font-black text-primary dark:text-white">{t('badgesEarnedLabel')}</h4>
                 <div className="w-10 h-[3px] bg-accent rounded-full mx-auto" />
               </div>
-
-              {earnedBadges.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {earnedBadges.map((badge, i) => {
-                    const def = BADGE_DEF[badge];
-                    if (!def) return null;
-                    return (
-                      <motion.div
-                        key={badge}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ delay: i * 0.07 }}
-                        className={cn('official-card p-5 border rounded-2xl flex items-start gap-3', def.earned)}
-                      >
-                        <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center shrink-0', def.earned)}>
-                          <def.Icon className="w-5 h-5" />
-                        </div>
-                        <div className={ar ? 'text-right' : ''}>
-                          <div className="text-sm font-black text-primary dark:text-white">{def.title}</div>
-                          <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold leading-snug mt-0.5">{def.desc}</div>
-                          <div className={cn('flex items-center gap-1 mt-2', ar ? 'flex-row-reverse' : '')}>
-                            <span className={cn('w-1.5 h-1.5 rounded-full', def.dot)} />
-                            <span className="text-[9px] font-black text-emerald-500">{ar ? 'مكتسب' : 'Earned'}</span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="border border-dashed border-slate-200 dark:border-white/8 rounded-2xl p-10 text-center space-y-3">
-                  <Award className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto" />
-                  <p className="text-xs font-bold text-slate-400">{t('startReadingToCompete')}</p>
-                </div>
-              )}
-            </section>
-
-            {/* Locked badges */}
-            <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
-              <div className="text-center space-y-2">
-                <h4 className="text-xl font-black text-primary dark:text-white">{t('badgesLockedLabel')}</h4>
-                <div className="w-10 h-[3px] bg-accent rounded-full mx-auto" />
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {LOCKED.map((badge, i) => (
-                  <motion.div
-                    key={badge.key}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1 + i * 0.07 }}
-                    className="official-card p-5 border-slate-100 dark:border-white/5 rounded-2xl flex items-start gap-3 opacity-50 grayscale"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-400">
-                      <badge.Icon className="w-5 h-5" />
-                    </div>
-                    <div className={ar ? 'text-right' : ''}>
-                      <div className="text-sm font-black text-slate-500 dark:text-slate-400">{badge.title}</div>
-                      <div className="text-[10px] text-slate-400 font-bold leading-snug mt-0.5">{badge.desc}</div>
-                    </div>
-                    <Lock className="w-4 h-4 text-slate-300 dark:text-slate-700 ms-auto shrink-0" />
-                  </motion.div>
-                ))}
-              </div>
+              <BadgesCabinet user={user} />
             </section>
 
             {/* How to earn XP */}
