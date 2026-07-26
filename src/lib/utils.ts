@@ -13,52 +13,61 @@ export function getUserLevel(points: number): number {
 // ── Map & shelf navigation tracking ──────────────────────────────────
 // مستكشف: opened map ≥ 1 time
 // باحث:   navigated to ≥ 3 different shelves/places
-// متميز:  logged in ≥ 3 sessions AND has both previous badges
+// متميز:  visited all sections A/B/C/D AND has both previous badges
 
-const MAP_VISITS_KEY   = 'map_visits_v2';
-const LOGIN_COUNT_KEY  = 'login_count_v1';
-const SEARCH_COUNT_KEY = 'search_count_v1';
-const GAME_KEY         = 'cognitive_ar_v4';
+// Each user gets their own isolated XP/badge namespace in localStorage.
+function getCurrentUserId(): string {
+  try {
+    const stored = localStorage.getItem('library_user');
+    if (!stored) return 'anonymous';
+    return JSON.parse(stored)?.id || 'anonymous';
+  } catch { return 'anonymous'; }
+}
+
+function mapKey():    string { return `map_visits_v2_${getCurrentUserId()}`; }
+function loginKey():  string { return `login_count_v1_${getCurrentUserId()}`; }
+function searchKey(): string { return `search_count_v1_${getCurrentUserId()}`; }
+function gameKey():   string { return `cognitive_ar_v4_${getCurrentUserId()}`; }
 
 function getCompletedGameLevels(): string[] {
-  try { return JSON.parse(localStorage.getItem(GAME_KEY) || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(gameKey()) || '[]'); } catch { return []; }
 }
 
 export function trackMapVisit(locationId: string): void {
   try {
     const current = getMapVisits();
     if (!current.includes(locationId)) {
-      localStorage.setItem(MAP_VISITS_KEY, JSON.stringify([...current, locationId]));
+      localStorage.setItem(mapKey(), JSON.stringify([...current, locationId]));
     }
   } catch {}
 }
 
 export function getMapVisits(): string[] {
-  try { return JSON.parse(localStorage.getItem(MAP_VISITS_KEY) || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(mapKey()) || '[]'); } catch { return []; }
 }
 
 // Called once per login from App.tsx handleLogin
 export function incrementLoginCount(): void {
   try {
     const n = getLoginCount() + 1;
-    localStorage.setItem(LOGIN_COUNT_KEY, String(n));
+    localStorage.setItem(loginKey(), String(n));
   } catch {}
 }
 
 export function getLoginCount(): number {
-  try { return parseInt(localStorage.getItem(LOGIN_COUNT_KEY) || '0', 10); } catch { return 0; }
+  try { return parseInt(localStorage.getItem(loginKey()) || '0', 10); } catch { return 0; }
 }
 
 // Called once per search page visit from Search.tsx
 export function incrementSearchCount(): void {
   try {
     const n = getSearchCount() + 1;
-    localStorage.setItem(SEARCH_COUNT_KEY, String(n));
+    localStorage.setItem(searchKey(), String(n));
   } catch {}
 }
 
 export function getSearchCount(): number {
-  try { return parseInt(localStorage.getItem(SEARCH_COUNT_KEY) || '0', 10); } catch { return 0; }
+  try { return parseInt(localStorage.getItem(searchKey()) || '0', 10); } catch { return 0; }
 }
 
 // Shelf/place navigations = visits whose ID matches a shelf pattern or 'facilities'

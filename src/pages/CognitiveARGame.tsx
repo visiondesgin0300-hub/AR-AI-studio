@@ -14,8 +14,15 @@ import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy,
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
-const STORAGE_KEY = 'cognitive_ar_v4';
 const TICK = 100;
+
+function getGameStorageKey(): string {
+  try {
+    const stored = localStorage.getItem('library_user');
+    if (!stored) return 'cognitive_ar_v4_anonymous';
+    return `cognitive_ar_v4_${JSON.parse(stored)?.id || 'anonymous'}`;
+  } catch { return 'cognitive_ar_v4_anonymous'; }
+}
 const SLOTS = 6;
 
 // ── Knowledge source pool ─────────────────────────────────────────────
@@ -173,7 +180,7 @@ function spawnItem(level: Level, occupiedSlots: number[]): GameItem | null {
 }
 
 function loadCompleted(): string[] {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
+  try { return JSON.parse(localStorage.getItem(getGameStorageKey()) || '[]'); } catch { return []; }
 }
 
 // ── Component ─────────────────────────────────────────────────────────
@@ -347,7 +354,7 @@ export function CognitiveARGame() {
     if (passed && !completed.includes(activeLevel.id)) {
       const next = [...completed, activeLevel.id];
       setCompleted(next);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      localStorage.setItem(getGameStorageKey(), JSON.stringify(next));
     }
     setPhase('result');
   }
