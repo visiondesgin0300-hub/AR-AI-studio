@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Map as MapIcon } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, trackMapVisit } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -29,6 +29,8 @@ export function FacilitiesMap() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, language, dir } = useLanguage();
+
+  useEffect(() => { trackMapVisit('facilities'); }, []);
 
   const [manualTarget, setManualTarget] = useState<ManualTarget | null>(() => {
     if (location.state?.facilityCell) return { id: location.state.facilityCell };

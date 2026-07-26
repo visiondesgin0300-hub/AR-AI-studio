@@ -17,8 +17,8 @@ const ALL_BADGES = [
     colorEarned: 'text-blue-600 bg-blue-500/10 border-blue-500/20',
     titleAr: 'مستكشف',
     titleEn: 'Explorer',
-    unlockAr: 'استعر أول كتاب من المكتبة',
-    unlockEn: 'Borrow your first book',
+    unlockAr: 'افتح خريطة المكتبة',
+    unlockEn: 'Open the library map',
     xp: 50,
   },
   {
@@ -27,8 +27,8 @@ const ALL_BADGES = [
     colorEarned: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20',
     titleAr: 'باحث',
     titleEn: 'Researcher',
-    unlockAr: 'اجمع 100 نقطة من استخدام النظام',
-    unlockEn: 'Earn 100 XP using the system',
+    unlockAr: 'استكشف 3 رفوف مختلفة في الخريطة',
+    unlockEn: 'Explore 3 different shelves on the map',
     xp: 75,
   },
   {
@@ -37,8 +37,8 @@ const ALL_BADGES = [
     colorEarned: 'text-yellow-600 bg-yellow-500/10 border-yellow-500/20',
     titleAr: 'متميز',
     titleEn: 'Distinguished',
-    unlockAr: 'اجمع 250 نقطة — مستخدم متميز',
-    unlockEn: 'Earn 250 XP — dedicated user',
+    unlockAr: 'استكشف جميع رفوف المكتبة الثمانية',
+    unlockEn: 'Explore all 8 library shelves',
     xp: 100,
   },
 ];

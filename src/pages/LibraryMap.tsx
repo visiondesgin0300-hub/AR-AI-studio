@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
-import { cn } from '../lib/utils';
+import { cn, trackMapVisit } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
@@ -30,6 +30,10 @@ export function LibraryMap() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, language, dir } = useLanguage();
+
+  // Award XP for opening the map
+  useEffect(() => { trackMapVisit('map'); }, []);
+
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [showPath, setShowPath] = useState(false);
   const [manualTarget, setManualTarget] = useState<ManualTarget | null>(null);
@@ -82,6 +86,7 @@ export function LibraryMap() {
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
 
   const navigateToCell = (cellId: string) => {
+    trackMapVisit(cellId); // Award XP for each unique shelf explored
     setSelectedBook(null);
     setManualTarget({ id: cellId });
     setShowPath(true);
