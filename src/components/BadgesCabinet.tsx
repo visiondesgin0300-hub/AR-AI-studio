@@ -17,8 +17,8 @@ const ALL_BADGES = [
     colorEarned: 'text-blue-600 bg-blue-500/10 border-blue-500/20',
     titleAr: 'مستكشف',
     titleEn: 'Explorer',
-    unlockAr: 'افتح أي تجربة واقع معزز',
-    unlockEn: 'Open any AR experience',
+    unlockAr: 'استعر أول كتاب من المكتبة',
+    unlockEn: 'Borrow your first book',
     xp: 50,
   },
   {
@@ -27,8 +27,8 @@ const ALL_BADGES = [
     colorEarned: 'text-emerald-600 bg-emerald-500/10 border-emerald-500/20',
     titleAr: 'باحث',
     titleEn: 'Researcher',
-    unlockAr: 'جرّب 3 تجارب واقع معزز مختلفة',
-    unlockEn: 'Try 3 different AR experiences',
+    unlockAr: 'اجمع 100 نقطة من استخدام النظام',
+    unlockEn: 'Earn 100 XP using the system',
     xp: 75,
   },
   {
@@ -37,8 +37,8 @@ const ALL_BADGES = [
     colorEarned: 'text-yellow-600 bg-yellow-500/10 border-yellow-500/20',
     titleAr: 'متميز',
     titleEn: 'Distinguished',
-    unlockAr: 'استكشف 5 تجارب واقع معزز مختلفة',
-    unlockEn: 'Explore 5 different AR experiences',
+    unlockAr: 'اجمع 250 نقطة — مستخدم متميز',
+    unlockEn: 'Earn 250 XP — dedicated user',
     xp: 100,
   },
 ];

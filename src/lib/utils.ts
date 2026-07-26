@@ -12,39 +12,16 @@ export function getUserLevel(points: number): number {
   return Math.floor(points / 100) + 1;
 }
 
-// ── AR visit tracking ────────────────────────────────────────────────
-// Each AR page calls trackARVisit('feature-id') on mount.
-// The set is persisted in localStorage so badges survive navigation.
-
-const AR_VISITS_KEY = 'ar_visits_v1';
-
-export function trackARVisit(feature: string): void {
-  try {
-    const current = getARVisits();
-    if (!current.includes(feature)) {
-      localStorage.setItem(AR_VISITS_KEY, JSON.stringify([...current, feature]));
-    }
-  } catch {}
-}
-
-export function getARVisits(): string[] {
-  try { return JSON.parse(localStorage.getItem(AR_VISITS_KEY) || '[]'); } catch { return []; }
-}
-
-// XP = 50 per unique AR feature visited (max 6 × 50 = 300)
-export function getARXP(): number {
-  return getARVisits().length * 50;
-}
-
-// Badges auto-calculated from AR usage (no XP or reading required).
-// مستكشف  → used ≥ 1 AR feature
-// باحث     → used ≥ 3 AR features
-// متميز    → used ≥ 5 AR features
-export function getEarnedBadges(_user: User): string[] {
-  const count = getARVisits().length;
+// Badges auto-calculated from user.points (earned by using the system).
+// user.points grows with every action: borrowing books, returning, etc.
+// مستكشف  → ≥ 15 XP  (borrowed 1 book)
+// باحث     → ≥ 100 XP (active user)
+// متميز    → ≥ 250 XP (dedicated user)
+export function getEarnedBadges(user: User): string[] {
+  const p = user.points ?? 0;
   const earned: string[] = [];
-  if (count >= 1) earned.push('مستكشف');
-  if (count >= 3) earned.push('باحث');
-  if (count >= 5) earned.push('متميز');
+  if (p >= 15)  earned.push('مستكشف');
+  if (p >= 100) earned.push('باحث');
+  if (p >= 250) earned.push('متميز');
   return earned;
 }

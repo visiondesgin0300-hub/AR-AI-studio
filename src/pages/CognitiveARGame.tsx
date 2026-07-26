@@ -9,7 +9,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy } from 'lucide-react';
-import { cn, getARXP } from '../lib/utils';
+import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
 const STORAGE_KEY = 'cognitive_ar_v4';
@@ -127,8 +127,6 @@ export function CognitiveARGame() {
   const { language } = useLanguage();
   const ar = language === 'ar';
 
-  useEffect(() => { import('../lib/utils').then(m => m.trackARVisit('cognitive-ar')); }, []);
-
   const [completed, setCompleted] = useState<string[]>(loadCompleted);
   const [phase, setPhase] = useState<'hub' | 'countdown' | 'playing' | 'result'>('hub');
   const [activeLevel, setActiveLevel] = useState<Level | null>(null);
@@ -140,7 +138,7 @@ export function CognitiveARGame() {
   const gsRef = useRef<GS | null>(null);
 
   const gs = gsRef.current;
-  const totalXP = getARXP();
+  const totalXP = completed.reduce((s, id) => s + (LEVELS.find(l => l.id === id)?.xp ?? 0), 0);
 
   // ── Countdown before game starts ──
   useEffect(() => {

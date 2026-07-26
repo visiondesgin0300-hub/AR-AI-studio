@@ -22,8 +22,6 @@ export function ArHub() {
   const location = useLocation();
   const { t, dir, language } = useLanguage();
 
-  useEffect(() => { import('../lib/utils').then(m => m.trackARVisit('ar-hub')); }, []);
-
   const incomingBook = (location.state as { book?: Book } | null)?.book ?? null;
   const [targetBook, setTargetBook] = useState<Book | null>(incomingBook);
   const [isSimulating, setIsSimulating] = useState(false);

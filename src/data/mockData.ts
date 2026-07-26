@@ -1058,8 +1058,8 @@ export const MOCK_USERS: User[] = [
     role: 'student',
     borrowedBooks: ['7'],
     totalReadCount: 5,
-    points: 200,
-    badges: ['باحث']
+    points: 85,
+    badges: []
   },
   {
     id: 'u3',
