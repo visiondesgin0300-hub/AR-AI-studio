@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
-import { cn } from '../lib/utils';
+import { cn, incrementSearchCount } from '../lib/utils';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookCover } from '../components/BookCover';
 
@@ -12,6 +13,8 @@ export function Search() {
   const { t, dir, language } = useLanguage();
   const navigate = useNavigate();
   
+  useEffect(() => { incrementSearchCount(); }, []);
+
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');

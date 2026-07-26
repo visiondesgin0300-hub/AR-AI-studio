@@ -15,8 +15,9 @@ export function getUserLevel(points: number): number {
 // باحث:   navigated to ≥ 3 different shelves/places
 // متميز:  logged in ≥ 3 sessions AND has both previous badges
 
-const MAP_VISITS_KEY  = 'map_visits_v2';
-const LOGIN_COUNT_KEY = 'login_count_v1';
+const MAP_VISITS_KEY   = 'map_visits_v2';
+const LOGIN_COUNT_KEY  = 'login_count_v1';
+const SEARCH_COUNT_KEY = 'search_count_v1';
 
 export function trackMapVisit(locationId: string): void {
   try {
@@ -41,6 +42,18 @@ export function incrementLoginCount(): void {
 
 export function getLoginCount(): number {
   try { return parseInt(localStorage.getItem(LOGIN_COUNT_KEY) || '0', 10); } catch { return 0; }
+}
+
+// Called once per search page visit from Search.tsx
+export function incrementSearchCount(): void {
+  try {
+    const n = getSearchCount() + 1;
+    localStorage.setItem(SEARCH_COUNT_KEY, String(n));
+  } catch {}
+}
+
+export function getSearchCount(): number {
+  try { return parseInt(localStorage.getItem(SEARCH_COUNT_KEY) || '0', 10); } catch { return 0; }
 }
 
 // Shelf/place navigations = visits whose ID matches a shelf pattern or 'facilities'

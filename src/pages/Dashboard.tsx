@@ -4,7 +4,7 @@ import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layer
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
-import { cn, calcXP } from '../lib/utils';
+import { cn, calcXP, getSearchCount } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
@@ -18,7 +18,7 @@ export function Dashboard({ user }: DashboardProps) {
   const navigate = useNavigate();
   const { t, dir, language } = useLanguage();
 
-  const totalLearningHours = user.totalReadCount * 5 + user.borrowedBooks.length * 2;
+  const totalLearningHours = (user.totalReadCount + user.borrowedBooks.length) * 3 + Math.floor(getSearchCount() / 2);
 
   const mostRead = MOCK_BOOKS.slice(0, 4);
   const categories: string[] = Array.from(new Set(MOCK_BOOKS.map(b => b.category)));
