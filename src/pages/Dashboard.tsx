@@ -415,14 +415,14 @@ export function Dashboard({ user }: DashboardProps) {
 
       {/* ── Cognitive Badges ── */}
       <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900 space-y-8">
-        <div className="text-center space-y-2 max-w-xl mx-auto">
-          <span className="inline-block px-4 py-1.5 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
-            {t('earnedBadgesEyebrow')}
-          </span>
-          <h4 className="text-xl font-black text-primary dark:text-white tracking-tight">
+        <div className="text-center space-y-3 max-w-xl mx-auto">
+          <h4 className="text-2xl font-black text-primary dark:text-white">
             {language === 'ar' ? 'الأوسمة المعرفية' : 'Cognitive Badges'}
           </h4>
-          <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('informationCognitiveBadgesChestDesc')}</p>
+          <div className="w-12 h-[3px] bg-accent rounded-full mx-auto" />
+          <p className="text-slate-400 dark:text-slate-500 text-sm font-medium leading-relaxed">
+            {t('informationCognitiveBadgesChestDesc')}
+          </p>
         </div>
         <BadgesCabinet user={user} />
       </section>
@@ -438,10 +438,15 @@ export function Dashboard({ user }: DashboardProps) {
 
       {recommendations.length > 0 && (
         <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
-          <h4 className="text-sm font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4 text-accent" />
-            {t('recommendedFeaturedSources')}
-          </h4>
+          <div className="text-center space-y-3">
+            <h4 className="text-2xl font-black text-primary dark:text-white">
+              {language === 'ar' ? 'الكتب المقترحة' : 'Recommended Books'}
+            </h4>
+            <div className="w-12 h-[3px] bg-accent rounded-full mx-auto" />
+            <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">
+              {language === 'ar' ? 'اختر الكتاب لبدء البحث الذكي' : 'Choose a book to start smart search'}
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left rtl:text-right">
             {recommendations.map((book, idx) => (
