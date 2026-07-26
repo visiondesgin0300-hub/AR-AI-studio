@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Sparkles, FlaskConical } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
-import { cn, getMapVisits } from '../lib/utils';
+import { cn, calcXP } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useLanguage } from '../hooks/useLanguage';
@@ -491,7 +491,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 <div>
                   <div className="text-[8px] font-black text-accent/70 uppercase tracking-wider">{t('experiencePoints')}</div>
                   <div className="text-sm font-black text-accent leading-none mt-0.5">
-                    {(() => { const v = getMapVisits(); let xp = 0; if (v.includes('map')) xp += 20; if (v.includes('facilities')) xp += 10; xp += v.filter(x => /^[A-Z]-\d/.test(x)).length * 15; return xp; })()} <span className="text-[9px] font-bold text-white/60">XP</span>
+                    {calcXP()} <span className="text-[9px] font-bold text-white/60">XP</span>
                   </div>
                 </div>
               </motion.div>

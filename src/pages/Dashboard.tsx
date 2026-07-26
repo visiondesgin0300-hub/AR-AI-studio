@@ -4,7 +4,7 @@ import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layer
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
-import { cn, getMapVisits } from '../lib/utils';
+import { cn, calcXP } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
@@ -112,7 +112,7 @@ export function Dashboard({ user }: DashboardProps) {
                     {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
                   </div>
                   <div className="text-xl font-black text-accent leading-none mt-0.5">
-                    {(() => { const v = getMapVisits(); let xp = 0; if (v.includes('map')) xp += 20; if (v.includes('facilities')) xp += 10; xp += v.filter(x => /^[A-Z]-\d/.test(x)).length * 15; return xp; })()} <span className="text-[10px] font-bold text-white/40">XP</span>
+                    {calcXP()} <span className="text-[10px] font-bold text-white/40">XP</span>
                   </div>
                 </div>
               </div>

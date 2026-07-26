@@ -6,19 +6,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-// Single source of truth for the gamification level shown across the app
-// (sidebar, profile header, etc.) so it never disagrees from page to page.
 export function getUserLevel(points: number): number {
   return Math.floor(points / 100) + 1;
 }
 
-// ── Map & shelf visit tracking ────────────────────────────────────────
-// LibraryMap calls trackMapVisit('map') on mount.
-// navigateToCell calls trackMapVisit(cellId) for each unique shelf clicked.
-// FacilitiesMap calls trackMapVisit('facilities') on mount.
-// XP: opening the map = 20, each unique shelf = 15, facilities = 10.
+// ── Map & shelf navigation tracking ──────────────────────────────────
+// مستكشف: opened map ≥ 1 time
+// باحث:   navigated to ≥ 3 different shelves/places
+// متميز:  logged in ≥ 3 sessions AND has both previous badges
 
-const MAP_VISITS_KEY = 'map_visits_v1';
+const MAP_VISITS_KEY  = 'map_visits_v2';
+const LOGIN_COUNT_KEY = 'login_count_v1';
 
 export function trackMapVisit(locationId: string): void {
   try {
@@ -33,25 +31,54 @@ export function getMapVisits(): string[] {
   try { return JSON.parse(localStorage.getItem(MAP_VISITS_KEY) || '[]'); } catch { return []; }
 }
 
-function calcMapXP(): number {
+// Called once per login from App.tsx handleLogin
+export function incrementLoginCount(): void {
+  try {
+    const n = getLoginCount() + 1;
+    localStorage.setItem(LOGIN_COUNT_KEY, String(n));
+  } catch {}
+}
+
+export function getLoginCount(): number {
+  try { return parseInt(localStorage.getItem(LOGIN_COUNT_KEY) || '0', 10); } catch { return 0; }
+}
+
+// Shelf/place navigations = visits whose ID matches a shelf pattern or 'facilities'
+function getPlaceCount(): number {
+  return getMapVisits().filter(v => /^[A-Z]-\d/.test(v) || v === 'facilities').length;
+}
+
+// XP for display: map open=20, each place/shelf=15, login bonus 10/session (cap 3)
+export function calcXP(): number {
   const visits = getMapVisits();
   let xp = 0;
-  if (visits.includes('map'))        xp += 20;
-  if (visits.includes('facilities')) xp += 10;
-  // Each unique shelf ID (A-1, B-2, …) = 15 XP
-  xp += visits.filter(v => /^[A-Z]-\d/.test(v)).length * 15;
+  if (visits.includes('map')) xp += 20;
+  xp += getPlaceCount() * 15;
+  xp += Math.min(getLoginCount(), 5) * 10;
   return xp;
 }
 
-// Badges auto-calculated from map & shelf exploration.
-// مستكشف  → ≥ 20 XP  (opened the map once)
-// باحث     → ≥ 65 XP  (explored ≥ 3 shelves)
-// متميز    → ≥ 125 XP (explored all 8 shelves)
+// Single source of truth for earned badges
 export function getEarnedBadges(_user: User): string[] {
-  const xp = calcMapXP();
+  const visits  = getMapVisits();
+  const places  = getPlaceCount();
+  const logins  = getLoginCount();
   const earned: string[] = [];
-  if (xp >= 20)  earned.push('مستكشف');
-  if (xp >= 65)  earned.push('باحث');
-  if (xp >= 125) earned.push('متميز');
+
+  // مستكشف: فتح الخريطة مرة واحدة
+  if (visits.includes('map') || visits.includes('facilities')) {
+    earned.push('مستكشف');
+  }
+
+  // باحث: التنقل بين ≥ 3 رفوف أو أماكن مختلفة
+  if (places >= 3) {
+    earned.push('باحث');
+  }
+
+  // متميز: دخول النظام ≥ 3 مرات + امتلاك الوسامَين السابقَين
+  if (logins >= 3 && earned.includes('مستكشف') && earned.includes('باحث')) {
+    earned.push('متميز');
+  }
+
   return earned;
 }

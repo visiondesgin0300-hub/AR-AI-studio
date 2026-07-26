@@ -30,6 +30,7 @@ import { CognitiveARGame } from './pages/CognitiveARGame';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
+import { incrementLoginCount } from './lib/utils';
 
 // Lazy-loaded: pulls in mind-ar + tensorflow.js + three.js + AR.js, several
 // multi-MB dependencies that should only load once a user actually opens the
@@ -63,6 +64,7 @@ function AppContent() {
   const handleLogin = (userData: User) => {
     setUser(userData);
     localStorage.setItem('library_user', JSON.stringify(userData));
+    incrementLoginCount();
   };
 
   const handleLogout = () => {
