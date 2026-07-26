@@ -346,11 +346,12 @@ export function MyBooks({ user }: MyBooksProps) {
                 </h4>
                 <div className="w-10 h-[3px] bg-accent rounded-full mx-auto" />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 {[
-                  { icon: '🗺️', ar: 'فتح خريطة المكتبة',  en: 'Open library map',    pts: 20,  note: ar ? 'مرة واحدة'        : 'once'         },
-                  { icon: '📍', ar: 'زيارة رف أو قسم', en: 'Visit a shelf/section', pts: 15,  note: ar ? 'لكل رف'           : 'per shelf'    },
-                  { icon: '🔑', ar: 'تسجيل الدخول',    en: 'Login session',          pts: 10,  note: ar ? 'بحد أقصى ٥ مرات'  : 'max 5 times'  },
+                  { icon: '🗺️', ar: 'فتح خريطة المكتبة',  en: 'Open library map',    pts: 20,  note: ar ? 'مرة واحدة'         : 'once'          },
+                  { icon: '📍', ar: 'زيارة رف أو قسم', en: 'Visit a shelf/section', pts: 15,  note: ar ? 'لكل رف'            : 'per shelf'     },
+                  { icon: '🔑', ar: 'تسجيل الدخول',    en: 'Login session',          pts: 10,  note: ar ? 'بحد أقصى ٥ مرات'  : 'max 5 times'   },
+                  { icon: '🔍', ar: 'بحث ذكي',          en: 'Smart search',           pts: 10,  note: ar ? 'بحد أقصى ٥ بحثات' : 'max 5 searches' },
                 ].map((item, i) => (
                   <motion.div
                     key={i}
