@@ -4,7 +4,7 @@ import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layer
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, getARXP } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
@@ -112,7 +112,7 @@ export function Dashboard({ user }: DashboardProps) {
                     {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
                   </div>
                   <div className="text-xl font-black text-accent leading-none mt-0.5">
-                    {user.points || 450} <span className="text-[10px] font-bold text-white/40">KP</span>
+                    {getARXP()} <span className="text-[10px] font-bold text-white/40">XP</span>
                   </div>
                 </div>
               </div>

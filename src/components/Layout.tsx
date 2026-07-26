@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Map, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, QrCode, X, Sparkles, FlaskConical } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
-import { cn } from '../lib/utils';
+import { cn, getARXP } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useLanguage } from '../hooks/useLanguage';
@@ -491,7 +491,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 <div>
                   <div className="text-[8px] font-black text-accent/70 uppercase tracking-wider">{t('experiencePoints')}</div>
                   <div className="text-sm font-black text-accent leading-none mt-0.5">
-                    {user.points || 450} <span className="text-[9px] font-bold text-white/60">XP</span>
+                    {getARXP()} <span className="text-[9px] font-bold text-white/60">XP</span>
                   </div>
                 </div>
               </motion.div>

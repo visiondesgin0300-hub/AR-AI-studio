@@ -31,7 +31,12 @@ export function getARVisits(): string[] {
   try { return JSON.parse(localStorage.getItem(AR_VISITS_KEY) || '[]'); } catch { return []; }
 }
 
-// Badges auto-calculated from AR usage (no game or XP required).
+// XP = 50 per unique AR feature visited (max 6 × 50 = 300)
+export function getARXP(): number {
+  return getARVisits().length * 50;
+}
+
+// Badges auto-calculated from AR usage (no XP or reading required).
 // مستكشف  → used ≥ 1 AR feature
 // باحث     → used ≥ 3 AR features
 // متميز    → used ≥ 5 AR features
