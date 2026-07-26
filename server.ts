@@ -1598,6 +1598,107 @@ app.post("/api/oman-corner", async (req, res) => {
   }
 });
 
+// ── Quiz Questions (Gemini-generated for CognitiveARGame) ────────────────
+app.post("/api/quiz-questions", async (req, res) => {
+  const { levelId, levelNameAr, levelNameEn, language } = req.body || {};
+
+  const difficultyMap: Record<string, string> = {
+    explorer:      'سهل — مفاهيم أساسية عن مصادر المعلومات الموثوقة',
+    researcher:    'متوسط — مفاهيم البحث العلمي والمراجعة الأكاديمية',
+    distinguished: 'متقدم — الوعي المعلوماتي والتفكير النقدي',
+  };
+  const difficulty = difficultyMap[levelId] || 'متوسط';
+
+  const fallbackQuestions = [
+    {
+      qAr: 'ما المصدر الأكثر موثوقية للبحث العلمي؟',
+      qEn: 'Which is the most reliable source for scientific research?',
+      options: [
+        { ar: 'مقال محكّم في مجلة علمية', en: 'Peer-reviewed scientific article', correct: true },
+        { ar: 'منشور في التواصل الاجتماعي', en: 'Social media post', correct: false },
+        { ar: 'مدونة شخصية', en: 'Personal blog', correct: false },
+      ],
+    },
+    {
+      qAr: 'لماذا يجب التحقق من مصدر المعلومة؟',
+      qEn: 'Why should you verify the source of information?',
+      options: [
+        { ar: 'لضمان دقتها وموثوقيتها', en: 'To ensure its accuracy and reliability', correct: true },
+        { ar: 'لأن كل المعلومات خاطئة', en: 'Because all information is wrong', correct: false },
+        { ar: 'لا داعي للتحقق أبداً', en: 'Verification is never necessary', correct: false },
+      ],
+    },
+    {
+      qAr: 'أي من هذه يُعدّ مصدراً أولياً؟',
+      qEn: 'Which of these is a primary source?',
+      options: [
+        { ar: 'ورقة بحثية أكاديمية محكّمة', en: 'Peer-reviewed academic paper', correct: true },
+        { ar: 'خبر منقول بلا مرجع', en: 'Unattributed news story', correct: false },
+        { ar: 'تعليق في منتدى', en: 'Forum comment', correct: false },
+      ],
+    },
+  ];
+
+  const client = getGeminiClient();
+  if (!client) return res.json({ questions: fallbackQuestions });
+
+  try {
+    const prompt = `أنت خبير في الوعي المعلوماتي. أنشئ 3 أسئلة اختيار من متعدد لاختبار معرفة الطالب بمصادر المعلومات الموثوقة.
+
+مستوى الصعوبة: ${difficulty}
+اسم الوسام: ${levelNameAr} (${levelNameEn})
+
+لكل سؤال: نص السؤال بالعربية والإنجليزية، و3 خيارات، خيار واحد فقط صحيح.
+الأسئلة يجب أن تكون متنوعة وتقيس فهماً حقيقياً لمصادر المعلومات الأكاديمية.`;
+
+    const response = await client.models.generateContent({
+      model: "gemini-2.0-flash-lite",
+      contents: prompt,
+      config: {
+        systemInstruction: "أنت خبير تربوي في محو الأمية المعلوماتية. أجب بـ JSON فقط.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            questions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  qAr:     { type: Type.STRING },
+                  qEn:     { type: Type.STRING },
+                  options: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        ar:      { type: Type.STRING },
+                        en:      { type: Type.STRING },
+                        correct: { type: Type.BOOLEAN },
+                      },
+                      required: ["ar", "en", "correct"],
+                    },
+                  },
+                },
+                required: ["qAr", "qEn", "options"],
+              },
+            },
+          },
+          required: ["questions"],
+        },
+      },
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    const questions = parsed.questions?.slice(0, 3);
+    if (!questions || questions.length < 2) return res.json({ questions: fallbackQuestions });
+    return res.json({ questions });
+  } catch (err: any) {
+    console.error('[quiz-questions]', err);
+    return res.json({ questions: fallbackQuestions });
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {

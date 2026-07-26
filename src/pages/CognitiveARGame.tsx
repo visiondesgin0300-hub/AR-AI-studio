@@ -83,22 +83,36 @@ const LEVELS: Level[] = [
   },
 ];
 
-// ── Quiz questions per level ──────────────────────────────────────────
+// ── Quiz questions ────────────────────────────────────────────────────
 
 interface QuizQuestion {
   qAr: string; qEn: string;
   options: { ar: string; en: string; correct: boolean }[];
 }
 
-const QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
-  explorer: [
+async function fetchQuizQuestions(level: Level): Promise<QuizQuestion[]> {
+  try {
+    const res = await fetch('/api/quiz-questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        levelId: level.id,
+        levelNameAr: level.nameAr,
+        levelNameEn: level.nameEn,
+      }),
+    });
+    const data = await res.json();
+    if (data.questions?.length >= 2) return data.questions;
+  } catch {}
+  // Fallback (same as server fallback)
+  return [
     {
       qAr: 'ما المصدر الأكثر موثوقية للبحث العلمي؟',
       qEn: 'Which is the most reliable source for scientific research?',
       options: [
-        { ar: 'مقال محكّم في مجلة Nature', en: 'Peer-reviewed article in Nature', correct: true },
+        { ar: 'مقال محكّم في مجلة علمية', en: 'Peer-reviewed scientific article', correct: true },
         { ar: 'منشور في التواصل الاجتماعي', en: 'Social media post', correct: false },
-        { ar: 'مدونة شخصية مجهولة', en: 'Anonymous personal blog', correct: false },
+        { ar: 'مدونة شخصية', en: 'Personal blog', correct: false },
       ],
     },
     {
@@ -111,74 +125,16 @@ const QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       ],
     },
     {
-      qAr: 'أي من هذه يُعدّ مصدراً أولياً موثوقاً؟',
-      qEn: 'Which of these is a reliable primary source?',
+      qAr: 'أي من هذه يُعدّ مصدراً أولياً؟',
+      qEn: 'Which of these is a primary source?',
       options: [
         { ar: 'ورقة بحثية أكاديمية محكّمة', en: 'Peer-reviewed academic paper', correct: true },
-        { ar: 'خبر منقول بلا مرجع', en: 'News story without references', correct: false },
-        { ar: 'تقرير من منتدى عشوائي', en: 'Report from a random forum', correct: false },
+        { ar: 'خبر منقول بلا مرجع', en: 'Unattributed news story', correct: false },
+        { ar: 'تعليق في منتدى', en: 'Forum comment', correct: false },
       ],
     },
-  ],
-  researcher: [
-    {
-      qAr: 'ما معنى "المراجعة من قِبل الأقران" في الأبحاث؟',
-      qEn: 'What does "peer review" mean in research?',
-      options: [
-        { ar: 'تقييم البحث من علماء متخصصين قبل النشر', en: 'Evaluation by expert scientists before publication', correct: true },
-        { ar: 'مشاركة البحث مع الأصدقاء', en: 'Sharing research with friends', correct: false },
-        { ar: 'نشر البحث دون مراجعة', en: 'Publishing without review', correct: false },
-      ],
-    },
-    {
-      qAr: 'أي هذه المصادر أكثر مصداقية لبيانات الصحة؟',
-      qEn: 'Which is the most credible source for health data?',
-      options: [
-        { ar: 'تقارير منظمة الصحة العالمية (WHO)', en: 'World Health Organization (WHO) reports', correct: true },
-        { ar: 'تغريدة من حساب مجهول', en: 'Tweet from unknown account', correct: false },
-        { ar: 'فيديو يوتيوب بدون مراجع', en: 'YouTube video without references', correct: false },
-      ],
-    },
-    {
-      qAr: 'ماذا تعني "تضارب المصالح" في البحث العلمي؟',
-      qEn: 'What does "conflict of interest" mean in research?',
-      options: [
-        { ar: 'مصلحة مالية تؤثر على نتائج البحث', en: 'Financial interest affecting research results', correct: true },
-        { ar: 'الاختلاف في آراء الباحثين', en: 'Disagreement among researchers', correct: false },
-        { ar: 'نقص في التمويل البحثي', en: 'Lack of research funding', correct: false },
-      ],
-    },
-  ],
-  distinguished: [
-    {
-      qAr: 'كيف تُميّز المعلومة الصحيحة من المضللة؟',
-      qEn: 'How do you distinguish accurate from misleading information?',
-      options: [
-        { ar: 'التحقق من عدة مصادر موثوقة ومراجعة الأدلة', en: 'Verify from multiple reliable sources and check evidence', correct: true },
-        { ar: 'قبولها إذا نشرتها جهة حكومية', en: 'Accept if published by a government body', correct: false },
-        { ar: 'الاعتماد على كثرة المشاركات', en: 'Rely on share count', correct: false },
-      ],
-    },
-    {
-      qAr: 'ما "الانتقائية التأكيدية" (Confirmation Bias)؟',
-      qEn: 'What is "Confirmation Bias"?',
-      options: [
-        { ar: 'الميل لقبول ما يؤكد معتقداتنا المسبقة', en: 'Tendency to accept info confirming our prior beliefs', correct: true },
-        { ar: 'التحقق الدقيق من المصادر', en: 'Careful verification of sources', correct: false },
-        { ar: 'الاعتماد على الإحصاءات الرسمية فقط', en: 'Relying only on official statistics', correct: false },
-      ],
-    },
-    {
-      qAr: 'أي الممارسات تدل على وعي معلوماتي عالٍ؟',
-      qEn: 'Which practice reflects high information literacy?',
-      options: [
-        { ar: 'مقارنة المصادر ومعرفة تاريخ النشر والمؤلف', en: 'Comparing sources, checking date and author', correct: true },
-        { ar: 'الاكتفاء بالعنوان الرئيسي للمقال', en: 'Reading only the headline', correct: false },
-        { ar: 'الثقة بأي مصدر ذي تصميم احترافي', en: 'Trusting any professionally designed source', correct: false },
-      ],
-    },
-  ],
-};
+  ];
+}
 
 // ── Game state ────────────────────────────────────────────────────────
 
@@ -233,11 +189,13 @@ export function CognitiveARGame() {
   const [countdown, setCountdown] = useState(3);
 
   // quiz state
-  const [quizIndex, setQuizIndex]       = useState(0);
-  const [quizCorrect, setQuizCorrect]   = useState(0);
-  const [quizSelected, setQuizSelected] = useState(-1);  // option index chosen
-  const [quizRevealed, setQuizRevealed] = useState(false);
-  const [quizDone, setQuizDone]         = useState(false);
+  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
+  const [quizLoading, setQuizLoading]     = useState(false);
+  const [quizIndex, setQuizIndex]         = useState(0);
+  const [quizCorrect, setQuizCorrect]     = useState(0);
+  const [quizSelected, setQuizSelected]   = useState(-1);
+  const [quizRevealed, setQuizRevealed]   = useState(false);
+  const [quizDone, setQuizDone]           = useState(false);
 
   const [tick, setTick] = useState(0);
   const gsRef = useRef<GS | null>(null);
@@ -309,8 +267,7 @@ export function CognitiveARGame() {
         const didWin = score >= activeLevel.winScore;
         if (didWin) {
           // Go to quiz before awarding the badge
-          resetQuizState();
-          setPhase('quiz');
+          loadAndStartQuiz(activeLevel);
         } else {
           setWon(false);
           setPhase('result');
@@ -365,34 +322,27 @@ export function CognitiveARGame() {
     setQuizDone(false);
   }
 
+  async function loadAndStartQuiz(level: Level) {
+    setQuizLoading(true);
+    resetQuizState();
+    setPhase('quiz');
+    const questions = await fetchQuizQuestions(level);
+    setQuizQuestions(questions);
+    setQuizLoading(false);
+  }
+
   function handleQuizSelect(optionIdx: number) {
-    if (quizRevealed || !activeLevel) return;
-    const questions = QUIZ_QUESTIONS[activeLevel.id] ?? [];
-    const q = questions[quizIndex];
+    if (quizRevealed || !quizQuestions[quizIndex]) return;
+    const q = quizQuestions[quizIndex];
     const isCorrect = q.options[optionIdx].correct;
     setQuizSelected(optionIdx);
     setQuizRevealed(true);
     if (isCorrect) setQuizCorrect(c => c + 1);
   }
 
-  function handleQuizNext() {
-    if (!activeLevel) return;
-    const questions = QUIZ_QUESTIONS[activeLevel.id] ?? [];
-    if (quizIndex + 1 >= questions.length) {
-      // Quiz finished — check pass (need 2/3 correct)
-      const finalCorrect = quizCorrect + (quizRevealed && QUIZ_QUESTIONS[activeLevel.id][quizIndex].options[quizSelected]?.correct ? 0 : 0);
-      setQuizDone(true);
-    } else {
-      setQuizIndex(qi => qi + 1);
-      setQuizSelected(-1);
-      setQuizRevealed(false);
-    }
-  }
-
   function finishQuiz() {
     if (!activeLevel) return;
-    const questions = QUIZ_QUESTIONS[activeLevel.id] ?? [];
-    const passed = quizCorrect >= Math.ceil(questions.length * 0.67); // 2/3
+    const passed = quizCorrect >= Math.ceil(quizQuestions.length * 0.67);
     setWon(passed);
     if (passed && !completed.includes(activeLevel.id)) {
       const next = [...completed, activeLevel.id];
@@ -712,7 +662,7 @@ export function CognitiveARGame() {
       {/* ═══════════════════ QUIZ SCREEN ═══════════════════ */}
       <AnimatePresence>
         {phase === 'quiz' && activeLevel && (() => {
-          const questions = QUIZ_QUESTIONS[activeLevel.id] ?? [];
+          const questions = quizQuestions;
           const q = questions[quizIndex];
           const total = questions.length;
           const passThreshold = Math.ceil(total * 0.67);
@@ -732,8 +682,25 @@ export function CognitiveARGame() {
               >
                 <div className={cn('absolute inset-0 opacity-[0.06] pointer-events-none', activeLevel.bg)} />
 
+                {/* Loading state */}
+                {quizLoading && (
+                  <div className="relative z-10 flex flex-col items-center justify-center gap-4 py-8">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
+                      className={cn('w-12 h-12 rounded-full border-4 border-t-transparent', activeLevel.border.replace('border-', 'border-'))}
+                    />
+                    <div className={cn('text-xs font-black uppercase tracking-widest', activeLevel.color)}>
+                      {ar ? 'جاري إعداد الاختبار...' : 'Preparing quiz...'}
+                    </div>
+                    <div className="text-[10px] text-slate-500 font-medium">
+                      {ar ? 'تولّد الذكاء الاصطناعي الأسئلة' : 'AI is generating questions'}
+                    </div>
+                  </div>
+                )}
+
                 {/* Header */}
-                {!quizDone ? (
+                {!quizLoading && !quizDone ? (
                   <>
                     <div className="relative z-10 flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -822,7 +789,7 @@ export function CognitiveARGame() {
                       )}
                     </motion.div>
                   </>
-                ) : (
+                ) : !quizLoading && (
                   /* Quiz result */
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
@@ -860,7 +827,7 @@ export function CognitiveARGame() {
                           : (ar ? 'عرض النتيجة' : 'See Result')}
                       </motion.button>
                       {quizCorrect < passThreshold && (
-                        <motion.button whileTap={{ scale: 0.97 }} onClick={resetQuizState}
+                        <motion.button whileTap={{ scale: 0.97 }} onClick={() => loadAndStartQuiz(activeLevel)}
                           className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-bold text-sm hover:bg-white/10 transition-all">
                           {ar ? '🔄 أعد الاختبار' : '🔄 Retry Quiz'}
                         </motion.button>
