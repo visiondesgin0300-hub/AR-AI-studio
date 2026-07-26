@@ -75,8 +75,13 @@ export function getEarnedBadges(_user: User): string[] {
     earned.push('باحث');
   }
 
-  // متميز: دخول النظام ≥ 3 مرات + امتلاك الوسامَين السابقَين
-  if (logins >= 3 && earned.includes('مستكشف') && earned.includes('باحث')) {
+  // متميز: زيارة رف واحد على الأقل من كل قسم (A, B, C, D) — رحلة كاملة
+  const ALL_SECTIONS = ['A', 'B', 'C', 'D'];
+  const visitedSections = new Set(
+    visits.filter(v => /^[A-Z]-\d/.test(v)).map(v => v.split('-')[0])
+  );
+  const completedJourney = ALL_SECTIONS.every(s => visitedSections.has(s));
+  if (completedJourney && earned.includes('مستكشف') && earned.includes('باحث')) {
     earned.push('متميز');
   }
 

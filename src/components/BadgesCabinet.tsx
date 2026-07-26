@@ -40,8 +40,8 @@ const ALL_BADGES = [
     glowClass: 'shadow-yellow-500/30',
     titleAr: 'متميز',
     titleEn: 'Distinguished',
-    unlockAr: 'سجّل دخولك 3 مرات وامتلك الوسامَين السابقَين',
-    unlockEn: 'Log in 3 times and hold both previous badges',
+    unlockAr: 'تنقّل في جميع أقسام المكتبة — رحلة كاملة',
+    unlockEn: 'Visit every library section — a complete journey',
     xp: 100,
   },
 ];
