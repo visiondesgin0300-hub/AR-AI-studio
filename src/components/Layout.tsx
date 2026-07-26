@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, X, Sparkles } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
@@ -23,6 +23,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [notifPanelPos, setNotifPanelPos] = useState({ top: 80, right: 16 });
+  const bellRef = useRef<HTMLDivElement>(null);
   const [showTour, setShowTour] = useState(false);
   const [showLibrarian, setShowLibrarian] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -306,9 +308,18 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             </motion.button>
 
             {/* Notification Bell */}
-            <div className="relative">
+            <div className="relative" ref={bellRef}>
               <button
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={() => {
+                  if (bellRef.current) {
+                    const rect = bellRef.current.getBoundingClientRect();
+                    setNotifPanelPos({
+                      top: rect.bottom + 10,
+                      right: window.innerWidth - rect.right,
+                    });
+                  }
+                  setShowNotifications(v => !v);
+                }}
                 className={cn(
                   "p-3 rounded-2xl transition-all relative border",
                   showNotifications
@@ -327,15 +338,16 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               <AnimatePresence>
                 {showNotifications && (
                   <>
-                    <div 
-                      className="fixed inset-0 z-10" 
+                    <div
+                      className="fixed inset-0 z-[55]"
                       onClick={() => setShowNotifications(false)}
-                    ></div>
-                    <motion.div 
+                    />
+                    <motion.div
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute left-0 mt-4 w-96 bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-100 dark:border-white/10 z-20 overflow-hidden"
+                      style={{ top: notifPanelPos.top, right: notifPanelPos.right }}
+                      className="fixed w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-100 dark:border-white/10 z-[60] overflow-hidden"
                     >
                       <div className="p-6 border-b border-slate-50 dark:border-white/5 flex items-center justify-between">
                          <div className="flex items-center gap-3">
