@@ -26,6 +26,31 @@ const AR_BOOK_XS = SHELF_SPINE_WIDTHS.reduce<number[]>((acc, w, i) => {
 }, []);
 const AR_SHELF_PANEL_W = AR_BOOK_XS[AR_BOOK_XS.length - 1] + SHELF_SPINE_WIDTHS[SHELF_SPINE_WIDTHS.length - 1] + 8;
 
+function BookRow({ book, dir, language, onSelect }: { book: (typeof MOCK_BOOKS)[0]; dir: string; language: string; onSelect: () => void }) {
+  return (
+    <button
+      onClick={onSelect}
+      className={cn(
+        "w-full flex items-center gap-4 px-5 py-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group",
+        dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left'
+      )}
+    >
+      <BookCover book={book} className="w-9 h-13 rounded-xl shrink-0" />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-black text-primary dark:text-white truncate leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">{book.title}</p>
+        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">{book.author}</p>
+        <div className={cn("flex items-center gap-2 mt-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+          <span className="text-[8px] font-black text-primary/60 dark:text-accent/80 bg-primary/5 dark:bg-accent/10 px-1.5 py-0.5 rounded-md uppercase">{book.shelf}</span>
+          <span className={cn("text-[8px] font-black px-1.5 py-0.5 rounded-md", book.status === 'available' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20' : 'text-red-500 bg-red-50 dark:bg-red-900/20')}>
+            {book.status === 'available' ? (language === 'ar' ? 'متاح' : 'Available') : (language === 'ar' ? 'مُعار' : 'Borrowed')}
+          </span>
+        </div>
+      </div>
+      <Navigation className={cn("w-3.5 h-3.5 shrink-0 text-slate-200 dark:text-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-colors", dir === 'rtl' ? 'rotate-180' : '')} />
+    </button>
+  );
+}
+
 export function LibraryMap() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -49,12 +74,13 @@ export function LibraryMap() {
 
   const sidebarSearchResults = useMemo(() => {
     const q = sidebarSearch.trim().toLowerCase();
-    if (!q) return MOCK_BOOKS.slice(0, 6);
+    if (!q) return MOCK_BOOKS;
     return MOCK_BOOKS.filter(b =>
       b.title.toLowerCase().includes(q) ||
       b.author.toLowerCase().includes(q) ||
-      (b.category ?? '').toLowerCase().includes(q)
-    ).slice(0, 8);
+      (b.category ?? '').toLowerCase().includes(q) ||
+      (b.shelf ?? '').toLowerCase().includes(q)
+    );
   }, [sidebarSearch]);
 
   // Simulated real-time occupancy data
@@ -64,10 +90,14 @@ export function LibraryMap() {
       'A-2': Math.floor(Math.random() * 100),
       'B-1': Math.floor(Math.random() * 100),
       'B-2': Math.floor(Math.random() * 100),
+      'B-3': Math.floor(Math.random() * 100),
+      'B-4': Math.floor(Math.random() * 100),
       'C-1': Math.floor(Math.random() * 100),
       'C-2': Math.floor(Math.random() * 100),
       'D-1': Math.floor(Math.random() * 100),
       'D-2': Math.floor(Math.random() * 100),
+      'E-1': Math.floor(Math.random() * 100),
+      'E-2': Math.floor(Math.random() * 100),
     };
   }, []);
 
@@ -80,8 +110,11 @@ export function LibraryMap() {
   ];
 
   const cells = [
-    { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' }, { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' },
-    { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' }, { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' }
+    { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' },
+    { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' }, { id: 'B-3', section: 'B' }, { id: 'B-4', section: 'B' },
+    { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' },
+    { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' },
+    { id: 'E-1', section: 'E' }, { id: 'E-2', section: 'E' },
   ];
 
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
@@ -133,7 +166,7 @@ export function LibraryMap() {
   // aisle order A -> D) get a larger base distance, with a small offset for
   // the second shelf in each aisle, so different destinations don't all show
   // the exact same numbers.
-  const DISTANCE_BY_SECTION: Record<string, number> = { A: 30, B: 45, C: 60, D: 75 };
+  const DISTANCE_BY_SECTION: Record<string, number> = { A: 30, B: 45, C: 60, D: 75, E: 55 };
   const distanceMeters = destinationShelfId
     ? (DISTANCE_BY_SECTION[destinationShelfId.split('-')[0]] ?? 45) + (destinationShelfId.endsWith('-2') ? 8 : 0)
     : 0;
@@ -150,7 +183,7 @@ export function LibraryMap() {
     D: 'facilityLocationSilentZone',
     E: 'facilityLocationPrinting',
   };
-  const FLOOR_LEVEL_BY_SECTION: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, E: 0 };
+  const FLOOR_LEVEL_BY_SECTION: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, E: 1 };
   const destinationFloorLabel = destinationSectionId ? t(FLOOR_LABEL_KEY_BY_SECTION[destinationSectionId] ?? 'facilityLocationPrinting') : '';
   const destinationFloorLevel = destinationSectionId ? (FLOOR_LEVEL_BY_SECTION[destinationSectionId] ?? 0) : 0;
 
@@ -214,10 +247,14 @@ export function LibraryMap() {
       'A-2': "M 300,450 L 300,350 L 250,350 L 250,100",
       'B-1': "M 300,450 L 300,350 L 400,350 L 400,100",
       'B-2': "M 300,450 L 300,350 L 550,350 L 550,100",
+      'B-3': "M 300,450 L 300,350 L 430,350 L 430,130",
+      'B-4': "M 300,450 L 300,350 L 480,350 L 480,120",
       'C-1': "M 300,450 L 300,350 L 100,350 L 100,250",
       'C-2': "M 300,450 L 300,350 L 250,350 L 250,250",
       'D-1': "M 300,450 L 300,350 L 550,350 L 550,250",
       'D-2': "M 300,450 L 300,350 L 400,350 L 400,250",
+      'E-1': "M 300,450 L 300,350 L 160,350 L 160,200",
+      'E-2': "M 300,450 L 300,350 L 210,350 L 210,180",
     };
     return paths[destinationShelfId] || "M 300,450 L 300,200";
   };
@@ -384,52 +421,60 @@ export function LibraryMap() {
 
                   {/* Flat / 2D mode */}
                   {mapMode === 'flat' && (
-                  <div className="flex-1">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 h-full">
+                  <div className="flex-1 overflow-y-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5 pb-4">
                     {cells.map((cell) => {
                       const section = sections.find(s => s.id === cell.section);
                       const isDestination = destinationShelfId === cell.id;
                       const occupancy = occupancyData[cell.id as keyof typeof occupancyData];
                       const isHovered = hoveredCell === cell.id;
+                      const bookCount = MOCK_BOOKS.filter(b => b.shelf === cell.id).length;
 
                       return (
                         <motion.div
                           key={cell.id}
                           onHoverStart={() => setHoveredCell(cell.id)}
                           onHoverEnd={() => setHoveredCell(null)}
-                          onClick={() => !bookData && navigateToCell(cell.id)}
+                          onClick={() => navigateToCell(cell.id)}
                           className={cn(
-                            "relative flex flex-col items-center justify-center rounded-[3rem] border-2 transition-all duration-500 cursor-pointer group",
-                            isDestination 
-                              ? "bg-accent/5 dark:bg-accent/10 border-accent shadow-[0_30px_70px_rgba(217,179,16,0.2)] z-20 scale-105" 
+                            "relative flex flex-col items-center justify-center rounded-[2.5rem] border-2 transition-all duration-500 cursor-pointer group min-h-[160px]",
+                            isDestination
+                              ? "bg-accent/5 dark:bg-accent/10 border-accent shadow-[0_30px_70px_rgba(217,179,16,0.2)] z-20 scale-105"
                               : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-slate-800 hover:border-primary/20 dark:hover:border-accent/20",
                             isHovered && !isDestination && "shadow-2xl shadow-black/5 dark:shadow-black/20 scale-[1.02]"
                           )}
                         >
-                          {/* Live Occupancy Badge */}
-                          <div className={cn("absolute top-6 flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-full shadow-sm border border-slate-100 dark:border-white/5", dir === 'rtl' ? 'left-8' : 'right-8')}>
+                          {/* Occupancy dot */}
+                          <div className={cn("absolute top-4 flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2.5 py-1 rounded-full shadow-sm border border-slate-100 dark:border-white/5", dir === 'rtl' ? 'left-4' : 'right-4')}>
                              <div className={cn("w-1.5 h-1.5 rounded-full", occupancy > 70 ? "bg-red-500" : occupancy > 40 ? "bg-amber-500" : "bg-emerald-500")}></div>
                              <span className="text-[9px] font-black text-slate-500 dark:text-slate-400">{occupancy}%</span>
                           </div>
 
-                          <div className="relative z-10 flex flex-col items-center gap-6 p-8 text-center">
+                          {/* Book count badge */}
+                          {bookCount > 0 && (
+                            <div className={cn("absolute top-4 flex items-center gap-1 bg-primary/10 dark:bg-accent/10 px-2 py-1 rounded-full", dir === 'rtl' ? 'right-4' : 'left-4')}>
+                              <span className="text-[9px] font-black text-primary dark:text-accent">📚 {bookCount}</span>
+                            </div>
+                          )}
+
+                          <div className="relative z-10 flex flex-col items-center gap-4 p-6 text-center">
                             <div className={cn(
-                              "w-16 h-16 rounded-[2rem] flex items-center justify-center text-2xl transition-all duration-500 shadow-lg",
+                              "w-12 h-12 rounded-2xl flex items-center justify-center text-xl transition-all duration-500 shadow-lg",
                               isDestination ? "bg-accent text-primary scale-110" : "bg-white dark:bg-slate-700 text-slate-300 dark:text-slate-400"
                             )}>
                                {section?.icon}
                             </div>
-                            
-                            <div className="space-y-1">
-                               <div className="text-[10px] font-black text-primary/40 dark:text-white/30 uppercase tracking-[0.2em]">{section?.name}</div>
-                               <div className="text-xl font-black text-primary dark:text-white">{t('shelfId', { id: cell.id })}</div>
+
+                            <div className="space-y-0.5">
+                               <div className="text-[9px] font-black text-primary/40 dark:text-white/30 uppercase tracking-[0.15em] leading-tight">{section?.name}</div>
+                               <div className="text-lg font-black text-primary dark:text-white">{cell.id}</div>
                             </div>
 
                             {isDestination && (
-                              <motion.div 
-                                initial={{ y: 10, opacity: 0 }}
+                              <motion.div
+                                initial={{ y: 6, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
-                                className={cn("bg-primary text-accent px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
+                                className={cn("bg-primary text-accent px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
                               >
                                 <Navigation className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
                                 {t('currentDestination')}
@@ -437,8 +482,8 @@ export function LibraryMap() {
                             )}
                           </div>
 
-                          {/* Decorative Section Color Tab */}
-                          <div className={cn("absolute bottom-0 inset-x-12 h-1.5 rounded-t-full transition-all group-hover:h-3", section?.color, isDestination && "opacity-100", !isDestination && "opacity-20")} />
+                          {/* Section color tab */}
+                          <div className={cn("absolute bottom-0 inset-x-10 h-1.5 rounded-t-full transition-all group-hover:h-3", section?.color, isDestination && "opacity-100", !isDestination && "opacity-20")} />
                         </motion.div>
                       );
                     })}
@@ -864,7 +909,43 @@ export function LibraryMap() {
           ) : (
             /* ── Book search sidebar (shelves tab, nothing selected) ── */
             <div className="official-card flex flex-col bg-white dark:bg-slate-900 shadow-2xl shadow-black/5 dark:shadow-black/20 overflow-hidden min-h-[500px]">
-              <div className="px-7 pt-7 pb-5 border-b border-slate-100 dark:border-white/5">
+
+              {/* Featured book — أعظم الأفكار في الكون */}
+              {!sidebarSearch && (() => {
+                const featured = MOCK_BOOKS.find(b => b.id === '24');
+                if (!featured) return null;
+                return (
+                  <button
+                    onClick={() => { setSelectedBook(featured.id); setManualTarget(null); setShowPath(true); setActiveTab('map'); setMapMode('flat'); }}
+                    className={cn("w-full flex items-center gap-4 px-5 py-4 bg-accent/5 border-b-2 border-accent/20 hover:bg-accent/10 transition-colors group", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}
+                  >
+                    <BookCover book={featured} className="w-11 h-16 rounded-xl shrink-0 shadow-md ring-2 ring-accent/30" />
+                    <div className="flex-1 min-w-0">
+                      <div className={cn("flex items-center gap-1.5 mb-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                        <span className="text-[8px] font-black text-accent uppercase tracking-widest bg-accent/15 px-2 py-0.5 rounded-full">
+                          {language === 'ar' ? '★ مميز' : '★ Featured'}
+                        </span>
+                        <span className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded-full">
+                          {language === 'ar' ? 'متاح' : 'Available'}
+                        </span>
+                      </div>
+                      <p className="text-sm font-black text-primary dark:text-white truncate leading-tight">{featured.title}</p>
+                      <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">{featured.author}</p>
+                      <div className={cn("flex items-center gap-2 mt-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                        <span className="text-[9px] font-black text-primary/70 dark:text-accent/90 bg-primary/5 dark:bg-accent/10 px-2 py-0.5 rounded-lg">
+                          {language === 'ar' ? `رف ${featured.shelf}` : `Shelf ${featured.shelf}`}
+                        </span>
+                        <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600">
+                          {language === 'ar' ? `قاعة ${featured.section}` : `Hall ${featured.section}`}
+                        </span>
+                      </div>
+                    </div>
+                    <Navigation className={cn("w-4 h-4 shrink-0 text-accent group-hover:translate-x-1 transition-transform", dir === 'rtl' ? 'rotate-180 group-hover:-translate-x-1 group-hover:translate-x-0' : '')} />
+                  </button>
+                );
+              })()}
+
+              <div className="px-7 pt-5 pb-5 border-b border-slate-100 dark:border-white/5">
                 <div className={cn("flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                   <div className="w-9 h-9 bg-primary/10 dark:bg-accent/10 rounded-xl flex items-center justify-center text-primary dark:text-accent">
                     <Search className="w-4 h-4" />
@@ -891,45 +972,56 @@ export function LibraryMap() {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto divide-y divide-slate-50 dark:divide-white/5">
+              <div className="flex-1 overflow-y-auto">
                 {sidebarSearchResults.length === 0 ? (
                   <div className="flex flex-col items-center justify-center gap-3 py-12 text-slate-300 dark:text-slate-600">
                     <Compass className="w-8 h-8" />
                     <p className="text-xs font-bold">{language === 'ar' ? 'لا توجد نتائج' : 'No results'}</p>
                   </div>
+                ) : sidebarSearch.trim() ? (
+                  /* flat search results */
+                  <div className="divide-y divide-slate-50 dark:divide-white/5">
+                    {sidebarSearchResults.map(book => (
+                      <BookRow key={book.id} book={book} dir={dir} language={language} onSelect={() => { setSelectedBook(book.id); setManualTarget(null); setShowPath(true); setActiveTab('map'); setMapMode('flat'); }} />
+                    ))}
+                  </div>
                 ) : (
-                  sidebarSearchResults.map(book => (
-                    <button
-                      key={book.id}
-                      onClick={() => {
-                        setSelectedBook(book.id);
-                        setManualTarget(null);
-                        setShowPath(true);
-                        setActiveTab('map');
-                      }}
-                      className={cn(
-                        "w-full flex items-center gap-4 px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group",
-                        dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left'
-                      )}
-                    >
-                      <BookCover book={book} className="w-10 h-14 rounded-xl shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-primary dark:text-white truncate leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">{book.title}</p>
-                        <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">{book.author}</p>
-                        <div className={cn("flex items-center gap-2 mt-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                          <span className="text-[9px] font-black text-primary/60 dark:text-accent/80 bg-primary/5 dark:bg-accent/10 px-2 py-0.5 rounded-lg uppercase tracking-wider">{book.shelf}</span>
-                          <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 truncate">{book.category}</span>
+                  /* grouped by shelf */
+                  <div>
+                    {cells.map(cell => {
+                      const shelfBooks = MOCK_BOOKS.filter(b => b.shelf === cell.id);
+                      if (shelfBooks.length === 0) return null;
+                      const section = sections.find(s => s.id === cell.section);
+                      return (
+                        <div key={cell.id}>
+                          <button
+                            onClick={() => navigateToCell(cell.id)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-5 py-2.5 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 border-b border-slate-100 dark:border-white/5 transition-colors",
+                              dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left'
+                            )}
+                          >
+                            <span className="text-base">{section?.icon}</span>
+                            <span className="text-[11px] font-black text-primary dark:text-white uppercase tracking-widest">{cell.id}</span>
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 flex-1 truncate">{section?.name}</span>
+                            <span className="text-[9px] font-black text-primary/60 dark:text-accent/80 bg-primary/5 dark:bg-accent/10 px-2 py-0.5 rounded-full">{shelfBooks.length} {language === 'ar' ? 'كتاب' : 'books'}</span>
+                            <Navigation className={cn("w-3.5 h-3.5 text-slate-300 dark:text-slate-600", dir === 'rtl' ? 'rotate-180' : '')} />
+                          </button>
+                          <div className="divide-y divide-slate-50 dark:divide-white/5">
+                            {shelfBooks.map(book => (
+                              <BookRow key={book.id} book={book} dir={dir} language={language} onSelect={() => { setSelectedBook(book.id); setManualTarget(null); setShowPath(true); setActiveTab('map'); setMapMode('flat'); }} />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                      <Navigation className={cn("w-4 h-4 shrink-0 text-slate-200 dark:text-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-colors", dir === 'rtl' ? 'rotate-180' : '')} />
-                    </button>
-                  ))
+                      );
+                    })}
+                  </div>
                 )}
               </div>
 
-              <div className="px-7 py-4 border-t border-slate-50 dark:border-white/5">
-                <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 text-center leading-relaxed">
-                  {language === 'ar' ? 'اختر كتاباً لعرض مساره على الخريطة' : 'Pick a book to show its route on the map'}
+              <div className="px-7 py-3 border-t border-slate-50 dark:border-white/5">
+                <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 text-center">
+                  {language === 'ar' ? `${MOCK_BOOKS.length} كتاب — اختر أيًا منها لعرض مساره` : `${MOCK_BOOKS.length} books — tap any to show its route`}
                 </p>
               </div>
             </div>
