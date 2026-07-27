@@ -983,18 +983,31 @@ export function LibraryMap() {
 
               {/* ── All overlays sit above the iframe (z ≥ 10) ── */}
 
-              {/* Road-strip navigation path — shown whenever a shelf is active */}
+              {/* Road-strip navigation path — per-shelf precise coordinates */}
               {destinationShelfId && (() => {
-                const cx = ['A-1','C-1','E-1'].includes(destinationShelfId) ? 105
-                         : ['A-2','C-2','E-2'].includes(destinationShelfId) ? 150
-                         : ['B-1','D-1'].includes(destinationShelfId) ? 270
-                         : 310;
-                const cy = ['A-1','C-1','E-1'].includes(destinationShelfId) ? 195
-                         : ['A-2','C-2','E-2'].includes(destinationShelfId) ? 175
-                         : ['B-1','D-1'].includes(destinationShelfId) ? 175
-                         : 155;
-                const ctrl = `${cx < 200 ? cx - 20 : cx + 20},460`;
-                const pathD = `M 200,675 C 200,560 ${ctrl} ${cx},${cy}`;
+                // Each shelf has its own exact position [cx, cy] on the AR overlay
+                // and a midY where the main corridor turns into the shelf aisle.
+                // Layout mirrors a real library: left sections (A,C,E) on the left,
+                // right sections (B,D) on the right, main aisle through the centre.
+                const SHELF_POS: Record<string, [number, number, number]> = {
+                  //        cx    cy   midY (where the aisle turn happens)
+                  'A-1': [  62, 138,  490 ],
+                  'A-2': [ 112, 138,  490 ],
+                  'B-1': [ 288, 138,  490 ],
+                  'B-2': [ 338, 138,  490 ],
+                  'E-1': [  62, 225,  535 ],
+                  'E-2': [ 112, 225,  535 ],
+                  'B-3': [ 288, 225,  535 ],
+                  'B-4': [ 338, 225,  535 ],
+                  'C-1': [  62, 312,  575 ],
+                  'C-2': [ 112, 312,  575 ],
+                  'D-1': [ 288, 312,  575 ],
+                  'D-2': [ 338, 312,  575 ],
+                };
+                const [cx, cy, midY] = SHELF_POS[destinationShelfId] ?? [200, 200, 520];
+                // Route: straight up main aisle → curved corner → shelf
+                const pullX = cx < 200 ? cx + 55 : cx - 55;
+                const pathD = `M 200,675 L 200,${midY} C 200,${midY - 28} ${pullX},${cy + 20} ${cx},${cy}`;
                 return (
                   <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
@@ -1050,9 +1063,13 @@ export function LibraryMap() {
                       ))}
 
                       {/* destination dot — yellow core + cyan pulse ring */}
-                      <circle cx={cx} cy={cy} r="12" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#arHalo)" />
-                      <motion.circle cx={cx} cy={cy} r="12" fill="none" stroke="#22D3EE" strokeWidth="2.5"
-                        animate={{ r:[12,34,12], opacity:[0.9,0,0.9] }} transition={{ duration:2, repeat:Infinity }} />
+                      <circle cx={cx} cy={cy} r="14" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#arHalo)" />
+                      <motion.circle cx={cx} cy={cy} r="14" fill="none" stroke="#22D3EE" strokeWidth="2.5"
+                        animate={{ r:[14,36,14], opacity:[0.9,0,0.9] }} transition={{ duration:2, repeat:Infinity }} />
+                      {/* shelf label badge above destination dot */}
+                      <rect x={cx - 22} y={cy - 40} width="44" height="18" rx="9" fill="#D9B310" />
+                      <text x={cx} y={cy - 27} textAnchor="middle" fontSize="10" fontWeight="900"
+                        fontFamily="sans-serif" fill="#01354C" letterSpacing="0.5">{destinationShelfId}</text>
 
                       {/* "you are here" — cyan pulsing dot at path start */}
                       <circle cx="200" cy="665" r="9" fill="#06B6D4" stroke="white" strokeWidth="3" filter="url(#arEdge)" opacity="0.95" />
