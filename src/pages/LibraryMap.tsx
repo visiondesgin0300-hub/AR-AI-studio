@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers, Maximize2 } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn, trackMapVisit } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -42,7 +42,7 @@ export function LibraryMap() {
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [rafeeqDismissed, setRafeeqDismissed] = useState(false);
   const [map3D, setMap3D] = useState(false);
-  const [mapMode, setMapMode] = useState<'flat' | 'unity'>('flat');
+  const [mapMode, setMapMode] = useState<'flat' | 'unity' | 'ar-floor'>('flat');
 
   const [sidebarSearch, setSidebarSearch] = useState('');
 
@@ -288,6 +288,18 @@ export function LibraryMap() {
                       <Box className="w-3 h-3" />
                       Unity 3D
                     </button>
+                    <button
+                      onClick={() => setMapMode('ar-floor')}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        mapMode === 'ar-floor'
+                          ? "bg-accent text-primary shadow-sm"
+                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      )}
+                    >
+                      <Maximize2 className="w-3 h-3" />
+                      {language === 'ar' ? 'AR رفوف' : 'AR Floor'}
+                    </button>
                   </div>
 
                   {/* Rafeeq floating guide */}
@@ -353,6 +365,18 @@ export function LibraryMap() {
                         destinationShelfId={destinationShelfId}
                         onSelectShelf={navigateToCell}
                         language={language}
+                      />
+                    </div>
+                  )}
+
+                  {/* AR Floor mode */}
+                  {mapMode === 'ar-floor' && (
+                    <div className="flex-1 relative overflow-hidden rounded-2xl bg-[#0A0E1C] min-h-[520px]">
+                      <iframe
+                        src="/library-ar-floor.html"
+                        className="absolute inset-0 w-full h-full border-0"
+                        title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
+                        allow="camera; microphone; accelerometer; gyroscope"
                       />
                     </div>
                   )}
