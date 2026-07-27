@@ -9,8 +9,9 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain } from 'lucide-react';
+import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -186,8 +187,9 @@ function loadCompleted(): string[] {
 // ── Component ─────────────────────────────────────────────────────────
 
 export function CognitiveARGame() {
-  const { language } = useLanguage();
+  const { language, dir } = useLanguage();
   const ar = language === 'ar';
+  const navigate = useNavigate();
 
   const [completed, setCompleted] = useState<string[]>(loadCompleted);
   const [showInfo, setShowInfo] = useState(false);
@@ -400,144 +402,161 @@ export function CognitiveARGame() {
         </div>
       </div>
 
-      {/* ── INFO MODAL ── */}
+      {/* ── INFO MODAL — same design as Dashboard popup ── */}
       <AnimatePresence>
         {showInfo && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowInfo(false)}
-          >
+          <>
             <motion.div
-              initial={{ scale: 0.88, opacity: 0, y: 24 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.92, opacity: 0, y: 12 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-              onClick={e => e.stopPropagation()}
-              className="w-full max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-slate-100 dark:border-white/10"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowInfo(false)}
+              className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 20 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              className="fixed inset-0 z-[90] flex items-center justify-center p-4"
             >
-              {/* Header */}
-              <div className="sticky top-0 z-10 flex items-center justify-between px-6 pt-6 pb-4 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-white/10">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center shadow-lg">
-                    <Brain className="w-5 h-5 text-accent" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-black text-primary dark:text-white">
-                      {ar ? 'لعبة الوعي المعلوماتي' : 'Info Literacy Game'}
-                    </h2>
-                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                      {ar ? 'تفاصيل المستويات والأوسمة' : 'Levels & badges overview'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowInfo(false)}
-                  className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-                >
-                  <X className="w-4 h-4 text-slate-500" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-5">
-                {/* How to play quick strip */}
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { icon: Brain, label: ar ? 'حدّد المصادر' : 'Spot sources', sub: ar ? 'خضراء = انقر' : 'Green = click' },
-                    { icon: Timer, label: ar ? 'اجتز الاختبار' : 'Pass quiz', sub: ar ? 'اختبار المعرفة' : 'Knowledge test' },
-                    { icon: Trophy, label: ar ? 'اكسب الوسام' : 'Earn badge', sub: ar ? 'وسام + XP' : 'Badge + XP' },
-                  ].map((step, i) => {
-                    const Icon = step.icon;
-                    return (
-                      <div key={i} className="flex flex-col items-center text-center gap-2 p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
-                        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <Icon className="w-4 h-4 text-primary dark:text-accent" />
-                        </div>
-                        <p className="text-[10px] font-black text-primary dark:text-white leading-tight">{step.label}</p>
-                        <p className="text-[9px] text-slate-400 font-medium">{step.sub}</p>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Level cards */}
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">
-                  {ar ? 'المستويات الثلاثة' : 'Three Levels'}
-                </div>
-                {LEVELS.map((lvl, i) => {
-                  const isEarned = completed.includes(lvl.id);
-                  const Icon = lvl.Icon;
-                  return (
-                    <div key={lvl.id} className={cn(
-                      'rounded-2xl border p-4 space-y-3',
-                      isEarned ? cn('border-2', lvl.border, lvl.bg) : 'border-slate-100 dark:border-white/10 bg-slate-50 dark:bg-slate-800/30'
-                    )}>
-                      <div className="flex items-center gap-3">
-                        <div className={cn('w-10 h-10 rounded-xl border-2 flex items-center justify-center shrink-0', lvl.bg, lvl.border)}>
-                          <Icon className={cn('w-5 h-5', lvl.color)} />
-                        </div>
-                        <div className="flex-1">
-                          <div className={cn('text-xs font-black uppercase tracking-widest', lvl.color)}>
-                            {ar ? lvl.nameAr : lvl.nameEn}
-                            {isEarned && <span className="ms-2 text-[9px] text-emerald-500">✓ {ar ? 'مكتسب' : 'Earned'}</span>}
-                          </div>
-                          <p className="text-[11px] font-bold text-primary dark:text-white mt-0.5">
-                            {ar ? lvl.descAr : lvl.descEn}
-                          </p>
-                        </div>
-                        <span className={cn('text-[9px] font-black px-2.5 py-1 rounded-xl shrink-0', lvl.bg, lvl.color)}>
-                          +{lvl.xp} XP
-                        </span>
-                      </div>
-
-                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium leading-snug px-1">
-                        {ar ? lvl.hintAr : lvl.hintEn}
-                      </p>
-
-                      <div className="flex items-center gap-3 text-[9px] font-black text-slate-400 uppercase tracking-widest border-t border-slate-100 dark:border-white/5 pt-2">
-                        <span className="flex items-center gap-1"><Timer className="w-3 h-3" /> 45s</span>
-                        <span>❤️ ×3</span>
-                        <span className={lvl.color}><Target className="w-3 h-3 inline" /> {ar ? 'هدف' : 'Target'}: {lvl.winScore}pts</span>
-                        <span className="flex items-center gap-1">
-                          <span className={cn('px-1.5 py-0.5 rounded text-[8px]', lvl.bg, lvl.color)}>1 {ar ? 'لعبة' : 'Game'}</span>
-                          →
-                          <span className="px-1.5 py-0.5 rounded text-[8px] bg-slate-100 dark:bg-slate-700 text-slate-500">2 {ar ? 'اختبار' : 'Quiz'}</span>
-                          →
-                          <span className="px-1.5 py-0.5 rounded text-[8px] bg-slate-100 dark:bg-slate-700 text-slate-500">3 {ar ? 'وسام' : 'Badge'}</span>
-                        </span>
-                      </div>
+              <div
+                dir={dir}
+                className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative"
+              >
+                {/* Dark header */}
+                <div className="bg-primary rounded-t-[2rem] px-8 pt-8 pb-10 relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-10"
+                    style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, #D7C826 0%, transparent 50%)' }} />
+                  <button
+                    onClick={() => setShowInfo(false)}
+                    className={cn('absolute top-5 w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-all', ar ? 'left-5' : 'right-5')}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-accent/20 border-2 border-accent/40 flex items-center justify-center shrink-0">
+                      <Gamepad2 className="w-7 h-7 text-accent" />
                     </div>
-                  );
-                })}
-
-                {/* Colour key */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-start gap-2 p-3 rounded-2xl bg-teal-50 dark:bg-teal-950/30 border border-teal-200/60 dark:border-teal-500/20">
-                    <span className="text-lg">🟢</span>
-                    <p className="text-[10px] text-teal-700 dark:text-teal-400 font-bold leading-snug">
-                      {ar ? 'المصدر الأخضر = موثوق، انقر قبل انتهاء الوقت' : 'Green = reliable — click before time runs out'}
-                    </p>
-                  </div>
-                  <div className="flex items-start gap-2 p-3 rounded-2xl bg-red-50 dark:bg-red-950/30 border border-red-200/60 dark:border-red-500/20">
-                    <span className="text-lg">🔴</span>
-                    <p className="text-[10px] text-red-700 dark:text-red-400 font-bold leading-snug">
-                      {ar ? 'المصدر الأحمر = غير موثوق، لا تنقر — دعه يختفي' : 'Red = unreliable — don\'t click, let it fade'}
-                    </p>
+                    <div>
+                      <div className="text-[9px] font-black text-accent/70 uppercase tracking-[0.3em] mb-1">
+                        {ar ? 'ميزة تفاعلية' : 'Interactive Feature'}
+                      </div>
+                      <h3 className="text-xl font-black text-white leading-tight">
+                        {ar ? 'لعبة الوعي المعرفي' : 'Cognitive Awareness Game'}
+                      </h3>
+                    </div>
                   </div>
                 </div>
 
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setShowInfo(false)}
-                  className="w-full py-3.5 rounded-2xl bg-primary text-white font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:brightness-110 transition-all"
-                >
-                  {ar ? 'حسناً، فهمت!' : 'Got it!'}
-                </motion.button>
+                {/* Body */}
+                <div className="px-8 py-7 space-y-7">
+
+                  {/* Description */}
+                  <p className={cn('text-sm text-slate-600 dark:text-slate-300 font-semibold leading-relaxed', ar ? 'text-right' : 'text-left')}>
+                    {ar
+                      ? 'اختبر وعيك المعلوماتي من خلال أسئلة ذكية تولّدها تقنية الذكاء الاصطناعي (Gemini). اجتز الاختبار لاكتساب الأوسمة وتصعيد نقاط الخبرة XP الخاصة بك.'
+                      : 'Test your information literacy through AI-generated questions powered by Gemini. Pass the quiz to earn badges and level up your XP score.'}
+                  </p>
+
+                  {/* How it works */}
+                  <div className="space-y-3">
+                    <h4 className={cn('text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest', ar ? 'text-right' : 'text-left')}>
+                      {ar ? 'كيف تعمل اللعبة؟' : 'How does it work?'}
+                    </h4>
+                    {[
+                      {
+                        icon: Brain,
+                        color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+                        titleAr: 'أسئلة بالذكاء الاصطناعي',
+                        titleEn: 'AI-Generated Questions',
+                        descAr: 'يولّد Gemini أسئلة متنوعة في كل جلسة عن المصادر المعرفية والمكتبة.',
+                        descEn: 'Gemini generates varied questions each session about knowledge resources and the library.',
+                      },
+                      {
+                        icon: Timer,
+                        color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+                        titleAr: 'لعبة الردود السريعة',
+                        titleEn: 'Quick Reaction Game',
+                        descAr: 'استجب بسرعة لضغطات الزر وفق تعليمات اللون لكسب النقاط.',
+                        descEn: 'React quickly to button prompts based on color instructions to score points.',
+                      },
+                      {
+                        icon: Target,
+                        color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+                        titleAr: 'اجتز الاختبار',
+                        titleEn: 'Pass the Quiz',
+                        descAr: 'بعد اللعبة تجيب على أسئلة قصيرة. النجاح يمنحك الوسام مباشرة.',
+                        descEn: 'After the game, answer short questions. Passing unlocks your badge instantly.',
+                      },
+                    ].map((step, i) => (
+                      <div key={i} className={cn('flex items-start gap-3', ar ? 'flex-row-reverse' : '')}>
+                        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-current/10', step.color)}>
+                          <step.icon className="w-4 h-4" />
+                        </div>
+                        <div className={cn('flex-1', ar ? 'text-right' : 'text-left')}>
+                          <div className="text-xs font-black text-primary dark:text-white mb-0.5">
+                            {ar ? step.titleAr : step.titleEn}
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                            {ar ? step.descAr : step.descEn}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Rewards */}
+                  <div className="space-y-3">
+                    <h4 className={cn('text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest', ar ? 'text-right' : 'text-left')}>
+                      {ar ? 'المكافآت' : 'Rewards'}
+                    </h4>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { icon: Star,   label: ar ? 'وسام مستكشف' : 'Explorer Badge',     xp: '+50 XP',  color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
+                        { icon: Trophy, label: ar ? 'وسام باحث'    : 'Researcher Badge',   xp: '+75 XP',  color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
+                        { icon: Zap,    label: ar ? 'وسام متميز'   : 'Distinguished Badge', xp: '+100 XP', color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' },
+                      ].map((r, i) => (
+                        <div key={i} className={cn('rounded-2xl border p-3 flex flex-col items-center gap-2 text-center', r.bg)}>
+                          <r.icon className={cn('w-5 h-5', r.color)} />
+                          <span className="text-[9px] font-black text-primary dark:text-white leading-tight">{r.label}</span>
+                          <span className={cn('text-[9px] font-black px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/5', r.color)}>{r.xp}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Tip */}
+                  <div className={cn('flex items-start gap-2.5 p-4 rounded-2xl bg-accent/8 dark:bg-accent/10 border border-accent/20', ar ? 'flex-row-reverse text-right' : 'text-left')}>
+                    <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 leading-relaxed">
+                      {ar
+                        ? 'تلميح: افتح خريطة المكتبة أولاً لكسب XP يساعدك على إلغاء قفل اللعبة بشكل أسرع.'
+                        : 'Tip: Open the library map first to earn XP that helps you unlock the game faster.'}
+                    </p>
+                  </div>
+
+                  {/* CTA buttons */}
+                  <div className={cn('flex gap-3', ar ? 'flex-row-reverse' : '')}>
+                    <button
+                      onClick={() => { setShowInfo(false); navigate('/cognitive-ar'); }}
+                      className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary dark:bg-accent text-white dark:text-primary font-black text-xs uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-primary/15"
+                    >
+                      <Gamepad2 className="w-4 h-4" />
+                      {ar ? 'العب الآن' : 'Play Now'}
+                      {ar ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+                    </button>
+                    <button
+                      onClick={() => setShowInfo(false)}
+                      className="px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-black text-xs uppercase tracking-widest hover:border-slate-300 dark:hover:border-white/20 transition-all"
+                    >
+                      {ar ? 'إغلاق' : 'Close'}
+                    </button>
+                  </div>
+                </div>
               </div>
             </motion.div>
-          </motion.div>
+          </>
         )}
       </AnimatePresence>
 
