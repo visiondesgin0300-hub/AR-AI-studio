@@ -473,73 +473,68 @@ export function LibraryMap() {
                      </div>
                   </div>
 
-                  {/* Path Visualization SVG — Unity-style */}
+                  {/* Path Visualization SVG — road-strip style */}
                   {showPath && destinationShelfId && (
                     <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 600 500">
                       <defs>
-                        <linearGradient id="pathGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                          <stop offset="0%" stopColor="#004C6D" stopOpacity="0.1" />
-                          <stop offset="60%" stopColor="#D9B310" stopOpacity="0.7" />
-                          <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
+                        <linearGradient id="flatRoadGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                          <stop offset="0%" stopColor="#06B6D4" stopOpacity="0" />
+                          <stop offset="30%" stopColor="#06B6D4" stopOpacity="0.7" />
+                          <stop offset="100%" stopColor="#22D3EE" stopOpacity="1" />
                         </linearGradient>
-                        <filter id="glow">
-                          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                          <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                          </feMerge>
+                        <filter id="flatHalo">
+                          <feGaussianBlur stdDeviation="9" result="b"/>
+                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
                         </filter>
-                        <filter id="glowStrong">
-                          <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
-                          <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                          </feMerge>
+                        <filter id="flatEdge">
+                          <feGaussianBlur stdDeviation="3" result="b"/>
+                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
                         </filter>
                       </defs>
-                      {/* Glow base */}
-                      <motion.path
-                        d={getPathData()}
-                        stroke="#D9B310"
-                        strokeWidth="20"
-                        strokeDasharray="1"
-                        fill="none"
-                        strokeLinecap="round"
-                        opacity="0.08"
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.2, ease: "easeInOut" }}
-                      />
-                      <motion.path
-                        d={getPathData()}
-                        stroke="url(#pathGradient)"
-                        strokeWidth="8"
-                        strokeDasharray="18 12"
-                        fill="none"
-                        strokeLinecap="round"
-                        filter="url(#glow)"
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.2, ease: "easeInOut" }}
-                      />
-                      {/* Moving arrows along path */}
-                      {[0, 1, 2].map((i) => (
-                        <polygon key={i} points="-6,-9 8,0 -6,9" fill="#D9B310" stroke="white" strokeWidth="1.5" filter="url(#glow)">
-                          <animateMotion dur="2s" begin={`${i * 0.67}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
+                      {/* outer glow halo */}
+                      <motion.path d={getPathData()} stroke="#06B6D4" strokeWidth="50" fill="none"
+                        strokeLinecap="round" opacity="0.07"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.2, ease: 'easeInOut' }} />
+                      {/* road body */}
+                      <motion.path d={getPathData()} stroke="#06B6D4" strokeWidth="32" fill="none"
+                        strokeLinecap="round" opacity="0.20"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.2, ease: 'easeInOut' }} />
+                      {/* road inner tint */}
+                      <motion.path d={getPathData()} stroke="#22D3EE" strokeWidth="16" fill="none"
+                        strokeLinecap="round" opacity="0.1"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.2, ease: 'easeInOut' }} />
+                      {/* road edge bright line */}
+                      <motion.path d={getPathData()} stroke="url(#flatRoadGrad)" strokeWidth="2.5" fill="none"
+                        strokeLinecap="round" filter="url(#flatEdge)" opacity="0.95"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.2, ease: 'easeInOut' }} />
+                      {/* flowing yellow lane dashes */}
+                      {[0,1,2,3,4,5].map(i => (
+                        <rect key={i} width="13" height="5" x="-6.5" y="-2.5" rx="2.5" fill="#D9B310" opacity="0.95" filter="url(#flatEdge)">
+                          <animateMotion dur="2s" begin={`${i * 0.33}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
+                        </rect>
+                      ))}
+                      {/* chevron arrows */}
+                      {[0,1,2].map(i => (
+                        <polygon key={i} points="-6,-8 8,0 -6,8" fill="#D9B310" stroke="#0A1628" strokeWidth="1.5" filter="url(#flatEdge)" opacity="0.9">
+                          <animateMotion dur="1.8s" begin={`${i * 0.6}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
                         </polygon>
                       ))}
-                      {/* Destination pulse */}
-                      <motion.circle
-                        r="18" fill="#D9B310" opacity="0.15" filter="url(#glowStrong)"
-                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
-                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
-                        animate={{ r: [14, 26, 14], opacity: [0.2, 0, 0.2] }}
-                        transition={{ duration: 1.8, repeat: Infinity }}
-                      />
+                      {/* destination dot — yellow core + cyan pulse */}
                       <circle
                         cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
                         cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
-                        r="10" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#glow)"
+                        r="11" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#flatHalo)"
+                      />
+                      <motion.circle
+                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
+                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
+                        r="11" fill="none" stroke="#22D3EE" strokeWidth="2.5"
+                        animate={{ r:[11,30,11], opacity:[0.9,0,0.9] }}
+                        transition={{ duration: 1.8, repeat: Infinity }}
                       />
                     </svg>
                   )}
@@ -988,7 +983,7 @@ export function LibraryMap() {
 
               {/* ── All overlays sit above the iframe (z ≥ 10) ── */}
 
-              {/* Yellow navigation path — shown whenever a shelf is active */}
+              {/* Road-strip navigation path — shown whenever a shelf is active */}
               {destinationShelfId && (() => {
                 const cx = ['A-1','C-1','E-1'].includes(destinationShelfId) ? 105
                          : ['A-2','C-2','E-2'].includes(destinationShelfId) ? 150
@@ -1004,39 +999,65 @@ export function LibraryMap() {
                   <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
                     <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
                       <defs>
-                        <linearGradient id="arPG" x1="0%" y1="100%" x2="0%" y2="0%">
-                          <stop offset="0%" stopColor="#D9B310" stopOpacity="0.1" />
-                          <stop offset="55%" stopColor="#D9B310" stopOpacity="0.85" />
-                          <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
+                        <linearGradient id="arRoadGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+                          <stop offset="0%" stopColor="#06B6D4" stopOpacity="0" />
+                          <stop offset="30%" stopColor="#06B6D4" stopOpacity="0.65" />
+                          <stop offset="100%" stopColor="#22D3EE" stopOpacity="1" />
                         </linearGradient>
-                        <filter id="arGlw">
-                          <feGaussianBlur stdDeviation="5" result="b"/>
+                        <filter id="arHalo">
+                          <feGaussianBlur stdDeviation="10" result="b"/>
+                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                        <filter id="arEdge">
+                          <feGaussianBlur stdDeviation="3.5" result="b"/>
                           <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
                         </filter>
                       </defs>
-                      {/* soft glow */}
-                      <motion.path d={pathD} stroke="#D9B310" strokeWidth="30" fill="none" strokeLinecap="round"
-                        opacity="0.07" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
-                      {/* dashed stripe */}
-                      <motion.path d={pathD} stroke="url(#arPG)" strokeWidth="10" strokeDasharray="22 14"
-                        fill="none" strokeLinecap="round" filter="url(#arGlw)"
+
+                      {/* outer glow halo */}
+                      <motion.path d={pathD} stroke="#06B6D4" strokeWidth="60" fill="none"
+                        strokeLinecap="round" opacity="0.07"
                         initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
                         transition={{ duration: 1.4, ease: 'easeInOut' }} />
-                      {/* moving arrows */}
+                      {/* road body — wide semi-transparent cyan fill */}
+                      <motion.path d={pathD} stroke="#06B6D4" strokeWidth="38" fill="none"
+                        strokeLinecap="round" opacity="0.22"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
+                      {/* road body inner tint */}
+                      <motion.path d={pathD} stroke="#22D3EE" strokeWidth="20" fill="none"
+                        strokeLinecap="round" opacity="0.1"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
+                      {/* road edges — bright glowing border */}
+                      <motion.path d={pathD} stroke="url(#arRoadGrad)" strokeWidth="2.5" fill="none"
+                        strokeLinecap="round" filter="url(#arEdge)" opacity="0.95"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
+
+                      {/* flowing yellow lane-dash rectangles (animateMotion = no conflict with framer) */}
+                      {[0,1,2,3,4,5].map(i => (
+                        <rect key={i} width="14" height="5" x="-7" y="-2.5" rx="2.5" fill="#D9B310" opacity="0.95" filter="url(#arEdge)">
+                          <animateMotion dur="2.2s" begin={`${i * 0.37}s`} repeatCount="indefinite" rotate="auto" path={pathD} />
+                        </rect>
+                      ))}
+
+                      {/* moving chevron arrows on top */}
                       {[0,1,2].map(i => (
-                        <polygon key={i} points="-8,-10 9,0 -8,10" fill="#D9B310" stroke="#01354C" strokeWidth="1.5" filter="url(#arGlw)">
-                          <animateMotion dur="2.1s" begin={`${i*0.7}s`} repeatCount="indefinite" rotate="auto" path={pathD} />
+                        <polygon key={i} points="-7,-9 9,0 -7,9" fill="#D9B310" stroke="#0A0E1C" strokeWidth="1.5" filter="url(#arEdge)" opacity="0.9">
+                          <animateMotion dur="1.7s" begin={`${i*0.57}s`} repeatCount="indefinite" rotate="auto" path={pathD} />
                         </polygon>
                       ))}
-                      {/* destination pulse */}
-                      <circle cx={cx} cy={cy} r="14" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#arGlw)" />
-                      <motion.circle cx={cx} cy={cy} r="14" fill="none" stroke="#D9B310" strokeWidth="2.5"
-                        animate={{ r:[14,34,14], opacity:[0.8,0,0.8] }} transition={{ duration:2, repeat:Infinity }} />
-                      {/* "you are here" */}
-                      <circle cx="200" cy="665" r="10" fill="#D9B310" stroke="white" strokeWidth="3" opacity="0.95" />
-                      <motion.circle cx="200" cy="665" r="10" fill="none" stroke="#D9B310" strokeWidth="2"
-                        animate={{ r:[10,26,10], opacity:[0.6,0,0.6] }} transition={{ duration:1.8, repeat:Infinity }} />
+
+                      {/* destination dot — yellow core + cyan pulse ring */}
+                      <circle cx={cx} cy={cy} r="12" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#arHalo)" />
+                      <motion.circle cx={cx} cy={cy} r="12" fill="none" stroke="#22D3EE" strokeWidth="2.5"
+                        animate={{ r:[12,34,12], opacity:[0.9,0,0.9] }} transition={{ duration:2, repeat:Infinity }} />
+
+                      {/* "you are here" — cyan pulsing dot at path start */}
+                      <circle cx="200" cy="665" r="9" fill="#06B6D4" stroke="white" strokeWidth="3" filter="url(#arEdge)" opacity="0.95" />
+                      <motion.circle cx="200" cy="665" r="9" fill="none" stroke="#06B6D4" strokeWidth="2"
+                        animate={{ r:[9,26,9], opacity:[0.7,0,0.7] }} transition={{ duration:1.8, repeat:Infinity }} />
                     </svg>
                   </div>
                 );
