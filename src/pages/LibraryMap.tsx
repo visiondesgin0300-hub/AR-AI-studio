@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers, Maximize2 } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
@@ -214,6 +214,26 @@ export function LibraryMap() {
   const liveStepIndex = navigationSteps.length > 0
     ? Math.min(navigationSteps.length - 1, Math.floor(walkProgress * navigationSteps.length))
     : 0;
+
+  const arIframeRef = useRef<HTMLIFrameElement>(null);
+
+  // When the AR floor overlay is open and a destination is set, trigger the
+  // 3D app's built-in guideTo() via postMessage so the correct 3D path is
+  // drawn instead of our approximated SVG overlay.
+  useEffect(() => {
+    if (!showARFloor || !destinationShelfId) return;
+    const send = () => {
+      arIframeRef.current?.contentWindow?.postMessage(
+        { type: 'LIBRARY_GUIDE_TO', shelf: destinationShelfId },
+        '*'
+      );
+    };
+    // Fire immediately, then once more after a short delay in case the
+    // iframe is still mounting when this effect first runs.
+    send();
+    const t = setTimeout(send, 600);
+    return () => clearTimeout(t);
+  }, [showARFloor, destinationShelfId]);
 
   const getPathData = () => {
     if (!destinationShelfId) return "";
@@ -974,6 +994,7 @@ export function LibraryMap() {
             >
               {/* iframe — explicit z-index so overlays sit on top */}
               <iframe
+                ref={arIframeRef}
                 src="/library-ar-floor.html"
                 className="absolute inset-0 w-full h-full border-0"
                 style={{ zIndex: 1 }}
@@ -982,103 +1003,6 @@ export function LibraryMap() {
               />
 
               {/* ── All overlays sit above the iframe (z ≥ 10) ── */}
-
-              {/* Road-strip navigation path — per-shelf precise coordinates */}
-              {destinationShelfId && (() => {
-                // Each shelf has its own exact position [cx, cy] on the AR overlay
-                // and a midY where the main corridor turns into the shelf aisle.
-                // Layout mirrors a real library: left sections (A,C,E) on the left,
-                // right sections (B,D) on the right, main aisle through the centre.
-                const SHELF_POS: Record<string, [number, number, number]> = {
-                  //        cx    cy   midY (where the aisle turn happens)
-                  'A-1': [  62, 138,  490 ],
-                  'A-2': [ 112, 138,  490 ],
-                  'B-1': [ 288, 138,  490 ],
-                  'B-2': [ 338, 138,  490 ],
-                  'E-1': [  62, 225,  535 ],
-                  'E-2': [ 112, 225,  535 ],
-                  'B-3': [ 288, 225,  535 ],
-                  'B-4': [ 338, 225,  535 ],
-                  'C-1': [  62, 312,  575 ],
-                  'C-2': [ 112, 312,  575 ],
-                  'D-1': [ 288, 312,  575 ],
-                  'D-2': [ 338, 312,  575 ],
-                };
-                const [cx, cy, midY] = SHELF_POS[destinationShelfId] ?? [200, 200, 520];
-                // Route: straight up main aisle → curved corner → shelf
-                const pullX = cx < 200 ? cx + 55 : cx - 55;
-                const pathD = `M 200,675 L 200,${midY} C 200,${midY - 28} ${pullX},${cy + 20} ${cx},${cy}`;
-                return (
-                  <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
-                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
-                      <defs>
-                        <linearGradient id="arRoadGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-                          <stop offset="0%" stopColor="#06B6D4" stopOpacity="0" />
-                          <stop offset="30%" stopColor="#06B6D4" stopOpacity="0.65" />
-                          <stop offset="100%" stopColor="#22D3EE" stopOpacity="1" />
-                        </linearGradient>
-                        <filter id="arHalo">
-                          <feGaussianBlur stdDeviation="10" result="b"/>
-                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                        </filter>
-                        <filter id="arEdge">
-                          <feGaussianBlur stdDeviation="3.5" result="b"/>
-                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                        </filter>
-                      </defs>
-
-                      {/* outer glow halo */}
-                      <motion.path d={pathD} stroke="#06B6D4" strokeWidth="60" fill="none"
-                        strokeLinecap="round" opacity="0.07"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
-                      {/* road body — wide semi-transparent cyan fill */}
-                      <motion.path d={pathD} stroke="#06B6D4" strokeWidth="38" fill="none"
-                        strokeLinecap="round" opacity="0.22"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
-                      {/* road body inner tint */}
-                      <motion.path d={pathD} stroke="#22D3EE" strokeWidth="20" fill="none"
-                        strokeLinecap="round" opacity="0.1"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
-                      {/* road edges — bright glowing border */}
-                      <motion.path d={pathD} stroke="url(#arRoadGrad)" strokeWidth="2.5" fill="none"
-                        strokeLinecap="round" filter="url(#arEdge)" opacity="0.95"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
-
-                      {/* flowing yellow lane-dash rectangles (animateMotion = no conflict with framer) */}
-                      {[0,1,2,3,4,5].map(i => (
-                        <rect key={i} width="14" height="5" x="-7" y="-2.5" rx="2.5" fill="#D9B310" opacity="0.95" filter="url(#arEdge)">
-                          <animateMotion dur="2.2s" begin={`${i * 0.37}s`} repeatCount="indefinite" rotate="auto" path={pathD} />
-                        </rect>
-                      ))}
-
-                      {/* moving chevron arrows on top */}
-                      {[0,1,2].map(i => (
-                        <polygon key={i} points="-7,-9 9,0 -7,9" fill="#D9B310" stroke="#0A0E1C" strokeWidth="1.5" filter="url(#arEdge)" opacity="0.9">
-                          <animateMotion dur="1.7s" begin={`${i*0.57}s`} repeatCount="indefinite" rotate="auto" path={pathD} />
-                        </polygon>
-                      ))}
-
-                      {/* destination dot — yellow core + cyan pulse ring */}
-                      <circle cx={cx} cy={cy} r="14" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#arHalo)" />
-                      <motion.circle cx={cx} cy={cy} r="14" fill="none" stroke="#22D3EE" strokeWidth="2.5"
-                        animate={{ r:[14,36,14], opacity:[0.9,0,0.9] }} transition={{ duration:2, repeat:Infinity }} />
-                      {/* shelf label badge above destination dot */}
-                      <rect x={cx - 22} y={cy - 40} width="44" height="18" rx="9" fill="#D9B310" />
-                      <text x={cx} y={cy - 27} textAnchor="middle" fontSize="10" fontWeight="900"
-                        fontFamily="sans-serif" fill="#01354C" letterSpacing="0.5">{destinationShelfId}</text>
-
-                      {/* "you are here" — cyan pulsing dot at path start */}
-                      <circle cx="200" cy="665" r="9" fill="#06B6D4" stroke="white" strokeWidth="3" filter="url(#arEdge)" opacity="0.95" />
-                      <motion.circle cx="200" cy="665" r="9" fill="none" stroke="#06B6D4" strokeWidth="2"
-                        animate={{ r:[9,26,9], opacity:[0.7,0,0.7] }} transition={{ duration:1.8, repeat:Infinity }} />
-                    </svg>
-                  </div>
-                );
-              })()}
 
               {/* Top info strip — shelf + distance/time */}
               {destinationShelfId && (
