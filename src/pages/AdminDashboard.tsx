@@ -4,6 +4,7 @@ import {
   BarChart3, Bell, TrendingUp, Search,
   QrCode, Building2, MapPin,
   Printer, Monitor, VolumeX, User as UserIcon,
+  CheckCircle2, Clock, MessageSquareReply, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { BookCover } from '../components/BookCover';
@@ -63,6 +64,11 @@ export function AdminDashboard() {
   const [qrSection, setQrSection] = useState<'shelves' | 'books' | 'facilities'>('shelves');
   const [realFeedback, setRealFeedback] = useState<any[]>([]);
   const [newFeedbackCount, setNewFeedbackCount] = useState(0);
+  const [feedbackStatuses, setFeedbackStatuses] = useState<Record<string, 'pending' | 'reviewing' | 'resolved'>>(() => {
+    try { return JSON.parse(localStorage.getItem('admin_feedback_statuses') || '{}'); } catch { return {}; }
+  });
+  const [expandedReply, setExpandedReply] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetch('/api/feedback')
@@ -172,6 +178,14 @@ export function AdminDashboard() {
   const handleDeleteUser = (id: string) => {
     if (confirm(t('confirmDeleteUser'))) setUsers(u => u.filter(x => x.id !== id));
   };
+
+  const setFeedbackStatus = (id: string, status: 'pending' | 'reviewing' | 'resolved') => {
+    setFeedbackStatuses(prev => {
+      const next = { ...prev, [id]: status };
+      localStorage.setItem('admin_feedback_statuses', JSON.stringify(next));
+      return next;
+    });
+  };
   const handleDeleteBook = (id: string) => {
     if (confirm(t('confirmDeleteBook'))) setBooks(b => b.filter(x => x.id !== id));
   };
@@ -237,7 +251,7 @@ export function AdminDashboard() {
     { id: 'qr', label: ar ? 'رموز AR' : 'AR Codes', icon: QrCode },
     { id: 'stats', label: t('statsTab'), icon: BarChart3 },
     { id: 'logs', label: t('logsTab'), icon: Activity },
-    { id: 'feedback', label: ar ? 'طلبات المستخدمين' : 'My Requests', icon: TrendingUp, count: newFeedbackCount },
+    { id: 'feedback', label: ar ? 'طلبات المستخدمين' : 'User Requests', icon: TrendingUp, count: newFeedbackCount },
   ];
 
   const statusBadge = (status: string) => {
@@ -692,7 +706,7 @@ export function AdminDashboard() {
               <motion.div key="feedback" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
                 <div className={cn('flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3', dir === 'rtl' ? 'sm:flex-row-reverse' : '')}>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'طلبات المستخدمين' : 'My Requests'}</h3>
+                    <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'طلبات المستخدمين' : 'User Requests'}</h3>
                     <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{ar ? 'آراء وملاحظات المستخدمين المُستلمة من تطبيق ARLibrary' : 'User feedback received from the ARLibrary app'}</p>
                   </div>
                   <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
@@ -722,25 +736,45 @@ export function AdminDashboard() {
 
                 {/* Feedback entries */}
                 <div className="space-y-4">
-                  {feedbackEntries.map(entry => (
+                  {feedbackEntries.map(entry => {
+                    const status = feedbackStatuses[entry.id] || 'pending';
+                    const isResolved = status === 'resolved';
+                    const isReviewing = status === 'reviewing';
+                    const replyOpen = expandedReply === entry.id;
+                    return (
                     <motion.div
                       key={entry.id}
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       className={cn(
-                        'official-card p-6 bg-white dark:bg-slate-900 shadow-xl shadow-black/5 space-y-3 relative overflow-hidden',
-                        (entry as any).isDemo
-                          ? 'border-slate-100 dark:border-white/5 opacity-70'
+                        'official-card p-6 bg-white dark:bg-slate-900 shadow-xl shadow-black/5 space-y-3 relative overflow-hidden transition-opacity',
+                        isResolved ? 'opacity-50' : (entry as any).isDemo ? 'opacity-70' : '',
+                        isResolved
+                          ? 'border-slate-200 dark:border-white/5'
+                          : isReviewing
+                          ? 'border-amber-200 dark:border-amber-800/50'
+                          : (entry as any).isDemo
+                          ? 'border-slate-100 dark:border-white/5'
                           : 'border-emerald-200 dark:border-emerald-800/50',
                         dir === 'rtl' ? 'text-right' : 'text-left'
                       )}
                     >
-                      {!(entry as any).isDemo && (
-                        <div className={cn('absolute top-4 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/50', dir === 'rtl' ? 'left-4' : 'right-4')}>
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                          {ar ? 'مباشر' : 'LIVE'}
-                        </div>
-                      )}
+                      {/* Status badge */}
+                      <div className={cn('absolute top-4 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border', dir === 'rtl' ? 'left-4' : 'right-4',
+                        isResolved
+                          ? 'text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-white/10'
+                          : isReviewing
+                          ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-200 dark:border-amber-800/50'
+                          : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-200 dark:border-emerald-800/50'
+                      )}>
+                        {isResolved
+                          ? <><CheckCircle2 className="w-2.5 h-2.5" />{ar ? 'تم الحل' : 'Resolved'}</>
+                          : isReviewing
+                          ? <><Clock className="w-2.5 h-2.5 animate-pulse" />{ar ? 'قيد المراجعة' : 'Reviewing'}</>
+                          : <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />{ar ? 'جديد' : 'Pending'}</>
+                        }
+                      </div>
+
                       <div className={cn('flex items-center justify-between gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                         <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                           <span className="text-2xl">{entry.mood}</span>
@@ -751,14 +785,77 @@ export function AdminDashboard() {
                         </div>
                         <div className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-tighter shrink-0">{entry.time}</div>
                       </div>
+
                       {entry.text && <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{entry.text}</p>}
+
                       <div className={cn('flex flex-wrap gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                         {entry.categories.map((cat: string, ci: number) => (
                           <span key={ci} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10">{cat}</span>
                         ))}
                       </div>
+
+                      {/* Admin reply panel */}
+                      <AnimatePresence>
+                        {replyOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pt-2 space-y-2">
+                              <textarea
+                                rows={2}
+                                value={replyText[entry.id] || ''}
+                                onChange={e => setReplyText(prev => ({ ...prev, [entry.id]: e.target.value }))}
+                                placeholder={ar ? 'اكتب ردًا داخليًا للمراجعة...' : 'Write an internal note...'}
+                                className={cn('w-full text-xs font-medium rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 text-primary dark:text-white p-3 focus:outline-none focus:ring-2 focus:ring-accent resize-none', dir === 'rtl' ? 'text-right' : 'text-left')}
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Action buttons */}
+                      {!isResolved && (
+                        <div className={cn('flex items-center gap-2 pt-1 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                          {!isReviewing && (
+                            <button
+                              onClick={() => setFeedbackStatus(entry.id, 'reviewing')}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all"
+                            >
+                              <Clock className="w-3 h-3" />
+                              {ar ? 'قيد المراجعة' : 'Mark Reviewing'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { setExpandedReply(replyOpen ? null : entry.id); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                          >
+                            <MessageSquareReply className="w-3 h-3" />
+                            {ar ? 'ملاحظة' : 'Note'}
+                            {replyOpen ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
+                          </button>
+                          <button
+                            onClick={() => { setFeedbackStatus(entry.id, 'resolved'); setExpandedReply(null); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all"
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                            {ar ? 'تم الحل' : 'Resolve'}
+                          </button>
+                        </div>
+                      )}
+                      {isResolved && (
+                        <button
+                          onClick={() => setFeedbackStatus(entry.id, 'pending')}
+                          className="text-[9px] font-black text-slate-400 hover:text-primary dark:hover:text-white uppercase tracking-widest transition-colors"
+                        >
+                          {ar ? '↩ إعادة فتح' : '↩ Reopen'}
+                        </button>
+                      )}
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
