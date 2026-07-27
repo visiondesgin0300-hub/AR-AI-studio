@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, Compass, Lock, Zap, Trophy, Gamepad2, CheckCircle2 } from 'lucide-react';
+import { Search, Star, Compass, Lock, Zap, Trophy, Gamepad2, CheckCircle2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
@@ -28,7 +28,7 @@ const ALL_BADGES = [
     descAr: 'افتح خريطة المكتبة',
     descEn: 'Open the library map',
     xp: 50,
-    xpRequired: 20,
+    xpRequired: 10,
   },
   {
     id: 'باحث',
@@ -46,7 +46,7 @@ const ALL_BADGES = [
     descAr: 'تنقّل بين 3 رفوف',
     descEn: 'Visit 3 shelves',
     xp: 75,
-    xpRequired: 45,
+    xpRequired: 30,
   },
   {
     id: 'متميز',
@@ -64,7 +64,7 @@ const ALL_BADGES = [
     descAr: 'رحلة عبر جميع أقسام المكتبة',
     descEn: 'Journey all library sections',
     xp: 100,
-    xpRequired: 80,
+    xpRequired: 60,
   },
 ];
 
@@ -197,18 +197,26 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                 isEarned
                   ? cn('bg-gradient-to-b shadow-lg', badge.bgEarned, badge.borderEarned, badge.glowClass)
                   : isUnlocked
-                    ? 'bg-white dark:bg-slate-900 border-accent/30 shadow-sm'
+                    ? 'bg-white dark:bg-slate-900 border-accent shadow-lg shadow-accent/20'
                     : 'bg-slate-50 dark:bg-slate-900/30 border-slate-100 dark:border-white/5'
               )}
             >
-              {/* Earned green dot OR lock icon */}
+              {/* Corner indicator */}
               {isEarned ? (
                 <span className="absolute top-3 end-3 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-sm" />
-              ) : !isUnlocked ? (
+              ) : isUnlocked ? (
+                <motion.span
+                  className="absolute top-2.5 end-2.5"
+                  animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
+                  transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-accent" />
+                </motion.span>
+              ) : (
                 <span className="absolute top-3 end-3">
                   <Lock className="w-3 h-3 text-slate-300 dark:text-slate-600" />
                 </span>
-              ) : null}
+              )}
 
               {/* Icon */}
               <div className={cn(
@@ -265,19 +273,37 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                 </div>
               )}
 
-              {/* Play button — unlocked but not yet earned */}
+              {/* Play Now — unlocked but not yet earned */}
               {!isEarned && isUnlocked && (
-                <Link
-                  to="/cognitive-ar"
-                  className={cn(
-                    'mt-0.5 flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-white text-[9px] font-black shadow-sm transition-all hover:brightness-110 active:scale-95',
-                    'bg-accent'
-                  )}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <Gamepad2 className="w-3 h-3" />
-                  {isAr ? 'العب لاكتسابه' : 'Play to earn'}
-                </Link>
+                <div className="w-full flex flex-col items-center gap-2 mt-1">
+                  {/* "Ready!" label */}
+                  <motion.div
+                    animate={{ opacity: [1, 0.6, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.6 }}
+                    className="flex items-center gap-1 text-[9px] font-black text-accent"
+                  >
+                    <Sparkles className="w-2.5 h-2.5" />
+                    {isAr ? 'جاهز للعب!' : 'Ready to play!'}
+                  </motion.div>
+
+                  {/* Pulsing Play Now button */}
+                  <div className="relative w-full">
+                    {/* Pulse ring */}
+                    <motion.div
+                      className="absolute inset-0 rounded-xl bg-accent/40"
+                      animate={{ scale: [1, 1.12, 1], opacity: [0.7, 0, 0.7] }}
+                      transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
+                    />
+                    <Link
+                      to="/cognitive-ar"
+                      className="relative w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white text-[10px] font-black bg-accent hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/40"
+                      onClick={e => e.stopPropagation()}
+                    >
+                      <Gamepad2 className="w-3.5 h-3.5" />
+                      {isAr ? 'العب الآن' : 'Play Now'}
+                    </Link>
+                  </div>
+                </div>
               )}
             </motion.div>
           );
