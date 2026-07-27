@@ -232,24 +232,60 @@ export function LibraryMap() {
     : 0;
 
   const arIframeRef = useRef<HTMLIFrameElement>(null);
+  const arInlineIframeRef = useRef<HTMLIFrameElement>(null);
 
-  // When the AR floor overlay is open and a destination is set, trigger the
-  // 3D app's built-in guideTo() via postMessage so the correct 3D path is
-  // drawn instead of our approximated SVG overlay.
+  // Maps our shelf codes → the 3D floor app's physical shelf codes.
+  // The 3D app names shelves by LC class position (A-1=Philosophy, B-1=Psychology…)
+  // which is completely different from our content-based codes (A-1=Physics, B-1=AI…).
+  const SHELF_TO_3D_CODE: Record<string, string> = {
+    'A-1': 'H-2',  // QC Physics
+    'A-2': 'H-2',  // QB Astrophysics → same physical arc as QC
+    'B-1': 'F-2',  // Q = General Science / AI
+    'B-2': 'L-2',  // TA Technology & Engineering
+    'B-3': 'L-2',  // TA Engineering (civil)
+    'B-4': 'L-2',  // TA Engineering / QA Math
+    'C-1': 'B-1',  // BF Psychology
+    'C-2': 'B-1',  // BF Psychology
+    'D-1': 'E-1',  // D = History & Civilization
+    'D-2': 'E-2',  // P = Language & Literature
+    'E-1': 'I-1',  // HB Economics
+    'E-2': 'J-1',  // HF Commerce & Marketing
+  };
+
+  // Compute a 0-1 position for the selected book within its shelf,
+  // ordered by call number. Used to pinpoint the exact location in the 3D app.
+  const bookPositionInShelf = useMemo(() => {
+    if (!bookData?.shelf || !bookData.callNumber) return 0.5;
+    const shelfBooks = MOCK_BOOKS
+      .filter(b => b.shelf === bookData.shelf && b.callNumber)
+      .sort((a, b) => (a.callNumber ?? '').localeCompare(b.callNumber ?? ''));
+    const idx = shelfBooks.findIndex(b => b.id === bookData.id);
+    if (idx < 0 || shelfBooks.length <= 1) return 0.5;
+    return idx / (shelfBooks.length - 1);
+  }, [bookData]);
+
+  // When the AR floor is visible (overlay or inline mode) and a destination is
+  // set, send the 3D app the correct physical shelf code + exact book position.
   useEffect(() => {
-    if (!showARFloor || !destinationShelfId) return;
-    const send = () => {
-      arIframeRef.current?.contentWindow?.postMessage(
-        { type: 'LIBRARY_GUIDE_TO', shelf: destinationShelfId },
-        '*'
-      );
+    const isVisible = showARFloor || mapMode === 'ar-floor';
+    if (!isVisible || !destinationShelfId) return;
+    const floorCode = SHELF_TO_3D_CODE[destinationShelfId] ?? destinationShelfId;
+    const msg = {
+      type: 'LIBRARY_GUIDE_TO',
+      shelf: floorCode,
+      bookPosition: bookPositionInShelf,
+      bookTitle: bookData?.title ?? '',
+      callNumber: bookData?.callNumber ?? '',
     };
-    // Fire immediately, then once more after a short delay in case the
-    // iframe is still mounting when this effect first runs.
+    const send = () => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
     send();
     const t = setTimeout(send, 600);
     return () => clearTimeout(t);
-  }, [showARFloor, destinationShelfId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showARFloor, mapMode, destinationShelfId, bookPositionInShelf, selectedBook]);
 
   const getPathData = () => {
     if (!destinationShelfId) return "";
@@ -422,6 +458,7 @@ export function LibraryMap() {
                   {mapMode === 'ar-floor' && (
                     <div className="flex-1 relative overflow-hidden rounded-2xl bg-[#0A0E1C] min-h-[520px]">
                       <iframe
+                        ref={arInlineIframeRef}
                         src="/library-ar-floor.html"
                         className="absolute inset-0 w-full h-full border-0"
                         title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
@@ -862,6 +899,55 @@ export function LibraryMap() {
                     <div className="text-3xl font-black text-primary dark:text-white">{bookData.section}</div>
                   </div>
                 </div>
+                {/* Call number + position within shelf */}
+                {bookData.callNumber && (() => {
+                  const shelfBooks = MOCK_BOOKS
+                    .filter(b => b.shelf === bookData.shelf && b.callNumber)
+                    .sort((a, b) => (a.callNumber ?? '').localeCompare(b.callNumber ?? ''));
+                  const pos = shelfBooks.findIndex(b => b.id === bookData.id);
+                  const total = shelfBooks.length;
+                  const posLabel = pos < total / 3
+                    ? (language === 'ar' ? 'بداية الرف' : 'Start of shelf')
+                    : pos < (2 * total) / 3
+                    ? (language === 'ar' ? 'منتصف الرف' : 'Middle of shelf')
+                    : (language === 'ar' ? 'نهاية الرف' : 'End of shelf');
+                  return (
+                    <div className="space-y-3">
+                      <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-5 rounded-3xl">
+                        <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                          {language === 'ar' ? 'رقم التصنيف (الكوندرس)' : 'LC Call Number'}
+                        </div>
+                        <div className="font-mono text-sm font-black text-primary dark:text-white tracking-wide">{bookData.callNumber}</div>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-5 rounded-3xl">
+                        <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
+                          {language === 'ar' ? 'موضع الكتاب على الرف' : 'Position on Shelf'}
+                        </div>
+                        {/* Visual spine row */}
+                        <div className="flex gap-0.5 mb-3">
+                          {shelfBooks.map((b, i) => (
+                            <div
+                              key={b.id}
+                              className={cn(
+                                "flex-1 rounded-sm transition-all",
+                                b.id === bookData.id
+                                  ? "h-9 bg-accent shadow-lg shadow-accent/30"
+                                  : "h-6 bg-slate-200 dark:bg-slate-700"
+                              )}
+                              title={b.callNumber}
+                            />
+                          ))}
+                        </div>
+                        <div className={cn("flex items-center justify-between text-[10px] font-black", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                          <span className="text-accent">{posLabel}</span>
+                          <span className="text-slate-400 dark:text-slate-500">
+                            {pos + 1} / {total}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
                 {navigationSteps.length > 0 && (
                   <div className="space-y-3 pt-2">
                     <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>

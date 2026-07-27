@@ -200,6 +200,9 @@ document.addEventListener('DOMContentLoaded', async function() {
 window.addEventListener('message', function(e) {
   if (!e.data || e.data.type !== 'LIBRARY_GUIDE_TO') return;
   var shelf = e.data.shelf;
+  var bookPosition = typeof e.data.bookPosition === 'number' ? e.data.bookPosition : 0.5;
+  var bookTitle = e.data.bookTitle || '';
+  var callNumber = e.data.callNumber || '';
   var tries = 0;
   var tryGuide = function() {
     if (window.__cmp && window.__cmp._nav) {
@@ -207,6 +210,41 @@ window.addEventListener('message', function(e) {
       if (item) {
         if (window.__cmp.clearGuide) window.__cmp.clearGuide();
         window.__cmp.guideTo(item);
+
+        // Compute angular step between adjacent shelves on same side
+        var navItems = window.__cmp._nav;
+        var sideItems = navItems.filter(function(n) { return n.side === item.side; });
+        sideItems.sort(function(a, b) { return a.a - b.a; });
+        var angStep = 0.15;
+        if (sideItems.length > 1) {
+          var totalSpan = Math.abs(sideItems[sideItems.length - 1].a - sideItems[0].a);
+          angStep = totalSpan / (sideItems.length - 1);
+        }
+        // Offset within the shelf arc based on book position (0=start, 1=end)
+        var halfStep = angStep * 0.4;
+        var bookAngle = item.a + (bookPosition - 0.5) * halfStep;
+
+        var frontR = window.__cmp._navFrontR !== undefined ? window.__cmp._navFrontR : 29.4;
+        var aisleR = frontR + 3.0;
+
+        // After guideTo animation completes (~1.5s), focus camera on exact book location
+        setTimeout(function() {
+          var bPos = window.__cmp.pos ? window.__cmp.pos(aisleR, bookAngle, 1.2) : null;
+          if (bPos && window.__cmp.controls && window.__cmp._camera) {
+            window.__cmp.controls.target.set(bPos.x, 1.2, bPos.z);
+            var camR = aisleR - 6;
+            var camP = window.__cmp.pos(camR, bookAngle, 5);
+            window.__cmp._camera.position.set(camP.x, 5, camP.z);
+            window.__cmp.controls.update();
+          }
+        }, 1500);
+
+        // Update HUD overlay with book info
+        var posLabel = bookPosition < 0.33 ? 'بداية الرف' : bookPosition < 0.67 ? 'منتصف الرف' : 'نهاية الرف';
+        var info = [callNumber, posLabel].filter(Boolean).join(' · ');
+        var hudLine = [bookTitle, 'رف ' + item.code, info].filter(Boolean).join(' · ');
+        if (window.__cmp._hudText) window.__cmp._hudText.textContent = hudLine;
+        if (window.__cmp._hud) window.__cmp._hud.style.display = 'flex';
       }
     } else if (tries++ < 50) {
       setTimeout(tryGuide, 200);
