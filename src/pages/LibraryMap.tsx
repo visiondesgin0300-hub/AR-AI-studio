@@ -513,20 +513,19 @@ export function LibraryMap() {
                             </div>
 
                             <div className="space-y-1">
-                               <div className="text-[9px] font-black text-primary/40 dark:text-white/30 uppercase tracking-[0.15em] leading-tight">{section?.name}</div>
-                               {/* Content label is the primary identity of the shelf */}
-                               <div className="text-[13px] font-black text-primary dark:text-white leading-snug">
-                                 {cellLabel ? (language === 'ar' ? cellLabel.ar : cellLabel.en) : cell.id}
-                               </div>
-                               {/* Shelf code as a small secondary badge */}
+                               {/* Shelf code is the primary identity */}
                                <div className={cn(
-                                 "inline-flex items-center px-2 py-0.5 rounded-full text-[8px] font-black tracking-wider",
-                                 isDestination
-                                   ? "bg-accent/20 text-primary dark:text-primary"
-                                   : "bg-primary/8 dark:bg-white/8 text-primary/50 dark:text-white/40"
+                                 "text-2xl font-black tracking-wider leading-none",
+                                 isDestination ? "text-accent" : "text-primary dark:text-white"
                                )}>
                                  {cell.id}
                                </div>
+                               {/* Content label as small subtitle */}
+                               {cellLabel && (
+                                 <div className="text-[9px] font-bold text-primary/50 dark:text-white/40 leading-snug px-1">
+                                   {language === 'ar' ? cellLabel.ar : cellLabel.en}
+                                 </div>
+                               )}
                             </div>
 
                             {isDestination && (
