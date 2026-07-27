@@ -7,24 +7,28 @@ interface UnityMap3DProps {
   language: 'ar' | 'en';
 }
 
-// Shelf grid: 4 columns × 2 rows = 8 shelf blocks
+// Shelf grid: 4 columns × 3 rows = 12 shelf blocks (all sections A–E)
 const SHELF_BLOCKS = [
-  { id: 'A-1', label: 'A-1', icon: '🧪', col: 0, row: 0 },
-  { id: 'A-2', label: 'A-2', icon: '🧪', col: 1, row: 0 },
+  { id: 'A-1', label: 'A-1', icon: '🔭', col: 0, row: 0 },
+  { id: 'A-2', label: 'A-2', icon: '🔭', col: 1, row: 0 },
   { id: 'B-1', label: 'B-1', icon: '⚙️', col: 2, row: 0 },
   { id: 'B-2', label: 'B-2', icon: '⚙️', col: 3, row: 0 },
-  { id: 'C-1', label: 'C-1', icon: '🎨', col: 0, row: 1 },
-  { id: 'C-2', label: 'C-2', icon: '🎨', col: 1, row: 1 },
-  { id: 'D-1', label: 'D-1', icon: '📚', col: 2, row: 1 },
-  { id: 'D-2', label: 'D-2', icon: '📚', col: 3, row: 1 },
+  { id: 'B-3', label: 'B-3', icon: '⚙️', col: 0, row: 1 },
+  { id: 'B-4', label: 'B-4', icon: '⚙️', col: 1, row: 1 },
+  { id: 'C-1', label: 'C-1', icon: '🧠', col: 2, row: 1 },
+  { id: 'C-2', label: 'C-2', icon: '🧠', col: 3, row: 1 },
+  { id: 'D-1', label: 'D-1', icon: '📚', col: 0, row: 2 },
+  { id: 'D-2', label: 'D-2', icon: '📚', col: 1, row: 2 },
+  { id: 'E-1', label: 'E-1', icon: '📊', col: 2, row: 2 },
+  { id: 'E-2', label: 'E-2', icon: '📊', col: 3, row: 2 },
 ];
 
-const CELL_W = 110;
-const CELL_D = 70;   // depth (Z)
-const BLOCK_H = 54;  // shelf unit height
-const GAP_X   = 28;
-const GAP_Z   = 36;
-const AISLE_Z  = 44; // aisle gap between rows
+const CELL_W = 100;
+const CELL_D = 62;   // depth (Z)
+const BLOCK_H = 52;  // shelf unit height
+const GAP_X   = 22;
+const GAP_Z   = 28;
+const AISLE_Z  = 36; // aisle gap between rows
 
 // Isometric projection: x, y, z → screen x, y
 function iso(x: number, y: number, z: number) {
@@ -36,10 +40,10 @@ function iso(x: number, y: number, z: number) {
 
 export function UnityMap3D({ destinationShelfId, onSelectShelf, language }: UnityMap3DProps) {
   // SVG viewport — large enough for isometric layout
-  const VW = 640;
-  const VH = 420;
+  const VW = 680;
+  const VH = 520;
   const ORIGIN_X = VW / 2;
-  const ORIGIN_Y = VH - 80;
+  const ORIGIN_Y = VH - 60;
 
   // Build each block's 3D corners
   const blocks = SHELF_BLOCKS.map((s) => {

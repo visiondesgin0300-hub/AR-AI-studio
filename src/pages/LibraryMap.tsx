@@ -42,7 +42,7 @@ export function LibraryMap() {
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [rafeeqDismissed, setRafeeqDismissed] = useState(false);
   const [map3D, setMap3D] = useState(false);
-  const [mapMode, setMapMode] = useState<'flat' | 'unity' | 'ar-floor'>('flat');
+  const [mapMode, setMapMode] = useState<'flat' | 'unity' | 'ar-floor'>('unity');
   const [showARFloor, setShowARFloor] = useState(false);
 
   const [sidebarSearch, setSidebarSearch] = useState('');
