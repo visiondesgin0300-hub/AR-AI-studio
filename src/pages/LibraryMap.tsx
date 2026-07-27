@@ -957,155 +957,156 @@ export function LibraryMap() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               className="relative w-full max-w-4xl h-[90vh] rounded-3xl overflow-hidden bg-[#0A0E1C] shadow-2xl shadow-black/60 border border-white/10"
+              style={{ isolation: 'isolate' }}
             >
-              {/* iframe background */}
+              {/* iframe — explicit z-index so overlays sit on top */}
               <iframe
                 src="/library-ar-floor.html"
                 className="absolute inset-0 w-full h-full border-0"
+                style={{ zIndex: 1 }}
                 title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
                 allow="camera; microphone; accelerometer; gyroscope"
               />
 
-              {/* Navigation path overlay — only when a destination is active */}
-              {destinationShelfId && (
-                <div className="absolute inset-0 pointer-events-none z-20">
-                  {/* SVG yellow path */}
-                  <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
-                    <defs>
-                      <linearGradient id="arPathGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-                        <stop offset="0%" stopColor="#D9B310" stopOpacity="0.15" />
-                        <stop offset="50%" stopColor="#D9B310" stopOpacity="0.8" />
-                        <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
-                      </linearGradient>
-                      <filter id="arGlow">
-                        <feGaussianBlur stdDeviation="5" result="coloredBlur"/>
-                        <feMerge>
-                          <feMergeNode in="coloredBlur"/>
-                          <feMergeNode in="SourceGraphic"/>
-                        </feMerge>
-                      </filter>
-                    </defs>
+              {/* ── All overlays sit above the iframe (z ≥ 10) ── */}
 
-                    {/* Glow base */}
-                    <motion.path
-                      d={`M 200,680 C 200,580 ${
-                        ['A-1','C-1','E-1'].includes(destinationShelfId) ? '120,460 100,200' :
-                        ['A-2','C-2','E-2'].includes(destinationShelfId) ? '160,440 140,180' :
-                        ['B-1','D-1'].includes(destinationShelfId) ? '250,440 280,180' :
-                        '290,460 320,160'
-                      }`}
-                      stroke="#D9B310" strokeWidth="28" fill="none" strokeLinecap="round" opacity="0.06"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                      transition={{ duration: 1.4, ease: 'easeInOut' }}
-                    />
-                    {/* Main path */}
-                    <motion.path
-                      d={`M 200,680 C 200,580 ${
-                        ['A-1','C-1','E-1'].includes(destinationShelfId) ? '120,460 100,200' :
-                        ['A-2','C-2','E-2'].includes(destinationShelfId) ? '160,440 140,180' :
-                        ['B-1','D-1'].includes(destinationShelfId) ? '250,440 280,180' :
-                        '290,460 320,160'
-                      }`}
-                      stroke="url(#arPathGrad)" strokeWidth="9" strokeDasharray="20 14"
-                      fill="none" strokeLinecap="round" filter="url(#arGlow)"
-                      initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                      transition={{ duration: 1.4, ease: 'easeInOut' }}
-                    />
-                    {/* Animated arrows */}
-                    {[0, 1, 2].map(i => {
-                      const pathD = `M 200,680 C 200,580 ${
-                        ['A-1','C-1','E-1'].includes(destinationShelfId) ? '120,460 100,200' :
-                        ['A-2','C-2','E-2'].includes(destinationShelfId) ? '160,440 140,180' :
-                        ['B-1','D-1'].includes(destinationShelfId) ? '250,440 280,180' :
-                        '290,460 320,160'
-                      }`;
-                      return (
-                        <polygon key={i} points="-7,-9 8,0 -7,9" fill="#D9B310" stroke="#01354C" strokeWidth="1.5" filter="url(#arGlow)">
-                          <animateMotion dur="2s" begin={`${i * 0.67}s`} repeatCount="indefinite" rotate="auto" path={pathD} />
+              {/* Yellow navigation path — shown whenever a shelf is active */}
+              {destinationShelfId && (() => {
+                const cx = ['A-1','C-1','E-1'].includes(destinationShelfId) ? 105
+                         : ['A-2','C-2','E-2'].includes(destinationShelfId) ? 150
+                         : ['B-1','D-1'].includes(destinationShelfId) ? 270
+                         : 310;
+                const cy = ['A-1','C-1','E-1'].includes(destinationShelfId) ? 195
+                         : ['A-2','C-2','E-2'].includes(destinationShelfId) ? 175
+                         : ['B-1','D-1'].includes(destinationShelfId) ? 175
+                         : 155;
+                const ctrl = `${cx < 200 ? cx - 20 : cx + 20},460`;
+                const pathD = `M 200,675 C 200,560 ${ctrl} ${cx},${cy}`;
+                return (
+                  <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
+                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 400 700" preserveAspectRatio="xMidYMid slice">
+                      <defs>
+                        <linearGradient id="arPG" x1="0%" y1="100%" x2="0%" y2="0%">
+                          <stop offset="0%" stopColor="#D9B310" stopOpacity="0.1" />
+                          <stop offset="55%" stopColor="#D9B310" stopOpacity="0.85" />
+                          <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
+                        </linearGradient>
+                        <filter id="arGlw">
+                          <feGaussianBlur stdDeviation="5" result="b"/>
+                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                        </filter>
+                      </defs>
+                      {/* soft glow */}
+                      <motion.path d={pathD} stroke="#D9B310" strokeWidth="30" fill="none" strokeLinecap="round"
+                        opacity="0.07" initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
+                      {/* dashed stripe */}
+                      <motion.path d={pathD} stroke="url(#arPG)" strokeWidth="10" strokeDasharray="22 14"
+                        fill="none" strokeLinecap="round" filter="url(#arGlw)"
+                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
+                        transition={{ duration: 1.4, ease: 'easeInOut' }} />
+                      {/* moving arrows */}
+                      {[0,1,2].map(i => (
+                        <polygon key={i} points="-8,-10 9,0 -8,10" fill="#D9B310" stroke="#01354C" strokeWidth="1.5" filter="url(#arGlw)">
+                          <animateMotion dur="2.1s" begin={`${i*0.7}s`} repeatCount="indefinite" rotate="auto" path={pathD} />
                         </polygon>
-                      );
-                    })}
-                    {/* Destination dot pulse */}
-                    <motion.circle
-                      cx={['A-1','C-1','E-1'].includes(destinationShelfId) ? 100 : ['A-2','C-2','E-2'].includes(destinationShelfId) ? 140 : ['B-1','D-1'].includes(destinationShelfId) ? 280 : 320}
-                      cy={['A-1','C-1','E-1'].includes(destinationShelfId) ? 200 : ['A-2','C-2','E-2'].includes(destinationShelfId) ? 180 : ['B-1','D-1'].includes(destinationShelfId) ? 180 : 160}
-                      r="14" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#arGlow)"
-                    />
-                    <motion.circle
-                      cx={['A-1','C-1','E-1'].includes(destinationShelfId) ? 100 : ['A-2','C-2','E-2'].includes(destinationShelfId) ? 140 : ['B-1','D-1'].includes(destinationShelfId) ? 280 : 320}
-                      cy={['A-1','C-1','E-1'].includes(destinationShelfId) ? 200 : ['A-2','C-2','E-2'].includes(destinationShelfId) ? 180 : ['B-1','D-1'].includes(destinationShelfId) ? 180 : 160}
-                      r="14" fill="none" stroke="#D9B310" strokeWidth="2"
-                      animate={{ r: [14, 32, 14], opacity: [0.8, 0, 0.8] }}
-                      transition={{ duration: 2, repeat: Infinity }}
-                    />
-                    {/* "You are here" dot at bottom */}
-                    <circle cx="200" cy="668" r="10" fill="#D9B310" stroke="white" strokeWidth="3" opacity="0.9" />
-                    <motion.circle cx="200" cy="668" r="10" fill="none" stroke="#D9B310" strokeWidth="2"
-                      animate={{ r: [10, 24, 10], opacity: [0.6, 0, 0.6] }}
-                      transition={{ duration: 1.8, repeat: Infinity }}
-                    />
-                  </svg>
-                </div>
-              )}
-
-              {/* Top navigation info strip */}
-              {destinationShelfId && (
-                <div className="absolute top-16 inset-x-4 z-30 flex flex-col items-center gap-2 pointer-events-none">
-                  <div className="px-5 py-2.5 rounded-full bg-black/60 backdrop-blur-xl border border-white/20 text-white text-xs font-black flex items-center gap-2 shadow-xl">
-                    <Navigation className="w-3.5 h-3.5 text-accent" />
-                    {language === 'ar'
-                      ? `التوجه نحو رف ${destinationShelfId}`
-                      : `Head to shelf ${destinationShelfId}`}
+                      ))}
+                      {/* destination pulse */}
+                      <circle cx={cx} cy={cy} r="14" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#arGlw)" />
+                      <motion.circle cx={cx} cy={cy} r="14" fill="none" stroke="#D9B310" strokeWidth="2.5"
+                        animate={{ r:[14,34,14], opacity:[0.8,0,0.8] }} transition={{ duration:2, repeat:Infinity }} />
+                      {/* "you are here" */}
+                      <circle cx="200" cy="665" r="10" fill="#D9B310" stroke="white" strokeWidth="3" opacity="0.95" />
+                      <motion.circle cx="200" cy="665" r="10" fill="none" stroke="#D9B310" strokeWidth="2"
+                        animate={{ r:[10,26,10], opacity:[0.6,0,0.6] }} transition={{ duration:1.8, repeat:Infinity }} />
+                    </svg>
                   </div>
-                  <div className="px-4 py-1.5 rounded-full bg-accent/20 border border-accent/40 text-accent text-[10px] font-black flex items-center gap-2">
+                );
+              })()}
+
+              {/* Top info strip — shelf + distance/time */}
+              {destinationShelfId && (
+                <div className="absolute top-16 inset-x-4 flex flex-col items-center gap-2 pointer-events-none" style={{ zIndex: 20 }}>
+                  <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
+                    className="px-5 py-2.5 rounded-full bg-black/65 backdrop-blur-xl border border-white/20 text-white text-xs font-black flex items-center gap-2 shadow-xl">
+                    <Navigation className="w-3.5 h-3.5 text-accent shrink-0" />
+                    {language === 'ar' ? `التوجه نحو رف ${destinationShelfId}` : `Head to shelf ${destinationShelfId}`}
+                  </motion.div>
+                  <motion.div initial={{ y: -6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.55 }}
+                    className="px-4 py-1.5 rounded-full bg-accent/25 border border-accent/50 text-accent text-[10px] font-black flex items-center gap-2">
                     <span>{language === 'ar' ? 'المسافة' : 'Distance'}: {distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
                     <span className="w-1 h-1 rounded-full bg-accent/60" />
                     <span>{language === 'ar' ? 'الوقت' : 'ETA'}: {etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
-                  </div>
+                  </motion.div>
                 </div>
               )}
 
-              {/* Bottom book card */}
+              {/* Rafeeq avatar + speech bubble */}
+              <motion.div
+                className={cn("absolute bottom-40 flex flex-col items-center gap-1 pointer-events-none", dir === 'rtl' ? 'left-4' : 'right-4')}
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                style={{ zIndex: 20 }}
+              >
+                <div className="relative bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl px-3 py-2 max-w-[150px] text-center mb-1 shadow-xl">
+                  <p className="text-[10px] font-black text-white leading-snug">
+                    {destinationShelfId
+                      ? (language === 'ar' ? `أنت على بُعد ${distanceMeters} م — استمر!` : `${distanceMeters}m to go — keep going!`)
+                      : (language === 'ar' ? 'اختر رفاً وسأوجّهك! 👋' : "Pick a shelf and I'll guide you! 👋")}
+                  </p>
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white/15 border-b border-r border-white/25 rotate-45" />
+                </div>
+                <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}>
+                  <RafeeqAvatar className="w-16 h-16 drop-shadow-2xl" />
+                </motion.div>
+                <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">
+                  {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+                </span>
+              </motion.div>
+
+              {/* Bottom book / shelf card */}
               {(bookData || destinationShelfId) && (
-                <div className="absolute bottom-5 inset-x-4 z-30 pointer-events-none">
-                  <div className={cn("bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl shadow-black/40 border border-white/10", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                    {bookData && <BookCover book={bookData} className="w-10 h-14 rounded-xl shrink-0 shadow-lg" />}
+                <motion.div className="absolute bottom-5 inset-x-4 pointer-events-none" style={{ zIndex: 20 }}
+                  initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+                  <div className={cn("bg-white/95 backdrop-blur-xl rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl shadow-black/50 border border-white/20", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                    {bookData && <BookCover book={bookData} className="w-11 h-16 rounded-xl shrink-0 shadow-lg" />}
                     <div className={cn("flex-1 min-w-0", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                      <p className="text-xs font-black text-primary dark:text-white truncate">
+                      <p className="text-xs font-black text-primary truncate leading-snug">
                         {bookData ? bookData.title : (language === 'ar' ? `رف ${destinationShelfId}` : `Shelf ${destinationShelfId}`)}
                       </p>
-                      {bookData && <p className="text-[10px] font-bold text-slate-400 truncate">{bookData.author}</p>}
-                      <div className={cn("flex items-center gap-2 mt-1", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                        <span className="text-[9px] font-black text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                      {bookData && <p className="text-[10px] font-bold text-slate-400 truncate mt-0.5">{bookData.author}</p>}
+                      <div className={cn("flex items-center gap-1.5 mt-1.5 flex-wrap", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                        <span className="text-[8px] font-black text-accent bg-accent/10 px-2 py-0.5 rounded-full">
                           {language === 'ar' ? `رف ${destinationShelfId}` : `Shelf ${destinationShelfId}`}
                         </span>
-                        <span className="text-[9px] text-slate-400">{destinationSectionName}</span>
+                        <span className="text-[8px] text-slate-400 truncate">{destinationSectionName}</span>
                       </div>
                     </div>
                     {navigationSteps.length > 0 && (
-                      <div className={cn("text-[9px] font-black text-white/70 text-center shrink-0", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                        <div className="flex flex-col gap-1">
-                          {navigationSteps.slice(0, 2).map((s, i) => (
-                            <div key={i} className={cn("flex items-center gap-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                              <span className="w-4 h-4 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[8px] font-black shrink-0">{i + 1}</span>
-                              <span className="text-primary dark:text-white/80 truncate max-w-[120px]">{s}</span>
-                            </div>
-                          ))}
-                        </div>
+                      <div className="flex flex-col gap-1 shrink-0">
+                        {navigationSteps.slice(0, 2).map((s, i) => (
+                          <div key={i} className={cn("flex items-center gap-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                            <span className="w-4 h-4 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[8px] font-black shrink-0">{i + 1}</span>
+                            <span className="text-[9px] text-primary/80 truncate max-w-[110px]">{s}</span>
+                          </div>
+                        ))}
                       </div>
                     )}
                   </div>
-                </div>
+                </motion.div>
               )}
 
-              {/* Close + label */}
-              <button
-                onClick={() => setShowARFloor(false)}
-                className="absolute top-4 end-4 z-40 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur border border-white/20 flex items-center justify-center text-white transition-all"
-              >
+              {/* Close button */}
+              <button onClick={() => setShowARFloor(false)}
+                className="absolute top-4 end-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur border border-white/20 flex items-center justify-center text-white transition-all"
+                style={{ zIndex: 30 }}>
                 <X className="w-4 h-4" />
               </button>
-              <div className="absolute top-4 start-4 z-40 px-3 py-1.5 rounded-full bg-accent/20 border border-accent/40 text-accent text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+
+              {/* AR label */}
+              <div className="absolute top-4 start-4 px-3 py-1.5 rounded-full bg-accent/20 border border-accent/40 text-accent text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"
+                style={{ zIndex: 30 }}>
                 <Camera className="w-3 h-3" />
                 {language === 'ar' ? 'AR الرفوف' : 'AR Floor'}
               </div>
