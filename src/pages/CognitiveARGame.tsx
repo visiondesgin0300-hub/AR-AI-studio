@@ -389,6 +389,24 @@ export function CognitiveARGame() {
       {/* ═══════════════════════════ HUB ═══════════════════════════ */}
       {phase === 'hub' && (
         <div className="space-y-5">
+
+          {/* Instruction banner */}
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+            className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-gradient-to-r from-teal-500/10 via-emerald-500/8 to-amber-500/10 border border-teal-500/20"
+          >
+            <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-teal-500/15 border border-teal-500/30 flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-teal-400" />
+            </div>
+            <p className="text-sm font-black text-primary dark:text-white leading-snug">
+              {ar
+                ? 'العب واجتز الاختبار لاكتساب الأوسمة مباشرةً'
+                : 'Play and pass the quiz to earn your badges instantly'}
+            </p>
+          </motion.div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {LEVELS.map((lvl, i) => {
               const isEarned = completed.includes(lvl.id);
