@@ -28,6 +28,7 @@ import { LibraryQuest } from './pages/LibraryQuest';
 import { OmanCornerAR } from './pages/OmanCornerAR';
 import { CognitiveARGame } from './pages/CognitiveARGame';
 import { Profile } from './pages/Profile';
+import { VirtualTour } from './pages/VirtualTour';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -192,6 +193,10 @@ function AppContent() {
         <Route
           path="/cognitive-ar"
           element={user ? <Layout user={user} onLogout={handleLogout}><CognitiveARGame /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/tour"
+          element={user ? <VirtualTour /> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

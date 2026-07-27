@@ -7,7 +7,6 @@ import { cn, calcXP } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useLanguage } from '../hooks/useLanguage';
-import { GuidedTour } from './GuidedTour';
 import { LibrarianChat } from './LibrarianChat';
 import { Onboarding } from './Onboarding';
 import { FeedbackWidget } from './FeedbackWidget';
@@ -25,7 +24,6 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifPanelPos, setNotifPanelPos] = useState({ top: 80, right: 16 });
   const bellRef = useRef<HTMLDivElement>(null);
-  const [showTour, setShowTour] = useState(false);
   const [showLibrarian, setShowLibrarian] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showFabHint, setShowFabHint] = useState(() => !localStorage.getItem('ar_fab_seen'));
@@ -287,8 +285,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
-                onClick={() => setShowTour(true)}
-                title={language === 'ar' ? 'جولة إرشادية' : 'Guided Tour'}
+                onClick={() => navigate('/tour')}
+                title={language === 'ar' ? 'الجولة الافتراضية' : 'Virtual Tour'}
                 className="p-3 rounded-2xl bg-white/10 text-white/80 border border-white/15 hover:bg-white/20 hover:border-white/25 transition-all"
               >
                 <Sparkles className="w-5 h-5" />
@@ -536,9 +534,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         </nav>
       </div>
 
-      <AnimatePresence>
-        {showTour && <GuidedTour user={user} onClose={() => setShowTour(false)} />}
-      </AnimatePresence>
+
 
       <AnimatePresence>
         {showLibrarian && <LibrarianChat onClose={() => setShowLibrarian(false)} />}
