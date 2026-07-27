@@ -289,19 +289,28 @@ export function LibraryMap() {
 
   const getPathData = () => {
     if (!destinationShelfId) return "";
+    // Grid layout in SVG coords (viewBox 600×500):
+    // Cols centers: 0→75, 1→225, 2→375, 3→525
+    // Row centers:  1→62,  2→187,  3→312
+    // Horizontal aisles: between rows 1-2 → y=124, between rows 2-3 → y=249, below row3 → y=374
+    // Vertical aisles:   between cols 0-1 → x=150, center → x=300, between cols 2-3 → x=450
+    // Entrance: (300, 450)
     const paths: Record<string, string> = {
-      'A-1': "M 300,450 L 300,350 L 100,350 L 100,100",
-      'A-2': "M 300,450 L 300,350 L 250,350 L 250,100",
-      'B-1': "M 300,450 L 300,350 L 400,350 L 400,100",
-      'B-2': "M 300,450 L 300,350 L 550,350 L 550,100",
-      'B-3': "M 300,450 L 300,350 L 400,350 L 400,175",
-      'B-4': "M 300,450 L 300,350 L 550,350 L 550,175",
-      'C-1': "M 300,450 L 300,350 L 100,350 L 100,250",
-      'C-2': "M 300,450 L 300,350 L 250,350 L 250,250",
-      'D-1': "M 300,450 L 300,350 L 550,350 L 550,250",
-      'D-2': "M 300,450 L 300,350 L 400,350 L 400,250",
-      'E-1': "M 300,450 L 300,350 L 150,350 L 150,200",
-      'E-2': "M 300,450 L 300,350 L 200,350 L 200,200",
+      // Row 1 — go up center to row1/2 aisle, branch left or right to column aisle, arrive at card
+      'A-1': "M 300,450 L 300,124 L 150,124 L 75,124 L 75,62",
+      'A-2': "M 300,450 L 300,124 L 225,124 L 225,62",
+      'B-1': "M 300,450 L 300,124 L 375,124 L 375,62",
+      'B-2': "M 300,450 L 300,124 L 450,124 L 525,124 L 525,62",
+      // Row 2 — go up center to row2/3 aisle, branch to column, arrive at card
+      'B-3': "M 300,450 L 300,249 L 150,249 L 75,249 L 75,187",
+      'B-4': "M 300,450 L 300,249 L 225,249 L 225,187",
+      'C-1': "M 300,450 L 300,249 L 375,249 L 375,187",
+      'C-2': "M 300,450 L 300,249 L 450,249 L 525,249 L 525,187",
+      // Row 3 — go up center a short way to below-row3 aisle, branch to column
+      'D-1': "M 300,450 L 300,374 L 150,374 L 75,374 L 75,312",
+      'D-2': "M 300,450 L 300,374 L 225,374 L 225,312",
+      'E-1': "M 300,450 L 300,374 L 375,374 L 375,312",
+      'E-2': "M 300,450 L 300,374 L 450,374 L 525,374 L 525,312",
     };
     return paths[destinationShelfId] || "M 300,450 L 300,200";
   };
