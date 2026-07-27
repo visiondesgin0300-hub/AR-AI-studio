@@ -450,6 +450,11 @@ export function LibraryMap() {
                         destinationShelfId={destinationShelfId}
                         onSelectShelf={navigateToCell}
                         language={language}
+                        dir={dir}
+                        bookData={bookData}
+                        distanceMeters={showPath ? liveDistanceMeters : distanceMeters}
+                        etaMinutes={showPath ? liveEtaMinutes : etaMinutes}
+                        navigationSteps={navigationSteps}
                       />
                     </div>
                   )}
