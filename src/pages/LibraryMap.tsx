@@ -77,12 +77,28 @@ export function LibraryMap() {
   }, []);
 
   const sections = [
-    { id: 'A', name: t('naturalSciences'), icon: '🧪', subjects: [t('physics'), t('chemistry'), t('biology')], color: 'bg-blue-500', occupancy: t('quiet') },
+    { id: 'A', name: t('naturalSciences'), icon: '🔭', subjects: [t('physics'), t('chemistry'), t('biology')], color: 'bg-blue-500', occupancy: t('quiet') },
     { id: 'B', name: t('engineeringAndTech'), icon: '⚙️', subjects: [t('mechEngineering'), t('ai'), t('software')], color: 'bg-orange-500', occupancy: t('activeOccupancy') },
-    { id: 'C', name: t('artsAndCrafts'), icon: '🎨', subjects: [t('arabicLit'), t('graphicDesign'), t('philosophy')], color: 'bg-purple-500', occupancy: t('mediumOccupancy') },
-    { id: 'D', name: t('humanities'), icon: '📚', subjects: [t('history'), t('sociology'), t('geography')], color: 'bg-green-500', occupancy: t('quiet') },
-    { id: 'E', name: t('mechanicalAutomotiveEngineering'), icon: '🚗', subjects: [t('mechEngineering')], color: 'bg-red-500', occupancy: t('quiet') }
+    { id: 'C', name: t('psychologyAndBehavior'), icon: '🧠', subjects: [t('psychology'), t('philosophy'), t('sociology')], color: 'bg-purple-500', occupancy: t('mediumOccupancy') },
+    { id: 'D', name: t('humanities'), icon: '📚', subjects: [t('history'), t('general'), t('philosophy')], color: 'bg-green-500', occupancy: t('quiet') },
+    { id: 'E', name: t('economicsAndMarketing'), icon: '📊', subjects: [t('economics'), t('marketing')], color: 'bg-yellow-500', occupancy: t('quiet') },
   ];
+
+  // Per-shelf content labels derived from actual book data in the system
+  const CELL_LABELS: Record<string, { ar: string; en: string }> = {
+    'A-1': { ar: 'فيزياء كمية وكونية',        en: 'Quantum & Cosmic Physics' },
+    'A-2': { ar: 'فيزياء فلكية وجزيئية',       en: 'Astrophysics & Molecular' },
+    'B-1': { ar: 'ذكاء اصطناعي وهندسة',        en: 'AI & Engineering' },
+    'B-2': { ar: 'برمجيات وشبكات وتقنية',       en: 'Software, Networks & Tech' },
+    'B-3': { ar: 'هندسة مدنية وإنشائية',        en: 'Civil & Structural Eng.' },
+    'B-4': { ar: 'هندسة ميكانيكية ورياضيات',    en: 'Mechanical Eng. & Math' },
+    'C-1': { ar: 'علم نفس معرفي وسلوكي',        en: 'Cognitive & Behavioral Psych.' },
+    'C-2': { ar: 'علم نفس وتطوير ذاتي',         en: 'Psychology & Self-Dev.' },
+    'D-1': { ar: 'تاريخ وحضارة',                en: 'History & Civilization' },
+    'D-2': { ar: 'روايات وفكر وفلسفة',          en: 'Novels, Thought & Philosophy' },
+    'E-1': { ar: 'اقتصاد كلي',                  en: 'Macroeconomics' },
+    'E-2': { ar: 'تسويق دولي واقتصاد',          en: 'Global Marketing & Econ.' },
+  };
 
   const cells = [
     { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' },
@@ -424,6 +440,7 @@ export function LibraryMap() {
                       const occupancy = occupancyData[cell.id as keyof typeof occupancyData];
                       const isHovered = hoveredCell === cell.id;
                       const bookCount = MOCK_BOOKS.filter(b => b.shelf === cell.id).length;
+                      const cellLabel = CELL_LABELS[cell.id];
 
                       return (
                         <motion.div
@@ -461,6 +478,11 @@ export function LibraryMap() {
                             <div className="space-y-0.5">
                                <div className="text-[9px] font-black text-primary/40 dark:text-white/30 uppercase tracking-[0.15em] leading-tight">{section?.name}</div>
                                <div className="text-base font-black text-primary dark:text-white">{t('shelfId', { id: cell.id })}</div>
+                               {cellLabel && (
+                                 <div className="text-[9px] font-bold text-primary/50 dark:text-white/40 leading-tight mt-0.5">
+                                   {language === 'ar' ? cellLabel.ar : cellLabel.en}
+                                 </div>
+                               )}
                             </div>
 
                             {isDestination && (
