@@ -43,6 +43,7 @@ export function LibraryMap() {
   const [rafeeqDismissed, setRafeeqDismissed] = useState(false);
   const [map3D, setMap3D] = useState(false);
   const [mapMode, setMapMode] = useState<'flat' | 'unity' | 'ar-floor'>('flat');
+  const [showARFloor, setShowARFloor] = useState(false);
 
   const [sidebarSearch, setSidebarSearch] = useState('');
 
@@ -591,8 +592,8 @@ export function LibraryMap() {
                         dark path here is a simulated preview of that same
                         route. */}
                     <button
-                      onClick={() => navigate('/ar', bookData ? { state: { book: bookData } } : undefined)}
-                      title={t('enterArMode')}
+                      onClick={() => setShowARFloor(true)}
+                      title={language === 'ar' ? 'AR الرفوف' : 'AR Floor'}
                       className={cn("absolute top-6 z-20 p-3 rounded-full bg-accent text-primary shadow-[0_8px_24px_rgba(217,179,16,0.4)] hover:brightness-110 transition-all active:scale-90", dir === 'rtl' ? 'left-6' : 'right-6')}
                     >
                       <Camera className="w-4 h-4" />
@@ -816,7 +817,7 @@ export function LibraryMap() {
                   <button onClick={() => { setShowPath(true); setActiveTab('map'); }} className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
                     <span>{language === 'ar' ? 'الخريطة' : 'Map'}</span>
                   </button>
-                  <button onClick={() => setActiveTab('sections')} className="w-full py-4 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
+                  <button onClick={() => setShowARFloor(true)} className="w-full py-4 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
                     <Camera className="w-4 h-4" />
                     <span>{language === 'ar' ? 'AR توجيه' : 'AR Guide'}</span>
                   </button>
@@ -942,6 +943,41 @@ export function LibraryMap() {
           )}
         </div>
       </div>
+      {/* AR Floor full-screen overlay */}
+      <AnimatePresence>
+        {showARFloor && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-4xl h-[90vh] rounded-3xl overflow-hidden bg-[#0A0E1C] shadow-2xl shadow-black/60 border border-white/10"
+            >
+              <button
+                onClick={() => setShowARFloor(false)}
+                className="absolute top-4 end-4 z-10 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur border border-white/20 flex items-center justify-center text-white transition-all"
+              >
+                <X className="w-4 h-4" />
+              </button>
+              <div className="absolute top-4 start-4 z-10 px-3 py-1.5 rounded-full bg-accent/20 border border-accent/40 text-accent text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                <Camera className="w-3 h-3" />
+                {language === 'ar' ? 'AR الرفوف' : 'AR Floor'}
+              </div>
+              <iframe
+                src="/library-ar-floor.html"
+                className="absolute inset-0 w-full h-full border-0"
+                title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
+                allow="camera; microphone; accelerometer; gyroscope"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
