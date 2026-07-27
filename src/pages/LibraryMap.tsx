@@ -49,12 +49,13 @@ export function LibraryMap() {
 
   const sidebarSearchResults = useMemo(() => {
     const q = sidebarSearch.trim().toLowerCase();
-    if (!q) return MOCK_BOOKS.slice(0, 6);
+    if (!q) return MOCK_BOOKS;
     return MOCK_BOOKS.filter(b =>
       b.title.toLowerCase().includes(q) ||
       b.author.toLowerCase().includes(q) ||
-      (b.category ?? '').toLowerCase().includes(q)
-    ).slice(0, 8);
+      (b.category ?? '').toLowerCase().includes(q) ||
+      (b.shelf ?? '').toLowerCase().includes(q)
+    );
   }, [sidebarSearch]);
 
   // Simulated real-time occupancy data
@@ -64,10 +65,14 @@ export function LibraryMap() {
       'A-2': Math.floor(Math.random() * 100),
       'B-1': Math.floor(Math.random() * 100),
       'B-2': Math.floor(Math.random() * 100),
+      'B-3': Math.floor(Math.random() * 100),
+      'B-4': Math.floor(Math.random() * 100),
       'C-1': Math.floor(Math.random() * 100),
       'C-2': Math.floor(Math.random() * 100),
       'D-1': Math.floor(Math.random() * 100),
       'D-2': Math.floor(Math.random() * 100),
+      'E-1': Math.floor(Math.random() * 100),
+      'E-2': Math.floor(Math.random() * 100),
     };
   }, []);
 
@@ -80,8 +85,11 @@ export function LibraryMap() {
   ];
 
   const cells = [
-    { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' }, { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' },
-    { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' }, { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' }
+    { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' },
+    { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' }, { id: 'B-3', section: 'B' }, { id: 'B-4', section: 'B' },
+    { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' },
+    { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' },
+    { id: 'E-1', section: 'E' }, { id: 'E-2', section: 'E' },
   ];
 
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
@@ -133,9 +141,9 @@ export function LibraryMap() {
   // aisle order A -> D) get a larger base distance, with a small offset for
   // the second shelf in each aisle, so different destinations don't all show
   // the exact same numbers.
-  const DISTANCE_BY_SECTION: Record<string, number> = { A: 30, B: 45, C: 60, D: 75 };
+  const DISTANCE_BY_SECTION: Record<string, number> = { A: 30, B: 45, C: 60, D: 75, E: 55 };
   const distanceMeters = destinationShelfId
-    ? (DISTANCE_BY_SECTION[destinationShelfId.split('-')[0]] ?? 45) + (destinationShelfId.endsWith('-2') ? 8 : 0)
+    ? (DISTANCE_BY_SECTION[destinationShelfId.split('-')[0]] ?? 45) + (parseInt(destinationShelfId.split('-')[1] ?? '1') - 1) * 8
     : 0;
 
   // Floor guidance reuses the same ground/1st/2nd/3rd floor labels already
@@ -214,10 +222,14 @@ export function LibraryMap() {
       'A-2': "M 300,450 L 300,350 L 250,350 L 250,100",
       'B-1': "M 300,450 L 300,350 L 400,350 L 400,100",
       'B-2': "M 300,450 L 300,350 L 550,350 L 550,100",
+      'B-3': "M 300,450 L 300,350 L 400,350 L 400,175",
+      'B-4': "M 300,450 L 300,350 L 550,350 L 550,175",
       'C-1': "M 300,450 L 300,350 L 100,350 L 100,250",
       'C-2': "M 300,450 L 300,350 L 250,350 L 250,250",
       'D-1': "M 300,450 L 300,350 L 550,350 L 550,250",
       'D-2': "M 300,450 L 300,350 L 400,350 L 400,250",
+      'E-1': "M 300,450 L 300,350 L 150,350 L 150,200",
+      'E-2': "M 300,450 L 300,350 L 200,350 L 200,200",
     };
     return paths[destinationShelfId] || "M 300,450 L 300,200";
   };
@@ -384,13 +396,14 @@ export function LibraryMap() {
 
                   {/* Flat / 2D mode */}
                   {mapMode === 'flat' && (
-                  <div className="flex-1">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 h-full">
+                  <div className="flex-1 overflow-y-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {cells.map((cell) => {
                       const section = sections.find(s => s.id === cell.section);
                       const isDestination = destinationShelfId === cell.id;
                       const occupancy = occupancyData[cell.id as keyof typeof occupancyData];
                       const isHovered = hoveredCell === cell.id;
+                      const bookCount = MOCK_BOOKS.filter(b => b.shelf === cell.id).length;
 
                       return (
                         <motion.div
@@ -399,46 +412,51 @@ export function LibraryMap() {
                           onHoverEnd={() => setHoveredCell(null)}
                           onClick={() => !bookData && navigateToCell(cell.id)}
                           className={cn(
-                            "relative flex flex-col items-center justify-center rounded-[3rem] border-2 transition-all duration-500 cursor-pointer group",
-                            isDestination 
-                              ? "bg-accent/5 dark:bg-accent/10 border-accent shadow-[0_30px_70px_rgba(217,179,16,0.2)] z-20 scale-105" 
+                            "relative flex flex-col items-center justify-center rounded-3xl border-2 transition-all duration-500 cursor-pointer group min-h-[160px]",
+                            isDestination
+                              ? "bg-accent/5 dark:bg-accent/10 border-accent shadow-[0_20px_50px_rgba(217,179,16,0.2)] z-20 scale-[1.03]"
                               : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-slate-800 hover:border-primary/20 dark:hover:border-accent/20",
-                            isHovered && !isDestination && "shadow-2xl shadow-black/5 dark:shadow-black/20 scale-[1.02]"
+                            isHovered && !isDestination && "shadow-xl shadow-black/5 dark:shadow-black/20 scale-[1.01]"
                           )}
                         >
                           {/* Live Occupancy Badge */}
-                          <div className={cn("absolute top-6 flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-full shadow-sm border border-slate-100 dark:border-white/5", dir === 'rtl' ? 'left-8' : 'right-8')}>
+                          <div className={cn("absolute top-3 flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2 py-1 rounded-full shadow-sm border border-slate-100 dark:border-white/5", dir === 'rtl' ? 'left-3' : 'right-3')}>
                              <div className={cn("w-1.5 h-1.5 rounded-full", occupancy > 70 ? "bg-red-500" : occupancy > 40 ? "bg-amber-500" : "bg-emerald-500")}></div>
-                             <span className="text-[9px] font-black text-slate-500 dark:text-slate-400">{occupancy}%</span>
+                             <span className="text-[8px] font-black text-slate-500 dark:text-slate-400">{occupancy}%</span>
                           </div>
 
-                          <div className="relative z-10 flex flex-col items-center gap-6 p-8 text-center">
+                          {/* Book count badge */}
+                          <div className={cn("absolute top-3 flex items-center gap-1 bg-primary/5 dark:bg-accent/10 px-2 py-1 rounded-full", dir === 'rtl' ? 'right-3' : 'left-3')}>
+                            <span className="text-[8px] font-black text-primary/60 dark:text-accent/80">{bookCount} {language === 'ar' ? 'كتاب' : 'bks'}</span>
+                          </div>
+
+                          <div className="relative z-10 flex flex-col items-center gap-2.5 p-5 text-center">
                             <div className={cn(
-                              "w-16 h-16 rounded-[2rem] flex items-center justify-center text-2xl transition-all duration-500 shadow-lg",
+                              "w-10 h-10 rounded-2xl flex items-center justify-center text-lg transition-all duration-500 shadow-md",
                               isDestination ? "bg-accent text-primary scale-110" : "bg-white dark:bg-slate-700 text-slate-300 dark:text-slate-400"
                             )}>
                                {section?.icon}
                             </div>
-                            
-                            <div className="space-y-1">
-                               <div className="text-[10px] font-black text-primary/40 dark:text-white/30 uppercase tracking-[0.2em]">{section?.name}</div>
-                               <div className="text-xl font-black text-primary dark:text-white">{t('shelfId', { id: cell.id })}</div>
+
+                            <div className="space-y-0.5">
+                               <div className="text-[9px] font-black text-primary/40 dark:text-white/30 uppercase tracking-[0.15em] leading-tight">{section?.name}</div>
+                               <div className="text-base font-black text-primary dark:text-white">{t('shelfId', { id: cell.id })}</div>
                             </div>
 
                             {isDestination && (
-                              <motion.div 
-                                initial={{ y: 10, opacity: 0 }}
+                              <motion.div
+                                initial={{ y: 6, opacity: 0 }}
                                 animate={{ y: 0, opacity: 1 }}
-                                className={cn("bg-primary text-accent px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
+                                className={cn("bg-primary text-accent px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
                               >
-                                <Navigation className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
+                                <Navigation className={cn("w-2.5 h-2.5", dir === 'rtl' ? 'rotate-180' : '')} />
                                 {t('currentDestination')}
                               </motion.div>
                             )}
                           </div>
 
                           {/* Decorative Section Color Tab */}
-                          <div className={cn("absolute bottom-0 inset-x-12 h-1.5 rounded-t-full transition-all group-hover:h-3", section?.color, isDestination && "opacity-100", !isDestination && "opacity-20")} />
+                          <div className={cn("absolute bottom-0 inset-x-8 h-1 rounded-t-full transition-all group-hover:h-2", section?.color, isDestination && "opacity-100", !isDestination && "opacity-20")} />
                         </motion.div>
                       );
                     })}
