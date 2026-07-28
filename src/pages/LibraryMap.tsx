@@ -681,14 +681,19 @@ export function LibraryMap() {
                         <line x1="300" y1="374" x2="300" y2="452"
                           stroke="rgba(0,200,255,0.07)" strokeWidth="1" strokeDasharray="8 6" />
 
-                        {/* Section labels */}
+                        {/* Section labels — always bilingual */}
                         {[
-                          { x: 150, y: 35, label: language === 'ar' ? 'قسم أ' : 'Wing A' },
-                          { x: 450, y: 35, label: language === 'ar' ? 'قسم ب' : 'Wing B' },
+                          { x: 150, y: 32, en: 'Wing A', ar: 'قسم أ' },
+                          { x: 450, y: 32, en: 'Wing B', ar: 'قسم ب' },
                         ].map((l, i) => (
-                          <text key={i} x={l.x} y={l.y} textAnchor="middle"
-                            fontSize="8" fontWeight="700" fill="rgba(0,200,255,0.15)"
-                            fontFamily="sans-serif">{l.label}</text>
+                          <g key={i}>
+                            <text x={l.x} y={l.y} textAnchor="middle"
+                              fontSize="8" fontWeight="700" fill="rgba(0,200,255,0.22)"
+                              fontFamily="'IBM Plex Mono', monospace">{l.en}</text>
+                            <text x={l.x} y={l.y + 10} textAnchor="middle"
+                              fontSize="6.5" fontWeight="600" fill="rgba(0,200,255,0.12)"
+                              fontFamily="sans-serif">{l.ar}</text>
+                          </g>
                         ))}
 
                         {/* Shelf blocks */}
@@ -751,36 +756,33 @@ export function LibraryMap() {
                                   fontFamily="'IBM Plex Mono', monospace" style={{ pointerEvents: 'none' }}
                                 >{SHELF_LC_CLASS[id]}</text>
                               )}
-                              {/* Subject label — word-wrapped 2 lines */}
-                              {cellLabel && (() => {
-                                const [line1, line2] = wrapShelfLabel(
-                                  (language === 'ar' ? cellLabel.ar : cellLabel.en) || ''
-                                );
-                                return (
-                                  <>
-                                    <text x={cx} y={cy + 13} textAnchor="middle" fontSize="6.5"
-                                      fill={isDest ? 'rgba(255,220,80,0.7)' : 'rgba(120,185,220,0.85)'}
-                                      fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
-                                    >{line1}</text>
-                                    {line2 && (
-                                      <text x={cx} y={cy + 22} textAnchor="middle" fontSize="6"
-                                        fill={isDest ? 'rgba(255,220,80,0.55)' : 'rgba(120,185,220,0.65)'}
-                                        fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
-                                      >{line2}</text>
-                                    )}
-                                  </>
-                                );
-                              })()}
+                              {/* Subject label — English primary, Arabic secondary */}
+                              {cellLabel && (
+                                <>
+                                  <text x={cx} y={cy + 14} textAnchor="middle" fontSize="6.5"
+                                    fill={isDest ? 'rgba(255,220,80,0.85)' : 'rgba(140,210,255,0.92)'}
+                                    fontFamily="'IBM Plex Mono', monospace" style={{ pointerEvents: 'none' }}
+                                  >{(cellLabel.en || '').slice(0, 16)}</text>
+                                  <text x={cx} y={cy + 23} textAnchor="middle" fontSize="5.5"
+                                    fill={isDest ? 'rgba(255,220,80,0.5)' : 'rgba(120,185,220,0.5)'}
+                                    fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
+                                  >{cellLabel.ar || ''}</text>
+                                </>
+                              )}
                             </g>
                           );
                         })}
 
-                        {/* Entrance */}
-                        <rect x="258" y="452" width="84" height="22" rx="8"
+                        {/* Entrance — bilingual */}
+                        <rect x="240" y="450" width="120" height="26" rx="9"
                           fill="#07111e" stroke="rgba(0,200,255,0.45)" strokeWidth="1.5" />
-                        <text x="300" y="466" textAnchor="middle" fontSize="8" fontWeight="700"
-                          fill="rgba(0,200,255,0.7)" fontFamily="sans-serif">
-                          {language === 'ar' ? '🚪 المدخل' : '🚪 ENTRANCE'}
+                        <text x="300" y="461" textAnchor="middle" fontSize="7.5" fontWeight="700"
+                          fill="rgba(0,200,255,0.8)" fontFamily="'IBM Plex Mono', monospace">
+                          🚪 ENTRANCE
+                        </text>
+                        <text x="300" y="471" textAnchor="middle" fontSize="6" fontWeight="600"
+                          fill="rgba(0,200,255,0.45)" fontFamily="sans-serif">
+                          المدخل
                         </text>
 
                         {/* Navigation path overlay */}
@@ -816,24 +818,24 @@ export function LibraryMap() {
                               <AnimatePresence mode="wait">
                                 <motion.span key={liveDistanceMeters} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                   className="text-accent font-black"
-                                >{liveDistanceMeters}{language === 'ar' ? 'م' : 'm'}</motion.span>
+                                >{liveDistanceMeters}م / {liveDistanceMeters}m</motion.span>
                               </AnimatePresence>
                               <span className="text-white/30">·</span>
                               <AnimatePresence mode="wait">
                                 <motion.span key={liveEtaMinutes} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                  {liveEtaMinutes > 0 ? `${liveEtaMinutes}${language === 'ar' ? ' د' : ' min'}` : language === 'ar' ? '< 1 د' : '< 1 min'}
+                                  {liveEtaMinutes > 0 ? `${liveEtaMinutes} د / ${liveEtaMinutes} min` : '< 1 د / min'}
                                 </motion.span>
                               </AnimatePresence>
                             </div>
                             {!hasArrived ? (
                               <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 text-white text-[11px] font-black shadow-xl">
                                 <Clock className="w-3 h-3 text-accent shrink-0" />
-                                <span>{language === 'ar' ? 'الوصول' : 'Arrive'}</span>
+                                <span>الوصول / Arrive</span>
                                 <span className="text-accent">{arrivalTime}</span>
                               </div>
                             ) : (
                               <div className="px-4 py-2 rounded-full bg-accent text-primary text-[11px] font-black shadow-xl">
-                                {language === 'ar' ? '✓ وصلت!' : '✓ Arrived!'}
+                                ✓ وصلت! / Arrived!
                               </div>
                             )}
                           </div>
@@ -871,17 +873,42 @@ export function LibraryMap() {
                         })()}
                       </AnimatePresence>
 
-                      {/* "View AR Guide" button overlay */}
+                      {/* Start Navigation + AR Guide buttons */}
                       {destinationShelfId && (
-                        <button
-                          onClick={() => setActiveTab('sections')}
-                          className={cn(
-                            'absolute bottom-4 z-40 flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-accent text-xs font-black shadow-xl shadow-primary/30 hover:brightness-110 transition-all active:scale-95',
-                            dir === 'rtl' ? 'right-4' : 'left-4'
+                        <div className={cn('absolute bottom-4 z-40 flex items-center gap-2', dir === 'rtl' ? 'right-4' : 'left-4')}>
+                          {!showPath ? (
+                            <button
+                              onClick={() => {
+                                if (typeof navigator.vibrate === 'function') {
+                                  try { navigator.vibrate(80); } catch { /* best-effort */ }
+                                }
+                                setShowPath(true);
+                              }}
+                              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-accent text-primary text-[11px] font-black shadow-xl shadow-accent/30 hover:brightness-110 transition-all active:scale-95"
+                            >
+                              <Navigation className="w-4 h-4" style={{ transform: 'rotate(-45deg)' }} />
+                              <span>ابدأ الملاحة</span>
+                              <span className="opacity-55 font-bold">/ Start</span>
+                            </button>
+                          ) : !hasArrived ? (
+                            <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-black shadow-xl">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                              <span>جاري الملاحة / Navigating…</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-accent text-primary text-[11px] font-black shadow-xl">
+                              ✓ وصلت! / Arrived!
+                            </div>
                           )}
-                        >
-                          {language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}
-                        </button>
+                          <button
+                            onClick={() => setActiveTab('sections')}
+                            title="AR Guide"
+                            className="flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-slate-900/90 border border-accent/30 text-accent text-[11px] font-black shadow-xl hover:brightness-110 transition-all active:scale-95"
+                          >
+                            <Camera className="w-4 h-4" />
+                            <span>AR</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   )}
