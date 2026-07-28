@@ -148,6 +148,7 @@ export function LibraryMap() {
   }, [location.state]);
 
   const destinationShelfId = manualTarget?.id || bookData?.shelf || null;
+  const displayShelfCode = destinationShelfId ? (SHELF_TO_3D_CODE[destinationShelfId] ?? destinationShelfId) : null;
   const destinationLabel = manualTarget
     ? t('shelfId', { id: manualTarget.id })
     : bookData ? bookData.title : '';
@@ -774,7 +775,7 @@ export function LibraryMap() {
                     <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-30 px-10">
                       <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
                         <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
-                        {t('headTowardsShelf', { shelf: destinationShelfId })}
+                        {t('headTowardsShelf', { shelf: displayShelfCode })}
                       </div>
                       {/* Floor guidance, right under the heading, so the user
                           knows which floor to head to as well. Facilities carry
@@ -1163,7 +1164,7 @@ export function LibraryMap() {
                   <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
                     className="px-5 py-2.5 rounded-full bg-black/65 backdrop-blur-xl border border-white/20 text-white text-xs font-black flex items-center gap-2 shadow-xl">
                     <Navigation className="w-3.5 h-3.5 text-accent shrink-0" />
-                    {language === 'ar' ? `التوجه نحو رف ${destinationShelfId}` : `Head to shelf ${destinationShelfId}`}
+                    {language === 'ar' ? `التوجه نحو رف ${displayShelfCode}` : `Head to shelf ${displayShelfCode}`}
                   </motion.div>
                   <motion.div initial={{ y: -6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.55 }}
                     className="px-4 py-1.5 rounded-full bg-accent/25 border border-accent/50 text-accent text-[10px] font-black flex items-center gap-2">
@@ -1206,12 +1207,12 @@ export function LibraryMap() {
                     {bookData && <BookCover book={bookData} className="w-11 h-16 rounded-xl shrink-0 shadow-lg" />}
                     <div className={cn("flex-1 min-w-0", dir === 'rtl' ? 'text-right' : 'text-left')}>
                       <p className="text-xs font-black text-primary truncate leading-snug">
-                        {bookData ? bookData.title : (language === 'ar' ? `رف ${destinationShelfId}` : `Shelf ${destinationShelfId}`)}
+                        {bookData ? bookData.title : (language === 'ar' ? `رف ${displayShelfCode}` : `Shelf ${displayShelfCode}`)}
                       </p>
                       {bookData && <p className="text-[10px] font-bold text-slate-400 truncate mt-0.5">{bookData.author}</p>}
                       <div className={cn("flex items-center gap-1.5 mt-1.5 flex-wrap", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                         <span className="text-[8px] font-black text-accent bg-accent/10 px-2 py-0.5 rounded-full">
-                          {language === 'ar' ? `رف ${destinationShelfId}` : `Shelf ${destinationShelfId}`}
+                          {language === 'ar' ? `رف ${displayShelfCode}` : `Shelf ${displayShelfCode}`}
                         </span>
                         <span className="text-[8px] text-slate-400 truncate">{destinationSectionName}</span>
                       </div>
