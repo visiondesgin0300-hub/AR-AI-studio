@@ -42,7 +42,7 @@ export function LibraryMap() {
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [rafeeqDismissed, setRafeeqDismissed] = useState(false);
   const [map3D, setMap3D] = useState(false);
-  const [mapMode, setMapMode] = useState<'flat' | 'unity' | 'ar-floor'>('flat');
+  const [mapMode, setMapMode] = useState<'flat' | 'unity' | 'ar-floor'>('ar-floor');
   const [showARFloor, setShowARFloor] = useState(false);
 
   const [sidebarSearch, setSidebarSearch] = useState('');
@@ -371,19 +371,6 @@ export function LibraryMap() {
               >
                   {/* Map mode toggle */}
                   <div className={cn("absolute top-5 z-40 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1", dir === 'rtl' ? 'left-5' : 'right-5')}>
-                    <button
-                      onClick={() => setMapMode('flat')}
-                      className={cn(
-                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                        mapMode === 'flat'
-                          ? "bg-primary text-white shadow-sm"
-                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                      )}
-                    >
-                      <Layers className="w-3 h-3" />
-                      2D
-                    </button>
-
                     <button
                       onClick={() => setMapMode('ar-floor')}
                       className={cn(
