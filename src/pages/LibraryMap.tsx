@@ -396,22 +396,6 @@ export function LibraryMap() {
                 exit={{ opacity: 0 }}
                 className="relative z-10 w-full h-full p-12 flex flex-col"
               >
-                  {/* Map mode toggle */}
-                  <div className={cn("absolute top-5 z-40 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1", dir === 'rtl' ? 'left-5' : 'right-5')}>
-                    <button
-                      onClick={() => setMapMode('ar-floor')}
-                      className={cn(
-                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                        mapMode === 'ar-floor'
-                          ? "bg-accent text-primary shadow-sm"
-                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                      )}
-                    >
-                      <Maximize2 className="w-3 h-3" />
-                      {language === 'ar' ? 'AR رفوف' : 'AR Floor'}
-                    </button>
-                  </div>
-
                   {/* Rafeeq floating guide */}
                   <AnimatePresence>
                     {!rafeeqDismissed && (
