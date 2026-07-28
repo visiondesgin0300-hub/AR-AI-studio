@@ -148,7 +148,6 @@ export function LibraryMap() {
   }, [location.state]);
 
   const destinationShelfId = manualTarget?.id || bookData?.shelf || null;
-  const displayShelfCode = destinationShelfId ? (SHELF_TO_3D_CODE[destinationShelfId] ?? destinationShelfId) : null;
   const destinationLabel = manualTarget
     ? t('shelfId', { id: manualTarget.id })
     : bookData ? bookData.title : '';
@@ -262,6 +261,8 @@ export function LibraryMap() {
     'E-1': 'I-1',  // HB Economics
     'E-2': 'J-1',  // HF Commerce & Marketing
   };
+
+  const displayShelfCode = destinationShelfId ? (SHELF_TO_3D_CODE[destinationShelfId] ?? destinationShelfId) : null;
 
   // Compute a 0-1 position for the selected book within its shelf,
   // ordered by call number. Used to pinpoint the exact location in the 3D app.
