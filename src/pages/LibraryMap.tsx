@@ -467,6 +467,11 @@ export function LibraryMap() {
                         className="absolute inset-0 w-full h-full border-0"
                         title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
                         allow="camera; microphone; accelerometer; gyroscope"
+                        style={{
+                          transform: `scale(${1 + (showPath && destinationShelfId ? walkProgress * 0.55 : 0)})`,
+                          transformOrigin: '50% 38%',
+                          transition: 'transform 0.6s linear',
+                        }}
                       />
                     </div>
                   )}
