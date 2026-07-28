@@ -471,174 +471,165 @@ export function LibraryMap() {
                   )}
 
                   {/* Flat / 2D mode */}
+                  
+                  {/* ── Flat mode: floor plan map ── */}
                   {mapMode === 'flat' && (
-                  <div className="flex-1 overflow-y-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {cells.map((cell) => {
-                      const section = sections.find(s => s.id === cell.section);
-                      const isDestination = destinationShelfId === cell.id;
-                      const occupancy = occupancyData[cell.id as keyof typeof occupancyData];
-                      const isHovered = hoveredCell === cell.id;
-                      const bookCount = MOCK_BOOKS.filter(b => b.shelf === cell.id).length;
-                      const cellLabel = CELL_LABELS[cell.id];
+                    <div className="flex-1 relative rounded-2xl overflow-hidden" style={{ background: '#07111e', minHeight: '400px' }}>
+                      <svg
+                        viewBox="0 0 600 500"
+                        className="absolute inset-0 w-full h-full"
+                        style={{ userSelect: 'none' }}
+                      >
+                        <defs>
+                          <radialGradient id="fmFloor" cx="50%" cy="55%" r="65%">
+                            <stop offset="0%" stopColor="#0e2240" />
+                            <stop offset="100%" stopColor="#060d1a" />
+                          </radialGradient>
+                          <filter id="fmGlow">
+                            <feGaussianBlur stdDeviation="4" result="b"/>
+                            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                          </filter>
+                          <filter id="fmPulse">
+                            <feGaussianBlur stdDeviation="9" result="b"/>
+                            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+                          </filter>
+                          <linearGradient id="fmPath" x1="0%" y1="100%" x2="0%" y2="0%">
+                            <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.1"/>
+                            <stop offset="100%" stopColor="#D4AF37" stopOpacity="1"/>
+                          </linearGradient>
+                        </defs>
 
-                      return (
-                        <motion.div
-                          key={cell.id}
-                          onHoverStart={() => setHoveredCell(cell.id)}
-                          onHoverEnd={() => setHoveredCell(null)}
-                          onClick={() => !bookData && navigateToCell(cell.id)}
+                        {/* Library floor outline */}
+                        <rect x="15" y="15" width="570" height="462" rx="22"
+                          fill="url(#fmFloor)" stroke="rgba(0,160,220,0.2)" strokeWidth="1.5" />
+
+                        {/* Horizontal aisle strips */}
+                        <rect x="15" y="100" width="570" height="48" fill="rgba(0,150,200,0.05)" />
+                        <rect x="15" y="225" width="570" height="48" fill="rgba(0,150,200,0.05)" />
+                        <rect x="15" y="350" width="570" height="48" fill="rgba(0,150,200,0.05)" />
+                        {/* Main center vertical aisle */}
+                        <rect x="275" y="15" width="50" height="462" fill="rgba(0,150,200,0.04)" />
+
+                        {/* Aisle dashed guides */}
+                        {([124, 249] as number[]).map((y, i) => (
+                          <line key={i} x1="25" y1={y} x2="575" y2={y}
+                            stroke="rgba(0,200,255,0.07)" strokeWidth="1" strokeDasharray="8 6" />
+                        ))}
+                        <line x1="300" y1="374" x2="300" y2="452"
+                          stroke="rgba(0,200,255,0.07)" strokeWidth="1" strokeDasharray="8 6" />
+
+                        {/* Section labels */}
+                        {[
+                          { x: 150, y: 35, label: language === 'ar' ? 'قسم أ' : 'Wing A' },
+                          { x: 450, y: 35, label: language === 'ar' ? 'قسم ب' : 'Wing B' },
+                        ].map((l, i) => (
+                          <text key={i} x={l.x} y={l.y} textAnchor="middle"
+                            fontSize="8" fontWeight="700" fill="rgba(0,200,255,0.15)"
+                            fontFamily="sans-serif">{l.label}</text>
+                        ))}
+
+                        {/* Shelf blocks */}
+                        {[
+                          { id: 'A-1', cx: 75,  cy: 62  },
+                          { id: 'A-2', cx: 225, cy: 62  },
+                          { id: 'B-1', cx: 375, cy: 62  },
+                          { id: 'B-2', cx: 525, cy: 62  },
+                          { id: 'B-3', cx: 75,  cy: 187 },
+                          { id: 'B-4', cx: 225, cy: 187 },
+                          { id: 'C-1', cx: 375, cy: 187 },
+                          { id: 'C-2', cx: 525, cy: 187 },
+                          { id: 'D-1', cx: 75,  cy: 312 },
+                          { id: 'D-2', cx: 225, cy: 312 },
+                          { id: 'E-1', cx: 375, cy: 312 },
+                          { id: 'E-2', cx: 525, cy: 312 },
+                        ].map(({ id, cx, cy }) => {
+                          const isDest = id === destinationShelfId;
+                          const cellLabel = CELL_LABELS[id];
+                          return (
+                            <g key={id} onClick={() => !bookData && navigateToCell(id)} style={{ cursor: 'pointer' }}>
+                              {isDest && (
+                                <motion.rect x={cx - 52} y={cy - 32} width="104" height="64" rx="11"
+                                  fill="#D4AF37" filter="url(#fmPulse)"
+                                  animate={{ opacity: [0.12, 0.4, 0.12] } as never}
+                                  transition={{ duration: 1.6, repeat: Infinity }}
+                                />
+                              )}
+                              <rect x={cx - 48} y={cy - 28} width="96" height="56" rx="8"
+                                fill={isDest ? 'rgba(180,140,0,0.22)' : 'rgba(10,30,55,0.9)'}
+                                stroke={isDest ? '#D4AF37' : 'rgba(0,150,200,0.3)'}
+                                strokeWidth={isDest ? 2 : 1}
+                              />
+                              {/* Book spine lines */}
+                              {([0.28, 0.52, 0.76] as number[]).map((f, i) => (
+                                <line key={i}
+                                  x1={cx - 48 + 96 * f} y1={cy - 28}
+                                  x2={cx - 48 + 96 * f} y2={cy + 28}
+                                  stroke={isDest ? 'rgba(255,220,80,0.15)' : 'rgba(0,150,200,0.1)'}
+                                  strokeWidth="0.8"
+                                />
+                              ))}
+                              <text x={cx} y={cy - 4} textAnchor="middle"
+                                fontSize="13" fontWeight="900"
+                                fill={isDest ? '#FFD700' : 'rgba(100,200,240,0.9)'}
+                                fontFamily="'IBM Plex Mono', monospace"
+                                filter={isDest ? 'url(#fmGlow)' : undefined}
+                                style={{ pointerEvents: 'none' }}
+                              >{id}</text>
+                              <text x={cx} y={cy + 13} textAnchor="middle" fontSize="7"
+                                fill={isDest ? 'rgba(255,220,80,0.65)' : 'rgba(80,160,200,0.5)'}
+                                fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
+                              >{cellLabel ? (language === 'ar' ? cellLabel.ar : cellLabel.en)?.slice(0, 14) : ''}</text>
+                            </g>
+                          );
+                        })}
+
+                        {/* Entrance */}
+                        <rect x="258" y="452" width="84" height="22" rx="8"
+                          fill="#07111e" stroke="rgba(0,200,255,0.45)" strokeWidth="1.5" />
+                        <text x="300" y="466" textAnchor="middle" fontSize="8" fontWeight="700"
+                          fill="rgba(0,200,255,0.7)" fontFamily="sans-serif">
+                          {language === 'ar' ? '🚪 المدخل' : '🚪 ENTRANCE'}
+                        </text>
+
+                        {/* Navigation path overlay */}
+                        {showPath && destinationShelfId && (
+                          <>
+                            <motion.path d={getPathData()} stroke="#D4AF37" strokeWidth="28"
+                              fill="none" strokeLinecap="round" opacity="0.06"
+                              initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
+                              transition={{ duration: 1.1 }} />
+                            <motion.path d={getPathData()} stroke="#D4AF37" strokeWidth="10"
+                              fill="none" strokeLinecap="round" opacity="0.13"
+                              initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
+                              transition={{ duration: 1.1 }} />
+                            <motion.path d={getPathData()} stroke="url(#fmPath)" strokeWidth="2.5"
+                              fill="none" strokeLinecap="round" strokeDasharray="10 6" opacity="0.9"
+                              initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
+                              transition={{ duration: 1.1 }} />
+                            {[0, 1, 2].map(i => (
+                              <polygon key={i} points="-5,-7 7,0 -5,7" fill="#D4AF37" opacity="0.95" filter="url(#fmGlow)">
+                                <animateMotion dur="1.8s" begin={`${i * 0.6}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
+                              </polygon>
+                            ))}
+                          </>
+                        )}
+                      </svg>
+
+                      {/* "View AR Guide" button overlay */}
+                      {destinationShelfId && (
+                        <button
+                          onClick={() => setActiveTab('sections')}
                           className={cn(
-                            "relative flex flex-col items-center justify-center rounded-3xl border-2 transition-all duration-500 cursor-pointer group min-h-[160px]",
-                            isDestination
-                              ? "bg-accent/5 dark:bg-accent/10 border-accent shadow-[0_20px_50px_rgba(217,179,16,0.2)] z-20 scale-[1.03]"
-                              : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-slate-800 hover:border-primary/20 dark:hover:border-accent/20",
-                            isHovered && !isDestination && "shadow-xl shadow-black/5 dark:shadow-black/20 scale-[1.01]"
+                            'absolute bottom-4 z-40 flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-accent text-xs font-black shadow-xl shadow-primary/30 hover:brightness-110 transition-all active:scale-95',
+                            dir === 'rtl' ? 'right-4' : 'left-4'
                           )}
                         >
-                          {/* Live Occupancy Badge */}
-                          <div className={cn("absolute top-3 flex items-center gap-1.5 bg-white dark:bg-slate-800 px-2 py-1 rounded-full shadow-sm border border-slate-100 dark:border-white/5", dir === 'rtl' ? 'left-3' : 'right-3')}>
-                             <div className={cn("w-1.5 h-1.5 rounded-full", occupancy > 70 ? "bg-red-500" : occupancy > 40 ? "bg-amber-500" : "bg-emerald-500")}></div>
-                             <span className="text-[8px] font-black text-slate-500 dark:text-slate-400">{occupancy}%</span>
-                          </div>
-
-                          {/* Book count badge */}
-                          <div className={cn("absolute top-3 flex items-center gap-1 bg-primary/5 dark:bg-accent/10 px-2 py-1 rounded-full", dir === 'rtl' ? 'right-3' : 'left-3')}>
-                            <span className="text-[8px] font-black text-primary/60 dark:text-accent/80">{bookCount} {language === 'ar' ? 'كتاب' : 'bks'}</span>
-                          </div>
-
-                          <div className="relative z-10 flex flex-col items-center gap-2.5 p-5 text-center">
-                            <div className={cn(
-                              "w-10 h-10 rounded-2xl flex items-center justify-center text-lg transition-all duration-500 shadow-md",
-                              isDestination ? "bg-accent text-primary scale-110" : "bg-white dark:bg-slate-700 text-slate-300 dark:text-slate-400"
-                            )}>
-                               {section?.icon}
-                            </div>
-
-                            <div className="space-y-1">
-                               {/* Shelf code is the primary identity */}
-                               <div className={cn(
-                                 "text-2xl font-black tracking-wider leading-none",
-                                 isDestination ? "text-accent" : "text-primary dark:text-white"
-                               )}>
-                                 {cell.id}
-                               </div>
-                               {/* Content label as small subtitle */}
-                               {cellLabel && (
-                                 <div className="text-[9px] font-bold text-primary/50 dark:text-white/40 leading-snug px-1">
-                                   {language === 'ar' ? cellLabel.ar : cellLabel.en}
-                                 </div>
-                               )}
-                            </div>
-
-                            {isDestination && (
-                              <motion.div
-                                initial={{ y: 6, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                className={cn("bg-primary text-accent px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
-                              >
-                                <Navigation className={cn("w-2.5 h-2.5", dir === 'rtl' ? 'rotate-180' : '')} />
-                                {t('currentDestination')}
-                              </motion.div>
-                            )}
-                          </div>
-
-                          {/* Decorative Section Color Tab */}
-                          <div className={cn("absolute bottom-0 inset-x-8 h-1 rounded-t-full transition-all group-hover:h-2", section?.color, isDestination && "opacity-100", !isDestination && "opacity-20")} />
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                  </div>
-                  )} {/* end flat mode */}
-
-                  {/* Enhanced Entrance Visual (flat mode only) */}
-                  {mapMode === 'flat' && (<div><div>
-                  <div className="mt-16 relative flex justify-center">
-                     <div className="absolute bottom-full mb-8 h-20 w-px bg-gradient-to-t from-slate-200 dark:from-white/10 to-transparent" />
-                     <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 px-12 py-4 rounded-full text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-[0.4em] shadow-inner text-center">
-                        {t('mainGatePhaseOne')}
-                     </div>
-                  </div>
-
-                  {/* Path Visualization SVG — road-strip style */}
-                  {showPath && destinationShelfId && (
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 600 500">
-                      <defs>
-                        <linearGradient id="flatRoadGrad" x1="0%" y1="100%" x2="0%" y2="0%">
-                          <stop offset="0%" stopColor="#06B6D4" stopOpacity="0" />
-                          <stop offset="30%" stopColor="#06B6D4" stopOpacity="0.7" />
-                          <stop offset="100%" stopColor="#22D3EE" stopOpacity="1" />
-                        </linearGradient>
-                        <filter id="flatHalo">
-                          <feGaussianBlur stdDeviation="9" result="b"/>
-                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                        </filter>
-                        <filter id="flatEdge">
-                          <feGaussianBlur stdDeviation="3" result="b"/>
-                          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                        </filter>
-                      </defs>
-                      {/* outer glow halo */}
-                      <motion.path d={getPathData()} stroke="#06B6D4" strokeWidth="50" fill="none"
-                        strokeLinecap="round" opacity="0.07"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.2, ease: 'easeInOut' }} />
-                      {/* road body */}
-                      <motion.path d={getPathData()} stroke="#06B6D4" strokeWidth="32" fill="none"
-                        strokeLinecap="round" opacity="0.20"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.2, ease: 'easeInOut' }} />
-                      {/* road inner tint */}
-                      <motion.path d={getPathData()} stroke="#22D3EE" strokeWidth="16" fill="none"
-                        strokeLinecap="round" opacity="0.1"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.2, ease: 'easeInOut' }} />
-                      {/* road edge bright line */}
-                      <motion.path d={getPathData()} stroke="url(#flatRoadGrad)" strokeWidth="2.5" fill="none"
-                        strokeLinecap="round" filter="url(#flatEdge)" opacity="0.95"
-                        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.2, ease: 'easeInOut' }} />
-                      {/* flowing yellow lane dashes */}
-                      {[0,1,2,3,4,5].map(i => (
-                        <rect key={i} width="13" height="5" x="-6.5" y="-2.5" rx="2.5" fill="#D9B310" opacity="0.95" filter="url(#flatEdge)">
-                          <animateMotion dur="2s" begin={`${i * 0.33}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
-                        </rect>
-                      ))}
-                      {/* chevron arrows */}
-                      {[0,1,2].map(i => (
-                        <polygon key={i} points="-6,-8 8,0 -6,8" fill="#D9B310" stroke="#0A1628" strokeWidth="1.5" filter="url(#flatEdge)" opacity="0.9">
-                          <animateMotion dur="1.8s" begin={`${i * 0.6}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
-                        </polygon>
-                      ))}
-                      {/* destination dot — yellow core + cyan pulse */}
-                      <circle
-                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
-                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
-                        r="11" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#flatHalo)"
-                      />
-                      <motion.circle
-                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
-                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
-                        r="11" fill="none" stroke="#22D3EE" strokeWidth="2.5"
-                        animate={{ r:[11,30,11], opacity:[0.9,0,0.9] }}
-                        transition={{ duration: 1.8, repeat: Infinity }}
-                      />
-                    </svg>
-                  )}
-                  {/* "View AR Guide" nudge when a destination is set */}
-                  {destinationShelfId && (
-                    <button
-                      onClick={() => setActiveTab('sections')}
-                      className={cn(
-                        'absolute bottom-6 z-40 flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-accent text-xs font-black shadow-xl shadow-primary/30 hover:brightness-110 transition-all active:scale-95',
-                        dir === 'rtl' ? 'right-6' : 'left-6'
+                          {language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}
+                        </button>
                       )}
-                    >
-                      {language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}
-                    </button>
+                    </div>
                   )}
-                  </div></div>)} {/* end flat entrance + path wrapper */}
+
               </motion.div>
             ) : (
               <motion.div
