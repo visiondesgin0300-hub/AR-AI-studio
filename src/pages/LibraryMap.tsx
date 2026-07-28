@@ -882,14 +882,41 @@ export function LibraryMap() {
                     <UserIcon className="w-4 h-4" />{bookData.author}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
-                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{t('digitalView')} ({t('shelfShort')})</div>
-                    <div className="text-3xl font-black text-primary dark:text-white">{bookData.shelf}</div>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Card 1: Shelf code + LC class */}
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-5 rounded-3xl flex flex-col gap-3">
+                    <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      {language === 'ar' ? 'الرف · الخريطة' : 'SHELF · MAP'}
+                    </div>
+                    <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                      <span className="text-4xl font-black text-primary dark:text-white font-mono tracking-tight leading-none">{bookData.shelf}</span>
+                      {bookData.callNumber && (
+                        <span className="bg-primary text-white dark:bg-accent dark:text-primary px-2 py-1 rounded-lg text-xs font-black font-mono shadow-sm">
+                          {bookData.callNumber.match(/^([A-Z]+)/)?.[1] ?? ''}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 leading-snug">
+                      {language === 'ar' ? 'يطابق الخريطة 2D و AR' : 'Matches 2D map & AR Floor'}
+                    </div>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
-                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{t('bookHall', { section: '' })}</div>
-                    <div className="text-3xl font-black text-primary dark:text-white">{bookData.section}</div>
+                  {/* Card 2: Subject area */}
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-5 rounded-3xl flex flex-col gap-2">
+                    <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      {language === 'ar' ? 'التخصص الموضوعي' : 'SUBJECT AREA'}
+                    </div>
+                    {CELL_LABELS[bookData.shelf] ? (
+                      <>
+                        <div className={cn('text-sm font-black text-primary dark:text-white leading-snug', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                          {language === 'ar' ? CELL_LABELS[bookData.shelf].ar : CELL_LABELS[bookData.shelf].en}
+                        </div>
+                        <div className={cn('text-[10px] text-slate-400 dark:text-slate-500 leading-snug', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                          {language === 'ar' ? CELL_LABELS[bookData.shelf].en : CELL_LABELS[bookData.shelf].ar}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-2xl font-black text-primary dark:text-white">{bookData.section}</div>
+                    )}
                   </div>
                 </div>
                 {/* Call number + position within shelf */}
