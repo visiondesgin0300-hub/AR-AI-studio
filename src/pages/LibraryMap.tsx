@@ -296,14 +296,13 @@ export function LibraryMap() {
     return idx / (shelfBooks.length - 1);
   }, [bookData]);
 
-  // When the AR floor is visible (overlay or inline mode) and a destination is
-  // set, send the 3D app the correct physical shelf code + exact book position.
-  // Auto-start the walk demo when the AR floor becomes visible with a destination.
+  // Auto-start the walk simulation only in the fullscreen AR overlay (showARFloor).
+  // In the inline ar-floor tab the user taps "ابدأ الملاحة" to start explicitly.
   useEffect(() => {
-    if ((showARFloor || mapMode === 'ar-floor') && destinationShelfId) {
+    if (showARFloor && destinationShelfId) {
       setShowPath(true);
     }
-  }, [showARFloor, mapMode, destinationShelfId]);
+  }, [showARFloor, destinationShelfId]);
 
   useEffect(() => {
     const isVisible = showARFloor || mapMode === 'ar-floor';
@@ -594,6 +593,40 @@ export function LibraryMap() {
                                 </motion.div>
                               )}
                             </AnimatePresence>
+
+                            {/* ابدأ الملاحة — explicit start button shown when a destination is set */}
+                            {destinationShelfId && !hasArrived && (
+                              <div className="mt-3 pointer-events-auto">
+                                {!showPath ? (
+                                  <motion.button
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                                    onClick={() => {
+                                      if (typeof navigator.vibrate === 'function') {
+                                        try { navigator.vibrate(80); } catch { /* best-effort */ }
+                                      }
+                                      setShowPath(true);
+                                    }}
+                                    className="w-full py-3 bg-[#0EA5D6] text-[#050c1a] rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-[#0EA5D6]/30"
+                                  >
+                                    <Navigation className="w-4 h-4" style={{ transform: 'rotate(-45deg)' }} />
+                                    {language === 'ar' ? 'ابدأ الملاحة' : 'Start Navigation'}
+                                  </motion.button>
+                                ) : (
+                                  <div className="flex items-center justify-center gap-2 py-1.5">
+                                    <motion.span
+                                      className="inline-block w-2 h-2 rounded-full bg-emerald-400"
+                                      animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                                      transition={{ duration: 1.2, repeat: Infinity }}
+                                    />
+                                    <span className="text-emerald-400 text-[10px] font-black tracking-widest uppercase">
+                                      {language === 'ar' ? 'جاري الملاحة…' : 'Navigating…'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </motion.div>
