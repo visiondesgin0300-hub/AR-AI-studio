@@ -382,6 +382,18 @@ export function LibraryMap() {
                   {/* Map mode toggle */}
                   <div className={cn("absolute top-5 z-40 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1", dir === 'rtl' ? 'left-5' : 'right-5')}>
                     <button
+                      onClick={() => setMapMode('flat')}
+                      className={cn(
+                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
+                        mapMode === 'flat'
+                          ? "bg-accent text-primary shadow-sm"
+                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                      )}
+                    >
+                      <MapIcon className="w-3 h-3" />
+                      {language === 'ar' ? 'خريطة 2D' : '2D Map'}
+                    </button>
+                    <button
                       onClick={() => setMapMode('ar-floor')}
                       className={cn(
                         "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
@@ -556,7 +568,12 @@ export function LibraryMap() {
                           const isDest = id === destinationShelfId;
                           const cellLabel = CELL_LABELS[id];
                           return (
-                            <g key={id} onClick={() => !bookData && navigateToCell(id)} style={{ cursor: 'pointer' }}>
+                            <g key={id}
+                              onClick={() => !bookData && navigateToCell(id)}
+                              onMouseEnter={() => setHoveredCell(id)}
+                              onMouseLeave={() => setHoveredCell(null)}
+                              style={{ cursor: 'pointer' }}
+                            >
                               {isDest && (
                                 <motion.rect x={cx - 52} y={cy - 32} width="104" height="64" rx="11"
                                   fill="#D4AF37" filter="url(#fmPulse)"
@@ -565,9 +582,9 @@ export function LibraryMap() {
                                 />
                               )}
                               <rect x={cx - 48} y={cy - 28} width="96" height="56" rx="8"
-                                fill={isDest ? 'rgba(180,140,0,0.22)' : 'rgba(10,30,55,0.9)'}
-                                stroke={isDest ? '#D4AF37' : 'rgba(0,150,200,0.3)'}
-                                strokeWidth={isDest ? 2 : 1}
+                                fill={isDest ? 'rgba(180,140,0,0.22)' : hoveredCell === id ? 'rgba(0,60,100,0.95)' : 'rgba(10,30,55,0.9)'}
+                                stroke={isDest ? '#D4AF37' : hoveredCell === id ? 'rgba(0,190,230,0.7)' : 'rgba(0,150,200,0.3)'}
+                                strokeWidth={isDest ? 2 : hoveredCell === id ? 1.5 : 1}
                               />
                               {/* Book spine lines */}
                               {([0.28, 0.52, 0.76] as number[]).map((f, i) => (
@@ -578,17 +595,39 @@ export function LibraryMap() {
                                   strokeWidth="0.8"
                                 />
                               ))}
-                              <text x={cx} y={cy - 4} textAnchor="middle"
-                                fontSize="13" fontWeight="900"
-                                fill={isDest ? '#FFD700' : 'rgba(100,200,240,0.9)'}
+                              {/* Shelf ID */}
+                              <text x={cx} y={cy - 10} textAnchor="middle"
+                                fontSize="11" fontWeight="900"
+                                fill={isDest ? '#FFD700' : 'rgba(120,215,255,1)'}
                                 fontFamily="'IBM Plex Mono', monospace"
                                 filter={isDest ? 'url(#fmGlow)' : undefined}
                                 style={{ pointerEvents: 'none' }}
                               >{id}</text>
-                              <text x={cx} y={cy + 13} textAnchor="middle" fontSize="7"
-                                fill={isDest ? 'rgba(255,220,80,0.65)' : 'rgba(80,160,200,0.5)'}
-                                fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
-                              >{cellLabel ? (language === 'ar' ? cellLabel.ar : cellLabel.en)?.slice(0, 14) : ''}</text>
+                              {/* LC class */}
+                              {SHELF_LC_CLASS[id] && (
+                                <text x={cx} y={cy + 1} textAnchor="middle" fontSize="7" fontWeight="700"
+                                  fill={isDest ? 'rgba(255,220,80,0.85)' : 'rgba(0,190,230,0.65)'}
+                                  fontFamily="'IBM Plex Mono', monospace" style={{ pointerEvents: 'none' }}
+                                >{SHELF_LC_CLASS[id]}</text>
+                              )}
+                              {/* Subject label — 2 lines */}
+                              {cellLabel && (() => {
+                                const lbl = (language === 'ar' ? cellLabel.ar : cellLabel.en) || '';
+                                return (
+                                  <>
+                                    <text x={cx} y={cy + 13} textAnchor="middle" fontSize="6.5"
+                                      fill={isDest ? 'rgba(255,220,80,0.7)' : 'rgba(120,185,220,0.8)'}
+                                      fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
+                                    >{lbl.slice(0, 14)}</text>
+                                    {lbl.length > 14 && (
+                                      <text x={cx} y={cy + 22} textAnchor="middle" fontSize="6"
+                                        fill={isDest ? 'rgba(255,220,80,0.55)' : 'rgba(120,185,220,0.6)'}
+                                        fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
+                                      >{lbl.slice(14, 27)}</text>
+                                    )}
+                                  </>
+                                );
+                              })()}
                             </g>
                           );
                         })}
@@ -624,6 +663,70 @@ export function LibraryMap() {
                           </>
                         )}
                       </svg>
+
+                      {/* Navigation HUD — live distance / ETA / arrival time */}
+                      {showPath && destinationShelfId && (
+                        <div className="absolute top-3 inset-x-0 flex justify-center z-30 pointer-events-none px-4">
+                          <div className="flex items-center gap-2 flex-wrap justify-center">
+                            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 text-white text-[11px] font-black shadow-xl">
+                              <Navigation className="w-3.5 h-3.5 text-accent shrink-0" />
+                              <AnimatePresence mode="wait">
+                                <motion.span key={liveDistanceMeters} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                                  className="text-accent font-black"
+                                >{liveDistanceMeters}{language === 'ar' ? 'م' : 'm'}</motion.span>
+                              </AnimatePresence>
+                              <span className="text-white/30">·</span>
+                              <AnimatePresence mode="wait">
+                                <motion.span key={liveEtaMinutes} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                  {liveEtaMinutes > 0 ? `${liveEtaMinutes}${language === 'ar' ? ' د' : ' min'}` : language === 'ar' ? '< 1 د' : '< 1 min'}
+                                </motion.span>
+                              </AnimatePresence>
+                            </div>
+                            {!hasArrived ? (
+                              <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 text-white text-[11px] font-black shadow-xl">
+                                <Clock className="w-3 h-3 text-accent shrink-0" />
+                                <span>{language === 'ar' ? 'الوصول' : 'Arrive'}</span>
+                                <span className="text-accent">{arrivalTime}</span>
+                              </div>
+                            ) : (
+                              <div className="px-4 py-2 rounded-full bg-accent text-primary text-[11px] font-black shadow-xl">
+                                {language === 'ar' ? '✓ وصلت!' : '✓ Arrived!'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Shelf hover info card */}
+                      <AnimatePresence>
+                        {hoveredCell && (() => {
+                          const lbl = CELL_LABELS[hoveredCell];
+                          const lc = SHELF_LC_CLASS[hoveredCell];
+                          return (
+                            <motion.div
+                              key={hoveredCell}
+                              initial={{ opacity: 0, scale: 0.9 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.9 }}
+                              transition={{ duration: 0.15 }}
+                              className={cn('absolute bottom-16 z-40 pointer-events-none', dir === 'rtl' ? 'left-4' : 'right-4')}
+                            >
+                              <div className="bg-slate-900/95 backdrop-blur-xl border border-accent/40 rounded-2xl px-4 py-3 shadow-2xl">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-black text-accent font-mono">{hoveredCell}</span>
+                                  {lc && <span className="px-1.5 py-0.5 bg-accent/20 text-accent text-[9px] font-black rounded-md font-mono">{lc}</span>}
+                                </div>
+                                {lbl && (
+                                  <>
+                                    <div className="text-[11px] font-black text-white">{language === 'ar' ? lbl.ar : lbl.en}</div>
+                                    <div className="text-[9px] text-white/50 mt-0.5">{language === 'ar' ? lbl.en : lbl.ar}</div>
+                                  </>
+                                )}
+                              </div>
+                            </motion.div>
+                          );
+                        })()}
+                      </AnimatePresence>
 
                       {/* "View AR Guide" button overlay */}
                       {destinationShelfId && (
