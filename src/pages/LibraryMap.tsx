@@ -197,17 +197,11 @@ export function LibraryMap() {
     : 0;
   const etaMinutes = Math.max(1, Math.round(totalWalkSeconds / 60));
 
-  // Live "walking" simulation: once navigation is active, distance/time and
-  // the current turn-by-turn step count down/advance over the estimated walk
-  // duration instead of sitting on a single static number the whole time.
-  // Gated on activeTab (not just showPath) because showPath is often already
-  // true before the student ever switches to this tab - e.g. selecting a
-  // shelf on the grid sets it while staying on the "map" tab - so timing the
-  // walk from showPath alone meant it could finish in the background before
-  // this screen was even visible, leaving distance/time stuck at 0 on arrival.
+  // Live "walking" demo: as soon as navigation is active (showPath + destination)
+  // the distance/time count down in real time on any tab or view.
   const [walkProgress, setWalkProgress] = useState(0);
   useEffect(() => {
-    if (!showPath || !destinationShelfId || activeTab !== 'sections') {
+    if (!showPath || !destinationShelfId) {
       setWalkProgress(0);
       return;
     }
@@ -222,7 +216,7 @@ export function LibraryMap() {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [showPath, destinationShelfId, activeTab, totalWalkSeconds]);
+  }, [showPath, destinationShelfId, totalWalkSeconds]);
 
   const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
@@ -278,6 +272,13 @@ export function LibraryMap() {
 
   // When the AR floor is visible (overlay or inline mode) and a destination is
   // set, send the 3D app the correct physical shelf code + exact book position.
+  // Auto-start the walk demo when the AR floor becomes visible with a destination.
+  useEffect(() => {
+    if ((showARFloor || mapMode === 'ar-floor') && destinationShelfId) {
+      setShowPath(true);
+    }
+  }, [showARFloor, mapMode, destinationShelfId]);
+
   useEffect(() => {
     const isVisible = showARFloor || mapMode === 'ar-floor';
     if (!isVisible || !destinationShelfId) return;
@@ -659,25 +660,52 @@ export function LibraryMap() {
                       </button>
                     </div>
 
-                    {/* Rafeeq mini guide in AR dark view */}
+                    {/* Rafeeq mini guide in AR dark view — live demo countdown */}
                     <motion.div
                       className={cn("absolute bottom-44 z-30 flex flex-col items-center gap-1", dir === 'rtl' ? 'left-4' : 'right-4')}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.5 }}
                     >
-                      <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-3 py-2 max-w-[140px] text-center mb-1 shadow-xl">
-                        <p className="text-[10px] font-black text-white leading-snug">
-                          {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
-                        </p>
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/10 border-b border-r border-white/20 rotate-45" />
-                      </div>
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={hasArrived ? 'arrived' : liveDistanceMeters}
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-3 py-2 max-w-[150px] text-center mb-1 shadow-xl"
+                        >
+                          {showPath && destinationShelfId && !hasArrived && (
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                              <span className="text-accent font-black text-sm leading-none">{liveDistanceMeters}م</span>
+                              <span className="text-white/40 text-[9px]">·</span>
+                              <span className="text-white/70 font-bold text-[10px]">{liveEtaMinutes > 0 ? `${liveEtaMinutes} د` : '< 1 د'}</span>
+                            </div>
+                          )}
+                          <p className="text-[10px] font-black text-white leading-snug">
+                            {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
+                          </p>
+                          {showPath && destinationShelfId && (
+                            <div className="mt-1.5 h-1 rounded-full bg-white/15 overflow-hidden">
+                              <motion.div
+                                className="h-full rounded-full bg-accent"
+                                animate={{ width: `${Math.round(walkProgress * 100)}%` }}
+                                transition={{ duration: 0.5, ease: 'linear' }}
+                              />
+                            </div>
+                          )}
+                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/10 border-b border-r border-white/20 rotate-45" />
+                        </motion.div>
+                      </AnimatePresence>
                       <motion.div
                         animate={{ y: [0, -4, 0] }}
                         transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                       >
                         <RafeeqAvatar className="w-14 h-14 drop-shadow-2xl" />
                       </motion.div>
+                      <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">
+                        {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+                      </span>
                     </motion.div>
 
                     {/* Hands off to the real camera-based AR guidance; the
@@ -1139,7 +1167,7 @@ export function LibraryMap() {
                 </div>
               )}
 
-              {/* Rafeeq avatar + speech bubble */}
+              {/* Rafeeq avatar + speech bubble — live demo countdown */}
               <motion.div
                 className={cn("absolute bottom-40 flex flex-col items-center gap-1 pointer-events-none", dir === 'rtl' ? 'left-4' : 'right-4')}
                 initial={{ opacity: 0, scale: 0.8, y: 10 }}
@@ -1147,14 +1175,36 @@ export function LibraryMap() {
                 transition={{ delay: 0.6 }}
                 style={{ zIndex: 20 }}
               >
-                <div className="relative bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl px-3 py-2 max-w-[150px] text-center mb-1 shadow-xl">
-                  <p className="text-[10px] font-black text-white leading-snug">
-                    {destinationShelfId
-                      ? (language === 'ar' ? `أنت على بُعد ${distanceMeters} م — استمر!` : `${distanceMeters}m to go — keep going!`)
-                      : (language === 'ar' ? 'اختر رفاً وسأوجّهك! 👋' : "Pick a shelf and I'll guide you! 👋")}
-                  </p>
-                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white/15 border-b border-r border-white/25 rotate-45" />
-                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={hasArrived ? 'arrived' : liveDistanceMeters}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    className="relative bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl px-3 py-2 max-w-[160px] text-center mb-1 shadow-xl"
+                  >
+                    {showPath && destinationShelfId && !hasArrived && (
+                      <div className="flex items-center justify-center gap-2 mb-1.5">
+                        <span className="text-accent font-black text-base leading-none">{liveDistanceMeters}م</span>
+                        <span className="text-white/40 text-[9px]">·</span>
+                        <span className="text-white/70 font-bold text-[11px]">{liveEtaMinutes > 0 ? `${liveEtaMinutes} دقيقة` : 'أقل من دقيقة'}</span>
+                      </div>
+                    )}
+                    <p className="text-[10px] font-black text-white leading-snug">
+                      {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
+                    </p>
+                    {showPath && destinationShelfId && (
+                      <div className="mt-1.5 h-1.5 rounded-full bg-white/15 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full bg-accent"
+                          animate={{ width: `${Math.round(walkProgress * 100)}%` }}
+                          transition={{ duration: 0.5, ease: 'linear' }}
+                        />
+                      </div>
+                    )}
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white/15 border-b border-r border-white/25 rotate-45" />
+                  </motion.div>
+                </AnimatePresence>
                 <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}>
                   <RafeeqAvatar className="w-16 h-16 drop-shadow-2xl" />
                 </motion.div>
