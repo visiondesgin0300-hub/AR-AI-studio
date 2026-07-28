@@ -100,6 +100,16 @@ export function LibraryMap() {
     'E-2': { ar: 'تسويق دولي واقتصاد',          en: 'Global Marketing & Econ.' },
   };
 
+  // LC class assigned to each shelf — matches the 2D map & AR Floor signs
+  const SHELF_LC_CLASS: Record<string, string> = {
+    'A-1': 'QC',  'A-2': 'QB',
+    'B-1': 'Q',   'B-2': 'TK',
+    'B-3': 'TA',  'B-4': 'QA',
+    'C-1': 'BF',  'C-2': 'BF',
+    'D-1': 'D',   'D-2': 'P',
+    'E-1': 'HB',  'E-2': 'HF',
+  };
+
   const cells = [
     { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' },
     { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' }, { id: 'B-3', section: 'B' }, { id: 'B-4', section: 'B' },
@@ -889,16 +899,23 @@ export function LibraryMap() {
                     <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                       {language === 'ar' ? 'الرف · الخريطة' : 'SHELF · MAP'}
                     </div>
+                    {/* Shelf code row */}
                     <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                       <span className="text-4xl font-black text-primary dark:text-white font-mono tracking-tight leading-none">{bookData.shelf}</span>
-                      {bookData.callNumber && (
-                        <span className="bg-primary text-white dark:bg-accent dark:text-primary px-2 py-1 rounded-lg text-xs font-black font-mono shadow-sm">
-                          {bookData.callNumber.match(/^([A-Z]+)/)?.[1] ?? ''}
+                      {SHELF_LC_CLASS[bookData.shelf] && (
+                        <span className="bg-primary text-white dark:bg-accent dark:text-primary px-2.5 py-1 rounded-lg text-sm font-black font-mono shadow-sm tracking-wider">
+                          {SHELF_LC_CLASS[bookData.shelf]}
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500 leading-snug">
-                      {language === 'ar' ? 'يطابق الخريطة 2D و AR' : 'Matches 2D map & AR Floor'}
+                    {/* Subject name from 2D map */}
+                    {CELL_LABELS[bookData.shelf] && (
+                      <div className={cn('text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-snug', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                        {language === 'ar' ? CELL_LABELS[bookData.shelf].ar : CELL_LABELS[bookData.shelf].en}
+                      </div>
+                    )}
+                    <div className="text-[9px] font-bold text-accent/70 leading-snug">
+                      {language === 'ar' ? '✓ يطابق الخريطة 2D و AR Floor' : '✓ Matches 2D map & AR Floor'}
                     </div>
                   </div>
                   {/* Card 2: Subject area */}
@@ -911,7 +928,7 @@ export function LibraryMap() {
                         <div className={cn('text-sm font-black text-primary dark:text-white leading-snug', dir === 'rtl' ? 'text-right' : 'text-left')}>
                           {language === 'ar' ? CELL_LABELS[bookData.shelf].ar : CELL_LABELS[bookData.shelf].en}
                         </div>
-                        <div className={cn('text-[10px] text-slate-400 dark:text-slate-500 leading-snug', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                        <div className={cn('text-[10px] text-slate-400 dark:text-slate-500 leading-snug mt-1', dir === 'rtl' ? 'text-right' : 'text-left')}>
                           {language === 'ar' ? CELL_LABELS[bookData.shelf].en : CELL_LABELS[bookData.shelf].ar}
                         </div>
                       </>
