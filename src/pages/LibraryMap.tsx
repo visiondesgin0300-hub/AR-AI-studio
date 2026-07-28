@@ -136,6 +136,9 @@ export function LibraryMap() {
       setManualTarget(null);
       setSelectedBook(location.state.bookId);
       setShowPath(true);
+      if (location.state?.openARFloor) {
+        setShowARFloor(true);
+      }
     } else if (location.state?.shelfId) {
       setSelectedBook(null);
       setManualTarget({ id: location.state.shelfId });
