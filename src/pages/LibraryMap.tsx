@@ -478,6 +478,92 @@ export function LibraryMap() {
                         title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
                         allow="camera; microphone; accelerometer; gyroscope"
                       />
+
+                      {/* Navigation HUD — sits above the 3D iframe */}
+                      <AnimatePresence>
+                        {showPath && destinationShelfId && (
+                          <motion.div
+                            key="nav-hud"
+                            initial={{ opacity: 0, y: 24 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 24 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                            className="absolute bottom-4 left-4 right-4 z-10 pointer-events-none"
+                          >
+                            <div className="bg-[#050c1a]/90 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-black/50 overflow-hidden">
+                              <div className="h-0.5 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+                              <div className="p-4">
+                                {hasArrived ? (
+                                  <div className="flex items-center gap-3">
+                                    <motion.div
+                                      animate={{ scale: [1, 1.15, 1] }}
+                                      transition={{ duration: 1.2, repeat: Infinity }}
+                                      className="text-3xl"
+                                    >
+                                      🎉
+                                    </motion.div>
+                                    <div>
+                                      <p className="text-white font-black text-base">
+                                        {language === 'ar' ? 'وصلت! أحسنت!' : 'You made it!'}
+                                      </p>
+                                      <p className="text-[#D4AF37] text-xs font-bold mt-0.5">
+                                        {destinationShelfId} · {destinationSectionName}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-3">
+                                    {/* Animated directional arrow */}
+                                    <motion.div
+                                      animate={{ y: [-4, 0, -4] }}
+                                      transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                                      className="w-12 h-12 rounded-xl bg-[#0EA5D6]/20 border border-[#0EA5D6]/40 flex items-center justify-center flex-shrink-0"
+                                    >
+                                      <Navigation className="w-6 h-6 text-[#0EA5D6]" style={{ transform: 'rotate(-45deg)' }} />
+                                    </motion.div>
+                                    {/* Step + destination */}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-[10px] text-white/40 uppercase tracking-widest font-black">
+                                        {language === 'ar' ? 'اتجاه' : 'Direction'}
+                                      </p>
+                                      <p className="text-white font-black text-sm leading-tight mt-0.5 truncate">
+                                        {navigationSteps[liveStepIndex] || (language === 'ar' ? `توجه إلى رف ${destinationShelfId}` : `Head to Shelf ${destinationShelfId}`)}
+                                      </p>
+                                      <div className={cn("flex items-center gap-2 mt-1", dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                                        <span className="text-[#D4AF37] text-[10px] font-black">{destinationShelfId}</span>
+                                        <span className="text-white/20">·</span>
+                                        <span className="text-white/50 text-[10px]">
+                                          {liveDistanceMeters}m {language === 'ar' ? 'متبقي' : 'left'}
+                                        </span>
+                                        <span className="text-white/20">·</span>
+                                        <span className="text-white/40 text-[10px]">{arrivalTime}</span>
+                                      </div>
+                                    </div>
+                                    {/* Progress ring */}
+                                    <div className="relative w-10 h-10 flex-shrink-0">
+                                      <svg width="40" height="40" viewBox="0 0 40 40">
+                                        <circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3"/>
+                                        <circle
+                                          cx="20" cy="20" r="15"
+                                          fill="none"
+                                          stroke="#0EA5D6"
+                                          strokeWidth="3"
+                                          strokeDasharray={`${walkProgress * 94.25} 94.25`}
+                                          strokeLinecap="round"
+                                          transform="rotate(-90 20 20)"
+                                        />
+                                      </svg>
+                                      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-white">
+                                        {Math.round(walkProgress * 100)}%
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   )}
 
