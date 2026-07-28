@@ -223,7 +223,7 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
               </span>
             </button>
             <button
-              onClick={() => navigate('/map', { state: { bookId: book.id, openARFloor: true } })}
+              onClick={() => navigate('/map', { state: { bookId: book.id } })}
               className="flex-1 bg-white dark:bg-slate-900 border-2 border-secondary dark:border-secondary text-secondary dark:text-secondary py-5 rounded-2xl font-black text-lg flex items-center justify-center gap-3 hover:bg-secondary/5 dark:hover:bg-secondary/10 transition-all shadow-lg active:scale-95"
             >
               <MapPin className="w-6 h-6" />
