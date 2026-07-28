@@ -901,7 +901,7 @@ export function LibraryMap() {
                     </div>
                     {/* Shelf code row */}
                     <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                      <span className="text-4xl font-black text-primary dark:text-white font-mono tracking-tight leading-none">{bookData.shelf}</span>
+                      <span className="text-4xl font-black text-primary dark:text-white font-mono tracking-tight leading-none">{SHELF_TO_3D_CODE[bookData.shelf] ?? bookData.shelf}</span>
                       {SHELF_LC_CLASS[bookData.shelf] && (
                         <span className="bg-primary text-white dark:bg-accent dark:text-primary px-2.5 py-1 rounded-lg text-sm font-black font-mono shadow-sm tracking-wider">
                           {SHELF_LC_CLASS[bookData.shelf]}
