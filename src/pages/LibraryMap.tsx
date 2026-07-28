@@ -975,19 +975,6 @@ export function LibraryMap() {
                     </div>
                   );
                 })()}
-                {navigationSteps.length > 0 && (
-                  <div className="space-y-3 pt-2">
-                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
-                    <ol className="space-y-2">
-                      {navigationSteps.map((step, idx) => (
-                        <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                          <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
-                          <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
                 <div className="space-y-4 pt-4">
                   <button onClick={() => { setShowPath(true); setActiveTab('map'); }} className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
                     <span>{language === 'ar' ? 'الخريطة' : 'Map'}</span>
@@ -1019,17 +1006,6 @@ export function LibraryMap() {
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
                   <h2 className="text-2xl font-black leading-tight tracking-tight text-primary dark:text-white">{destinationLabel}</h2>
                   <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[11px] tracking-widest">{destinationSectionName}</p>
-                </div>
-                <div className="space-y-3">
-                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
-                  <ol className="space-y-2">
-                    {navigationSteps.map((step, idx) => (
-                      <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                        <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
-                        <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
-                      </li>
-                    ))}
-                  </ol>
                 </div>
                 <button onClick={() => { setManualTarget(null); setShowPath(false); }} className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
                   <X className="w-4 h-4" />{t('cancelActiveNavigation')}
