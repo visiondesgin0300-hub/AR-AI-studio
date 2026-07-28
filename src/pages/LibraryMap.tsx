@@ -26,6 +26,23 @@ const AR_BOOK_XS = SHELF_SPINE_WIDTHS.reduce<number[]>((acc, w, i) => {
 }, []);
 const AR_SHELF_PANEL_W = AR_BOOK_XS[AR_BOOK_XS.length - 1] + SHELF_SPINE_WIDTHS[SHELF_SPINE_WIDTHS.length - 1] + 8;
 
+/** Split a shelf subject label at a word boundary for SVG 2-line display. */
+function wrapShelfLabel(text: string, maxChars = 13): [string, string] {
+  if (!text || text.length <= maxChars) return [text || '', ''];
+  const words = text.split(' ');
+  let line1 = '';
+  for (let i = 0; i < words.length; i++) {
+    const candidate = line1 ? `${line1} ${words[i]}` : words[i];
+    if (candidate.length <= maxChars) {
+      line1 = candidate;
+    } else {
+      const line2 = words.slice(i).join(' ');
+      return [line1 || words[i], line2.slice(0, 18)];
+    }
+  }
+  return [line1, ''];
+}
+
 export function LibraryMap() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -610,20 +627,22 @@ export function LibraryMap() {
                                   fontFamily="'IBM Plex Mono', monospace" style={{ pointerEvents: 'none' }}
                                 >{SHELF_LC_CLASS[id]}</text>
                               )}
-                              {/* Subject label — 2 lines */}
+                              {/* Subject label — word-wrapped 2 lines */}
                               {cellLabel && (() => {
-                                const lbl = (language === 'ar' ? cellLabel.ar : cellLabel.en) || '';
+                                const [line1, line2] = wrapShelfLabel(
+                                  (language === 'ar' ? cellLabel.ar : cellLabel.en) || ''
+                                );
                                 return (
                                   <>
                                     <text x={cx} y={cy + 13} textAnchor="middle" fontSize="6.5"
-                                      fill={isDest ? 'rgba(255,220,80,0.7)' : 'rgba(120,185,220,0.8)'}
+                                      fill={isDest ? 'rgba(255,220,80,0.7)' : 'rgba(120,185,220,0.85)'}
                                       fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
-                                    >{lbl.slice(0, 14)}</text>
-                                    {lbl.length > 14 && (
+                                    >{line1}</text>
+                                    {line2 && (
                                       <text x={cx} y={cy + 22} textAnchor="middle" fontSize="6"
-                                        fill={isDest ? 'rgba(255,220,80,0.55)' : 'rgba(120,185,220,0.6)'}
+                                        fill={isDest ? 'rgba(255,220,80,0.55)' : 'rgba(120,185,220,0.65)'}
                                         fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
-                                      >{lbl.slice(14, 27)}</text>
+                                      >{line2}</text>
                                     )}
                                   </>
                                 );
