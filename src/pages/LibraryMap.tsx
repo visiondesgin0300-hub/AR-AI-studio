@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers, Maximize2 } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers, Maximize2, Clock } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn, trackMapVisit } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -219,8 +219,17 @@ export function LibraryMap() {
   }, [showPath, destinationShelfId, totalWalkSeconds]);
 
   const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
+  const liveEtaSeconds = Math.max(0, Math.round(totalWalkSeconds * (1 - walkProgress)));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
   const hasArrived = showPath && walkProgress >= 1;
+
+  // Actual clock time of arrival (updates live as walkProgress changes)
+  const arrivalTime = (() => {
+    const arrival = new Date(Date.now() + liveEtaSeconds * 1000);
+    return arrival.toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', {
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+  })();
 
   const rafeeqMessage = (() => {
     if (hasArrived) return { ar: 'وصلت! أحسنت! 🎉', en: 'You made it! Great job! 🎉' };
@@ -681,10 +690,16 @@ export function LibraryMap() {
                           className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-3 py-2 max-w-[150px] text-center mb-1 shadow-xl"
                         >
                           {showPath && destinationShelfId && !hasArrived && (
-                            <div className="flex items-center justify-center gap-2 mb-1">
-                              <span className="text-accent font-black text-sm leading-none">{liveDistanceMeters}م</span>
-                              <span className="text-white/40 text-[9px]">·</span>
-                              <span className="text-white/70 font-bold text-[10px]">{liveEtaMinutes > 0 ? `${liveEtaMinutes} د` : '< 1 د'}</span>
+                            <div className="flex flex-col items-center gap-0.5 mb-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-accent font-black text-sm leading-none">{liveDistanceMeters}م</span>
+                                <span className="text-white/40 text-[9px]">·</span>
+                                <span className="text-white/70 font-bold text-[10px]">{liveEtaMinutes > 0 ? `${liveEtaMinutes} د` : '< 1 د'}</span>
+                              </div>
+                              <div className="flex items-center gap-1 text-[9px] text-white/50 font-bold">
+                                <Clock className="w-2.5 h-2.5" />
+                                <span>{language === 'ar' ? 'الوصول' : 'Arrive'} {arrivalTime}</span>
+                              </div>
                             </div>
                           )}
                           <p className="text-[10px] font-black text-white leading-snug">
@@ -809,10 +824,24 @@ export function LibraryMap() {
                           visible without scrolling the tall aisle view on a
                           phone screen, and count down live once navigation
                           starts instead of sitting on one static number. */}
-                      <div className="px-5 py-2 rounded-full bg-accent/15 backdrop-blur-xl border border-accent/30 text-accent text-[11px] font-black flex items-center gap-3">
-                        <span>{t('distanceLabel')}: {showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
-                        <span className="w-1 h-1 rounded-full bg-accent/50" />
-                        <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="px-4 py-2 rounded-full bg-accent/15 backdrop-blur-xl border border-accent/30 text-accent text-[11px] font-black flex items-center gap-2.5">
+                          <span className="text-sm font-black">{showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? 'م' : 'm'}</span>
+                          <span className="w-1 h-1 rounded-full bg-accent/50" />
+                          <span>{showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                        </div>
+                        {showPath && destinationShelfId && !hasArrived && (
+                          <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white text-[11px] font-black flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-accent shrink-0" />
+                            <span>{language === 'ar' ? 'الوصول' : 'Arrive'}</span>
+                            <span className="text-accent font-black">{arrivalTime}</span>
+                          </div>
+                        )}
+                        {hasArrived && (
+                          <div className="px-4 py-2 rounded-full bg-accent text-primary text-[11px] font-black">
+                            {language === 'ar' ? '✓ وصلت!' : '✓ Arrived!'}
+                          </div>
+                        )}
                       </div>
                       {/* Live turn-by-turn instruction — shown immediately so the
                           student knows what to do right away, and cycles
@@ -1189,10 +1218,16 @@ export function LibraryMap() {
                     className="relative bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl px-3 py-2 max-w-[160px] text-center mb-1 shadow-xl"
                   >
                     {showPath && destinationShelfId && !hasArrived && (
-                      <div className="flex items-center justify-center gap-2 mb-1.5">
-                        <span className="text-accent font-black text-base leading-none">{liveDistanceMeters}م</span>
-                        <span className="text-white/40 text-[9px]">·</span>
-                        <span className="text-white/70 font-bold text-[11px]">{liveEtaMinutes > 0 ? `${liveEtaMinutes} دقيقة` : 'أقل من دقيقة'}</span>
+                      <div className="flex flex-col items-center gap-1 mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-accent font-black text-base leading-none">{liveDistanceMeters}م</span>
+                          <span className="text-white/40 text-[9px]">·</span>
+                          <span className="text-white/70 font-bold text-[11px]">{liveEtaMinutes > 0 ? `${liveEtaMinutes} دقيقة` : 'أقل من دقيقة'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[9px] text-white/50 font-bold">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>{language === 'ar' ? 'الوصول' : 'Arrive'} {arrivalTime}</span>
+                        </div>
                       </div>
                     )}
                     <p className="text-[10px] font-black text-white leading-snug">
