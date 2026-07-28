@@ -273,6 +273,7 @@ export function LibraryMap() {
     const msg = {
       type: 'LIBRARY_GUIDE_TO',
       shelf: floorCode,
+      reactShelf: destinationShelfId,
       bookPosition: bookPositionInShelf,
       bookTitle: bookData?.title ?? '',
       callNumber: bookData?.callNumber ?? '',

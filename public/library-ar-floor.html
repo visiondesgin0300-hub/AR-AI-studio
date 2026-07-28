@@ -203,6 +203,7 @@ window.addEventListener('message', function(e) {
   var bookPosition = typeof e.data.bookPosition === 'number' ? e.data.bookPosition : 0.5;
   var bookTitle = e.data.bookTitle || '';
   var callNumber = e.data.callNumber || '';
+  var reactShelf = e.data.reactShelf || '';
   var tries = 0;
   var tryGuide = function() {
     if (window.__cmp && window.__cmp._nav) {
@@ -242,7 +243,8 @@ window.addEventListener('message', function(e) {
         // Update HUD overlay with book info
         var posLabel = bookPosition < 0.33 ? 'بداية الرف' : bookPosition < 0.67 ? 'منتصف الرف' : 'نهاية الرف';
         var info = [callNumber, posLabel].filter(Boolean).join(' · ');
-        var hudLine = [bookTitle, 'رف ' + item.code, info].filter(Boolean).join(' · ');
+        var shelfDisplay = reactShelf || item.code;
+        var hudLine = [bookTitle, 'رف ' + shelfDisplay, info].filter(Boolean).join(' · ');
         if (window.__cmp._hudText) window.__cmp._hudText.textContent = hudLine;
         if (window.__cmp._hud) window.__cmp._hud.style.display = 'flex';
       }
