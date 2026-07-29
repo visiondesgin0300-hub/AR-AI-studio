@@ -477,6 +477,21 @@ export function LibraryMap() {
                         title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
                         allow="camera; microphone; accelerometer; gyroscope"
                       />
+                      {/* 2D / 3D mode toggle */}
+                      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-xl rounded-xl p-1 border border-white/10 pointer-events-auto">
+                        <button
+                          onClick={() => setMapMode('flat')}
+                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all text-white/60 hover:text-white hover:bg-white/10"
+                        >
+                          2D
+                        </button>
+                        <button
+                          onClick={() => setMapMode('ar-floor')}
+                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all bg-[#0EA5D6] text-[#050c1a] shadow"
+                        >
+                          3D
+                        </button>
+                      </div>
 
                       {/* Navigation HUD — always visible above the 3D iframe */}
                       <motion.div
@@ -634,10 +649,25 @@ export function LibraryMap() {
                   )}
 
                   {/* Flat / 2D mode */}
-                  
+
                   {/* ── Flat mode: floor plan map ── */}
                   {mapMode === 'flat' && (
-                    <div className="flex-1 relative rounded-2xl overflow-hidden" style={{ background: '#07111e', minHeight: '400px' }}>
+                    <div className="flex-1 relative rounded-2xl overflow-hidden flex flex-col" style={{ background: '#07111e', minHeight: '400px' }}>
+                      {/* 2D / 3D mode toggle bar */}
+                      <div className="absolute top-3 right-3 z-40 flex items-center gap-1.5 bg-black/50 backdrop-blur-xl rounded-xl p-1 border border-white/10">
+                        <button
+                          onClick={() => setMapMode('flat')}
+                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all bg-accent text-primary shadow"
+                        >
+                          2D
+                        </button>
+                        <button
+                          onClick={() => setMapMode('ar-floor')}
+                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all text-white/60 hover:text-white hover:bg-white/10"
+                        >
+                          3D
+                        </button>
+                      </div>
                       <svg
                         viewBox="0 0 600 500"
                         className="absolute inset-0 w-full h-full"
@@ -784,6 +814,68 @@ export function LibraryMap() {
                           fill="rgba(0,200,255,0.45)" fontFamily="sans-serif">
                           المدخل
                         </text>
+
+                        {/* Facility pods — corners of the floor plan */}
+                        {/* Computer Lab — top-left */}
+                        <g>
+                          <rect x="18" y="18" width="90" height="54" rx="10"
+                            fill="rgba(14,165,214,0.08)" stroke="rgba(14,165,214,0.45)" strokeWidth="1.2" />
+                          <text x="63" y="35" textAnchor="middle" fontSize="9" fill="rgba(14,165,214,0.9)"
+                            fontFamily="'IBM Plex Mono', monospace" fontWeight="700">💻 Lab</text>
+                          <text x="63" y="47" textAnchor="middle" fontSize="7" fill="rgba(14,165,214,0.7)"
+                            fontFamily="'IBM Plex Mono', monospace">Computer Lab</text>
+                          <text x="63" y="58" textAnchor="middle" fontSize="6" fill="rgba(14,165,214,0.5)"
+                            fontFamily="sans-serif">مختبر الحاسوب</text>
+                          {/* status dot */}
+                          <circle cx="100" cy="22" r="4" fill="#0EA5D6" opacity="0.9">
+                            <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.6s" repeatCount="indefinite"/>
+                          </circle>
+                        </g>
+
+                        {/* Group Study Rooms — top-right */}
+                        <g>
+                          <rect x="492" y="18" width="93" height="54" rx="10"
+                            fill="rgba(14,165,214,0.08)" stroke="rgba(14,165,214,0.45)" strokeWidth="1.2" />
+                          <text x="539" y="35" textAnchor="middle" fontSize="9" fill="rgba(14,165,214,0.9)"
+                            fontFamily="'IBM Plex Mono', monospace" fontWeight="700">🚪 Study</text>
+                          <text x="539" y="47" textAnchor="middle" fontSize="7" fill="rgba(14,165,214,0.7)"
+                            fontFamily="'IBM Plex Mono', monospace">Study Rooms</text>
+                          <text x="539" y="58" textAnchor="middle" fontSize="6" fill="rgba(14,165,214,0.5)"
+                            fontFamily="sans-serif">غرف الدراسة</text>
+                          <circle cx="498" cy="22" r="4" fill="#22C55E" opacity="0.9">
+                            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite"/>
+                          </circle>
+                        </g>
+
+                        {/* Printing & Copying — bottom-left */}
+                        <g>
+                          <rect x="18" y="415" width="90" height="54" rx="10"
+                            fill="rgba(212,175,55,0.08)" stroke="rgba(212,175,55,0.45)" strokeWidth="1.2" />
+                          <text x="63" y="432" textAnchor="middle" fontSize="9" fill="rgba(212,175,55,0.9)"
+                            fontFamily="'IBM Plex Mono', monospace" fontWeight="700">🖨 Print</text>
+                          <text x="63" y="444" textAnchor="middle" fontSize="7" fill="rgba(212,175,55,0.7)"
+                            fontFamily="'IBM Plex Mono', monospace">Printing</text>
+                          <text x="63" y="455" textAnchor="middle" fontSize="6" fill="rgba(212,175,55,0.5)"
+                            fontFamily="sans-serif">الطباعة والنسخ</text>
+                          <circle cx="100" cy="419" r="4" fill="#22C55E" opacity="0.9">
+                            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="1.8s" repeatCount="indefinite"/>
+                          </circle>
+                        </g>
+
+                        {/* Silent Reading Zone — bottom-right */}
+                        <g>
+                          <rect x="492" y="415" width="93" height="54" rx="10"
+                            fill="rgba(124,58,237,0.08)" stroke="rgba(124,58,237,0.45)" strokeWidth="1.2" />
+                          <text x="539" y="432" textAnchor="middle" fontSize="9" fill="rgba(167,139,250,0.9)"
+                            fontFamily="'IBM Plex Mono', monospace" fontWeight="700">📖 Quiet</text>
+                          <text x="539" y="444" textAnchor="middle" fontSize="7" fill="rgba(167,139,250,0.7)"
+                            fontFamily="'IBM Plex Mono', monospace">Silent Zone</text>
+                          <text x="539" y="455" textAnchor="middle" fontSize="6" fill="rgba(167,139,250,0.5)"
+                            fontFamily="sans-serif">منطقة هادئة</text>
+                          <circle cx="498" cy="419" r="4" fill="#22C55E" opacity="0.9">
+                            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2.2s" repeatCount="indefinite"/>
+                          </circle>
+                        </g>
 
                         {/* Navigation path overlay */}
                         {showPath && destinationShelfId && (
