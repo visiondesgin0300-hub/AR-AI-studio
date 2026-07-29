@@ -330,28 +330,28 @@ export function LibraryMap() {
     if (!destinationShelfId) return "";
     // Grid layout in SVG coords (viewBox 600×500):
     // Cols centers: 0→75, 1→225, 2→375, 3→525
-    // Row centers:  1→62,  2→187,  3→312
-    // Horizontal aisles: between rows 1-2 → y=124, between rows 2-3 → y=249, below row3 → y=374
+    // Row centers:  1→130, 2→190, 3→340
+    // Horizontal aisles: between rows 1-2 → y=160, zone boundary → y=249, below row3 → y=370
     // Vertical aisles:   between cols 0-1 → x=150, center → x=300, between cols 2-3 → x=450
     // Entrance: (300, 450)
     const paths: Record<string, string> = {
-      // Row 1 — go up center to row1/2 aisle, branch left or right to column aisle, arrive at card
-      'A-1': "M 300,450 L 300,124 L 150,124 L 75,124 L 75,62",
-      'A-2': "M 300,450 L 300,124 L 225,124 L 225,62",
-      'B-1': "M 300,450 L 300,124 L 375,124 L 375,62",
-      'B-2': "M 300,450 L 300,124 L 450,124 L 525,124 L 525,62",
-      // Row 2 — go up center to row2/3 aisle, branch to column, arrive at card
-      'B-3': "M 300,450 L 300,249 L 150,249 L 75,249 L 75,187",
-      'B-4': "M 300,450 L 300,249 L 225,249 L 225,187",
-      'C-1': "M 300,450 L 300,249 L 375,249 L 375,187",
-      'C-2': "M 300,450 L 300,249 L 450,249 L 525,249 L 525,187",
-      // Row 3 — go up center a short way to below-row3 aisle, branch to column
-      'D-1': "M 300,450 L 300,374 L 150,374 L 75,374 L 75,312",
-      'D-2': "M 300,450 L 300,374 L 225,374 L 225,312",
-      'E-1': "M 300,450 L 300,374 L 375,374 L 375,312",
-      'E-2': "M 300,450 L 300,374 L 450,374 L 525,374 L 525,312",
+      // Row 1 — go up center through zone aisle, through row1/2 gap, arrive at card
+      'A-1': "M 300,450 L 300,160 L 150,160 L 75,160 L 75,130",
+      'A-2': "M 300,450 L 300,160 L 225,160 L 225,130",
+      'B-1': "M 300,450 L 300,160 L 375,160 L 375,130",
+      'B-2': "M 300,450 L 300,160 L 450,160 L 525,160 L 525,130",
+      // Row 2 — go up center to zone boundary aisle, branch to column, arrive at card
+      'B-3': "M 300,450 L 300,249 L 150,249 L 75,249 L 75,190",
+      'B-4': "M 300,450 L 300,249 L 225,249 L 225,190",
+      'C-1': "M 300,450 L 300,249 L 375,249 L 375,190",
+      'C-2': "M 300,450 L 300,249 L 450,249 L 525,249 L 525,190",
+      // Row 3 — short way up from entrance to below-shelf aisle, branch to column
+      'D-1': "M 300,450 L 300,370 L 150,370 L 75,370 L 75,340",
+      'D-2': "M 300,450 L 300,370 L 225,370 L 225,340",
+      'E-1': "M 300,450 L 300,370 L 375,370 L 375,340",
+      'E-2': "M 300,450 L 300,370 L 450,370 L 525,370 L 525,340",
     };
-    return paths[destinationShelfId] || "M 300,450 L 300,200";
+    return paths[destinationShelfId] || "M 300,450 L 300,249";
   };
 
   return (
@@ -652,32 +652,39 @@ export function LibraryMap() {
 
                   {/* ── Flat mode: floor plan map ── */}
                   {mapMode === 'flat' && (
-                    <div className="flex-1 relative rounded-2xl overflow-hidden flex flex-col" style={{ background: '#07111e', minHeight: '400px' }}>
-                      {/* 2D / 3D mode toggle bar */}
-                      <div className="absolute top-3 right-3 z-40 flex items-center gap-1.5 bg-black/50 backdrop-blur-xl rounded-xl p-1 border border-white/10">
-                        <button
-                          onClick={() => setMapMode('flat')}
-                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all bg-accent text-primary shadow"
-                        >
+                    <div className="flex-1 relative rounded-2xl overflow-hidden flex flex-col" style={{ background: '#F8FAFC', minHeight: '400px', border: '1px solid #E2E8F0' }}>
+                      {/* 2D / 3D mode toggle */}
+                      <div className="absolute top-3 right-3 z-40 flex items-center gap-1 bg-white/80 backdrop-blur-xl rounded-xl p-1 border border-slate-200 shadow-sm">
+                        <button onClick={() => setMapMode('flat')}
+                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all bg-slate-800 text-white shadow">
                           2D
                         </button>
-                        <button
-                          onClick={() => setMapMode('ar-floor')}
-                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all text-white/60 hover:text-white hover:bg-white/10"
-                        >
+                        <button onClick={() => setMapMode('ar-floor')}
+                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all text-slate-400 hover:text-slate-700 hover:bg-slate-100">
                           3D
                         </button>
                       </div>
-                      <svg
-                        viewBox="0 0 600 500"
-                        className="absolute inset-0 w-full h-full"
-                        style={{ userSelect: 'none' }}
-                      >
+
+                      <svg viewBox="0 0 600 500" className="absolute inset-0 w-full h-full" style={{ userSelect: 'none' }}>
                         <defs>
-                          <radialGradient id="fmFloor" cx="50%" cy="55%" r="65%">
-                            <stop offset="0%" stopColor="#0e2240" />
-                            <stop offset="100%" stopColor="#060d1a" />
-                          </radialGradient>
+                          {/* Vertical book-spine stripe patterns per zone */}
+                          <pattern id="stripA" width="7" height="7" patternUnits="userSpaceOnUse">
+                            <line x1="3.5" y1="0" x2="3.5" y2="7" stroke="#93C5FD" strokeWidth="1.3" opacity="0.45"/>
+                          </pattern>
+                          <pattern id="stripB" width="7" height="7" patternUnits="userSpaceOnUse">
+                            <line x1="3.5" y1="0" x2="3.5" y2="7" stroke="#FDBA74" strokeWidth="1.3" opacity="0.45"/>
+                          </pattern>
+                          <pattern id="stripC" width="7" height="7" patternUnits="userSpaceOnUse">
+                            <line x1="3.5" y1="0" x2="3.5" y2="7" stroke="#C4B5FD" strokeWidth="1.3" opacity="0.45"/>
+                          </pattern>
+                          <pattern id="stripD" width="7" height="7" patternUnits="userSpaceOnUse">
+                            <line x1="3.5" y1="0" x2="3.5" y2="7" stroke="#86EFAC" strokeWidth="1.3" opacity="0.45"/>
+                          </pattern>
+                          {/* Facility card drop shadow */}
+                          <filter id="cardShadow" x="-15%" y="-15%" width="130%" height="140%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="3.5" floodColor="#00000018"/>
+                          </filter>
+                          {/* Destination glow */}
                           <filter id="fmGlow">
                             <feGaussianBlur stdDeviation="4" result="b"/>
                             <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
@@ -687,60 +694,66 @@ export function LibraryMap() {
                             <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
                           </filter>
                           <linearGradient id="fmPath" x1="0%" y1="100%" x2="0%" y2="0%">
-                            <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.1"/>
-                            <stop offset="100%" stopColor="#D4AF37" stopOpacity="1"/>
+                            <stop offset="0%" stopColor="#D97706" stopOpacity="0.2"/>
+                            <stop offset="100%" stopColor="#D97706" stopOpacity="1"/>
                           </linearGradient>
                         </defs>
 
-                        {/* Library floor outline */}
-                        <rect x="15" y="15" width="570" height="462" rx="22"
-                          fill="url(#fmFloor)" stroke="rgba(0,160,220,0.2)" strokeWidth="1.5" />
+                        {/* Floor outline (light) */}
+                        <rect x="15" y="15" width="570" height="462" rx="22" fill="white" stroke="#E2E8F0" strokeWidth="1.5"/>
 
-                        {/* Horizontal aisle strips */}
-                        <rect x="15" y="100" width="570" height="48" fill="rgba(0,150,200,0.05)" />
-                        <rect x="15" y="225" width="570" height="48" fill="rgba(0,150,200,0.05)" />
-                        <rect x="15" y="350" width="570" height="48" fill="rgba(0,150,200,0.05)" />
-                        {/* Main center vertical aisle */}
-                        <rect x="275" y="15" width="50" height="462" fill="rgba(0,150,200,0.04)" />
+                        {/* ── Zone A: upper-left — Natural Sciences (blue) ── */}
+                        <rect x="18" y="40" width="249" height="200" rx="12" fill="#DBEAFE" fillOpacity="0.45"/>
+                        <rect x="18" y="40" width="249" height="200" rx="12" fill="url(#stripA)"/>
+                        <rect x="18" y="40" width="249" height="200" rx="12" fill="none" stroke="#93C5FD" strokeWidth="1"/>
+                        <text x="142" y="72" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#1D4ED8" fontFamily="'IBM Plex Mono',monospace">A · NATURAL SCIENCES</text>
+                        <text x="142" y="83" textAnchor="middle" fontSize="6.5" fontWeight="600" fill="#60A5FA" fontFamily="sans-serif">العلوم الطبيعية</text>
 
-                        {/* Aisle dashed guides */}
-                        {([124, 249] as number[]).map((y, i) => (
-                          <line key={i} x1="25" y1={y} x2="575" y2={y}
-                            stroke="rgba(0,200,255,0.07)" strokeWidth="1" strokeDasharray="8 6" />
-                        ))}
-                        <line x1="300" y1="374" x2="300" y2="452"
-                          stroke="rgba(0,200,255,0.07)" strokeWidth="1" strokeDasharray="8 6" />
+                        {/* ── Zone B: upper-right — Engineering & Tech (orange) ── */}
+                        <rect x="333" y="40" width="252" height="200" rx="12" fill="#FED7AA" fillOpacity="0.45"/>
+                        <rect x="333" y="40" width="252" height="200" rx="12" fill="url(#stripB)"/>
+                        <rect x="333" y="40" width="252" height="200" rx="12" fill="none" stroke="#FDBA74" strokeWidth="1"/>
+                        <text x="459" y="72" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#C2410C" fontFamily="'IBM Plex Mono',monospace">B · ENGINEERING &amp; TECH</text>
+                        <text x="459" y="83" textAnchor="middle" fontSize="6.5" fontWeight="600" fill="#FB923C" fontFamily="sans-serif">الهندسة والتقنية</text>
 
-                        {/* Section labels — always bilingual */}
-                        {[
-                          { x: 150, y: 32, en: 'Wing A', ar: 'قسم أ' },
-                          { x: 450, y: 32, en: 'Wing B', ar: 'قسم ب' },
-                        ].map((l, i) => (
-                          <g key={i}>
-                            <text x={l.x} y={l.y} textAnchor="middle"
-                              fontSize="8" fontWeight="700" fill="rgba(0,200,255,0.22)"
-                              fontFamily="'IBM Plex Mono', monospace">{l.en}</text>
-                            <text x={l.x} y={l.y + 10} textAnchor="middle"
-                              fontSize="6.5" fontWeight="600" fill="rgba(0,200,255,0.12)"
-                              fontFamily="sans-serif">{l.ar}</text>
-                          </g>
-                        ))}
+                        {/* ── Zone C: lower-left — Arts & Crafts (purple) ── */}
+                        <rect x="18" y="258" width="249" height="200" rx="12" fill="#EDE9FE" fillOpacity="0.45"/>
+                        <rect x="18" y="258" width="249" height="200" rx="12" fill="url(#stripC)"/>
+                        <rect x="18" y="258" width="249" height="200" rx="12" fill="none" stroke="#C4B5FD" strokeWidth="1"/>
+                        <text x="142" y="290" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#6D28D9" fontFamily="'IBM Plex Mono',monospace">C · ARTS &amp; CRAFTS</text>
+                        <text x="142" y="301" textAnchor="middle" fontSize="6.5" fontWeight="600" fill="#A78BFA" fontFamily="sans-serif">الفنون والعلوم الإنسانية</text>
 
-                        {/* Shelf blocks */}
-                        {[
-                          { id: 'A-1', cx: 75,  cy: 62  },
-                          { id: 'A-2', cx: 225, cy: 62  },
-                          { id: 'B-1', cx: 375, cy: 62  },
-                          { id: 'B-2', cx: 525, cy: 62  },
-                          { id: 'B-3', cx: 75,  cy: 187 },
-                          { id: 'B-4', cx: 225, cy: 187 },
-                          { id: 'C-1', cx: 375, cy: 187 },
-                          { id: 'C-2', cx: 525, cy: 187 },
-                          { id: 'D-1', cx: 75,  cy: 312 },
-                          { id: 'D-2', cx: 225, cy: 312 },
-                          { id: 'E-1', cx: 375, cy: 312 },
-                          { id: 'E-2', cx: 525, cy: 312 },
-                        ].map(({ id, cx, cy }) => {
+                        {/* ── Zone D: lower-right — Humanities (green) ── */}
+                        <rect x="333" y="258" width="252" height="200" rx="12" fill="#DCFCE7" fillOpacity="0.45"/>
+                        <rect x="333" y="258" width="252" height="200" rx="12" fill="url(#stripD)"/>
+                        <rect x="333" y="258" width="252" height="200" rx="12" fill="none" stroke="#86EFAC" strokeWidth="1"/>
+                        <text x="459" y="290" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#15803D" fontFamily="'IBM Plex Mono',monospace">D · HUMANITIES</text>
+                        <text x="459" y="301" textAnchor="middle" fontSize="6.5" fontWeight="600" fill="#4ADE80" fontFamily="sans-serif">العلوم الإنسانية والاقتصاد</text>
+
+                        {/* Center aisles */}
+                        <rect x="267" y="40" width="66" height="418" fill="#F1F5F9" rx="3"/>
+                        <rect x="18" y="240" width="249" height="18" fill="#F1F5F9" rx="3"/>
+                        <rect x="333" y="240" width="252" height="18" fill="#F1F5F9" rx="3"/>
+                        {/* Dashed center guides */}
+                        <line x1="300" y1="40" x2="300" y2="458" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="5 5"/>
+                        <line x1="18" y1="249" x2="267" y2="249" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="5 5"/>
+                        <line x1="333" y1="249" x2="585" y2="249" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="5 5"/>
+
+                        {/* Shelf blocks — light theme */}
+                        {([
+                          { id: 'A-1', cx: 75,  cy: 130, zStroke: '#93C5FD',  zFill: '#EFF6FF' },
+                          { id: 'A-2', cx: 225, cy: 130, zStroke: '#93C5FD',  zFill: '#EFF6FF' },
+                          { id: 'B-1', cx: 375, cy: 130, zStroke: '#FDBA74',  zFill: '#FFF7ED' },
+                          { id: 'B-2', cx: 525, cy: 130, zStroke: '#FDBA74',  zFill: '#FFF7ED' },
+                          { id: 'B-3', cx: 75,  cy: 190, zStroke: '#93C5FD',  zFill: '#EFF6FF' },
+                          { id: 'B-4', cx: 225, cy: 190, zStroke: '#93C5FD',  zFill: '#EFF6FF' },
+                          { id: 'C-1', cx: 375, cy: 190, zStroke: '#FDBA74',  zFill: '#FFF7ED' },
+                          { id: 'C-2', cx: 525, cy: 190, zStroke: '#FDBA74',  zFill: '#FFF7ED' },
+                          { id: 'D-1', cx: 75,  cy: 340, zStroke: '#C4B5FD',  zFill: '#FAF5FF' },
+                          { id: 'D-2', cx: 225, cy: 340, zStroke: '#C4B5FD',  zFill: '#FAF5FF' },
+                          { id: 'E-1', cx: 375, cy: 340, zStroke: '#86EFAC',  zFill: '#F0FDF4' },
+                          { id: 'E-2', cx: 525, cy: 340, zStroke: '#86EFAC',  zFill: '#F0FDF4' },
+                        ] as {id:string; cx:number; cy:number; zStroke:string; zFill:string}[]).map(({ id, cx, cy, zStroke, zFill }) => {
                           const isDest = id === destinationShelfId;
                           const cellLabel = CELL_LABELS[id];
                           return (
@@ -752,49 +765,51 @@ export function LibraryMap() {
                             >
                               {isDest && (
                                 <motion.rect x={cx - 52} y={cy - 32} width="104" height="64" rx="11"
-                                  fill="#D4AF37" filter="url(#fmPulse)"
-                                  animate={{ opacity: [0.12, 0.4, 0.12] } as never}
+                                  fill="#D97706" filter="url(#fmPulse)"
+                                  animate={{ opacity: [0.12, 0.35, 0.12] } as never}
                                   transition={{ duration: 1.6, repeat: Infinity }}
                                 />
                               )}
-                              <rect x={cx - 48} y={cy - 28} width="96" height="56" rx="8"
-                                fill={isDest ? 'rgba(180,140,0,0.22)' : hoveredCell === id ? 'rgba(0,60,100,0.95)' : 'rgba(10,30,55,0.9)'}
-                                stroke={isDest ? '#D4AF37' : hoveredCell === id ? 'rgba(0,190,230,0.7)' : 'rgba(0,150,200,0.3)'}
-                                strokeWidth={isDest ? 2 : hoveredCell === id ? 1.5 : 1}
+                              {/* Shelf card */}
+                              <rect x={cx - 48} y={cy - 28} width="96" height="56" rx="9"
+                                fill={isDest ? '#FEF3C7' : hoveredCell === id ? zFill : 'white'}
+                                stroke={isDest ? '#D97706' : hoveredCell === id ? zStroke : '#E2E8F0'}
+                                strokeWidth={isDest ? 2 : 1}
+                                filter={isDest ? undefined : 'url(#cardShadow)'}
                               />
                               {/* Book spine lines */}
                               {([0.28, 0.52, 0.76] as number[]).map((f, i) => (
                                 <line key={i}
                                   x1={cx - 48 + 96 * f} y1={cy - 28}
                                   x2={cx - 48 + 96 * f} y2={cy + 28}
-                                  stroke={isDest ? 'rgba(255,220,80,0.15)' : 'rgba(0,150,200,0.1)'}
-                                  strokeWidth="0.8"
+                                  stroke={isDest ? '#D97706' : zStroke}
+                                  strokeWidth="0.9" opacity="0.35"
                                 />
                               ))}
                               {/* Shelf ID */}
                               <text x={cx} y={cy - 10} textAnchor="middle"
                                 fontSize="11" fontWeight="900"
-                                fill={isDest ? '#FFD700' : 'rgba(120,215,255,1)'}
-                                fontFamily="'IBM Plex Mono', monospace"
+                                fill={isDest ? '#92400E' : '#1E293B'}
+                                fontFamily="'IBM Plex Mono',monospace"
                                 filter={isDest ? 'url(#fmGlow)' : undefined}
                                 style={{ pointerEvents: 'none' }}
                               >{id}</text>
-                              {/* LC class */}
+                              {/* LC class badge */}
                               {SHELF_LC_CLASS[id] && (
-                                <text x={cx} y={cy + 1} textAnchor="middle" fontSize="7" fontWeight="700"
-                                  fill={isDest ? 'rgba(255,220,80,0.85)' : 'rgba(0,190,230,0.65)'}
-                                  fontFamily="'IBM Plex Mono', monospace" style={{ pointerEvents: 'none' }}
+                                <text x={cx} y={cy + 2} textAnchor="middle" fontSize="7" fontWeight="700"
+                                  fill={isDest ? '#B45309' : zStroke.replace('4', '7').replace('E', '9')}
+                                  fontFamily="'IBM Plex Mono',monospace" style={{ pointerEvents: 'none' }}
                                 >{SHELF_LC_CLASS[id]}</text>
                               )}
-                              {/* Subject label — English primary, Arabic secondary */}
+                              {/* Subject English */}
                               {cellLabel && (
                                 <>
-                                  <text x={cx} y={cy + 14} textAnchor="middle" fontSize="6.5"
-                                    fill={isDest ? 'rgba(255,220,80,0.85)' : 'rgba(140,210,255,0.92)'}
-                                    fontFamily="'IBM Plex Mono', monospace" style={{ pointerEvents: 'none' }}
+                                  <text x={cx} y={cy + 15} textAnchor="middle" fontSize="6.5"
+                                    fill={isDest ? '#92400E' : '#334155'}
+                                    fontFamily="'IBM Plex Mono',monospace" style={{ pointerEvents: 'none' }}
                                   >{(cellLabel.en || '').slice(0, 16)}</text>
-                                  <text x={cx} y={cy + 23} textAnchor="middle" fontSize="5.5"
-                                    fill={isDest ? 'rgba(255,220,80,0.5)' : 'rgba(120,185,220,0.5)'}
+                                  <text x={cx} y={cy + 24} textAnchor="middle" fontSize="5.5"
+                                    fill={isDest ? '#B45309' : '#94A3B8'}
                                     fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
                                   >{cellLabel.ar || ''}</text>
                                 </>
@@ -803,97 +818,92 @@ export function LibraryMap() {
                           );
                         })}
 
-                        {/* Entrance — bilingual */}
-                        <rect x="240" y="450" width="120" height="26" rx="9"
-                          fill="#07111e" stroke="rgba(0,200,255,0.45)" strokeWidth="1.5" />
-                        <text x="300" y="461" textAnchor="middle" fontSize="7.5" fontWeight="700"
-                          fill="rgba(0,200,255,0.8)" fontFamily="'IBM Plex Mono', monospace">
-                          🚪 ENTRANCE
-                        </text>
-                        <text x="300" y="471" textAnchor="middle" fontSize="6" fontWeight="600"
-                          fill="rgba(0,200,255,0.45)" fontFamily="sans-serif">
-                          المدخل
-                        </text>
+                        {/* Entrance */}
+                        <rect x="242" y="451" width="116" height="24" rx="12" fill="#1E293B"/>
+                        <text x="300" y="462" textAnchor="middle" fontSize="8" fontWeight="700" fill="white" fontFamily="'IBM Plex Mono',monospace">🚪 ENTRANCE</text>
+                        <text x="300" y="471" textAnchor="middle" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">المدخل</text>
 
-                        {/* Facility pods — corners of the floor plan */}
-                        {/* Computer Lab — top-left */}
-                        <g>
-                          <rect x="18" y="18" width="90" height="54" rx="10"
-                            fill="rgba(14,165,214,0.08)" stroke="rgba(14,165,214,0.45)" strokeWidth="1.2" />
-                          <text x="63" y="35" textAnchor="middle" fontSize="9" fill="rgba(14,165,214,0.9)"
-                            fontFamily="'IBM Plex Mono', monospace" fontWeight="700">💻 Lab</text>
-                          <text x="63" y="47" textAnchor="middle" fontSize="7" fill="rgba(14,165,214,0.7)"
-                            fontFamily="'IBM Plex Mono', monospace">Computer Lab</text>
-                          <text x="63" y="58" textAnchor="middle" fontSize="6" fill="rgba(14,165,214,0.5)"
-                            fontFamily="sans-serif">مختبر الحاسوب</text>
-                          {/* status dot */}
-                          <circle cx="100" cy="22" r="4" fill="#0EA5D6" opacity="0.9">
-                            <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.6s" repeatCount="indefinite"/>
+                        {/* Compass rose — bottom right */}
+                        <g opacity="0.12" transform="translate(558, 448) scale(0.7)">
+                          <circle cx="0" cy="0" r="22" fill="none" stroke="#475569" strokeWidth="1.5"/>
+                          <polygon points="0,-20 4,-7 0,-2 -4,-7" fill="#475569"/>
+                          <polygon points="0,20 4,7 0,2 -4,7" fill="#94A3B8"/>
+                          <polygon points="-20,0 -7,4 -2,0 -7,-4" fill="#94A3B8"/>
+                          <polygon points="20,0 7,4 2,0 7,-4" fill="#94A3B8"/>
+                          <text x="0" y="-25" textAnchor="middle" fontSize="6" fill="#475569" fontWeight="700" fontFamily="sans-serif">N</text>
+                        </g>
+
+                        {/* ── Facility pod cards — white floating cards on zone corners ── */}
+
+                        {/* Computer Lab — top-left (Zone A) */}
+                        <g filter="url(#cardShadow)">
+                          <rect x="14" y="38" width="94" height="64" rx="12" fill="white" stroke="#E2E8F0" strokeWidth="1"/>
+                          <text x="28" y="62" fontSize="18" fontFamily="sans-serif">💻</text>
+                          <text x="52" y="57" fontSize="8.5" fontWeight="700" fill="#2563EB" fontFamily="sans-serif">Computer Lab</text>
+                          <text x="52" y="67" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">مختبر الحاسوب</text>
+                          <rect x="52" y="72" width="36" height="14" rx="7" fill="#FEE2E2"/>
+                          <text x="70" y="82" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#DC2626" fontFamily="sans-serif">Busy</text>
+                          <circle cx="104" cy="42" r="4.5" fill="#EF4444">
+                            <animate attributeName="opacity" values="1;0.3;1" dur="1.4s" repeatCount="indefinite"/>
                           </circle>
                         </g>
 
-                        {/* Group Study Rooms — top-right */}
-                        <g>
-                          <rect x="492" y="18" width="93" height="54" rx="10"
-                            fill="rgba(14,165,214,0.08)" stroke="rgba(14,165,214,0.45)" strokeWidth="1.2" />
-                          <text x="539" y="35" textAnchor="middle" fontSize="9" fill="rgba(14,165,214,0.9)"
-                            fontFamily="'IBM Plex Mono', monospace" fontWeight="700">🚪 Study</text>
-                          <text x="539" y="47" textAnchor="middle" fontSize="7" fill="rgba(14,165,214,0.7)"
-                            fontFamily="'IBM Plex Mono', monospace">Study Rooms</text>
-                          <text x="539" y="58" textAnchor="middle" fontSize="6" fill="rgba(14,165,214,0.5)"
-                            fontFamily="sans-serif">غرف الدراسة</text>
-                          <circle cx="498" cy="22" r="4" fill="#22C55E" opacity="0.9">
-                            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2s" repeatCount="indefinite"/>
+                        {/* Group Study Rooms — top-right (Zone B) */}
+                        <g filter="url(#cardShadow)">
+                          <rect x="492" y="38" width="94" height="64" rx="12" fill="white" stroke="#E2E8F0" strokeWidth="1"/>
+                          <text x="496" y="62" fontSize="17" fontFamily="sans-serif">👥</text>
+                          <text x="516" y="57" fontSize="8" fontWeight="700" fill="#2563EB" fontFamily="sans-serif">Study Rooms</text>
+                          <text x="516" y="67" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">غرف الدراسة</text>
+                          <rect x="496" y="72" width="44" height="14" rx="7" fill="#DCFCE7"/>
+                          <text x="518" y="82" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
+                          <circle cx="496" cy="42" r="4.5" fill="#22C55E">
+                            <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
                           </circle>
                         </g>
 
-                        {/* Printing & Copying — bottom-left */}
-                        <g>
-                          <rect x="18" y="415" width="90" height="54" rx="10"
-                            fill="rgba(212,175,55,0.08)" stroke="rgba(212,175,55,0.45)" strokeWidth="1.2" />
-                          <text x="63" y="432" textAnchor="middle" fontSize="9" fill="rgba(212,175,55,0.9)"
-                            fontFamily="'IBM Plex Mono', monospace" fontWeight="700">🖨 Print</text>
-                          <text x="63" y="444" textAnchor="middle" fontSize="7" fill="rgba(212,175,55,0.7)"
-                            fontFamily="'IBM Plex Mono', monospace">Printing</text>
-                          <text x="63" y="455" textAnchor="middle" fontSize="6" fill="rgba(212,175,55,0.5)"
-                            fontFamily="sans-serif">الطباعة والنسخ</text>
-                          <circle cx="100" cy="419" r="4" fill="#22C55E" opacity="0.9">
-                            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="1.8s" repeatCount="indefinite"/>
+                        {/* Printing & Copying — bottom-left (Zone C) */}
+                        <g filter="url(#cardShadow)">
+                          <rect x="14" y="397" width="94" height="64" rx="12" fill="white" stroke="#E2E8F0" strokeWidth="1"/>
+                          <text x="26" y="422" fontSize="17" fontFamily="sans-serif">🖨️</text>
+                          <text x="48" y="418" fontSize="8" fontWeight="700" fill="#C2410C" fontFamily="sans-serif">Print &amp; Copy</text>
+                          <text x="48" y="428" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">الطباعة والنسخ</text>
+                          <rect x="26" y="433" width="44" height="14" rx="7" fill="#DCFCE7"/>
+                          <text x="48" y="443" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
+                          <circle cx="104" cy="401" r="4.5" fill="#22C55E">
+                            <animate attributeName="opacity" values="1;0.4;1" dur="1.8s" repeatCount="indefinite"/>
                           </circle>
                         </g>
 
-                        {/* Silent Reading Zone — bottom-right */}
-                        <g>
-                          <rect x="492" y="415" width="93" height="54" rx="10"
-                            fill="rgba(124,58,237,0.08)" stroke="rgba(124,58,237,0.45)" strokeWidth="1.2" />
-                          <text x="539" y="432" textAnchor="middle" fontSize="9" fill="rgba(167,139,250,0.9)"
-                            fontFamily="'IBM Plex Mono', monospace" fontWeight="700">📖 Quiet</text>
-                          <text x="539" y="444" textAnchor="middle" fontSize="7" fill="rgba(167,139,250,0.7)"
-                            fontFamily="'IBM Plex Mono', monospace">Silent Zone</text>
-                          <text x="539" y="455" textAnchor="middle" fontSize="6" fill="rgba(167,139,250,0.5)"
-                            fontFamily="sans-serif">منطقة هادئة</text>
-                          <circle cx="498" cy="419" r="4" fill="#22C55E" opacity="0.9">
-                            <animate attributeName="opacity" values="0.9;0.4;0.9" dur="2.2s" repeatCount="indefinite"/>
+                        {/* Silent Reading Zone — bottom-right (Zone D) */}
+                        <g filter="url(#cardShadow)">
+                          <rect x="492" y="397" width="94" height="64" rx="12" fill="white" stroke="#E2E8F0" strokeWidth="1"/>
+                          <text x="496" y="422" fontSize="17" fontFamily="sans-serif">📖</text>
+                          <text x="516" y="418" fontSize="8" fontWeight="700" fill="#6D28D9" fontFamily="sans-serif">Silent Zone</text>
+                          <text x="516" y="428" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">منطقة هادئة</text>
+                          <rect x="496" y="433" width="44" height="14" rx="7" fill="#DCFCE7"/>
+                          <text x="518" y="443" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
+                          <circle cx="496" cy="401" r="4.5" fill="#22C55E">
+                            <animate attributeName="opacity" values="1;0.4;1" dur="2.2s" repeatCount="indefinite"/>
                           </circle>
                         </g>
 
                         {/* Navigation path overlay */}
                         {showPath && destinationShelfId && (
                           <>
-                            <motion.path d={getPathData()} stroke="#D4AF37" strokeWidth="28"
-                              fill="none" strokeLinecap="round" opacity="0.06"
+                            <motion.path d={getPathData()} stroke="#D97706" strokeWidth="24"
+                              fill="none" strokeLinecap="round" opacity="0.08"
                               initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
                               transition={{ duration: 1.1 }} />
-                            <motion.path d={getPathData()} stroke="#D4AF37" strokeWidth="10"
-                              fill="none" strokeLinecap="round" opacity="0.13"
+                            <motion.path d={getPathData()} stroke="#D97706" strokeWidth="8"
+                              fill="none" strokeLinecap="round" opacity="0.18"
                               initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
                               transition={{ duration: 1.1 }} />
                             <motion.path d={getPathData()} stroke="url(#fmPath)" strokeWidth="2.5"
-                              fill="none" strokeLinecap="round" strokeDasharray="10 6" opacity="0.9"
+                              fill="none" strokeLinecap="round" strokeDasharray="10 6" opacity="0.95"
                               initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
                               transition={{ duration: 1.1 }} />
                             {[0, 1, 2].map(i => (
-                              <polygon key={i} points="-5,-7 7,0 -5,7" fill="#D4AF37" opacity="0.95" filter="url(#fmGlow)">
+                              <polygon key={i} points="-5,-7 7,0 -5,7" fill="#D97706" opacity="0.9" filter="url(#fmGlow)">
                                 <animateMotion dur="1.8s" begin={`${i * 0.6}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
                               </polygon>
                             ))}
