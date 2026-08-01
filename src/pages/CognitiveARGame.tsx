@@ -11,7 +11,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Target, Timer, Brain, Gamepad2, CheckCircle2 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -184,6 +184,41 @@ function loadCompleted(): string[] {
   try { return JSON.parse(localStorage.getItem(getGameStorageKey()) || '[]'); } catch { return []; }
 }
 
+// ── "How it works" + rewards content — shown both inline on the hub and
+// inside the Info modal, so both stay in sync from one source. ─────────
+const HOW_IT_WORKS_STEPS = [
+  {
+    icon: Brain,
+    color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+    titleAr: 'أسئلة بالذكاء الاصطناعي',
+    titleEn: 'AI-Generated Questions',
+    descAr: 'يولّد Gemini أسئلة متنوعة في كل جلسة عن المصادر المعرفية والمكتبة.',
+    descEn: 'Gemini generates varied questions each session about knowledge resources and the library.',
+  },
+  {
+    icon: Timer,
+    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+    titleAr: 'لعبة الردود السريعة',
+    titleEn: 'Quick Reaction Game',
+    descAr: 'استجب بسرعة لضغطات الزر وفق تعليمات اللون لكسب النقاط.',
+    descEn: 'React quickly to button prompts based on color instructions to score points.',
+  },
+  {
+    icon: Target,
+    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    titleAr: 'اجتز الاختبار',
+    titleEn: 'Pass the Quiz',
+    descAr: 'بعد اللعبة تجيب على أسئلة قصيرة. النجاح يمنحك الوسام مباشرة.',
+    descEn: 'After the game, answer short questions. Passing unlocks your badge instantly.',
+  },
+];
+
+const GAME_REWARDS = [
+  { icon: Star,   label: 'وسام مستكشف',  labelEn: 'Explorer Badge',      xp: '+50 XP',  color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
+  { icon: Trophy, label: 'وسام باحث',    labelEn: 'Researcher Badge',    xp: '+75 XP',  color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
+  { icon: Zap,    label: 'وسام متميز',   labelEn: 'Distinguished Badge', xp: '+100 XP', color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' },
+];
+
 // ── Component ─────────────────────────────────────────────────────────
 
 export function CognitiveARGame() {
@@ -192,7 +227,6 @@ export function CognitiveARGame() {
   const navigate = useNavigate();
 
   const [completed, setCompleted] = useState<string[]>(loadCompleted);
-  const [showInfo, setShowInfo] = useState(false);
   const [phase, setPhase] = useState<'hub' | 'countdown' | 'playing' | 'quiz' | 'result'>('hub');
   const [activeLevel, setActiveLevel] = useState<Level | null>(null);
   const [won, setWon] = useState(false);
@@ -384,181 +418,12 @@ export function CognitiveARGame() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowInfo(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
-          >
-            <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-            <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-              {ar ? 'معلومات' : 'Info'}
-            </span>
-          </motion.button>
           <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/20">
             <Zap className="w-4 h-4 text-amber-500" />
             <span className="text-sm font-black text-amber-600 dark:text-amber-400">{totalXP} XP</span>
           </div>
         </div>
       </div>
-
-      {/* ── INFO MODAL — same design as Dashboard popup ── */}
-      <AnimatePresence>
-        {showInfo && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowInfo(false)}
-              className="fixed inset-0 z-[80] bg-black/50 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 20 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-              className="fixed inset-0 z-[90] flex items-center justify-center p-4"
-            >
-              <div
-                dir={dir}
-                className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative"
-              >
-                {/* Dark header */}
-                <div className="bg-primary rounded-t-[2rem] px-8 pt-8 pb-10 relative overflow-hidden">
-                  <div className="absolute inset-0 opacity-10"
-                    style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, #D7C826 0%, transparent 50%)' }} />
-                  <button
-                    onClick={() => setShowInfo(false)}
-                    className={cn('absolute top-5 w-9 h-9 rounded-xl bg-white/10 border border-white/15 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-all', ar ? 'left-5' : 'right-5')}
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-accent/20 border-2 border-accent/40 flex items-center justify-center shrink-0">
-                      <Gamepad2 className="w-7 h-7 text-accent" />
-                    </div>
-                    <div>
-                      <div className="text-[9px] font-black text-accent/70 uppercase tracking-[0.3em] mb-1">
-                        {ar ? 'ميزة تفاعلية' : 'Interactive Feature'}
-                      </div>
-                      <h3 className="text-xl font-black text-white leading-tight">
-                        {ar ? 'لعبة الوعي المعرفي' : 'Cognitive Awareness Game'}
-                      </h3>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Body */}
-                <div className="px-8 py-7 space-y-7">
-
-                  {/* Description */}
-                  <p className={cn('text-sm text-slate-600 dark:text-slate-300 font-semibold leading-relaxed', ar ? 'text-right' : 'text-left')}>
-                    {ar
-                      ? 'اختبر وعيك المعلوماتي من خلال أسئلة ذكية تولّدها تقنية الذكاء الاصطناعي (Gemini). اجتز الاختبار لاكتساب الأوسمة وتصعيد نقاط الخبرة XP الخاصة بك.'
-                      : 'Test your information literacy through AI-generated questions powered by Gemini. Pass the quiz to earn badges and level up your XP score.'}
-                  </p>
-
-                  {/* How it works */}
-                  <div className="space-y-3">
-                    <h4 className={cn('text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest', ar ? 'text-right' : 'text-left')}>
-                      {ar ? 'كيف تعمل اللعبة؟' : 'How does it work?'}
-                    </h4>
-                    {[
-                      {
-                        icon: Brain,
-                        color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
-                        titleAr: 'أسئلة بالذكاء الاصطناعي',
-                        titleEn: 'AI-Generated Questions',
-                        descAr: 'يولّد Gemini أسئلة متنوعة في كل جلسة عن المصادر المعرفية والمكتبة.',
-                        descEn: 'Gemini generates varied questions each session about knowledge resources and the library.',
-                      },
-                      {
-                        icon: Timer,
-                        color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-                        titleAr: 'لعبة الردود السريعة',
-                        titleEn: 'Quick Reaction Game',
-                        descAr: 'استجب بسرعة لضغطات الزر وفق تعليمات اللون لكسب النقاط.',
-                        descEn: 'React quickly to button prompts based on color instructions to score points.',
-                      },
-                      {
-                        icon: Target,
-                        color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-                        titleAr: 'اجتز الاختبار',
-                        titleEn: 'Pass the Quiz',
-                        descAr: 'بعد اللعبة تجيب على أسئلة قصيرة. النجاح يمنحك الوسام مباشرة.',
-                        descEn: 'After the game, answer short questions. Passing unlocks your badge instantly.',
-                      },
-                    ].map((step, i) => (
-                      <div key={i} className={cn('flex items-start gap-3', ar ? 'flex-row-reverse' : '')}>
-                        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-current/10', step.color)}>
-                          <step.icon className="w-4 h-4" />
-                        </div>
-                        <div className={cn('flex-1', ar ? 'text-right' : 'text-left')}>
-                          <div className="text-xs font-black text-primary dark:text-white mb-0.5">
-                            {ar ? step.titleAr : step.titleEn}
-                          </div>
-                          <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-                            {ar ? step.descAr : step.descEn}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Rewards */}
-                  <div className="space-y-3">
-                    <h4 className={cn('text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest', ar ? 'text-right' : 'text-left')}>
-                      {ar ? 'المكافآت' : 'Rewards'}
-                    </h4>
-                    <div className="grid grid-cols-3 gap-3">
-                      {[
-                        { icon: Star,   label: ar ? 'وسام مستكشف' : 'Explorer Badge',     xp: '+50 XP',  color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
-                        { icon: Trophy, label: ar ? 'وسام باحث'    : 'Researcher Badge',   xp: '+75 XP',  color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
-                        { icon: Zap,    label: ar ? 'وسام متميز'   : 'Distinguished Badge', xp: '+100 XP', color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' },
-                      ].map((r, i) => (
-                        <div key={i} className={cn('rounded-2xl border p-3 flex flex-col items-center gap-2 text-center', r.bg)}>
-                          <r.icon className={cn('w-5 h-5', r.color)} />
-                          <span className="text-[9px] font-black text-primary dark:text-white leading-tight">{r.label}</span>
-                          <span className={cn('text-[9px] font-black px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/5', r.color)}>{r.xp}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Tip */}
-                  <div className={cn('flex items-start gap-2.5 p-4 rounded-2xl bg-accent/8 dark:bg-accent/10 border border-accent/20', ar ? 'flex-row-reverse text-right' : 'text-left')}>
-                    <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
-                    <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 leading-relaxed">
-                      {ar
-                        ? 'تلميح: افتح خريطة المكتبة أولاً لكسب XP يساعدك على إلغاء قفل اللعبة بشكل أسرع.'
-                        : 'Tip: Open the library map first to earn XP that helps you unlock the game faster.'}
-                    </p>
-                  </div>
-
-                  {/* CTA buttons */}
-                  <div className={cn('flex gap-3', ar ? 'flex-row-reverse' : '')}>
-                    <button
-                      onClick={() => { setShowInfo(false); navigate('/cognitive-ar'); }}
-                      className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl bg-primary dark:bg-accent text-white dark:text-primary font-black text-xs uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all shadow-xl shadow-primary/15"
-                    >
-                      <Gamepad2 className="w-4 h-4" />
-                      {ar ? 'العب الآن' : 'Play Now'}
-                      {ar ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
-                    </button>
-                    <button
-                      onClick={() => setShowInfo(false)}
-                      className="px-5 py-4 rounded-2xl border border-slate-200 dark:border-white/10 text-slate-500 dark:text-slate-400 font-black text-xs uppercase tracking-widest hover:border-slate-300 dark:hover:border-white/20 transition-all"
-                    >
-                      {ar ? 'إغلاق' : 'Close'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
 
       {/* ═══════════════════════════ HUB ═══════════════════════════ */}
       {phase === 'hub' && (
@@ -579,6 +444,85 @@ export function CognitiveARGame() {
                 ? 'العب واجتز الاختبار لاكتساب الأوسمة مباشرةً'
                 : 'Play and pass the quiz to earn your badges instantly'}
             </p>
+          </motion.div>
+
+          {/* ── About the game — shown inline so it doesn't require opening
+              the Info modal to understand how it works. ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05, type: 'spring', stiffness: 280, damping: 24 }}
+            className="official-card p-6 bg-white dark:bg-slate-900 space-y-6"
+          >
+            <div className={cn('flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+              <div className="w-12 h-12 rounded-2xl bg-accent/15 border-2 border-accent/30 flex items-center justify-center shrink-0">
+                <Gamepad2 className="w-6 h-6 text-accent" />
+              </div>
+              <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
+                <div className="text-[9px] font-black text-accent/80 uppercase tracking-[0.3em] mb-1">
+                  {ar ? 'ميزة تفاعلية' : 'Interactive Feature'}
+                </div>
+                <h2 className="text-lg font-black text-primary dark:text-white leading-tight">
+                  {ar ? 'لعبة الوعي المعرفي' : 'Cognitive Awareness Game'}
+                </h2>
+              </div>
+            </div>
+
+            <p className={cn('text-sm text-slate-600 dark:text-slate-300 font-semibold leading-relaxed', ar ? 'text-right' : 'text-left')}>
+              {ar
+                ? 'اختبر وعيك المعلوماتي من خلال أسئلة ذكية تولّدها تقنية الذكاء الاصطناعي (Gemini). اجتز الاختبار لاكتساب الأوسمة وتصعيد نقاط الخبرة XP الخاصة بك.'
+                : 'Test your information literacy through AI-generated questions powered by Gemini. Pass the quiz to earn badges and level up your XP score.'}
+            </p>
+
+            {/* How it works */}
+            <div className="space-y-3">
+              <h3 className={cn('text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest', ar ? 'text-right' : 'text-left')}>
+                {ar ? 'كيف تعمل اللعبة؟' : 'How does it work?'}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {HOW_IT_WORKS_STEPS.map((step, i) => (
+                  <div key={i} className={cn('flex items-start gap-3', ar ? 'flex-row-reverse' : '')}>
+                    <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center shrink-0 border border-current/10', step.color)}>
+                      <step.icon className="w-4 h-4" />
+                    </div>
+                    <div className={cn('flex-1', ar ? 'text-right' : 'text-left')}>
+                      <div className="text-xs font-black text-primary dark:text-white mb-0.5">
+                        {ar ? step.titleAr : step.titleEn}
+                      </div>
+                      <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+                        {ar ? step.descAr : step.descEn}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Rewards */}
+            <div className="space-y-3">
+              <h3 className={cn('text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest', ar ? 'text-right' : 'text-left')}>
+                {ar ? 'المكافآت' : 'Rewards'}
+              </h3>
+              <div className="grid grid-cols-3 gap-3">
+                {GAME_REWARDS.map((r, i) => (
+                  <div key={i} className={cn('rounded-2xl border p-3 flex flex-col items-center gap-2 text-center', r.bg)}>
+                    <r.icon className={cn('w-5 h-5', r.color)} />
+                    <span className="text-[9px] font-black text-primary dark:text-white leading-tight">{ar ? r.label : r.labelEn}</span>
+                    <span className={cn('text-[9px] font-black px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/5', r.color)}>{r.xp}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tip */}
+            <div className={cn('flex items-start gap-2.5 p-4 rounded-2xl bg-accent/8 dark:bg-accent/10 border border-accent/20', ar ? 'flex-row-reverse text-right' : 'text-left')}>
+              <CheckCircle2 className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+              <p className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 leading-relaxed">
+                {ar
+                  ? 'تلميح: افتح خريطة المكتبة أولاً لكسب XP يساعدك على إلغاء قفل اللعبة بشكل أسرع.'
+                  : 'Tip: Open the library map first to earn XP that helps you unlock the game faster.'}
+              </p>
+            </div>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
