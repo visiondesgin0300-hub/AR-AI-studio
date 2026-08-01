@@ -320,9 +320,28 @@ export function LibraryMap() {
       arIframeRef.current?.contentWindow?.postMessage(msg, '*');
       arInlineIframeRef.current?.contentWindow?.postMessage(msg, '*');
     };
+    // A cold iframe load can take several seconds for the embedded 3D scene
+    // to finish building (window.__cmp isn't ready until then), so a
+    // single retry at 600ms isn't reliable — keep resending until either
+    // iframe (same-origin, so directly inspectable) confirms it's actually
+    // guiding to this shelf, or give up after ~12s.
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30;
     send();
-    const t = setTimeout(send, 600);
-    return () => clearTimeout(t);
+    const interval = setInterval(() => {
+      attempts += 1;
+      const isGuidingTo = (win: Window | null | undefined) => {
+        const cmp = (win as (Window & { __cmp?: { _guide?: { visible?: boolean }; _guideItem?: { code?: string } } }) | null | undefined)?.__cmp;
+        return !!cmp?._guide?.visible && cmp?._guideItem?.code === floorCode;
+      };
+      const showingTarget = isGuidingTo(arIframeRef.current?.contentWindow) || isGuidingTo(arInlineIframeRef.current?.contentWindow);
+      if (showingTarget || attempts >= MAX_ATTEMPTS) {
+        clearInterval(interval);
+        return;
+      }
+      send();
+    }, 400);
+    return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showARFloor, mapMode, destinationShelfId, bookPositionInShelf, selectedBook]);
 

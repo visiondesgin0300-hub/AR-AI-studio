@@ -44,6 +44,13 @@ export function FacilitiesMap() {
   // selected facility (the iframe's built-in guide only knew about shelf
   // codes; guideToPoint()/LIBRARY_GUIDE_TO_FACILITY were added to
   // library-ar-floor.html so facility destinations get the same beam).
+  //
+  // On a cold load the embedded Three.js scene can take several seconds to
+  // finish building (window.__cmp isn't assigned until then), so a single
+  // retry isn't enough — the postMessage silently drops if it arrives
+  // before the iframe's listener is registered. Keep resending until the
+  // iframe (same-origin, so directly inspectable) confirms it's actually
+  // showing this exact target, or give up after ~12s.
   useEffect(() => {
     if (mapMode !== '3d') return;
     if (!manualTarget) {
@@ -59,10 +66,24 @@ export function FacilitiesMap() {
       labelAr: target.ar,
       labelEn: target.en,
     };
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30;
     const send = () => arIframeRef.current?.contentWindow?.postMessage(msg, '*');
     send();
-    const t = setTimeout(send, 600);
-    return () => clearTimeout(t);
+    const interval = setInterval(() => {
+      attempts += 1;
+      const win = arIframeRef.current?.contentWindow as (Window & {
+        __cmp?: { _guide?: { visible?: boolean }; _guideItem?: { labelEn?: string } };
+      }) | undefined;
+      const cmp = win?.__cmp;
+      const showingThisTarget = !!cmp?._guide?.visible && cmp?._guideItem?.labelEn === target.en;
+      if (showingThisTarget || attempts >= MAX_ATTEMPTS) {
+        clearInterval(interval);
+        return;
+      }
+      send();
+    }, 400);
+    return () => clearInterval(interval);
   }, [mapMode, manualTarget]);
 
   const FACILITIES = [
