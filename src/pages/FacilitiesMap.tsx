@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Map as MapIcon } from 'lucide-react';
 import { cn, trackMapVisit } from '../lib/utils';
@@ -12,6 +12,15 @@ const DISTANCE_BY_CELL: Record<string, number> = {
   'B-2': 52,
   'C-1': 64,
   'D-1': 75,
+};
+
+// Matches the facility anchors added to library-ar-floor.html's 3D scene
+// (see the zones array / geometry groups keyed on these same x,z coords).
+const FACILITY_3D_TARGETS: Record<string, { x: number; z: number; ar: string; en: string }> = {
+  'A-2': { x: -21, z: 15, ar: 'مختبر الحاسوب', en: 'Computer Lab' },
+  'B-2': { x: 22, z: 12, ar: 'غرف الدراسة الجماعية', en: 'Group Study Rooms' },
+  'C-1': { x: 9, z: 4, ar: 'الطباعة والنسخ', en: 'Printing & Copying' },
+  'D-1': { x: -10, z: 22, ar: 'منطقة القراءة الهادئة', en: 'Silent Reading Zone' },
 };
 
 export function FacilitiesMap() {
@@ -29,6 +38,32 @@ export function FacilitiesMap() {
   const [mapMode, setMapMode] = useState<'flat' | '3d'>('flat');
   const [showPath, setShowPath] = useState(false);
   const [walkProgress, setWalkProgress] = useState(0);
+  const arIframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Draw the glowing wayfinding beam inside the 3D scene toward the
+  // selected facility (the iframe's built-in guide only knew about shelf
+  // codes; guideToPoint()/LIBRARY_GUIDE_TO_FACILITY were added to
+  // library-ar-floor.html so facility destinations get the same beam).
+  useEffect(() => {
+    if (mapMode !== '3d') return;
+    if (!manualTarget) {
+      arIframeRef.current?.contentWindow?.postMessage({ type: 'LIBRARY_CLEAR_GUIDE' }, '*');
+      return;
+    }
+    const target = FACILITY_3D_TARGETS[manualTarget.id];
+    if (!target) return;
+    const msg = {
+      type: 'LIBRARY_GUIDE_TO_FACILITY',
+      x: target.x,
+      z: target.z,
+      labelAr: target.ar,
+      labelEn: target.en,
+    };
+    const send = () => arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    send();
+    const t = setTimeout(send, 600);
+    return () => clearTimeout(t);
+  }, [mapMode, manualTarget]);
 
   const FACILITIES = [
     {
@@ -215,6 +250,7 @@ export function FacilitiesMap() {
                 className="relative w-full h-full min-h-[650px] flex flex-col"
               >
                 <iframe
+                  ref={arIframeRef}
                   src="/library-ar-floor.html"
                   title="3D Library Floor"
                   className="absolute inset-0 w-full h-full border-0"
