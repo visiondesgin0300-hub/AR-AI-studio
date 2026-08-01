@@ -887,28 +887,49 @@ export function LibraryMap() {
                           </circle>
                         </g>
 
-                        {/* Navigation path overlay */}
-                        {showPath && destinationShelfId && (
-                          <>
-                            <motion.path d={getPathData()} stroke="#D97706" strokeWidth="24"
-                              fill="none" strokeLinecap="round" opacity="0.08"
-                              initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
-                              transition={{ duration: 1.1 }} />
-                            <motion.path d={getPathData()} stroke="#D97706" strokeWidth="8"
-                              fill="none" strokeLinecap="round" opacity="0.18"
-                              initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
-                              transition={{ duration: 1.1 }} />
-                            <motion.path d={getPathData()} stroke="url(#fmPath)" strokeWidth="2.5"
-                              fill="none" strokeLinecap="round" strokeDasharray="10 6" opacity="0.95"
-                              initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
-                              transition={{ duration: 1.1 }} />
-                            {[0, 1, 2].map(i => (
-                              <polygon key={i} points="-5,-7 7,0 -5,7" fill="#D97706" opacity="0.9" filter="url(#fmGlow)">
-                                <animateMotion dur="1.8s" begin={`${i * 0.6}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
-                              </polygon>
-                            ))}
-                          </>
-                        )}
+                        {/* Navigation path overlay — pure native SVG/SMIL. Using
+                            plain <path>/<animate> (not framer-motion's
+                            pathLength, which also drives strokeDasharray
+                            internally and silently overrides any dash pattern
+                            we set) so the draw-in reveal and the flowing arrow
+                            chevrons both render reliably. */}
+                        {showPath && destinationShelfId && (() => {
+                          const d = getPathData();
+                          const destPt: Record<string, [number, number]> = {
+                            'A-1': [75, 130],  'A-2': [225, 130],
+                            'B-1': [375, 130], 'B-2': [525, 130],
+                            'B-3': [75, 190],  'B-4': [225, 190],
+                            'C-1': [375, 190], 'C-2': [525, 190],
+                            'D-1': [75, 340],  'D-2': [225, 340],
+                            'E-1': [375, 340], 'E-2': [525, 340],
+                          };
+                          const [ex, ey] = destPt[destinationShelfId] ?? [300, 250];
+                          return (
+                            <g key={destinationShelfId}>
+                              {/* Wide glow halo */}
+                              <path d={d} stroke="#D97706" strokeWidth="24" fill="none" strokeLinecap="round" opacity="0.08" />
+                              {/* Main solid path — draws in via stroke-dashoffset */}
+                              <path
+                                d={d} stroke="url(#fmPath)" strokeWidth="5" fill="none" strokeLinecap="round"
+                                filter="url(#fmGlow)" strokeDasharray="1400" strokeDashoffset="1400" opacity="0.95"
+                              >
+                                <animate attributeName="stroke-dashoffset" from="1400" to="0" dur="1.1s" fill="freeze" />
+                              </path>
+                              {/* Flowing amber arrow chevrons */}
+                              {[0, 1, 2].map(i => (
+                                <polygon key={i} points="-6,-8 9,0 -6,8" fill="#D97706" opacity="0.9" filter="url(#fmGlow)">
+                                  <animateMotion dur="1.8s" begin={`${i * 0.6}s`} repeatCount="indefinite" rotate="auto" path={d} />
+                                </polygon>
+                              ))}
+                              {/* Destination pulsing ring */}
+                              <circle cx={ex} cy={ey} r="10" fill="#D97706" stroke="white" strokeWidth="2.5" />
+                              <circle cx={ex} cy={ey} r="10" fill="none" stroke="#D97706" strokeWidth="2" opacity="0.7">
+                                <animate attributeName="r" values="10;26;10" dur="1.8s" repeatCount="indefinite" />
+                                <animate attributeName="opacity" values="0.7;0;0.7" dur="1.8s" repeatCount="indefinite" />
+                              </circle>
+                            </g>
+                          );
+                        })()}
                       </svg>
 
                       {/* Navigation HUD — live distance / ETA / arrival time */}

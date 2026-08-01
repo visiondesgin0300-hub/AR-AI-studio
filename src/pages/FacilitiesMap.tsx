@@ -426,61 +426,48 @@ export function FacilitiesMap() {
                   <text x="300" y="497" textAnchor="middle" fontSize="5.5" fill="#94A3B8" fontFamily="sans-serif">المدخل</text>
                   <line x1="300" y1="478" x2="300" y2="464" stroke="#334155" strokeWidth="1.5"/>
 
-                  {/* Facility zone highlight markers */}
-                  {(['A-2', 'B-2', 'C-1', 'D-1'] as const).map(id => {
-                    const isSelected = manualTarget?.id === id;
-                    if (!isSelected) return null;
-                    const cx = id === 'A-2' ? 136 : id === 'B-2' ? 463 : id === 'C-1' ? 136 : 463;
-                    const cy = id === 'A-2' || id === 'B-2' ? 120 : 386;
+                  {/* Nav path + arrows — pure native SVG so nothing conflicts */}
+                  {manualTarget && navPaths[manualTarget.id] && (() => {
+                    const d = navPaths[manualTarget.id];
+                    // Destination endpoint coords derived from navPaths
+                    const destPt: Record<string, [number, number]> = {
+                      'A-2': [136, 125], 'B-2': [463, 125],
+                      'C-1': [136, 385], 'D-1': [463, 385],
+                    };
+                    const [ex, ey] = destPt[manualTarget.id] ?? [300, 250];
                     return (
-                      <motion.circle
-                        key={id}
-                        cx={cx} cy={cy} r="55"
-                        fill="#D97706" fillOpacity="0"
-                        stroke="#D97706" strokeWidth="2"
-                        animate={{ opacity: [0.3, 0.8, 0.3], r: [50, 60, 50] } as never}
-                        transition={{ duration: 1.8, repeat: Infinity }}
-                      />
-                    );
-                  })}
-
-                  {/* Animated nav path */}
-                  <AnimatePresence>
-                    {manualTarget && navPaths[manualTarget.id] && (
-                      <>
-                        <motion.path
-                          key={`path-glow-${manualTarget.id}`}
-                          d={navPaths[manualTarget.id]}
-                          stroke="#D97706" strokeWidth="18"
-                          fill="none" strokeLinecap="round" opacity="0.07"
-                          initial={{ pathLength: 0 } as never} animate={{ pathLength: 1 } as never}
-                          transition={{ duration: 1.2 }}
-                        />
-                        <motion.path
-                          key={`path-${manualTarget.id}`}
-                          d={navPaths[manualTarget.id]}
+                      <g key={manualTarget.id}>
+                        {/* Wide glow halo */}
+                        <path d={d} stroke="#D97706" strokeWidth="22" fill="none" strokeLinecap="round" opacity="0.08"/>
+                        {/* Main solid path — draws in via SMIL */}
+                        <path
+                          d={d}
                           stroke="url(#fNavPath)"
-                          strokeWidth="3"
-                          strokeDasharray="10 7"
+                          strokeWidth="4"
                           fill="none"
                           strokeLinecap="round"
                           filter="url(#facilityGlowF)"
-                          initial={{ pathLength: 0 } as never}
-                          animate={{ pathLength: 1 } as never}
-                          exit={{ pathLength: 0 } as never}
-                          transition={{ duration: 1.2, ease: 'easeInOut' }}
-                        />
+                          strokeDasharray="900"
+                          strokeDashoffset="900"
+                          opacity="0.95"
+                        >
+                          <animate attributeName="stroke-dashoffset" from="900" to="0" dur="1.1s" fill="freeze"/>
+                        </path>
+                        {/* Flowing amber arrow chevrons */}
                         {[0, 1, 2].map(i => (
-                          <polygon key={i} points="-5,-6 6,0 -5,6" fill="#D97706" opacity="0.9">
-                            <animateMotion dur="2s" begin={`${i * 0.65}s`} repeatCount="indefinite" rotate="auto" path={navPaths[manualTarget.id]} />
+                          <polygon key={i} points="-7,-9 10,0 -7,9" fill="#D97706" filter="url(#facilityGlowF)">
+                            <animateMotion dur="1.6s" begin={`${i * 0.53}s`} repeatCount="indefinite" rotate="auto" path={d}/>
                           </polygon>
                         ))}
-                        <motion.circle key={`dot-${manualTarget.id}`} r="7" fill="#D97706" stroke="white" strokeWidth="2.5" filter="url(#facilityGlowF)">
-                          <animateMotion dur="3s" repeatCount="indefinite" path={navPaths[manualTarget.id]} />
-                        </motion.circle>
-                      </>
-                    )}
-                  </AnimatePresence>
+                        {/* Destination pulsing ring */}
+                        <circle cx={ex} cy={ey} r="12" fill="#D97706" stroke="white" strokeWidth="3"/>
+                        <circle cx={ex} cy={ey} r="12" fill="none" stroke="#D97706" strokeWidth="2" opacity="0.7">
+                          <animate attributeName="r" values="12;30;12" dur="1.8s" repeatCount="indefinite"/>
+                          <animate attributeName="opacity" values="0.7;0;0.7" dur="1.8s" repeatCount="indefinite"/>
+                        </circle>
+                      </g>
+                    );
+                  })()}
                 </svg>
 
                 {/* Facility markers (HTML overlay) */}
