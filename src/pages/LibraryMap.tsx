@@ -497,7 +497,7 @@ export function LibraryMap() {
                         allow="camera; microphone; accelerometer; gyroscope"
                       />
                       {/* 2D / 3D mode toggle */}
-                      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-xl rounded-xl p-1 border border-white/10 pointer-events-auto">
+                      <div className="absolute top-12 sm:top-3 right-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-xl rounded-xl p-1 border border-white/10 pointer-events-auto">
                         <button
                           onClick={() => setMapMode('flat')}
                           className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all text-white/60 hover:text-white hover:bg-white/10"

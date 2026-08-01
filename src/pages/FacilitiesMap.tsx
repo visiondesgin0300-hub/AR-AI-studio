@@ -194,7 +194,7 @@ export function FacilitiesMap() {
 
   // ── Shared 2D/3D toggle ──────────────────────────────────────────────────
   const MapToggle = () => (
-    <div className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-white/90 dark:bg-black/60 backdrop-blur-xl rounded-xl p-1 border border-slate-200/80 dark:border-white/10 pointer-events-auto shadow-lg">
+    <div className="absolute top-12 sm:top-3 right-3 z-20 flex items-center gap-1 bg-white/90 dark:bg-black/60 backdrop-blur-xl rounded-xl p-1 border border-slate-200/80 dark:border-white/10 pointer-events-auto shadow-lg">
       <button
         onClick={() => setMapMode('flat')}
         className={cn(
@@ -281,7 +281,7 @@ export function FacilitiesMap() {
                 {/* HUD overlay */}
                 <div className="absolute inset-0 z-10 pointer-events-none flex flex-col">
                   {/* Top controls */}
-                  <div className={cn('flex items-start gap-3 p-3 pointer-events-auto', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <div className={cn('flex items-start gap-3 p-3 pt-12 sm:pt-3 pointer-events-auto', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                     {manualTarget && (
                       <button
                         onClick={() => { setManualTarget(null); setShowPath(false); setWalkProgress(0); }}
