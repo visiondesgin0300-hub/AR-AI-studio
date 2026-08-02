@@ -28,6 +28,7 @@ function mapKey():    string { return `map_visits_v2_${getCurrentUserId()}`; }
 function loginKey():  string { return `login_count_v1_${getCurrentUserId()}`; }
 function searchKey(): string { return `search_count_v1_${getCurrentUserId()}`; }
 function gameKey():   string { return `cognitive_ar_v4_${getCurrentUserId()}`; }
+function favKey():    string { return `favorite_books_v1_${getCurrentUserId()}`; }
 
 function getCompletedGameLevels(): string[] {
   try { return JSON.parse(localStorage.getItem(gameKey()) || '[]'); } catch { return []; }
@@ -68,6 +69,29 @@ export function incrementSearchCount(): void {
 
 export function getSearchCount(): number {
   try { return parseInt(localStorage.getItem(searchKey()) || '0', 10); } catch { return 0; }
+}
+
+// Favorite books, stored per user in localStorage (same pattern as map visits).
+// The heart control on the book page used to be inert; these back it so the
+// choice actually persists across visits.
+export function getFavoriteBooks(): string[] {
+  try { return JSON.parse(localStorage.getItem(favKey()) || '[]'); } catch { return []; }
+}
+
+export function isFavoriteBook(bookId: string): boolean {
+  return getFavoriteBooks().includes(bookId);
+}
+
+/** Toggles the book's favorite state and returns whether it is now a favorite. */
+export function toggleFavoriteBook(bookId: string): boolean {
+  try {
+    const current = getFavoriteBooks();
+    const next = current.includes(bookId)
+      ? current.filter(id => id !== bookId)
+      : [...current, bookId];
+    localStorage.setItem(favKey(), JSON.stringify(next));
+    return next.includes(bookId);
+  } catch { return false; }
 }
 
 // Shelf/place navigations = visits whose ID matches a shelf pattern or 'facilities'

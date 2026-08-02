@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, Share2, Heart, BookOpen, Clock, CheckCircle2, AlertCircle, X, Tag } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { User, Book } from '../types';
-import { cn } from '../lib/utils';
+import { cn, isFavoriteBook, toggleFavoriteBook } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { CitationBox } from '../components/CitationBox';
@@ -22,6 +22,8 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
   const navigate = useNavigate();
   const [justBorrowed, setJustBorrowed] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(() => (id ? isFavoriteBook(id) : false));
+  const [shareNotice, setShareNotice] = useState(false);
   const { t, dir, language } = useLanguage();
 
   const book = MOCK_BOOKS.find(b => b.id === id);
@@ -46,6 +48,38 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
 
   const alreadyBorrowed = user.borrowedBooks.includes(book.id);
   const isAvailable = book.status === 'available' && !alreadyBorrowed && !justBorrowed;
+  const isOnLoan = alreadyBorrowed || justBorrowed || book.status !== 'available';
+
+  // Return date is only meaningful for a book that's actually on loan, and it
+  // has to be derived per book — it used to be one hardcoded date rendered for
+  // every book, including ones marked available that nobody had borrowed.
+  // Mirrors the same mock schedule MyBooks and useNotifications already use.
+  const returnDate = (() => {
+    const borrowed = new Date(2024, 3, parseInt(book.id, 10) * 5);
+    const due = new Date(borrowed.getTime() + 14 * 86400000);
+    return due.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', {
+      year: 'numeric', month: 'long', day: 'numeric',
+    });
+  })();
+
+  const handleToggleFavorite = () => setIsFavorite(toggleFavoriteBook(book.id));
+
+  const handleShare = async () => {
+    const url = window.location.href;
+    const payload = { title: book.title, text: `${book.title} — ${book.author}`, url };
+    try {
+      if (navigator.share) {
+        await navigator.share(payload);
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShareNotice(true);
+      setTimeout(() => setShareNotice(false), 2000);
+    } catch {
+      // User dismissed the share sheet, or clipboard access was denied —
+      // nothing to recover from, so leave the page as-is.
+    }
+  };
 
   const handleBorrow = () => {
     if (!isAvailable) return;
@@ -73,11 +107,37 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
           <ArrowRight className="w-5 h-5 rtl-flip" />
           <span>{t('back')}</span>
         </button>
-        <div className="flex gap-3">
-            <button className="p-3 bg-white dark:bg-slate-900 rounded-full border border-gray-100 dark:border-white/5 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 transition-all shadow-md">
-                <Heart className="w-5 h-5" />
+        <div className="flex items-center gap-3">
+            <AnimatePresence>
+              {shareNotice && (
+                <motion.span
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="text-[11px] font-black text-secondary bg-secondary/10 px-3 py-1.5 rounded-full"
+                >
+                  {t('linkCopied')}
+                </motion.span>
+              )}
+            </AnimatePresence>
+            <button
+              onClick={handleToggleFavorite}
+              aria-pressed={isFavorite}
+              title={isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
+              className={cn(
+                "p-3 rounded-full border transition-all shadow-md",
+                isFavorite
+                  ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-500/30 text-red-500"
+                  : "bg-white dark:bg-slate-900 border-gray-100 dark:border-white/5 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500"
+              )}
+            >
+                <Heart className={cn("w-5 h-5 transition-transform active:scale-90", isFavorite && "fill-current")} />
             </button>
-            <button className="p-3 bg-white dark:bg-slate-900 rounded-full border border-gray-100 dark:border-white/5 hover:bg-secondary/10 hover:text-secondary transition-all shadow-md">
+            <button
+              onClick={handleShare}
+              title={t('shareBook')}
+              className="p-3 bg-white dark:bg-slate-900 rounded-full border border-gray-100 dark:border-white/5 hover:bg-secondary/10 hover:text-secondary transition-all shadow-md"
+            >
                 <Share2 className="w-5 h-5" />
             </button>
         </div>
@@ -109,13 +169,15 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
                   {isAvailable ? t('availableForBorrow') : (alreadyBorrowed || justBorrowed) ? t('borrowedByYou') : t('borrowedCurrently')}
                 </span>
              </div>
-             <div className="h-px bg-gray-200/50 dark:bg-white/5 w-full"></div>
-             <div className="flex items-center justify-between text-xs font-bold px-2">
-                <span className="text-gray-400 dark:text-gray-500">{t('returnDateLabel')}</span>
-                <span className="text-primary dark:text-white tracking-tight">
-                  {language === 'ar' ? '١٩ مايو ٢٠٢٦' : 'May 19, 2026'}
-                </span>
-             </div>
+             {isOnLoan && (
+               <>
+                 <div className="h-px bg-gray-200/50 dark:bg-white/5 w-full"></div>
+                 <div className="flex items-center justify-between text-xs font-bold px-2">
+                    <span className="text-gray-400 dark:text-gray-500">{t('returnDateLabel')}</span>
+                    <span className="text-primary dark:text-white tracking-tight">{returnDate}</span>
+                 </div>
+               </>
+             )}
           </div>
         </div>
 
@@ -273,7 +335,7 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
                       <p className="text-xs font-black text-secondary uppercase tracking-[0.2em] mt-1">{book.author}</p>
                     </div>
                   </div>
-                  <div className={cn("w-16 h-1 w-16 bg-accent rounded-full", dir === 'rtl' ? 'mr-0' : 'ml-0')}></div>
+                  <div className={cn("w-16 h-1 bg-accent rounded-full", dir === 'rtl' ? 'mr-0' : 'ml-0')}></div>
                 </div>
                 
                 <div className="bg-white/40 dark:bg-slate-800/40 p-8 rounded-3xl border border-white/50 dark:border-white/10 shadow-inner">
