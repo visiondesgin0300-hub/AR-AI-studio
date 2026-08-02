@@ -33,11 +33,16 @@ function sanitizeInput(raw: unknown, maxLen = 300): string {
 // In-memory feedback store — resets on server restart (acceptable for a dissertation demo)
 interface FeedbackEntry {
   id: string;
+  // 'rating' = a mood submitted from the feedback widget; 'inquiry' = a
+  // support message from the help centre. They share a store but are not the
+  // same thing, and the admin panel must not present an inquiry as a rating.
+  kind: 'rating' | 'inquiry';
   mood: string;
   moodLabel: string;
   categories: string[];
   text: string;
   user: string;
+  email: string;
   time: string;
   timestamp: number;
 }
@@ -85,17 +90,26 @@ app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", time: new Date().toISOString() });
 });
 
-// User feedback submission — stored in-memory for admin review
+// User feedback submission — stored in-memory for admin review.
+// Two kinds share this endpoint: mood ratings from the feedback widget, and
+// support inquiries from the help centre (which carry a reply-to address and
+// no mood).
 app.post("/api/feedback", (req, res) => {
-  const { mood, moodLabel, categories, text, user } = req.body || {};
-  if (!mood) return res.status(400).json({ error: "mood required" });
+  const { kind, mood, moodLabel, categories, text, user, email } = req.body || {};
+  const entryKind: FeedbackEntry['kind'] = kind === 'inquiry' ? 'inquiry' : 'rating';
+  if (entryKind === 'rating' && !mood) return res.status(400).json({ error: "mood required" });
+  if (entryKind === 'inquiry' && !String(text || '').trim()) {
+    return res.status(400).json({ error: "text required" });
+  }
   const entry: FeedbackEntry = {
     id: Math.random().toString(36).substr(2, 9),
-    mood: String(mood).slice(0, 4),
+    kind: entryKind,
+    mood: String(mood || '').slice(0, 4),
     moodLabel: String(moodLabel || '').slice(0, 20),
     categories: Array.isArray(categories) ? categories.map((c: unknown) => String(c).slice(0, 30)) : [],
     text: String(text || '').slice(0, 280),
     user: String(user || 'Anonymous').slice(0, 50),
+    email: String(email || '').slice(0, 120),
     time: new Date().toISOString(),
     timestamp: Date.now(),
   };

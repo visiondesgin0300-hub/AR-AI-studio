@@ -4,7 +4,7 @@ import {
   BarChart3, Bell, TrendingUp, Search,
   QrCode, Building2, MapPin,
   Printer, Monitor, VolumeX, User as UserIcon,
-  CheckCircle2, Clock, MessageSquareReply, ChevronDown, ChevronUp,
+  CheckCircle2, Clock, MessageSquareReply, ChevronDown, ChevronUp, Mail,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { BookCover } from '../components/BookCover';
@@ -172,11 +172,16 @@ export function AdminDashboard() {
   const feedbackEntries = [
     ...realFeedback.map(e => ({
       id: e.id,
+      // Help-centre inquiries carry no mood. They used to be pushed through
+      // the mood slot anyway, so a support ticket appeared in the row of
+      // satisfaction faces as if the sender had rated the library "✉️".
+      isInquiry: e.kind === 'inquiry',
       mood: e.mood,
       moodLabel: e.moodLabel,
       moodColor: MOOD_COLOR_MAP[e.mood] || 'bg-slate-100 dark:bg-slate-800 text-slate-600',
       categories: e.categories,
       text: e.text,
+      email: e.email || '',
       // ar-EG, not ar-SA: ar-SA resolves to the Umm al-Qura calendar in the
       // browser, so these stamps read as Hijri while every other date in the
       // app (due dates, loan history) is Gregorian.
@@ -184,8 +189,26 @@ export function AdminDashboard() {
       user: e.user,
       isDemo: false,
     })),
-    ...mockFeedbackEntries,
+    ...mockFeedbackEntries.map(m => ({ ...m, isInquiry: false, email: '' })),
   ];
+
+  const inquiryCount = feedbackEntries.filter(e => e.isInquiry).length;
+  const ratingCount = feedbackEntries.length - inquiryCount;
+
+  // Arabic counts take four forms (1 / 2 / 3–10 / 11+); English just needs
+  // the -s. Enough to keep "1 inquiries" and "3 تقييم" off the screen.
+  const countLabel = (n: number, forms: { one: string; two: string; few: string; many: string }): string => {
+    if (!ar) return `${n} ${n === 1 ? forms.one : forms.many}`;
+    if (n === 1) return forms.one;
+    if (n === 2) return forms.two;
+    return `${n} ${n % 100 >= 3 && n % 100 <= 10 ? forms.few : forms.many}`;
+  };
+  const ratingsLabel = ar
+    ? countLabel(ratingCount, { one: 'تقييم واحد', two: 'تقييمان', few: 'تقييمات', many: 'تقييماً' })
+    : countLabel(ratingCount, { one: 'rating', two: '', few: '', many: 'ratings' });
+  const inquiriesLabel = ar
+    ? countLabel(inquiryCount, { one: 'استفسار واحد', two: 'استفساران', few: 'استفسارات', many: 'استفساراً' })
+    : countLabel(inquiryCount, { one: 'inquiry', two: '', few: '', many: 'inquiries' });
 
   const openModal = (type: 'user' | 'book' | 'facility', data: any = {}) => {
     setEditingItem({ type, data });
@@ -762,7 +785,17 @@ export function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Mood summary */}
+                {/* Mood summary — ratings only. Inquiries carry no mood, so
+                    folding them into these percentages would misreport them. */}
+                <div className="space-y-3">
+                  <div className={cn('flex items-baseline gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      {ar ? 'توزيع التقييمات' : 'Rating distribution'}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600">
+                      {ratingsLabel} · {inquiriesLabel}
+                    </span>
+                  </div>
                 <div className="grid grid-cols-5 gap-3">
                   {MOOD_DATA.map((m, i) => (
                     <div key={i} className="official-card p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-lg text-center">
@@ -774,6 +807,7 @@ export function AdminDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
                 </div>
 
                 {/* Feedback entries */}
@@ -818,15 +852,39 @@ export function AdminDashboard() {
                       </div>
 
                       <div className={cn('flex items-center justify-between gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                        <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                          <span className="text-2xl">{entry.mood}</span>
-                          <div>
-                            <div className="text-xs font-black text-primary dark:text-white">{entry.user}</div>
-                            <span className={cn('text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg', entry.moodColor)}>{entry.moodLabel}</span>
+                        <div className={cn('flex items-center gap-3 min-w-0', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                          {entry.isInquiry ? (
+                            <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
+                              <Mail className="w-4 h-4" />
+                            </div>
+                          ) : (
+                            <span className="text-2xl">{entry.mood}</span>
+                          )}
+                          <div className="min-w-0">
+                            <div className="text-xs font-black text-primary dark:text-white truncate">{entry.user}</div>
+                            {entry.isInquiry ? (
+                              <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent">
+                                {ar ? 'استفسار دعم' : 'Support inquiry'}
+                              </span>
+                            ) : (
+                              <span className={cn('text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg', entry.moodColor)}>{entry.moodLabel}</span>
+                            )}
                           </div>
                         </div>
                         <div className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-tighter shrink-0">{entry.time}</div>
                       </div>
+
+                      {/* An inquiry expects a reply, so surface a usable address. */}
+                      {entry.isInquiry && entry.email && (
+                        <a
+                          href={`mailto:${entry.email}`}
+                          dir="ltr"
+                          className={cn('inline-flex items-center gap-1.5 text-[11px] font-black text-primary dark:text-accent hover:underline', dir === 'rtl' ? 'flex-row-reverse' : '')}
+                        >
+                          <Mail className="w-3 h-3 shrink-0" />
+                          {entry.email}
+                        </a>
+                      )}
 
                       {entry.text && <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{entry.text}</p>}
 

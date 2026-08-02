@@ -103,11 +103,11 @@ export function HelpCenter() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          mood: '✉️',
-          moodLabel: language === 'ar' ? 'استفسار' : 'Inquiry',
+          kind: 'inquiry',
           categories: [language === 'ar' ? 'مركز المساعدة' : 'Help Center'],
-          text: `${contactMessage}\n— ${contactEmail}`,
+          text: contactMessage,
           user: contactName,
+          email: contactEmail,
         }),
       });
       if (!res.ok) throw new Error(String(res.status));
