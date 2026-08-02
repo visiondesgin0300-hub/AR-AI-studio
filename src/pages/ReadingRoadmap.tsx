@@ -170,7 +170,7 @@ export function ReadingRoadmap() {
               <div className="space-y-1.5">
                 <div className={cn('flex items-center justify-between text-[10px] font-black', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                   <span className="text-slate-400">{ar ? 'التقدم' : 'Progress'}</span>
-                  <span className="text-sky-500">{doneCount}/{totalBooks}</span>
+                  <span className="text-sky-500" dir="ltr">{doneCount}/{totalBooks}</span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                   <motion.div

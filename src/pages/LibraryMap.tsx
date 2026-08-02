@@ -1439,7 +1439,7 @@ export function LibraryMap() {
                         </div>
                         <div className={cn("flex items-center justify-between text-[10px] font-black", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                           <span className="text-accent">{posLabel}</span>
-                          <span className="text-slate-400 dark:text-slate-500">
+                          <span className="text-slate-400 dark:text-slate-500" dir="ltr">
                             {pos + 1} / {total}
                           </span>
                         </div>

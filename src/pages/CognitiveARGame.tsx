@@ -851,7 +851,7 @@ export function CognitiveARGame() {
                 />
               </div>
               <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
-                {gs.score} / {activeLevel.winScore} {ar ? 'للفوز' : 'to win'}
+                <span dir="ltr">{gs.score} / {activeLevel.winScore}</span> {ar ? 'للفوز' : 'to win'}
               </div>
             </div>
           </motion.div>
@@ -908,7 +908,7 @@ export function CognitiveARGame() {
                           {ar ? 'اختبار المعرفة' : 'Knowledge Quiz'}
                         </span>
                       </div>
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest" dir="ltr">
                         {quizIndex + 1} / {total}
                       </span>
                     </div>
@@ -1009,7 +1009,7 @@ export function CognitiveARGame() {
                           ? (ar ? '🎉 اجتزت الاختبار!' : '🎉 Quiz Passed!')
                           : (ar ? 'لم تجتز الاختبار' : 'Quiz Not Passed')}
                       </div>
-                      <div className="text-3xl font-black text-white">{quizCorrect} / {total}</div>
+                      <div className="text-3xl font-black text-white" dir="ltr">{quizCorrect} / {total}</div>
                       <div className="text-slate-400 text-xs font-medium mt-1">
                         {ar ? `تحتاج ${passThreshold} إجابات صحيحة على الأقل` : `Need at least ${passThreshold} correct answers`}
                       </div>

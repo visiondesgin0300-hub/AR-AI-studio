@@ -173,7 +173,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
           'text-[10px] font-black px-3 py-1 rounded-xl',
           allEarned ? 'bg-amber-400/15 text-amber-600 dark:text-amber-400' : 'bg-accent/10 text-accent'
         )}>
-          {allEarned && '🏆 '}{earnedCount}/{totalCount} {isAr ? 'مكتسب' : 'earned'}
+          {allEarned && '🏆 '}<span dir="ltr">{earnedCount}/{totalCount}</span> {isAr ? 'مكتسب' : 'earned'}
         </span>
       </div>
 
@@ -267,7 +267,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                       transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.1 }}
                     />
                   </div>
-                  <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
+                  <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500" dir="ltr">
                     {currentXP} / {badge.xpRequired} XP
                   </p>
                 </div>

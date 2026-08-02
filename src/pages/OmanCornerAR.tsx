@@ -282,7 +282,7 @@ export function OmanCornerAR() {
           <span className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-widest">
             {ar ? 'نقاط XP المكتسبة' : 'XP Earned'}
           </span>
-          <span className="text-sm font-black text-amber-700 dark:text-amber-400">
+          <span className="text-sm font-black text-amber-700 dark:text-amber-400" dir="ltr">
             {totalXP} / {STATIONS.length * 50} XP
           </span>
         </div>
