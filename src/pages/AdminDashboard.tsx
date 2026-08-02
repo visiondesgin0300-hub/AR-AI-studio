@@ -29,7 +29,17 @@ interface Facility {
 
 type AdminTab = 'users' | 'books' | 'facilities' | 'qr' | 'stats' | 'logs' | 'feedback';
 
-const SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
+// Every shelf that exists on the library map and in the catalogue. This list
+// was missing B-3/B-4/E-1/E-2, which meant those shelves got no printable AR
+// code and — worse — the edit form's <select> had no matching <option>, so it
+// fell back to A-1 and silently moved the book off its real shelf on save.
+const SHELVES = [
+  'A-1', 'A-2',
+  'B-1', 'B-2', 'B-3', 'B-4',
+  'C-1', 'C-2',
+  'D-1', 'D-2',
+  'E-1', 'E-2',
+];
 
 const FACILITY_ICONS: Record<string, React.ComponentType<any>> = {
   Users, Monitor, VolumeX, Printer, MapPin, BookOpen, Building2,
@@ -41,6 +51,12 @@ const INITIAL_FACILITIES: Facility[] = [
   { id: 'f3', name: 'مختبر الحاسوب', nameEn: 'Computer Lab', desc: '٤٠ جهاز حاسوب متطور', location: 'القسم A-2', cellId: 'A-2', status: 'busy', iconName: 'Monitor' },
   { id: 'f4', name: 'خدمات الطباعة', nameEn: 'Printing Services', desc: 'طباعة ومسح وتصوير', location: 'القسم C-1', cellId: 'C-1', status: 'available', iconName: 'Printer' },
 ];
+
+// Guards against the same silent-reassignment bug returning if a record ever
+// carries a shelf this list doesn't know about: keep the record's own value
+// selectable rather than letting the <select> fall through to the first option.
+const shelfOptions = (current?: string): string[] =>
+  current && !SHELVES.includes(current) ? [current, ...SHELVES] : SHELVES;
 
 const INPUT_CLS = (dir: string) =>
   cn('w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/10 p-4 rounded-2xl text-sm font-bold outline-none focus:border-accent/40 dark:focus:border-accent/40 transition-all text-primary dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700',
@@ -68,7 +84,11 @@ export function AdminDashboard() {
     try { return JSON.parse(localStorage.getItem('admin_feedback_statuses') || '{}'); } catch { return {}; }
   });
   const [expandedReply, setExpandedReply] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState<Record<string, string>>({});
+  // Notes used to live in component state only, so anything typed here was
+  // lost the moment the admin switched tabs. Persist alongside the statuses.
+  const [replyText, setReplyText] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('admin_feedback_notes') || '{}'); } catch { return {}; }
+  });
 
   useEffect(() => {
     fetch('/api/feedback')
@@ -112,7 +132,7 @@ export function AdminDashboard() {
     { label: t('totalUsersCount'), value: users.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     { label: t('totalBooksCount'), value: books.length, icon: BookOpen, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
     { label: ar ? 'المرافق' : 'Facilities', value: facilities.length, icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    { label: t('sentNotificationsCount'), value: '٤٨', icon: Bell, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+    { label: t('sentNotificationsCount'), value: 48, icon: Bell, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
   ];
 
   const logs = [
@@ -163,7 +183,10 @@ export function AdminDashboard() {
       moodColor: MOOD_COLOR_MAP[e.mood] || 'bg-slate-100 dark:bg-slate-800 text-slate-600',
       categories: e.categories,
       text: e.text,
-      time: new Date(e.time).toLocaleString(ar ? 'ar-SA' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
+      // ar-EG, not ar-SA: ar-SA resolves to the Umm al-Qura calendar in the
+      // browser, so these stamps read as Hijri while every other date in the
+      // app (due dates, loan history) is Gregorian.
+      time: new Date(e.time).toLocaleString(ar ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
       user: e.user,
       isDemo: false,
     })),
@@ -244,6 +267,31 @@ export function AdminDashboard() {
     window.print();
   };
 
+  // The export control used to be inert. It now downloads whichever table the
+  // admin is actually looking at, as CSV. The BOM keeps Excel from mangling
+  // the Arabic columns.
+  const handleExport = () => {
+    const rows: (string | number)[][] =
+      activeTab === 'books'
+        ? [[ar ? 'العنوان' : 'Title', ar ? 'المؤلف' : 'Author', ar ? 'التصنيف' : 'Category', ar ? 'الرف' : 'Shelf', ar ? 'الحالة' : 'Status'],
+           ...filteredBooks.map(b => [b.title, b.author, b.category || '', b.shelf || '', b.status || 'available'])]
+      : activeTab === 'facilities'
+        ? [[ar ? 'المرفق' : 'Facility', ar ? 'الاسم (EN)' : 'Name (EN)', ar ? 'الموقع' : 'Location', ar ? 'الحالة' : 'Status'],
+           ...filteredFacilities.map(f => [f.name, f.nameEn, f.cellId, f.status])]
+        : [[ar ? 'الاسم' : 'Name', ar ? 'البريد الإلكتروني' : 'Email', ar ? 'الدور' : 'Role', ar ? 'الاستعارات' : 'Borrowed'],
+           ...filteredUsers.map(u => [u.name, u.email, u.role, u.borrowedBooks.length])];
+
+    const csv = rows
+      .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `arlibrary-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const tabs = [
     { id: 'users', label: t('usersTab'), icon: Users },
     { id: 'books', label: t('libraryTab'), icon: BookOpen },
@@ -289,7 +337,7 @@ export function AdminDashboard() {
           <p className="text-slate-400 dark:text-slate-500 font-bold text-sm">{t('fullControlDesc')}</p>
         </div>
         <div className={cn('flex items-center gap-3 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-          <button className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
+          <button onClick={handleExport} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
             <Download className="w-4 h-4" />{t('exportReports')}
           </button>
           <button onClick={() => openModal('book')} className="bg-primary dark:bg-accent text-white dark:text-primary px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all flex items-center gap-2 shadow-xl shadow-primary/20 dark:shadow-accent/20 whitespace-nowrap">
@@ -652,12 +700,12 @@ export function AdminDashboard() {
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={WEEKLY_DATA} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                        <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#004C6D" stopOpacity={0.1} /><stop offset="95%" stopColor="#004C6D" stopOpacity={0} /></linearGradient></defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} dy={10} />
+                        <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--chart-line)" stopOpacity={0.15} /><stop offset="95%" stopColor="var(--chart-line)" stopOpacity={0} /></linearGradient></defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--grid-color)" />
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} dy={10} />
                         <YAxis hide />
-                        <Tooltip contentStyle={{ backgroundColor: '#004C6D', border: 'none', borderRadius: '12px', padding: '12px', color: '#fff', fontWeight: 900, fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
-                        <Area type="monotone" dataKey="value" stroke="#004C6D" strokeWidth={3} fillOpacity={1} fill="url(#areaFill)" />
+                        <Tooltip contentStyle={{ backgroundColor: 'var(--tooltip-bg)', border: 'none', borderRadius: '12px', padding: '12px', color: 'var(--tooltip-text)', fontWeight: 900, fontSize: '12px' }} itemStyle={{ color: 'var(--tooltip-text)' }} />
+                        <Area type="monotone" dataKey="value" stroke="var(--chart-line)" strokeWidth={3} fillOpacity={1} fill="url(#areaFill)" />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -668,11 +716,11 @@ export function AdminDashboard() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={CATEGORY_DATA} layout="vertical" margin={{ left: -30, right: 40 }}>
                         <XAxis type="number" hide domain={[0, 100]} />
-                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900, fill: '#64748b' }} width={120} />
-                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none' }} formatter={(v: number) => [`${v}%`, '']} />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900, fill: '#94a3b8' }} width={120} />
+                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: 'var(--tooltip-bg)', color: 'var(--tooltip-text)' }} itemStyle={{ color: 'var(--tooltip-text)' }} formatter={(v: number) => [`${v}%`, '']} />
                         <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={20}>
                           {CATEGORY_DATA.map((_, i) => <Cell key={i} fill={['#004C6D', '#10b981', '#f59e0b', '#94a3b8'][i % 4]} />)}
-                          <LabelList dataKey="value" position="right" formatter={(v: number) => `${v}%`} style={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} />
+                          <LabelList dataKey="value" position="right" formatter={(v: number) => `${v}%`} style={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -807,7 +855,11 @@ export function AdminDashboard() {
                               <textarea
                                 rows={2}
                                 value={replyText[entry.id] || ''}
-                                onChange={e => setReplyText(prev => ({ ...prev, [entry.id]: e.target.value }))}
+                                onChange={e => setReplyText(prev => {
+                                  const next = { ...prev, [entry.id]: e.target.value };
+                                  try { localStorage.setItem('admin_feedback_notes', JSON.stringify(next)); } catch {}
+                                  return next;
+                                })}
                                 placeholder={ar ? 'اكتب ردًا داخليًا للمراجعة...' : 'Write an internal note...'}
                                 className={cn('w-full text-xs font-medium rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 text-primary dark:text-white p-3 focus:outline-none focus:ring-2 focus:ring-accent resize-none', dir === 'rtl' ? 'text-right' : 'text-left')}
                               />
@@ -834,6 +886,7 @@ export function AdminDashboard() {
                           >
                             <MessageSquareReply className="w-3 h-3" />
                             {ar ? 'ملاحظة' : 'Note'}
+                            {(replyText[entry.id] || '').trim() && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}
                             {replyOpen ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
                           </button>
                           <button
@@ -925,7 +978,7 @@ export function AdminDashboard() {
                       <div className="space-y-2">
                         <label className={LABEL_CLS}>{ar ? 'الرف' : 'Shelf'}</label>
                         <select name="shelf" defaultValue={editingItem.data.shelf || 'A-1'} className={INPUT_CLS(dir)}>
-                          {SHELVES.map(s => <option key={s} value={s}>{s}</option>)}
+                          {shelfOptions(editingItem.data.shelf).map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                     </div>
@@ -1006,7 +1059,7 @@ export function AdminDashboard() {
                       <div className="space-y-2">
                         <label className={LABEL_CLS}>{ar ? 'خلية الخريطة' : 'Map Cell'}</label>
                         <select name="cellId" defaultValue={editingItem.data.cellId || 'A-1'} className={INPUT_CLS(dir)}>
-                          {SHELVES.map(s => <option key={s} value={s}>{s}</option>)}
+                          {shelfOptions(editingItem.data.cellId).map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                       <div className="space-y-2">

@@ -25,6 +25,20 @@
     --tooltip-bg: #ffffff;
     --tooltip-text: #0f172a;
   }
+  /* Dark values live in both selectors on purpose. Tailwind's `dark:`
+     variant here is media-driven, so `prefers-color-scheme` is what actually
+     flips the app's theme — keyed only on `.dark`, these variables never
+     switched and every chart kept its light grid on a dark card. */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --chart-line: #D7C826;
+      --chart-primary: #D7C826;
+      --chart-secondary: #99d6ea;
+      --grid-color: rgba(255, 255, 255, 0.08);
+      --tooltip-bg: #0f172a;
+      --tooltip-text: #f1f5f9;
+    }
+  }
   .dark {
     --chart-line: #D7C826;
     --chart-primary: #D7C826;
