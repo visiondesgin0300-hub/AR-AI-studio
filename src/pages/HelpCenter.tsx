@@ -18,6 +18,7 @@ import {
   Sparkles,
   QrCode,
   Cpu,
+  AlertTriangle,
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
@@ -51,29 +52,77 @@ const FAQ_ITEMS: FaqItem[] = [
   { icon: HelpCircle, qKey: 'faqGroupRooms', aKey: 'faqGroupRoomsAnswer' },
 ];
 
-const MOCK_REQUESTS = [
-  { id: 'r1', status: 'pending' as const },
-];
+// Requests the user has actually submitted from the contact tab, kept per
+// user in localStorage. This list used to be a single hardcoded entry, so
+// every visitor saw a phantom request #R1 they had never sent.
+interface HelpRequest {
+  id: string;
+  subject: string;
+  sentAt: number;
+}
+
+function requestsKey(): string {
+  try {
+    const stored = localStorage.getItem('library_user');
+    return `help_requests_v1_${stored ? JSON.parse(stored)?.id || 'anonymous' : 'anonymous'}`;
+  } catch { return 'help_requests_v1_anonymous'; }
+}
+
+function loadRequests(): HelpRequest[] {
+  try { return JSON.parse(localStorage.getItem(requestsKey()) || '[]'); } catch { return []; }
+}
 
 export function HelpCenter() {
-  const { t, dir } = useLanguage();
+  const { t, dir, language } = useLanguage();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<HelpTab>('faqs');
   const [query, setQuery] = useState('');
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  // Keyed by question, not by list index — the index refers to the *filtered*
+  // list, so typing a query used to leave a different question expanded than
+  // the one the reader actually opened.
+  const [openFaqKey, setOpenFaqKey] = useState<string | null>(null);
 
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactMessage, setContactMessage] = useState('');
-  const [contactSent, setContactSent] = useState(false);
+  const [contactState, setContactState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [requests, setRequests] = useState<HelpRequest[]>(loadRequests);
 
+  const needle = query.trim().toLowerCase();
   const filteredFaqs = FAQ_ITEMS.filter((item) =>
-    t(item.qKey).toLowerCase().includes(query.toLowerCase())
+    t(item.qKey).toLowerCase().includes(needle) || t(item.aKey).toLowerCase().includes(needle)
   );
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setContactSent(true);
+    setContactState('sending');
+    try {
+      // Same endpoint the feedback widget uses, so the message genuinely
+      // lands in the admin "user requests" tab instead of being discarded.
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          mood: '✉️',
+          moodLabel: language === 'ar' ? 'استفسار' : 'Inquiry',
+          categories: [language === 'ar' ? 'مركز المساعدة' : 'Help Center'],
+          text: `${contactMessage}\n— ${contactEmail}`,
+          user: contactName,
+        }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      const { id } = await res.json();
+      const next = [
+        { id: String(id), subject: contactMessage.slice(0, 60), sentAt: Date.now() },
+        ...requests,
+      ];
+      setRequests(next);
+      try { localStorage.setItem(requestsKey(), JSON.stringify(next)); } catch {}
+      setContactState('sent');
+    } catch (err) {
+      console.error('Help Center contact submit failed', err);
+      setContactState('error');
+    }
   };
 
   return (
@@ -97,7 +146,7 @@ export function HelpCenter() {
           { id: 'faqs', label: t('faqsGuideTab'), icon: HelpCircle, badge: 0 },
           { id: 'tech', label: t('aboutTechTab'), icon: Cpu, badge: 0 },
           { id: 'contact', label: t('contactUsTab'), icon: Mail, badge: 0 },
-          { id: 'requests', label: t('myRequestsTab'), icon: MessageSquare, badge: MOCK_REQUESTS.length },
+          { id: 'requests', label: t('myRequestsTab'), icon: MessageSquare, badge: requests.length },
         ] as const).map((tab) => (
           <button
             key={tab.id}
@@ -172,8 +221,8 @@ export function HelpCenter() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredFaqs.map((item, idx) => {
-                  const isOpen = openFaqIndex === idx;
+                {filteredFaqs.map((item) => {
+                  const isOpen = openFaqKey === item.qKey;
                   const Icon = item.icon;
                   return (
                     <div
@@ -181,7 +230,8 @@ export function HelpCenter() {
                       className="official-card overflow-hidden bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm"
                     >
                       <button
-                        onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                        onClick={() => setOpenFaqKey(isOpen ? null : item.qKey)}
+                        aria-expanded={isOpen}
                         className={cn('w-full p-5 flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}
                       >
                         <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
@@ -270,43 +320,67 @@ export function HelpCenter() {
         <div className="official-card p-8 md:p-10 max-w-xl mx-auto bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm space-y-6">
           <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">{t('contactUsDesc')}</p>
 
-          {contactSent ? (
+          {contactState === 'sent' ? (
             <div className="p-6 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 rounded-2xl flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" />
               <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{t('messageSentSuccess')}</p>
             </div>
           ) : (
             <form onSubmit={handleContactSubmit} className="space-y-4">
-              <input
-                type="text"
-                required
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder={t('yourName')}
-                className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-              <input
-                type="email"
-                required
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder={t('yourEmail')}
-                className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-              <textarea
-                required
-                rows={4}
-                value={contactMessage}
-                onChange={(e) => setContactMessage(e.target.value)}
-                placeholder={t('yourMessage')}
-                className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-              />
+              <div className="space-y-1.5">
+                <label htmlFor="contact-name" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">{t('yourName')}</label>
+                <input
+                  id="contact-name"
+                  type="text"
+                  required
+                  autoComplete="name"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder={t('yourName')}
+                  className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="contact-email" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">{t('yourEmail')}</label>
+                <input
+                  id="contact-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  dir="ltr"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder={t('yourEmail')}
+                  className={cn('w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent', dir === 'rtl' ? 'text-right' : 'text-left')}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="contact-message" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">{t('yourMessage')}</label>
+                <textarea
+                  id="contact-message"
+                  required
+                  rows={4}
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  placeholder={t('yourMessage')}
+                  className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+                />
+              </div>
+
+              {contactState === 'error' && (
+                <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/40 rounded-2xl flex items-center gap-3" role="alert">
+                  <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                  <p className="text-xs font-bold text-red-700 dark:text-red-300">{t('messageSendFailed')}</p>
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95"
+                disabled={contactState === 'sending'}
+                className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Send className="w-4 h-4" />
-                {t('sendMessage')}
+                <Send className={cn('w-4 h-4', contactState === 'sending' && 'animate-pulse')} />
+                {contactState === 'sending' ? t('sendingMessage') : t('sendMessage')}
               </button>
             </form>
           )}
@@ -316,22 +390,36 @@ export function HelpCenter() {
       {activeTab === 'requests' && (
         <div className="official-card p-8 md:p-10 max-w-xl mx-auto bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm space-y-6">
           <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">{t('myRequestsDesc')}</p>
-          <div className="space-y-3">
-            {MOCK_REQUESTS.map((req) => (
-              <div key={req.id} className={cn('flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/5', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm font-bold text-primary dark:text-white">#{req.id.toUpperCase()}</span>
-                </div>
-                <span className="flex items-center gap-1.5 text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 px-3 py-1.5 rounded-lg uppercase tracking-widest">
-                  <Clock className="w-3 h-3" />
-                  {t('requestStatusPending')}
-                </span>
+          {requests.length === 0 ? (
+            <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/5 text-center space-y-3">
+              <div className="w-12 h-12 mx-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 flex items-center justify-center text-slate-300 dark:text-slate-600">
+                <Mail className="w-5 h-5" />
               </div>
-            ))}
-          </div>
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 leading-relaxed">{t('noRequestsYet')}</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {requests.map((req) => (
+                <div key={req.id} className={cn('flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/5', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                  <div className={cn('flex items-center gap-3 min-w-0', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                    <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      {/* dir="ltr": the leading "#" is a neutral character, so
+                          under RTL it flips to the far side and reads "R1#". */}
+                      <span dir="ltr" className="block text-sm font-bold text-primary dark:text-white font-mono">#{req.id.toUpperCase()}</span>
+                      {req.subject && <span className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate">{req.subject}</span>}
+                    </div>
+                  </div>
+                  <span className="flex items-center gap-1.5 shrink-0 text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 px-3 py-1.5 rounded-lg uppercase tracking-widest">
+                    <Clock className="w-3 h-3" />
+                    {t('requestStatusPending')}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
