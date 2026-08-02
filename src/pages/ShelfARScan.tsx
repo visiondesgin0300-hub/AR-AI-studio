@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MOCK_BOOKS } from '../data/mockData';
+import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
 import { Book } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
 import { motion, AnimatePresence } from 'motion/react';
@@ -8,7 +8,8 @@ import { X, Zap, BookOpen, MapPin, QrCode } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { cn } from '../lib/utils';
 
-const SHELF_LIST = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
+// Was a local copy that stopped at D-2, hiding four shelves from the picker.
+const SHELF_LIST: readonly string[] = SHELF_IDS;
 
 const SECTION_LABEL: Record<string, { ar: string; en: string }> = {
   A: { ar: 'علوم طبيعية', en: 'Natural Sciences' },

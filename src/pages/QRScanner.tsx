@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
 import { X, QrCode, MapPin, BookOpen, RefreshCw, Loader2 } from 'lucide-react';
-import { MOCK_BOOKS } from '../data/mockData';
+import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
@@ -11,7 +11,9 @@ import { BookCover } from '../components/BookCover';
 const SHELF_PREFIX  = 'ARLIBRARY:SHELF:';
 const BOOK_PREFIX   = 'ARLIBRARY:BOOK:';
 const BOOK_URL_RE   = /\/book\/([^/?#]+)/;
-const VALID_SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
+// Must match the codes the admin panel prints. This copy stopped at D-2,
+// so a genuine ARLIBRARY:SHELF:B-3 sticker scanned as nothing at all.
+const VALID_SHELVES: readonly string[] = SHELF_IDS;
 
 type Phase = 'loading' | 'scanning' | 'shelf' | 'error';
 

@@ -41,6 +41,7 @@ export function SmartLens() {
   const [book, setBook] = useState<BookResult | null>(null);
   const [insight, setInsight] = useState<InsightResult | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [scanError, setScanError] = useState('');
   const [confidence, setConfidence] = useState(0);
 
@@ -148,11 +149,20 @@ export function SmartLens() {
   const getCitation = (b: BookResult) =>
     `${b.author} (${b.year ?? 2022}). ${b.title}. ${b.publisher ?? 'Academic Press'}.`;
 
-  const handleCopy = () => {
+  // Confirm only once the write resolved. The rejection used to be swallowed
+  // and the checkmark shown regardless, so a blocked clipboard still reported
+  // a successful copy.
+  const handleCopy = async () => {
     if (!book) return;
-    navigator.clipboard.writeText(getCitation(book)).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(getCitation(book));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Citation copy failed', err);
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 2500);
+    }
   };
 
   return (
@@ -418,13 +428,17 @@ export function SmartLens() {
                 </p>
                 <button
                   onClick={handleCopy}
+                  title={copyFailed ? (ar ? 'تعذّر النسخ' : 'Copy failed') : (ar ? 'نسخ الاقتباس' : 'Copy citation')}
+                  aria-label={ar ? 'نسخ الاقتباس' : 'Copy citation'}
                   className={cn(
                     'absolute top-2 p-1.5 rounded-lg transition-colors',
                     dir === 'rtl' ? 'left-2' : 'right-2',
-                    copied ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-500'
+                    copied ? 'text-emerald-500' : copyFailed ? 'text-red-500' : 'text-slate-300 hover:text-slate-500'
                   )}
                 >
-                  {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                  {copied ? <Check className="w-3.5 h-3.5" />
+                    : copyFailed ? <X className="w-3.5 h-3.5" />
+                    : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
 
