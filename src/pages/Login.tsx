@@ -169,7 +169,7 @@ export function Login({ onLogin }: LoginProps) {
         <button
           type="button"
           onClick={toggleLanguage}
-          className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-750 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
         >
           <Globe className="w-3.5 h-3.5 text-[#D7C826] animate-spin-slow" />
           <span>{language === 'ar' ? 'English' : 'العربية'}</span>
@@ -181,7 +181,7 @@ export function Login({ onLogin }: LoginProps) {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-750 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
         >
           {dir === 'rtl' ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
           <span>{language === 'ar' ? 'رجوع' : 'Back'}</span>
@@ -267,7 +267,7 @@ export function Login({ onLogin }: LoginProps) {
 
           {/* Email */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+            <label htmlFor="login-email" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
               {t('emailAddress')}
             </label>
             <div className="relative">
@@ -275,7 +275,9 @@ export function Login({ onLogin }: LoginProps) {
                 <Mail className="w-4.5 h-4.5" />
               </div>
               <input
+                id="login-email"
                 type="email"
+                autoComplete="email"
                 placeholder={role === 'admin' ? "fatima@example.com" : "sarah@example.com"}
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
@@ -289,7 +291,7 @@ export function Login({ onLogin }: LoginProps) {
 
           {/* Password */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+            <label htmlFor="login-password" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
               {t('passwordLabel')}
             </label>
             <div className="relative">
@@ -297,7 +299,9 @@ export function Login({ onLogin }: LoginProps) {
                 <Lock className="w-4.5 h-4.5" />
               </div>
               <input
+                id="login-password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
@@ -309,6 +313,8 @@ export function Login({ onLogin }: LoginProps) {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? t('hidePassword') : t('showPassword')}
+                aria-pressed={showPassword}
                 className={cn("absolute inset-y-0 flex items-center px-4 text-slate-400 hover:text-[#004C6D] dark:hover:text-[#D7C826] cursor-pointer", dir === 'rtl' ? 'left-0' : 'right-0')}
               >
                 {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
@@ -367,6 +373,8 @@ export function Login({ onLogin }: LoginProps) {
                 </div>
                 <input
                   type="text"
+                  autoComplete="name"
+                  aria-label={language === 'ar' ? 'الاسم الكامل' : 'Full name'}
                   placeholder={language === 'ar' ? 'الاسم الكامل' : 'Full name'}
                   value={newName}
                   onChange={(e) => { setNewName(e.target.value); setCreateError(''); }}
@@ -382,6 +390,8 @@ export function Login({ onLogin }: LoginProps) {
                 </div>
                 <input
                   type="email"
+                  autoComplete="email"
+                  aria-label={language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
                   placeholder={language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
                   value={newEmail}
                   onChange={(e) => { setNewEmail(e.target.value); setCreateError(''); }}
@@ -397,6 +407,8 @@ export function Login({ onLogin }: LoginProps) {
                 </div>
                 <input
                   type="password"
+                  autoComplete="new-password"
+                  aria-label={language === 'ar' ? 'كلمة المرور' : 'Password'}
                   placeholder="••••••••"
                   value={newPassword}
                   onChange={(e) => { setNewPassword(e.target.value); setCreateError(''); }}
@@ -425,7 +437,7 @@ export function Login({ onLogin }: LoginProps) {
         </div>
 
         {/* Quick Demo Access Options */}
-        <div className="mt-8 pt-6 border-t border-slate-150/60 dark:border-white/5">
+        <div className="mt-8 pt-6 border-t border-slate-200/60 dark:border-white/5">
           <div className="flex items-center justify-between mb-4">
              <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5 font-bold">
                <Sparkles className="w-3.5 h-3.5 text-[#D7C826] animate-pulse" />
@@ -443,7 +455,7 @@ export function Login({ onLogin }: LoginProps) {
                 type="button"
                 onClick={() => handleProfileClick(profile)}
                 disabled={isLoading}
-                className="group flex items-center justify-between p-3.5 bg-slate-50/70 dark:bg-slate-950/60 hover:bg-slate-100 dark:hover:bg-slate-800/40 rounded-2xl text-left border border-slate-150/50 dark:border-white/5 transition-all text-sm font-semibold hover:scale-[1.02] active:scale-95 disabled:pointer-events-none cursor-pointer"
+                className="group flex items-center justify-between p-3.5 bg-slate-50/70 dark:bg-slate-950/60 hover:bg-slate-100 dark:hover:bg-slate-800/40 rounded-2xl text-left border border-slate-200/50 dark:border-white/5 transition-all text-sm font-semibold hover:scale-[1.02] active:scale-95 disabled:pointer-events-none cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-xl bg-[#004C6D] group-hover:bg-[#D7C826] text-white group-hover:text-[#004C6D] flex items-center justify-center text-xs font-black shadow-sm transition-colors duration-300">
@@ -469,7 +481,7 @@ export function Login({ onLogin }: LoginProps) {
         </div>
 
         {/* Access Technology features panel */}
-        <div className="flex flex-col gap-3 pt-6 mt-6 border-t border-slate-150/60 dark:border-white/5 max-w-sm mx-auto">
+        <div className="flex flex-col gap-3 pt-6 mt-6 border-t border-slate-200/60 dark:border-white/5 max-w-sm mx-auto">
           <div className="text-center">
              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('accessTech')}</span>
           </div>

@@ -507,7 +507,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                     ? "bg-[#004C6D]/10 dark:bg-accent/15 shadow-inner scale-105 border border-[#004C6D]/10 dark:border-accent/15"
                     : "group-hover:bg-slate-50 dark:group-hover:bg-white/5"
                 )}>
-                  <Icon className={cn("w-5 h-5 transition-transform duration-300", isActive ? "text-accent scale-110" : "text-slate-450 dark:text-slate-500")} />
+                  <Icon className={cn("w-5 h-5 transition-transform duration-300", isActive ? "text-accent scale-110" : "text-slate-400 dark:text-slate-500")} />
                 </div>
                 <span className={cn(
                   "text-[9px] font-black uppercase tracking-wider transition-all duration-300",
