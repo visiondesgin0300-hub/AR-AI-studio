@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
   Star, GitBranch, ChevronRight, ScanSearch, Navigation,
-  Dna, Swords, Map, Gamepad2, Landmark, Trophy,
+  Dna, Swords, Map, Gamepad2, Landmark, Trophy, X,
 } from 'lucide-react';
 import { Book } from '../types';
-import { MOCK_BOOKS } from '../data/mockData';
+import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
@@ -17,7 +17,9 @@ const SPINE_COLORS = [
   '#1B6B4A', '#5F3527',
 ];
 
-const ALL_SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
+// Was a local 8-shelf copy that stopped at D-2, so the 25 books living on
+// B-3/B-4/E-1/E-2 could not be reached from the demo at all.
+const ALL_SHELVES = SHELF_IDS;
 
 function getCitation(book: Book, fmt: 'apa' | 'mla' | 'chicago' | 'bibtex'): string {
   const y = book.year ?? 2022;
@@ -41,6 +43,7 @@ export function ARShowcase() {
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [citeFmt, setCiteFmt] = useState<'apa' | 'mla' | 'chicago' | 'bibtex'>('apa');
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
@@ -74,11 +77,20 @@ export function ARShowcase() {
     return () => { cancelled = true; };
   }, [selectedBook, language]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleCopy = () => {
+  // Only confirm once the write actually resolved — the checkmark used to
+  // appear even when the clipboard rejected (denied permission, insecure
+  // context), telling the reader a citation was copied when it wasn't.
+  const handleCopy = async () => {
     if (!selectedBook) return;
-    navigator.clipboard.writeText(getCitation(selectedBook, citeFmt)).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(getCitation(selectedBook, citeFmt));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Citation copy failed', err);
+      setCopyFailed(true);
+      setTimeout(() => setCopyFailed(false), 2500);
+    }
   };
 
   const handleBookClick = (book: Book) => {
@@ -245,7 +257,7 @@ export function ARShowcase() {
                   {/* Key metadata — compact */}
                   <div className="grid grid-cols-2 gap-2 text-[10px]">
                     {[
-                      { label: ar ? 'الموقع' : 'Location', value: `Shelf ${selectedBook.shelf}` },
+                      { label: ar ? 'الموقع' : 'Location', value: `${ar ? 'رف' : 'Shelf'} ${selectedBook.shelf}` },
                       { label: ar ? 'رقم الاستدعاء' : 'Call No.', value: selectedBook.callNumber?.split(' ')[0] ?? `${selectedBook.section ?? 'QC'}6` },
                       { label: ar ? 'السنة' : 'Year', value: String(selectedBook.year ?? '—') },
                       { label: ar ? 'الناشر' : 'Publisher', value: selectedBook.publisher ?? 'Academic Press' },
@@ -302,13 +314,17 @@ export function ARShowcase() {
                       </p>
                       <button
                         onClick={handleCopy}
+                        title={copyFailed ? (ar ? 'تعذّر النسخ' : 'Copy failed') : (ar ? 'نسخ الاقتباس' : 'Copy citation')}
+                        aria-label={ar ? 'نسخ الاقتباس' : 'Copy citation'}
                         className={cn(
                           'absolute top-2 p-1.5 rounded-lg transition-colors',
                           dir === 'rtl' ? 'left-2' : 'right-2',
-                          copied ? 'text-emerald-500' : 'text-slate-300 hover:text-slate-500'
+                          copied ? 'text-emerald-500' : copyFailed ? 'text-red-500' : 'text-slate-300 hover:text-slate-500'
                         )}
                       >
-                        {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copied ? <Check className="w-3.5 h-3.5" />
+                          : copyFailed ? <X className="w-3.5 h-3.5" />
+                          : <Copy className="w-3.5 h-3.5" />}
                       </button>
                     </div>
                   </div>
@@ -375,7 +391,7 @@ export function ARShowcase() {
         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
           {ar ? 'أدوات الباحث الذكية' : 'Student Research Tools'}
         </span>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             {
               icon: Dna,
@@ -454,7 +470,10 @@ export function ARShowcase() {
                   <p className="text-xs font-black text-primary dark:text-white">{ar ? f.titleAr : f.titleEn}</p>
                   <p className="text-[9px] font-bold text-slate-400 mt-0.5">{ar ? f.descAr : f.descEn}</p>
                 </div>
-                <ChevronRight className={cn('w-3.5 h-3.5 text-slate-300 dark:text-slate-600 transition-transform group-hover:translate-x-1', dir === 'rtl' ? 'rotate-180 self-start group-hover:-translate-x-1 group-hover:translate-x-0' : 'self-end')} />
+                {/* The arrow is mirrored under RTL, so it must slide the other way. The
+                    RTL branch used to pass both -translate-x-1 and translate-x-0;
+                    tailwind-merge kept the last one and the hover did nothing. */}
+                <ChevronRight className={cn('w-3.5 h-3.5 text-slate-300 dark:text-slate-600 transition-transform', dir === 'rtl' ? 'rotate-180 self-start group-hover:-translate-x-1' : 'self-end group-hover:translate-x-1')} />
               </motion.button>
             );
           })}
@@ -466,7 +485,7 @@ export function ARShowcase() {
         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
           {ar ? 'استكشف تجارب AR أخرى' : 'Explore More AR Experiences'}
         </span>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
             {
               icon: ScanSearch,
@@ -518,7 +537,10 @@ export function ARShowcase() {
                   <p className="text-xs font-black text-primary dark:text-white">{ar ? f.titleAr : f.titleEn}</p>
                   <p className="text-[9px] font-bold text-slate-400 mt-0.5">{ar ? f.tagAr : f.tagEn}</p>
                 </div>
-                <ChevronRight className={cn('w-3.5 h-3.5 text-slate-300 dark:text-slate-600 transition-transform group-hover:translate-x-1', dir === 'rtl' ? 'rotate-180 self-start group-hover:-translate-x-1 group-hover:translate-x-0' : 'self-end')} />
+                {/* The arrow is mirrored under RTL, so it must slide the other way. The
+                    RTL branch used to pass both -translate-x-1 and translate-x-0;
+                    tailwind-merge kept the last one and the hover did nothing. */}
+                <ChevronRight className={cn('w-3.5 h-3.5 text-slate-300 dark:text-slate-600 transition-transform', dir === 'rtl' ? 'rotate-180 self-start group-hover:-translate-x-1' : 'self-end group-hover:translate-x-1')} />
               </motion.button>
             );
           })}

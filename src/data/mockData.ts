@@ -1038,6 +1038,19 @@ export const MOCK_BOOKS: Book[] = [
   },
 ];
 
+/**
+ * Canonical list of every shelf in the library, matching the map layout and
+ * the `shelf` field on MOCK_BOOKS. Single source of truth: two pages had each
+ * grown their own copy that stopped at D-2, quietly dropping B-3/B-4/E-1/E-2.
+ */
+export const SHELF_IDS = [
+  'A-1', 'A-2',
+  'B-1', 'B-2', 'B-3', 'B-4',
+  'C-1', 'C-2',
+  'D-1', 'D-2',
+  'E-1', 'E-2',
+] as const;
+
 export const MOCK_USER: User = {
   id: 'u1',
   name: 'فاطمة المعمري',

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { BookCover } from '../components/BookCover';
-import { MOCK_BOOKS, MOCK_USERS } from '../data/mockData';
+import { MOCK_BOOKS, MOCK_USERS, SHELF_IDS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
 import { cn } from '../lib/utils';
 import { User, Book } from '../types';
@@ -33,13 +33,7 @@ type AdminTab = 'users' | 'books' | 'facilities' | 'qr' | 'stats' | 'logs' | 'fe
 // was missing B-3/B-4/E-1/E-2, which meant those shelves got no printable AR
 // code and — worse — the edit form's <select> had no matching <option>, so it
 // fell back to A-1 and silently moved the book off its real shelf on save.
-const SHELVES = [
-  'A-1', 'A-2',
-  'B-1', 'B-2', 'B-3', 'B-4',
-  'C-1', 'C-2',
-  'D-1', 'D-2',
-  'E-1', 'E-2',
-];
+const SHELVES: readonly string[] = SHELF_IDS;
 
 const FACILITY_ICONS: Record<string, React.ComponentType<any>> = {
   Users, Monitor, VolumeX, Printer, MapPin, BookOpen, Building2,
@@ -55,7 +49,7 @@ const INITIAL_FACILITIES: Facility[] = [
 // Guards against the same silent-reassignment bug returning if a record ever
 // carries a shelf this list doesn't know about: keep the record's own value
 // selectable rather than letting the <select> fall through to the first option.
-const shelfOptions = (current?: string): string[] =>
+const shelfOptions = (current?: string): readonly string[] =>
   current && !SHELVES.includes(current) ? [current, ...SHELVES] : SHELVES;
 
 const INPUT_CLS = (dir: string) =>
