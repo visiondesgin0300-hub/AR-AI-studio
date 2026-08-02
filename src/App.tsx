@@ -29,6 +29,9 @@ import { OmanCornerAR } from './pages/OmanCornerAR';
 import { CognitiveARGame } from './pages/CognitiveARGame';
 import { Profile } from './pages/Profile';
 import { VirtualTour } from './pages/VirtualTour';
+import { ShelfARScan } from './pages/ShelfARScan';
+import { CompassAR } from './pages/CompassAR';
+import { WebXRAR } from './pages/WebXRAR';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
@@ -157,6 +160,18 @@ function AppContent() {
         <Route
           path="/scan"
           element={user ? <QRScanner /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/shelf-scan"
+          element={user ? <ShelfARScan /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/compass"
+          element={user ? <CompassAR /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/webxr"
+          element={user ? <WebXRAR /> : <Navigate to="/login" />}
         />
         <Route
           path="/knowledge-stars"

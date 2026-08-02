@@ -100,30 +100,22 @@
   <div class="grid" id="grid"></div>
 
   <script>
+    // One card per shelf that exists in the catalogue. This list used to
+    // carry twelve shelves the library does not have and omit B-1, so the
+    // printed sheet wasted twelve markers and left a real shelf unlabelled.
     const SHELVES = [
-      { shelf: 'A-1', marker: 0,  book: 'أساسيات الفيزياء الحديثة' },
-      { shelf: 'A-2', marker: 1,  book: 'ميكانيكا الكم للجميع' },
-      { shelf: 'A-3', marker: 2,  book: 'الكون الأنيق' },
-      { shelf: 'A-4', marker: 3,  book: 'تاريخ موجز للزمن' },
-      { shelf: 'A-5', marker: 4,  book: 'الفيزياء الكلاسيكية' },
-      { shelf: 'B-2', marker: 5,  book: 'مبادئ الهندسة المدنية' },
-      { shelf: 'B-3', marker: 6,  book: 'الذكاء الاصطناعي في حياتنا' },
-      { shelf: 'B-4', marker: 7,  book: 'هندسة البرمجيات المعاصرة' },
-      { shelf: 'B-5', marker: 8,  book: 'الإلكترونيات الرقمية' },
-      { shelf: 'B-6', marker: 9,  book: 'هندسة الروبوتات' },
-      { shelf: 'C-1', marker: 10, book: 'علم النفس السلوكي' },
-      { shelf: 'C-2', marker: 11, book: 'الذكاء العاطفي' },
-      { shelf: 'C-3', marker: 12, book: 'لغة الجسد' },
-      { shelf: 'C-4', marker: 13, book: 'قوة العادات' },
-      { shelf: 'C-5', marker: 14, book: 'التفكير السريع والبطيء' },
-      { shelf: 'D-1', marker: 15, book: 'مقدمة في علم الاجتماع' },
-      { shelf: 'D-2', marker: 16, book: 'أساسيات الاقتصاد' },
-      { shelf: 'D-3', marker: 17, book: 'تاريخ الفلسفة اليونانية' },
-      { shelf: 'D-4', marker: 18, book: 'إدارة الوقت والإنتاجية' },
-      { shelf: 'D-5', marker: 19, book: 'فن الخطابة والإقناع' },
-      { shelf: 'E-1', marker: 20, book: 'مبادئ محركات الاحتراق الداخلي' },
-      { shelf: 'E-2', marker: 21, book: 'صيانة السيارات الحديثة' },
-      { shelf: 'E-3', marker: 22, book: 'تكنولوجيا محركات الهايبرد' },
+      { shelf: 'A-1', marker: 0,  book: 'سبع درسات مختصرة في الفيزياء' },
+      { shelf: 'A-2', marker: 1,  book: 'موجز تاريخ الزمن' },
+      { shelf: 'B-1', marker: 2,  book: 'الذكاء الاصطناعي: مدخل حديث' },
+      { shelf: 'B-2', marker: 5,  book: 'الكود النظيف' },
+      { shelf: 'B-3', marker: 6,  book: 'تصميم الأساسات: المبادئ والممارسات' },
+      { shelf: 'B-4', marker: 7,  book: 'ميكانيكا الهندسة: الإستاتيكا' },
+      { shelf: 'C-1', marker: 10, book: 'التفكير السريع والبطيء' },
+      { shelf: 'C-2', marker: 11, book: 'قوة العادة' },
+      { shelf: 'D-1', marker: 15, book: 'العاقل: تاريخ موجز للبشرية' },
+      { shelf: 'D-2', marker: 16, book: 'الخيميائي' },
+      { shelf: 'E-1', marker: 20, book: 'مبادئ الاقتصاد الكلي (2014) — نسخة 6' },
+      { shelf: 'E-2', marker: 21, book: 'حرب الرقائق' },
     ];
 
     const grid = document.getElementById('grid');

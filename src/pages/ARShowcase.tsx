@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
   Star, GitBranch, ChevronRight, ScanSearch, Navigation,
-  Dna, Swords, Map, Gamepad2, Landmark, Trophy, X,
+  Dna, Swords, Map, Gamepad2, Landmark, Trophy, X, ScanLine, Boxes,
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
@@ -504,6 +504,33 @@ export function ARShowcase() {
               titleEn: 'Knowledge Stars',
               tagAr: 'رسم بياني',
               tagEn: 'Graph',
+            },
+            {
+              icon: ScanLine,
+              route: '/shelf-scan',
+              colorClass: 'text-violet-500 bg-violet-500/10 border-violet-500/20',
+              titleAr: 'مسح الرف',
+              titleEn: 'Shelf Scan',
+              tagAr: 'كاميرا حقيقية',
+              tagEn: 'Real Camera',
+            },
+            {
+              icon: Compass,
+              route: '/compass',
+              colorClass: 'text-teal-500 bg-teal-500/10 border-teal-500/20',
+              titleAr: 'بوصلة الرفوف',
+              titleEn: 'Shelf Compass',
+              tagAr: 'حساس الاتجاه',
+              tagEn: 'Device Orientation',
+            },
+            {
+              icon: Boxes,
+              route: '/webxr',
+              colorClass: 'text-fuchsia-500 bg-fuchsia-500/10 border-fuchsia-500/20',
+              titleAr: 'واقع معزز غامر',
+              titleEn: 'Immersive AR',
+              tagAr: 'أندرويد + ARCore',
+              tagEn: 'Android + ARCore',
             },
             {
               icon: GitBranch,

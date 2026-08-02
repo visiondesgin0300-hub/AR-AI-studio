@@ -13,30 +13,29 @@
 
 export const MARKER_PHYSICAL_SIZE_METERS = 0.08; // 8cm x 8cm printed marker (excluding the white quiet-zone margin)
 
+// One entry per shelf that actually exists in the catalogue (see SHELF_IDS in
+// src/data/mockData.ts). This map had drifted out of step in both directions:
+// it listed twelve shelves the library does not have (A-3..A-5, B-5, B-6,
+// C-3..C-5, D-3..D-5, E-3) while omitting B-1, which holds four books — so
+// getMarkerForShelf('B-1') returned undefined and ArView refused to start
+// marker navigation for any of them.
+//
+// Marker numbers are printed physical artifacts, so every shelf that already
+// had one keeps it; only B-1 is new, taking value 2 (freed by A-3). Print
+// marker-2.png and stick it on B-1; no existing sticker needs replacing.
 export const SHELF_MARKERS: Record<string, number> = {
   'A-1': 0,
   'A-2': 1,
-  'A-3': 2,
-  'A-4': 3,
-  'A-5': 4,
+  'B-1': 2,
   'B-2': 5,
   'B-3': 6,
   'B-4': 7,
-  'B-5': 8,
-  'B-6': 9,
   'C-1': 10,
   'C-2': 11,
-  'C-3': 12,
-  'C-4': 13,
-  'C-5': 14,
   'D-1': 15,
   'D-2': 16,
-  'D-3': 17,
-  'D-4': 18,
-  'D-5': 19,
   'E-1': 20,
   'E-2': 21,
-  'E-3': 22,
 };
 
 export function getMarkerForShelf(shelf: string | undefined): number | undefined {

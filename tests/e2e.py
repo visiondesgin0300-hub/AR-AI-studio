@@ -339,9 +339,55 @@ def t_help_to_admin(browser):
     ctx2.close()
 
 
+def t_ar_experiences_reachable(browser):
+    """Every card in the AR showcase must lead somewhere that renders.
+
+    Three fully-built pages once had no route and no importer at all; this
+    guards against a card pointing at a dead path again."""
+    ctx, page, errs = new_page(browser)
+    goto(page, '/ar-showcase', '.official-card')
+    routes = page.evaluate("""() => {
+        const grids = [...document.querySelectorAll('.grid')].filter(g => g.className.includes('sm:grid-cols-3'));
+        return grids.flatMap(g => [...g.children].map(c => c.querySelector('p')?.textContent?.trim()))
+                    .filter(Boolean); }""")
+    record('ar hub: showcase lists every experience', len(routes) >= 12, f"{len(routes)} cards")
+
+    dead = []
+    for label in routes:
+        goto(page, '/ar-showcase', '.official-card')
+        page.evaluate("""(l) => [...document.querySelectorAll('button')]
+            .find(b => b.textContent.includes(l))?.click()""", label)
+        page.wait_for_timeout(2500)
+        landed = page.evaluate("location.pathname")
+        blank = page.evaluate("() => document.body.innerText.trim().length < 20")
+        if landed == '/ar-showcase' or blank:
+            dead.append(f"{label}->{landed}{' BLANK' if blank else ''}")
+    record('ar hub: every card reaches a page that renders', not dead, '; '.join(dead))
+    ctx.close()
+
+
+def t_marker_map_matches_catalogue(browser):
+    """The printed AR markers must cover exactly the shelves that exist."""
+    ctx, page, errs = new_page(browser)
+    goto(page, '/ar/markers/print-sheet.html')
+    sheet = page.evaluate("""() => ({
+        shelves: [...document.querySelectorAll('.marker-card')]
+            .map(c => (c.innerText.match(/[A-E]-\\d/) || [null])[0]).filter(Boolean),
+        broken: [...document.querySelectorAll('.marker-card img')]
+            .filter(i => !i.naturalWidth).map(i => i.getAttribute('src')) })""")
+    real = ['A-1', 'A-2', 'B-1', 'B-2', 'B-3', 'B-4', 'C-1', 'C-2', 'D-1', 'D-2', 'E-1', 'E-2']
+    record('markers: print sheet covers exactly the catalogue shelves',
+           sorted(sheet['shelves']) == sorted(real),
+           f"sheet={sorted(sheet['shelves'])}")
+    record('markers: every marker image on the sheet loads', not sheet['broken'],
+           str(sheet['broken']))
+    ctx.close()
+
+
 TESTS = [t_login_journey, t_borrow_journey, t_favorites_persist, t_admin_crud,
          t_admin_export, t_language_switch, t_map_navigation,
-         t_notifications_regression, t_help_to_admin]
+         t_notifications_regression, t_help_to_admin,
+         t_ar_experiences_reachable, t_marker_map_matches_catalogue]
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True, executable_path=CHROME,
