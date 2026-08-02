@@ -143,12 +143,16 @@ export function AdminDashboard() {
     { name: ar ? 'الطباعة' : 'Printing', value: 60 },
   ], [ar]);
 
-  const MOOD_DATA = [
-    { name: '😍', value: 32, label: ar ? 'رائع' : 'Amazing', fill: '#f43f5e' },
-    { name: '🤩', value: 28, label: ar ? 'ممتاز' : 'Excellent', fill: '#f97316' },
-    { name: '😊', value: 25, label: ar ? 'جيد' : 'Good', fill: '#10b981' },
-    { name: '😐', value: 10, label: ar ? 'مقبول' : 'Okay', fill: '#64748b' },
-    { name: '😕', value: 5, label: ar ? 'يحتاج تحسين' : 'Needs work', fill: '#004C6D' },
+  // The five moods a rating can carry — the axis of the distribution below.
+  // These used to ship fixed percentages (32/28/25/10/5) that never moved no
+  // matter what users actually submitted; the shares are now counted from the
+  // entries in the list.
+  const MOOD_SCALE = [
+    { name: '😍', label: ar ? 'رائع' : 'Amazing', fill: '#f43f5e' },
+    { name: '🤩', label: ar ? 'ممتاز' : 'Excellent', fill: '#f97316' },
+    { name: '😊', label: ar ? 'جيد' : 'Good', fill: '#10b981' },
+    { name: '😐', label: ar ? 'مقبول' : 'Okay', fill: '#64748b' },
+    { name: '😕', label: ar ? 'يحتاج تحسين' : 'Needs work', fill: '#004C6D' },
   ];
 
   const MOOD_COLOR_MAP: Record<string, string> = {
@@ -194,6 +198,14 @@ export function AdminDashboard() {
 
   const inquiryCount = feedbackEntries.filter(e => e.isInquiry).length;
   const ratingCount = feedbackEntries.length - inquiryCount;
+
+  // Counted from the ratings actually in the list. Percentages of a handful of
+  // entries overstate their own precision, so the card leads with the count
+  // and shows the share underneath.
+  const moodDistribution = MOOD_SCALE.map(m => {
+    const count = feedbackEntries.filter(e => !e.isInquiry && e.mood === m.name).length;
+    return { ...m, count, pct: ratingCount > 0 ? Math.round((count / ratingCount) * 100) : 0 };
+  });
 
   // Arabic counts take four forms (1 / 2 / 3–10 / 11+); English just needs
   // the -s. Enough to keep "1 inquiries" and "3 تقييم" off the screen.
@@ -797,13 +809,14 @@ export function AdminDashboard() {
                     </span>
                   </div>
                 <div className="grid grid-cols-5 gap-3">
-                  {MOOD_DATA.map((m, i) => (
-                    <div key={i} className="official-card p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-lg text-center">
+                  {moodDistribution.map((m, i) => (
+                    <div key={m.name} className={cn('official-card p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-lg text-center transition-opacity', m.count === 0 && 'opacity-50')}>
                       <span className="text-2xl">{m.name}</span>
-                      <div className="text-lg font-black text-primary dark:text-white">{m.value}%</div>
+                      <div className="text-lg font-black text-primary dark:text-white tabular-nums">{m.count}</div>
+                      <div className="text-[9px] font-black text-slate-400 tabular-nums">{m.pct}%</div>
                       <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-tight">{m.label}</div>
                       <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${m.value}%` }} transition={{ duration: 1, delay: i * 0.1 }} className="h-full rounded-full" style={{ backgroundColor: m.fill }} />
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${m.pct}%` }} transition={{ duration: 1, delay: i * 0.1 }} className="h-full rounded-full" style={{ backgroundColor: m.fill }} />
                       </div>
                     </div>
                   ))}
