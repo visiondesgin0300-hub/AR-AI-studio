@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Brain, Globe, Search, BookOpen, Map as MapIcon, Camera, LogIn, Compass } from 'lucide-react';
+import { Brain, Globe, Search, BookOpen, Map as MapIcon, Camera, LogIn, Compass, Users, VolumeX, Monitor, Printer, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
@@ -11,6 +11,15 @@ const STEPS = [
   { icon: BookOpen, ar: 'حدّد الموقع', arDesc: 'افتح تفاصيل الكتاب واضغط "تحديد الموقع"', en: 'Locate it', enDesc: 'Open the book details and tap "Locate"' },
   { icon: MapIcon, ar: 'اتبع الخريطة', arDesc: 'شاهد المسار المضيء على خريطة المكتبة', en: 'Follow the map', enDesc: 'See the glowing path on the library map' },
   { icon: Camera, ar: 'وجّه الكاميرا', arDesc: 'استخدم الواقع المعزز للوصول للرف مباشرة', en: 'Point your camera', enDesc: 'Use AR to walk straight to the shelf' },
+];
+
+// Same icon/copy as FacilitiesMap.tsx's facility list, kept in sync so a
+// visitor sees the same four facilities here that they'll find once inside.
+const FACILITIES_PREVIEW = [
+  { icon: Users,   ar: 'قاعات الدراسة الجماعية', en: 'Group Study Rooms' },
+  { icon: VolumeX, ar: 'منطقة القراءة الصامتة',  en: 'Silent Reading Zone' },
+  { icon: Monitor, ar: 'معمل الحاسوب',           en: 'Computer Lab' },
+  { icon: Printer, ar: 'خدمة الطباعة والتصوير',  en: 'Printing & Copying' },
 ];
 
 export function Landing() {
@@ -235,6 +244,50 @@ export function Landing() {
                 </p>
               </motion.div>
             ))}
+          </div>
+        </div>
+
+        {/* ── Facilities — the same wayfinding also covers non-shelf
+            destinations, so it gets its own quiet mention rather than
+            competing with the hero for attention. ── */}
+        <div className="max-w-6xl mx-auto pt-20">
+          <div className={cn(
+            "official-card bg-white dark:bg-slate-900 rounded-[2rem] p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 md:gap-12",
+            dir === 'rtl' ? 'md:flex-row-reverse' : ''
+          )}>
+            <div className={cn("flex-1 flex flex-col", dir === 'rtl' ? 'items-end text-right' : 'items-start text-left')}>
+              <h2 className="font-display text-xl md:text-2xl font-bold text-primary dark:text-white tracking-tight mb-2">
+                {ar ? 'أبعد من الرفوف' : 'Beyond the shelves'}
+              </h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-bold leading-relaxed mb-6 max-w-md">
+                {ar
+                  ? 'نفس الملاحة المضيئة تأخذك أيضاً إلى قاعات الدراسة، معمل الحاسوب، ومناطق القراءة الهادئة.'
+                  : 'The same glowing wayfinding also gets you to study rooms, the computer lab, and quiet reading zones.'}
+              </p>
+              <button
+                onClick={() => navigate('/login')}
+                className={cn("flex items-center gap-2 text-sm font-black text-primary dark:text-accent hover:text-accent dark:hover:text-white transition-colors", dir === 'rtl' ? 'flex-row-reverse' : '')}
+              >
+                {t('libraryFacilities')}
+                {dir === 'rtl' ? <ArrowLeft className="w-4 h-4" /> : <ArrowRight className="w-4 h-4" />}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 w-full md:w-auto shrink-0">
+              {FACILITIES_PREVIEW.map((f, i) => (
+                <div
+                  key={i}
+                  className={cn("flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 w-full md:w-44", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}
+                >
+                  <div className="w-8 h-8 rounded-xl bg-primary/10 dark:bg-white/10 text-primary dark:text-accent flex items-center justify-center shrink-0">
+                    <f.icon className="w-4 h-4" />
+                  </div>
+                  <span className="text-[11px] font-black text-primary dark:text-white leading-tight">
+                    {ar ? f.ar : f.en}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </main>
