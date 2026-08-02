@@ -630,7 +630,7 @@ export const MOCK_BOOKS: Book[] = [
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9780062315007-L.jpg',
   },
   {
-    id: '30',
+    id: '38',
     title: 'نيكسوس: تاريخ موجز لشبكات المعلومات',
     titleEn: 'Nexus: A Brief History of Information Networks from the Stone Age to AI',
     author: 'يوفال نوح هراري',
@@ -704,7 +704,7 @@ export const MOCK_BOOKS: Book[] = [
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9781590302255-L.jpg',
   },
   {
-    id: '31',
+    id: '39',
     title: 'كيف يعمل العالم حقًا',
     titleEn: 'How the World Really Works',
     author: 'فاتسلاف سميل',

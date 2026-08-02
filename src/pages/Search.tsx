@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useRef } from 'react';
-import { Search as SearchIcon, MapPin, Tag, Compass, HelpCircle } from 'lucide-react';
+import { Search as SearchIcon, MapPin, Compass, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
-import { Book } from '../types';
 import { cn, incrementSearchCount } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { BookCover } from '../components/BookCover';
@@ -55,11 +54,14 @@ export function Search() {
     });
   }, [query, selectedCategory, selectedStatus]);
 
-  // Suggested search prompts
+  // Suggested search prompts. The query has to follow the active language too,
+  // not just the chip label — otherwise an English user taps an English chip
+  // and lands Arabic text in their search box that they can't easily edit.
+  // (Shelf codes like A-1 are language-neutral, so they stay the same.)
   const searchPrompts = [
-    { text: language === 'ar' ? 'قوانين الحركة والجاذبية' : 'Laws of motion and gravity', q: 'فيزياء' },
-    { text: language === 'ar' ? 'الذكاء الاصطناعي وتطبيقاته' : 'AI applications', q: 'الذكاء الاصطناعي' },
-    { text: language === 'ar' ? 'تصميم المنشآت الهندسية' : 'Engineering design', q: 'هندسة' },
+    { text: language === 'ar' ? 'قوانين الحركة والجاذبية' : 'Laws of motion and gravity', q: language === 'ar' ? 'فيزياء' : 'physics' },
+    { text: language === 'ar' ? 'الذكاء الاصطناعي وتطبيقاته' : 'AI applications', q: language === 'ar' ? 'الذكاء الاصطناعي' : 'intelligence' },
+    { text: language === 'ar' ? 'تصميم المنشآت الهندسية' : 'Engineering design', q: language === 'ar' ? 'هندسة' : 'engineering' },
     { text: language === 'ar' ? 'البحث عن الرف A-1' : 'Search Shelf A-1', q: 'A-1' }
   ];
 
@@ -118,7 +120,7 @@ export function Search() {
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-2 bg-slate-100 dark:bg-slate-850 rounded-full text-xs font-black z-20 transition-all", dir === 'rtl' ? 'left-6' : 'right-6')}
+                className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-black z-20 transition-all", dir === 'rtl' ? 'left-6' : 'right-6')}
               >
                 ✕
               </button>
@@ -237,7 +239,7 @@ export function Search() {
                           <span className="text-[10px] font-black text-accent tracking-wider uppercase block">
                             {categoryTranslationMap[book.category] || book.category}
                           </span>
-                          <h4 className="text-sm font-black text-primary dark:text-white leading-tight limit-lines-2 group-hover:text-[#004C6D] dark:group-hover:text-accent transition-colors">
+                          <h4 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2 group-hover:text-[#004C6D] dark:group-hover:text-accent transition-colors">
                             {book.title}
                           </h4>
                           <span className="text-xs text-slate-400 font-bold block truncate">
@@ -246,7 +248,7 @@ export function Search() {
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 mt-2">
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-550 dark:text-slate-400 font-bold">
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-bold">
                             <MapPin className="w-3.5 h-3.5 text-primary/60 dark:text-accent" />
                             <span>{book.shelf}</span>
                           </div>
@@ -270,7 +272,7 @@ export function Search() {
                   animate={{ opacity: 1 }}
                   className="p-12 text-center bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200/50 dark:border-white/5 space-y-3"
                 >
-                  <HelpCircle className="w-12 h-12 text-slate-350 dark:text-slate-600 mx-auto animate-bounce" />
+                  <HelpCircle className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto animate-bounce" />
                   <p className="text-slate-400 dark:text-slate-500 font-bold max-w-sm mx-auto text-sm leading-relaxed">
                     {t('searchHintText')}
                   </p>

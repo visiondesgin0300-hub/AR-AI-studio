@@ -293,7 +293,7 @@ export function Landing() {
       </main>
 
       <footer className="relative z-10 px-8 pb-8">
-        <p className={cn("text-[9px] text-slate-350 dark:text-slate-600 font-bold uppercase tracking-widest max-w-7xl mx-auto", dir === 'rtl' ? 'text-right' : 'text-left')}>
+        <p className={cn("text-[9px] text-slate-300 dark:text-slate-600 font-bold uppercase tracking-widest max-w-7xl mx-auto", dir === 'rtl' ? 'text-right' : 'text-left')}>
           {t('copyright')}
         </p>
       </footer>

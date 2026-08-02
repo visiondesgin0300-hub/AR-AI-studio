@@ -211,7 +211,7 @@ export function Login({ onLogin }: LoginProps) {
             <h2 className="text-3xl font-black text-[#004C6D] dark:text-white tracking-tight leading-relaxed">{t('smartLibraryTitle')}</h2>
             <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] leading-relaxed">{t('smartKnowledgePortal')}</div>
           </div>
-          <p className="text-xs text-slate-550 dark:text-slate-400 mt-3 font-medium max-w-sm mx-auto leading-relaxed">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 font-medium max-w-sm mx-auto leading-relaxed">
             {t('loginDescription')}
           </p>
           <div className="w-12 h-1 bg-[#D7C826] mx-auto rounded-full mt-4"></div>
@@ -491,7 +491,7 @@ export function Login({ onLogin }: LoginProps) {
 
         {/* Footer info/copyright */}
         <div className="mt-8 text-center">
-           <p className="text-[9px] text-slate-350 dark:text-slate-600 font-bold uppercase tracking-widest">{t('copyright')}</p>
+           <p className="text-[9px] text-slate-300 dark:text-slate-600 font-bold uppercase tracking-widest">{t('copyright')}</p>
         </div>
       </motion.div>
     </div>
