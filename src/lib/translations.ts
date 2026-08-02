@@ -72,6 +72,14 @@ export const translations = {
     new: 'جديد',
     markAllAsRead: 'تحديد الكل كمقروء',
     close: 'إغلاق',
+
+    // Notification content (generated in useNotifications)
+    notifDueSoonTitle: 'اقتراب موعد الإرجاع',
+    notifDueSoonMessage: 'كتاب "{title}" يجب إرجاعه خلال {days} أيام.',
+    notifOverdueTitle: 'تجاوز موعد الإرجاع',
+    notifOverdueMessage: 'لقد تجاوزت الموعد المحدد لإرجاع كتاب "{title}". يرجى إعادته في أقرب وقت.',
+    notifWelcomeTitle: 'أهلاً بك في المكتبة المعززة الذكية',
+    notifWelcomeMessage: 'نسخة تجريبية جديدة من نظام الملاحة والبحث متاحة الآن.',
     borrowed: 'الاستعارات',
     experiencePoints: 'نقاط الخبرة',
     searchResources: 'ابحث في الموارد الأكاديمية...',
@@ -675,6 +683,14 @@ export const translations = {
     new: 'New',
     markAllAsRead: 'Mark all as read',
     close: 'Close',
+
+    // Notification content (generated in useNotifications)
+    notifDueSoonTitle: 'Return date approaching',
+    notifDueSoonMessage: '"{title}" is due back in {days} days.',
+    notifOverdueTitle: 'Return date passed',
+    notifOverdueMessage: '"{title}" is past its return date. Please return it as soon as possible.',
+    notifWelcomeTitle: 'Welcome to the Smart AR Library',
+    notifWelcomeMessage: 'A new demo of the navigation and search system is now available.',
     borrowed: 'Borrowed',
     experiencePoints: 'Experience Points',
     searchResources: 'Search academic resources...',

@@ -22,7 +22,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifPanelPos, setNotifPanelPos] = useState({ top: 80, right: 16 });
+  const [notifPanelPos, setNotifPanelPos] = useState({ top: 80, left: 16 });
   const bellRef = useRef<HTMLDivElement>(null);
   const [showLibrarian, setShowLibrarian] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -311,9 +311,14 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 onClick={() => {
                   if (bellRef.current) {
                     const rect = bellRef.current.getBoundingClientRect();
+                    // Anchor by the bell's left edge (the icon cluster sits at
+                    // the left of the header, not the right) and clamp so the
+                    // w-80/sm:w-96 panel never runs off either edge.
+                    const panelWidth = 384;
+                    const left = Math.min(rect.left, window.innerWidth - panelWidth - 16);
                     setNotifPanelPos({
                       top: rect.bottom + 10,
-                      right: window.innerWidth - rect.right,
+                      left: Math.max(16, left),
                     });
                   }
                   setShowNotifications(v => !v);
@@ -344,7 +349,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                       initial={{ opacity: 0, y: 10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      style={{ top: notifPanelPos.top, right: notifPanelPos.right }}
+                      style={{ top: notifPanelPos.top, left: notifPanelPos.left }}
                       className="fixed w-80 sm:w-96 bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-100 dark:border-white/10 z-[60] overflow-hidden"
                     >
                       <div className="p-6 border-b border-slate-50 dark:border-white/5 flex items-center justify-between">
