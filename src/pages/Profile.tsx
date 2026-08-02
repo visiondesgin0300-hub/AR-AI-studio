@@ -170,7 +170,7 @@ export function Profile({ user }: ProfileProps) {
             />
           </div>
           <div className={cn('flex items-center justify-between text-[10px] font-black text-slate-400', ar ? 'flex-row-reverse' : '')}>
-            <span>{xp} / {level * 100} XP</span>
+            <span dir="ltr">{xp} / {level * 100} XP</span>
             <span>{ar ? `${xpToNext} XP للمستوى التالي` : `${xpToNext} XP to next level`}</span>
           </div>
         </div>

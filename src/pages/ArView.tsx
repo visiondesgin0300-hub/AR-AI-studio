@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Navigation, X, MoveUp, ShieldCheck, User as UserIcon, ScanLine, Compass, Radar } from 'lucide-react';
+import { Navigation, X, MoveUp, ShieldCheck, User as UserIcon, ScanLine, Compass, Radar, AlertTriangle } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
@@ -58,7 +58,8 @@ export function ArView({ book, onClose }: ArViewProps) {
       if (disposed) return;
       const reason = 'reason' in event ? event.reason : event.error;
       const message = reason instanceof Error ? reason.message : String(reason ?? 'unknown error');
-      setError(t('arSetupFailed', { error: message }));
+      console.error('AR setup failed:', message);
+      setError(t('arSetupFailed'));
     };
     window.addEventListener('error', onUnexpectedError);
     window.addEventListener('unhandledrejection', onUnexpectedError);
@@ -181,11 +182,13 @@ export function ArView({ book, onClose }: ArViewProps) {
                 container.insertBefore(videoEl, container.firstChild);
               }
             } catch (err) {
-              setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
+              console.error('AR setup failed:', err);
+              setError(t('arSetupFailed'));
             }
           },
           (err: { name: string; message: string }) => {
-            if (!disposed) setError(t('cameraAccessError', { error: err.message || err.name || '' }));
+            console.error('Camera access failed:', err);
+            if (!disposed) setError(t('cameraAccessError'));
           }
         );
 
@@ -196,7 +199,8 @@ export function ArView({ book, onClose }: ArViewProps) {
           try {
             camera.projectionMatrix.copy(context.getProjectionMatrix());
           } catch (err) {
-            setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
+            console.error('AR setup failed:', err);
+            setError(t('arSetupFailed'));
           }
         });
 
@@ -236,12 +240,14 @@ export function ArView({ book, onClose }: ArViewProps) {
             webglRenderer.render(scene, camera);
             rafId = requestAnimationFrame(animate);
           } catch (err) {
-            setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
+            console.error('AR setup failed:', err);
+            setError(t('arSetupFailed'));
           }
         };
         animate();
       } catch (err) {
-        setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
+        console.error('AR setup failed:', err);
+        setError(t('arSetupFailed'));
       }
     }
     setup();
@@ -369,8 +375,19 @@ export function ArView({ book, onClose }: ArViewProps) {
 
       {/* Camera / marker access error */}
       {error && (
-        <div className="absolute inset-0 z-[6] flex items-center justify-center pointer-events-none px-10">
-          <p className="text-white font-black text-sm text-center">{error}</p>
+        <div className="absolute inset-0 z-[6] flex items-center justify-center px-10">
+          <div className="pointer-events-auto max-w-xs w-full flex flex-col items-center gap-4 text-center glass-panel bg-white/5 border-white/15 backdrop-blur-xl px-8 py-8 rounded-[2rem]">
+            <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-7 h-7 text-red-400" />
+            </div>
+            <p className="text-white font-black text-sm leading-relaxed">{error}</p>
+            <button
+              onClick={onClose}
+              className="px-6 py-3 bg-white text-primary rounded-2xl text-[11px] font-black uppercase tracking-widest hover:brightness-95 transition-all active:scale-95"
+            >
+              {t('close')}
+            </button>
+          </div>
         </div>
       )}
 

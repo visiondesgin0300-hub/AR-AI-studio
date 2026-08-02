@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, ScanLine, MapPin, BookOpen, ArrowRight, ArrowLeft } from 'lucide-react';
+import { X, ScanLine, MapPin, BookOpen, ArrowRight, ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Controller, Compiler } from 'mind-ar/dist/mindar-image.prod.js';
 import { MOCK_BOOKS } from '../data/mockData';
 import { Book } from '../types';
@@ -74,7 +74,8 @@ export function CoverScan({ embedded = false, onMatch, onGoToShelf }: CoverScanP
       if (disposed) return;
       const reason = 'reason' in event ? event.reason : event.error;
       const message = reason instanceof Error ? reason.message : String(reason ?? 'unknown error');
-      setError(t('arSetupFailed', { error: message }));
+      console.error('AR cover scan setup failed:', message);
+      setError(t('arSetupFailed'));
     };
     window.addEventListener('error', onUnexpectedError);
     window.addEventListener('unhandledrejection', onUnexpectedError);
@@ -172,7 +173,8 @@ export function CoverScan({ embedded = false, onMatch, onGoToShelf }: CoverScanP
         controller.processVideo(video);
         setReady(true);
       } catch (err) {
-        if (!disposed) setError(t('arSetupFailed', { error: err instanceof Error ? err.message : String(err) }));
+        console.error('AR cover scan setup failed:', err);
+        if (!disposed) setError(t('arSetupFailed'));
       }
     }
     setup();
@@ -253,8 +255,19 @@ export function CoverScan({ embedded = false, onMatch, onGoToShelf }: CoverScanP
       )}
 
       {error && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none px-10">
-          <p className="text-white font-black text-sm text-center">{error}</p>
+        <div className="absolute inset-0 z-10 flex items-center justify-center px-10">
+          <div className="pointer-events-auto max-w-xs w-full flex flex-col items-center gap-4 text-center glass-panel bg-white/5 border-white/15 backdrop-blur-xl px-8 py-8 rounded-[2rem]">
+            <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-7 h-7 text-red-400" />
+            </div>
+            <p className="text-white font-black text-sm leading-relaxed">{error}</p>
+            <button
+              onClick={() => navigate('/search')}
+              className="px-6 py-3 bg-white text-primary rounded-2xl text-[11px] font-black uppercase tracking-widest hover:brightness-95 transition-all active:scale-95"
+            >
+              {t('searchManuallyLabel')}
+            </button>
+          </div>
         </div>
       )}
 
