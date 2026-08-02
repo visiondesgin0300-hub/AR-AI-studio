@@ -29,6 +29,17 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const [showFabHint, setShowFabHint] = useState(() => !localStorage.getItem('ar_fab_seen'));
   const [showOnboarding, setShowOnboarding] = useState(() => !localStorage.getItem('onboarding_done'));
 
+  // Notifications carry a real timestamp; the panel used to print a hardcoded
+  // "Just now" on every row regardless of age. Format from the actual value.
+  const formatRelativeTime = (timestamp: number): string => {
+    const minutes = Math.floor((Date.now() - timestamp) / 60000);
+    if (minutes < 1)   return t('timeJustNow');
+    if (minutes < 60)  return t('timeMinutesAgo', { n: minutes });
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24)    return t('timeHoursAgo', { n: hours });
+    return t('timeDaysAgo', { n: Math.floor(hours / 24) });
+  };
+
   useEffect(() => {
     if (!showFabHint) return;
     const timer = setTimeout(() => {
@@ -355,7 +366,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                       <div className="p-6 border-b border-slate-50 dark:border-white/5 flex items-center justify-between">
                          <div className="flex items-center gap-3">
                             <h3 className="text-sm font-black text-primary dark:text-white uppercase tracking-tight">{t('notifications')}</h3>
-                            <div className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-[10px] font-black text-slate-400">
+                            <div className="bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded text-[10px] font-black text-slate-400 dark:text-slate-300">
                                {unreadCount} {t('new')}
                             </div>
                          </div>
@@ -369,13 +380,13 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
                       <div className="max-h-[400px] overflow-y-auto">
                         {notifications.length > 0 ? (
-                          <div className="divide-y divide-slate-50">
+                          <div className="divide-y divide-slate-50 dark:divide-white/5">
                             {notifications.map((notif) => (
-                              <div 
+                              <div
                                 key={notif.id}
                                 className={cn(
-                                  "p-6 hover:bg-slate-50 transition-all cursor-pointer relative group",
-                                  !notif.isRead && "bg-slate-50/50"
+                                  "p-6 hover:bg-slate-50 dark:hover:bg-white/5 transition-all cursor-pointer relative group",
+                                  !notif.isRead && "bg-slate-50/50 dark:bg-white/[0.04]"
                                 )}
                                 onClick={() => {
                                   markAsRead(notif.id);
@@ -386,9 +397,9 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                                 <div className="flex gap-4">
                                   <div className={cn(
                                     "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
-                                    notif.type === 'warning' ? "bg-amber-100 text-amber-600" : 
-                                    notif.type === 'alert' ? "bg-red-100 text-red-600" : 
-                                    "bg-blue-100 text-blue-600"
+                                    notif.type === 'warning' ? "bg-amber-100 text-amber-600 dark:bg-amber-400/15 dark:text-amber-300" :
+                                    notif.type === 'alert' ? "bg-red-100 text-red-600 dark:bg-red-400/15 dark:text-red-300" :
+                                    "bg-blue-100 text-blue-600 dark:bg-blue-400/15 dark:text-blue-300"
                                   )}>
                                     {notif.type === 'warning' ? <AlertTriangle className="w-5 h-5" /> : 
                                      notif.type === 'alert' ? <AlertTriangle className="w-5 h-5 animate-pulse" /> : 
@@ -396,10 +407,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                                   </div>
                                   <div className="flex-1 space-y-1">
                                     <div className="flex justify-between items-start">
-                                      <h4 className="text-xs font-black text-primary leading-tight">{notif.title}</h4>
-                                      <span className="text-[8px] font-bold text-slate-300 uppercase shrink-0">{language === 'ar' ? 'منذ قليل' : 'Just now'}</span>
+                                      <h4 className="text-xs font-black text-primary dark:text-white leading-tight">{notif.title}</h4>
+                                      <span className="text-[8px] font-bold text-slate-300 dark:text-slate-500 uppercase shrink-0">{formatRelativeTime(notif.timestamp)}</span>
                                     </div>
-                                    <p className="text-[11px] text-slate-400 font-bold leading-relaxed line-clamp-2">
+                                    <p className="text-[11px] text-slate-400 dark:text-slate-400 font-bold leading-relaxed line-clamp-2">
                                       {notif.message}
                                     </p>
                                   </div>
@@ -412,16 +423,16 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                           </div>
                         ) : (
                           <div className="p-10 text-center space-y-4">
-                             <div className="w-16 h-16 bg-slate-50 rounded-full mx-auto flex items-center justify-center text-slate-200">
+                             <div className="w-16 h-16 bg-slate-50 dark:bg-white/5 rounded-full mx-auto flex items-center justify-center text-slate-200 dark:text-slate-600">
                                 <Bell className="w-8 h-8" />
                              </div>
-                             <div className="text-xs font-black text-slate-300 uppercase tracking-widest">{language === 'ar' ? 'لا توجد تنبيهات حالياً' : 'No notifications yet'}</div>
+                             <div className="text-xs font-black text-slate-300 dark:text-slate-500 uppercase tracking-widest">{t('noNotifications')}</div>
                           </div>
                         )}
                       </div>
 
-                      <button 
-                        className="w-full py-4 bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-100 transition-all border-t border-slate-50"
+                      <button
+                        className="w-full py-4 bg-slate-50 dark:bg-white/5 text-[10px] font-black text-slate-400 dark:text-slate-300 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-white/10 transition-all border-t border-slate-50 dark:border-white/5"
                         onClick={() => setShowNotifications(false)}
                       >
                         {t('close')}
