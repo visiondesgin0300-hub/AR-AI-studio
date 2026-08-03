@@ -165,13 +165,6 @@ export function LibraryMap() {
   }, [location.state]);
 
   const destinationShelfId = manualTarget?.id || bookData?.shelf || null;
-
-  // Being routed to a shelf is what "locating a shelf" means, so track the
-  // destination however the user got there: tapping a cell on the 2D map, a
-  // shelf in the 3D view, or picking a book whose shelf the map then routes to.
-  useEffect(() => {
-    if (destinationShelfId) trackMapVisit(destinationShelfId);
-  }, [destinationShelfId]);
   const destinationLabel = manualTarget
     ? t('shelfId', { id: manualTarget.id })
     : bookData ? bookData.title : '';

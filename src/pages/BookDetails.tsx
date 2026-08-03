@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, Share2, Heart, BookOpen, Clock, CheckCircle2, AlertCircle, X, Tag } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { User, Book } from '../types';
-import { cn, isFavoriteBook, toggleFavoriteBook, trackBookView, trackBorrow, getTrackedBorrows } from '../lib/utils';
+import { cn, isFavoriteBook, toggleFavoriteBook } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { CitationBox } from '../components/CitationBox';
@@ -28,11 +28,6 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
 
   const book = MOCK_BOOKS.find(b => b.id === id);
 
-  // Opening a book's page is one of the steps toward the Researcher badge.
-  useEffect(() => {
-    if (book) trackBookView(book.id);
-  }, [book?.id]);
-
   const categoryTranslationMap: Record<string, string> = {
     'فيزياء': t('physics'),
     'هندسة': t('engineering'),
@@ -51,10 +46,7 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
     );
   }
 
-  // Includes the locally tracked list: /api/me replaces the user object on
-  // load and the server keeps no borrow record, so a book borrowed earlier
-  // would otherwise offer "Borrow" again after a reload.
-  const alreadyBorrowed = user.borrowedBooks.includes(book.id) || getTrackedBorrows().includes(book.id);
+  const alreadyBorrowed = user.borrowedBooks.includes(book.id);
   const isAvailable = book.status === 'available' && !alreadyBorrowed && !justBorrowed;
   const isOnLoan = alreadyBorrowed || justBorrowed || book.status !== 'available';
 
@@ -98,7 +90,6 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
         : [...current.borrowedBooks, book.id],
       points: current.points + BORROW_XP_REWARD,
     }));
-    trackBorrow(book.id);
     setJustBorrowed(true);
     setTimeout(() => {
       navigate('/my-books');

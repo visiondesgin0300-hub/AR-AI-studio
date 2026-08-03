@@ -102,7 +102,7 @@ export function Dashboard({ user }: DashboardProps) {
                     {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
                   </div>
                   <div className="text-xl font-black text-accent leading-none mt-0.5">
-                    {calcXP(user)} <span className="text-[10px] font-bold text-white/40">XP</span>
+                    {calcXP()} <span className="text-[10px] font-bold text-white/40">XP</span>
                   </div>
                 </div>
               </div>

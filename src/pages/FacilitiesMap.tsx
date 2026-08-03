@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Map as MapIcon } from 'lucide-react';
-import { cn, trackMapVisit, trackFacilityVisit } from '../lib/utils';
+import { cn, trackMapVisit } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -39,13 +39,6 @@ export function FacilitiesMap() {
   const [showPath, setShowPath] = useState(false);
   const [walkProgress, setWalkProgress] = useState(0);
   const arIframeRef = useRef<HTMLIFrameElement>(null);
-
-  // Asking to be guided to a facility counts toward the Facility Guide badge.
-  // Tracked here rather than at each button so every route in — the list, the
-  // map markers, and arriving with a target from another page — is counted.
-  useEffect(() => {
-    if (manualTarget) trackFacilityVisit(manualTarget.id);
-  }, [manualTarget?.id]);
 
   // Draw the glowing wayfinding beam inside the 3D scene toward the
   // selected facility (the iframe's built-in guide only knew about shelf

@@ -2,31 +2,31 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Lock, Flame, Timer, Trophy, BookMarked,
-  TrendingUp, Mail, BookOpen, Gamepad2, Compass, Star, Map as MapIcon,
+  TrendingUp, Mail, BookOpen, Gamepad2, MapPin,
   Search as SearchIcon, ChevronRight,
   Bell, AlertTriangle, Info, CheckCircle2, Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import {
-  cn, getUserLevel, getBadgeStatuses, MAX_XP, getTrackedBorrows,
-  getLoginCount, displayName } from '../lib/utils';
+  cn, getUserLevel, getEarnedBadges, calcXP,
+  getLoginCount, getSearchCount, getMapVisits, displayName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { useNotifications } from '../hooks/useNotifications';
 
 interface ProfileProps { user: User }
 
-// XP comes from the badges — each badge pays what its card advertises, so this
-// panel is the badge cabinet in miniature. Icons and names mirror the cabinet.
-const BADGE_LOOK: Record<string, { icon: React.ElementType; labelAr: string; labelEn: string }> = {
-  'مستكشف':       { icon: Compass,    labelAr: 'مستكشف',      labelEn: 'Explorer'           },
-  'باحث':         { icon: SearchIcon, labelAr: 'باحث',        labelEn: 'Researcher'         },
-  'دليل المرافق': { icon: MapIcon,    labelAr: 'دليل المرافق', labelEn: 'Facility Guide'     },
-  'قارئ':         { icon: BookOpen,   labelAr: 'قارئ',        labelEn: 'Reader'             },
-  'بطل التحدي':   { icon: Gamepad2,   labelAr: 'بطل التحدي',  labelEn: 'Challenge Champion' },
-  'متميز':        { icon: Star,       labelAr: 'متميز',       labelEn: 'Distinguished'      },
-};
+// ── XP source breakdown ───────────────────────────────────────────────────────
+function useXpBreakdown() {
+  const visits    = getMapVisits();
+  const mapXp     = visits.includes('map') ? 20 : 0;
+  const placeCount = visits.filter(v => /^[A-Z]-\d/.test(v) || v === 'facilities').length;
+  const shelvesXp = placeCount * 15;
+  const loginXp   = Math.min(getLoginCount(), 5) * 10;
+  const searchXp  = Math.min(getSearchCount(), 5) * 10;
+  return { mapXp, shelvesXp, loginXp, searchXp, placeCount };
+}
 
 export function Profile({ user }: ProfileProps) {
   const navigate  = useNavigate();
@@ -35,28 +35,14 @@ export function Profile({ user }: ProfileProps) {
 
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
 
-  const badges       = getBadgeStatuses(user);
-  const xp           = badges.filter(b => b.earned).reduce((t, b) => t + b.xp, 0);
+  const xp           = calcXP();
   const level        = getUserLevel(xp);
-  const maxedOut     = xp >= MAX_XP;
-  const xpInLevel    = maxedOut ? 100 : xp % 100;
-  const xpToNext     = 100 - (xp % 100);
-  // The big bar tracks the whole journey; the hero bar tracks the current level.
-  const xpOverallPct = Math.min((xp / MAX_XP) * 100, 100);
-  const earnedBadges = badges.filter(b => b.earned).map(b => b.id);
+  const xpInLevel    = xp % 100;
+  const xpToNext     = 100 - xpInLevel;
+  const earnedBadges = getEarnedBadges(user);
   const loginCount   = getLoginCount();
-  // Union with the locally tracked borrows: /api/me replaces the user object
-  // on load and the server keeps no borrow record, so this stat would read 0
-  // right next to an earned Reader badge.
-  const bookCount    = new Set([...user.borrowedBooks, ...getTrackedBorrows()]).size;
-
-  const xpSources = badges.map(badge => ({
-    ...badge,
-    ...BADGE_LOOK[badge.id],
-    // A badge not yet earned shows how far along its own checklist it is.
-    pct: Math.min((badge.current / badge.target) * 100, 100),
-    detail: badge.earned ? (ar ? 'مكتسب' : 'earned') : `${badge.current}/${badge.target}`,
-  }));
+  const bookCount    = user.borrowedBooks.length;
+  const { mapXp, shelvesXp, loginXp, searchXp, placeCount } = useXpBreakdown();
 
   // ── Lock conditions ────────────────────────────────────────────────────────
   const hoursLocked  = bookCount === 0;
@@ -102,9 +88,16 @@ export function Profile({ user }: ProfileProps) {
       labelEn: 'Badges Earned',
       value: earnedBadges.length,
       locked: badgesLocked,
-      hintAr: 'استكشف المكتبة أو العب لفتح الأوسمة',
-      hintEn: 'Explore or play to unlock',
+      hintAr: 'اكسب XP والعب لفتح الأوسمة',
+      hintEn: 'Earn XP & play to unlock',
     },
+  ];
+
+  const xpSources = [
+    { icon: MapPin,       labelAr: 'خريطة المكتبة',  labelEn: 'Library Map',   earned: mapXp,     max: 20,   detail: ar ? 'مرة واحدة'  : 'once'       },
+    { icon: BookOpen,     labelAr: 'زيارة الرفوف',   labelEn: 'Shelf Visits',  earned: shelvesXp, max: null,  detail: ar ? `${placeCount} رف` : `${placeCount} shelves` },
+    { icon: Flame,        labelAr: 'تسجيل الدخول',  labelEn: 'Login Sessions', earned: loginXp,   max: 50,   detail: ar ? 'بحد أقصى ٥' : 'cap 5'       },
+    { icon: SearchIcon,   labelAr: 'البحث الذكي',    labelEn: 'Smart Search',  earned: searchXp,  max: 50,   detail: ar ? 'بحد أقصى ٥' : 'cap 5'       },
   ];
 
   return (
@@ -143,9 +136,7 @@ export function Profile({ user }: ProfileProps) {
                 />
               </div>
               <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">
-                {xp} XP — {maxedOut
-                  ? (ar ? 'اكتملت جميع الأوسمة' : 'all badges earned')
-                  : ar ? `${xpToNext} للمستوى التالي` : `${xpToNext} to next level`}
+                {xp} XP — {ar ? `${xpToNext} للمستوى التالي` : `${xpToNext} to next level`}
               </p>
             </div>
           </div>
@@ -172,53 +163,46 @@ export function Profile({ user }: ProfileProps) {
           <div className="h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
-              animate={{ width: `${xpOverallPct}%` }}
+              animate={{ width: `${xpInLevel}%` }}
               transition={{ duration: 1.4, ease: 'easeOut' }}
               className="h-full bg-accent rounded-full shadow-[0_0_12px_rgba(217,179,16,0.4)]"
             />
           </div>
           <div className={cn('flex items-center justify-between text-[10px] font-black text-slate-400', ar ? 'flex-row-reverse' : '')}>
-            <span dir="ltr">{xp} / {MAX_XP} XP</span>
-            <span>{maxedOut
-              ? (ar ? 'اكتملت جميع الأوسمة 🏆' : 'All badges earned 🏆')
-              : ar ? `${xpToNext} XP للمستوى التالي` : `${xpToNext} XP to next level`}</span>
+            <span dir="ltr">{xp} / {level * 100} XP</span>
+            <span>{ar ? `${xpToNext} XP للمستوى التالي` : `${xpToNext} XP to next level`}</span>
           </div>
         </div>
 
         {/* XP source breakdown */}
         <div className="pt-2 border-t border-slate-100 dark:border-white/5 space-y-2">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-            {ar ? 'مصادر الخبرة — الأوسمة' : 'XP Sources — Badges'}
+            {ar ? 'مصادر الخبرة' : 'XP Sources'}
           </p>
-          {xpSources.map(({ id, icon: Icon, labelAr, labelEn, earned: isEarned, xp: reward, pct, detail }, i) => (
-            <div key={id} className={cn('flex items-center gap-3', ar ? 'flex-row-reverse' : '')}>
-              <div className={cn(
-                'w-7 h-7 rounded-lg flex items-center justify-center shrink-0',
-                isEarned ? 'bg-primary/8' : 'bg-slate-100 dark:bg-slate-800',
-              )}>
-                <Icon className={cn('w-3.5 h-3.5', isEarned ? 'text-primary dark:text-accent' : 'text-slate-300 dark:text-slate-600')} />
+          {xpSources.map(({ icon: Icon, labelAr, labelEn, earned, max, detail }, i) => (
+            <div key={i} className={cn('flex items-center gap-3', ar ? 'flex-row-reverse' : '')}>
+              <div className="w-7 h-7 rounded-lg bg-primary/8 flex items-center justify-center shrink-0">
+                <Icon className="w-3.5 h-3.5 text-primary dark:text-accent" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className={cn('flex items-center justify-between gap-2', ar ? 'flex-row-reverse' : '')}>
                   <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate">
                     {ar ? labelAr : labelEn}
                   </span>
-                  <span dir="ltr" className={cn('text-[11px] font-black shrink-0', isEarned ? 'text-accent' : 'text-slate-300 dark:text-slate-600')}>
-                    +{reward} XP
+                  <span className={cn('text-[11px] font-black shrink-0', earned > 0 ? 'text-accent' : 'text-slate-300 dark:text-slate-600')}>
+                    +{earned} XP
                   </span>
                 </div>
                 <div className="h-1 rounded-full bg-slate-100 dark:bg-slate-800 mt-1 overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
+                    animate={{ width: max ? `${Math.min((earned / max) * 100, 100)}%` : earned > 0 ? '100%' : '0%' }}
                     transition={{ duration: 0.8, ease: 'easeOut', delay: i * 0.1 }}
                     className="h-full bg-accent rounded-full"
                   />
                 </div>
               </div>
-              <span className="text-[9px] font-bold text-slate-400 shrink-0 min-w-[40px] text-end" dir={detail.includes('/') ? 'ltr' : undefined}>
-                {detail}
-              </span>
+              <span className="text-[9px] font-bold text-slate-400 shrink-0 min-w-[40px] text-end">{detail}</span>
             </div>
           ))}
         </div>
