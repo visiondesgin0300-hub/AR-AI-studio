@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   ArrowLeft,
-  Search as SearchIcon,
-  Map as MapIcon,
   BookOpen,
   GraduationCap,
   ShieldAlert,
@@ -12,8 +10,6 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Sparkles,
-  UserCheck,
   Globe,
   User as UserIcon,
   UserPlus
@@ -385,27 +381,6 @@ export function Login({ onLogin }: LoginProps) {
           </button>
         </div>
 
-
-        {/* Access Technology features panel */}
-        <div className="flex flex-col gap-3 pt-6 mt-6 border-t border-slate-200/60 dark:border-white/5 max-w-sm mx-auto">
-          <div className="text-center">
-             <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('accessTech')}</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-             <div className="official-card py-2.5 px-1.5 flex flex-col items-center gap-1.5 bg-slate-50/50 dark:bg-slate-800/30 border-none transition-transform hover:scale-105">
-               <SearchIcon className="w-3.5 h-3.5 text-[#004C6D] dark:text-white" />
-               <span className="text-[8px] font-black text-slate-600 dark:text-white uppercase truncate max-w-full">{t('searchTitle')}</span>
-             </div>
-             <div className="official-card py-2.5 px-1.5 flex flex-col items-center gap-1.5 bg-slate-50/50 dark:bg-slate-800/30 border-none transition-transform hover:scale-105">
-               <MapIcon className="w-3.5 h-3.5 text-[#004C6D] dark:text-white" />
-               <span className="text-[8px] font-black text-slate-600 dark:text-white uppercase truncate max-w-full">{t('mapTitle')}</span>
-             </div>
-             <div className="official-card py-2.5 px-1.5 flex flex-col items-center gap-1.5 bg-slate-50/50 dark:bg-slate-800/30 border-none transition-transform hover:scale-105">
-               <BookOpen className="w-3.5 h-3.5 text-[#004C6D] dark:text-white" />
-               <span className="text-[8px] font-black text-slate-600 dark:text-white uppercase truncate max-w-full">{t('myBooksTitle')}</span>
-             </div>
-          </div>
-        </div>
 
         {/* Footer info/copyright */}
         <div className="mt-8 text-center">

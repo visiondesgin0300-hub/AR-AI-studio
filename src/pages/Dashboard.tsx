@@ -4,7 +4,7 @@ import { Search, BookOpen, Clock, ChevronRight, Compass, MapPin, Layers, Message
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, calcXP, getSearchCount } from '../lib/utils';
+import { cn, calcXP, getSearchCount, displayName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
@@ -118,8 +118,8 @@ export function Dashboard({ user }: DashboardProps) {
               className="relative bg-white/15 backdrop-blur-sm border border-white/25 rounded-2xl rounded-b-sm px-4 py-3 text-white text-[12px] font-bold text-center leading-snug max-w-[160px]"
             >
               {language === 'ar'
-                ? `مرحباً ${user.name.split(' ')[0]}! 👋\nكيف أساعدك اليوم؟`
-                : `Hi ${user.name.split(' ')[0]}! 👋\nHow can I help you?`}
+                ? `مرحباً ${displayName(user, language).split(' ')[0]}! 👋\nكيف أساعدك اليوم؟`
+                : `Hi ${displayName(user, language).split(' ')[0]}! 👋\nHow can I help you?`}
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 overflow-hidden">
                 <div className="w-3 h-3 bg-white/15 border-r border-b border-white/25 rotate-45 -translate-y-1.5 mx-auto" />
               </div>

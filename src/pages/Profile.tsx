@@ -10,8 +10,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import {
   cn, getUserLevel, getEarnedBadges, calcXP,
-  getLoginCount, getSearchCount, getMapVisits,
-} from '../lib/utils';
+  getLoginCount, getSearchCount, getMapVisits, displayName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { useNotifications } from '../hooks/useNotifications';
@@ -112,12 +111,12 @@ export function Profile({ user }: ProfileProps) {
         <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-6">
           {/* avatar */}
           <div className="w-20 h-20 rounded-2xl bg-white/15 border-2 border-white/20 flex items-center justify-center shrink-0 shadow-xl">
-            <span className="text-3xl font-black text-white uppercase">{user.name.charAt(0)}</span>
+            <span className="text-3xl font-black text-white uppercase">{displayName(user, language).charAt(0)}</span>
           </div>
 
           {/* identity */}
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-black text-white leading-tight">{user.name}</h1>
+            <h1 className="text-2xl font-black text-white leading-tight">{displayName(user, language)}</h1>
             <div className={cn('flex items-center gap-2 mt-1.5 flex-wrap', ar ? 'flex-row-reverse justify-end' : '')}>
               <span className="flex items-center gap-1 text-[10px] text-white/50 font-bold truncate max-w-[200px]">
                 <Mail className="w-3 h-3 shrink-0" />{user.email}

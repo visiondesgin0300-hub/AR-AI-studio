@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, X, Sparkles, MapPin } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
-import { cn, calcXP } from '../lib/utils';
+import { cn, calcXP, displayName } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useLanguage } from '../hooks/useLanguage';
@@ -176,7 +176,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
              </div>
              <div className="overflow-hidden flex-1">
                 <div className="text-xs font-black text-primary dark:text-white truncate uppercase tracking-tight group-hover:text-accent transition-colors">
-                  {user.name}
+                  {displayName(user, language)}
                 </div>
                 <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-1.5 flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
@@ -272,7 +272,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
           <div className="flex-1 min-w-0 relative z-10 hidden md:block">
             <h1 className="text-lg lg:text-xl font-black text-white tracking-tight truncate">
-              {t('welcomeUser').replace('{name}', user.name)}
+              {t('welcomeUser').replace('{name}', displayName(user, language))}
             </h1>
           </div>
 

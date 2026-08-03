@@ -6,6 +6,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** The name to show for a user in the active language. */
+export function displayName(user: Pick<User, 'name' | 'nameEn'>, language: string): string {
+  return language === 'en' && user.nameEn ? user.nameEn : user.name;
+}
+
 export function getUserLevel(points: number): number {
   return Math.floor(points / 100) + 1;
 }

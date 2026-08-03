@@ -52,6 +52,10 @@ export interface Badge {
 export interface User {
   id: string;
   name: string;
+  /** English label, for accounts whose "name" is a label rather than a
+   *  person's name (the numbered test accounts). Real people keep one name
+   *  in both languages — you don't translate someone's name. */
+  nameEn?: string;
   email: string;
   role: 'student' | 'admin';
   borrowedBooks: string[]; // IDs of books currently borrowed
