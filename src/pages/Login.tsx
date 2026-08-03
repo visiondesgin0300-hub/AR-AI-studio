@@ -18,6 +18,7 @@ import { motion } from 'motion/react';
 import { User } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
+import { LoginTabs } from '../components/LoginTabs';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -174,11 +175,10 @@ export function Login({ onLogin }: LoginProps) {
           <div className="w-12 h-1 bg-[#D7C826] mx-auto rounded-full mt-4"></div>
         </div>
 
-        {/* Role Selection Tabs (Deep Teal and Gold highlight) */}
-        {/* The role picker that used to sit here is gone. It looked like a
-            choice of who to sign in as, and it behaved like one: selecting
-            "Admin" with any address at all produced an admin session. The
-            account's role now comes from the server with its credentials. */}
+        {/* Two doors, clearly labelled. Note this only navigates between the
+            two sign-in pages — unlike the role picker that used to sit here,
+            it has no say in what role the server hands back. */}
+        <LoginTabs active="student" />
 
         {/* Form Fields */}
         <form onSubmit={handleSubmit} className="space-y-4">

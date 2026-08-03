@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import { User } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
+import { LoginTabs } from '../components/LoginTabs';
 
 interface AdminLoginProps {
   onLogin: (user: User) => void;
@@ -141,6 +142,8 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
             {ar ? 'مخصص لطاقم المكتبة المصرّح له' : 'For authorised library staff only'}
           </p>
         </div>
+
+        <LoginTabs active="admin" variant="dark" />
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
