@@ -1077,7 +1077,7 @@ export const TEST_ACCOUNTS: User[] = Array.from({ length: 20 }, (_, i) => {
   return {
     id: `t${n}`,
     name: `حساب تجريبي ${n}`,
-    nameEn: `Test account ${n}`,
+    nameEn: `Test user ${n}`,
     email: `user${n}@arlibrary.test`,
     role: 'student' as const,
     borrowedBooks: [],
