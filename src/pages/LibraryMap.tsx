@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers, Maximize2, Clock } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, User as UserIcon, Search, Layers, Maximize2, Clock } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn, trackMapVisit } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
@@ -189,20 +189,10 @@ export function LibraryMap() {
     ? (DISTANCE_BY_SECTION[destinationShelfId.split('-')[0]] ?? 45) + (parseInt(destinationShelfId.split('-')[1] ?? '1') - 1) * 8
     : 0;
 
-  // Floor guidance reuses the same ground/1st/2nd/3rd floor labels already
-  // used for facility locations, so a shelf destination also tells the
-  // student which floor to head to, not just which aisle. The numeric level
-  // also feeds the walking-time estimate below - reaching a higher floor
-  // takes longer than a same-floor stroll, not just a longer flat distance.
-  const FLOOR_LABEL_KEY_BY_SECTION: Record<string, string> = {
-    A: 'facilityLocationPrinting',
-    B: 'facilityLocationComputerLab',
-    C: 'facilityLocationGroupStudy',
-    D: 'facilityLocationSilentZone',
-    E: 'facilityLocationPrinting',
-  };
+  // The floor a section sits on. The chip that displayed this to the reader is
+  // gone; the level is kept because the walking-time estimate below still uses
+  // it — reaching a higher floor takes longer than a same-floor stroll.
   const FLOOR_LEVEL_BY_SECTION: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, E: 0 };
-  const destinationFloorLabel = destinationSectionId ? t(FLOOR_LABEL_KEY_BY_SECTION[destinationSectionId] ?? 'facilityLocationPrinting') : '';
   const destinationFloorLevel = destinationSectionId ? (FLOOR_LEVEL_BY_SECTION[destinationSectionId] ?? 0) : 0;
 
   // Walking time: a same-floor walk of ~30-83m realistically takes about a
@@ -1222,13 +1212,6 @@ export function LibraryMap() {
                       <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
                         <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
                         {t('headTowardsShelf', { shelf: displayShelfCode })}
-                      </div>
-                      {/* Floor guidance, right under the heading, so the user
-                          knows which floor to head to as well. Facilities carry
-                          their own real floor label; shelves derive it. */}
-                      <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/70 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                        <Box className="w-3.5 h-3.5 text-accent/80" />
-                        {destinationFloorLabel}
                       </div>
                       {/* Distance/ETA surfaced right under the heading so it's
                           visible without scrolling the tall aisle view on a
