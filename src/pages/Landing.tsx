@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Brain, Globe, Search, BookOpen, Map as MapIcon, Camera, LogIn, Compass, Users, VolumeX, Monitor, Printer, ArrowRight, ArrowLeft } from 'lucide-react';
+import { Brain, Globe, Search, BookOpen, Map as MapIcon, Camera, LogIn, Users, VolumeX, Monitor, Printer, ArrowRight, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
@@ -76,12 +76,6 @@ export function Landing() {
             transition={{ duration: 0.6 }}
             className={cn("flex-1 flex flex-col max-w-xl", dir === 'rtl' ? 'items-end text-right' : 'items-start text-left')}
           >
-            <div className="flex items-center gap-2 mb-5 text-accent">
-              <Compass className="w-4 h-4" />
-              <span className="text-[10px] font-black uppercase tracking-[0.25em]">
-                {ar ? 'نظام الملاحة الذكي' : 'Smart Wayfinding System'}
-              </span>
-            </div>
             <h1 className="font-display text-4xl md:text-[3.25rem] font-bold text-primary dark:text-white tracking-tight leading-[1.08] mb-6 text-balance">
               {ar ? (
                 <>لا تبحث عن الكتاب<br /><span className="text-accent">دَع المكتبة تقودك إليه</span></>
