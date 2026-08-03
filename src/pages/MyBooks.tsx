@@ -9,12 +9,21 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, getUserLevel, getEarnedBadges, calcXP, displayName } from '../lib/utils';
+import { cn, getUserLevel, getBadgeStatuses, calcXP, MAX_XP, getTrackedBorrows, displayName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 
 interface MyBooksProps { user: User }
+
+const BADGE_NAME_EN: Record<string, string> = {
+  'مستكشف': 'Explorer',
+  'باحث': 'Researcher',
+  'دليل المرافق': 'Facility Guide',
+  'قارئ': 'Reader',
+  'بطل التحدي': 'Challenge Champion',
+  'متميز': 'Distinguished',
+};
 
 export function MyBooks({ user }: MyBooksProps) {
   const navigate = useNavigate();
@@ -23,11 +32,13 @@ export function MyBooks({ user }: MyBooksProps) {
 
   const [activeTab, setActiveTab]         = useState<'books' | 'achievements'>('books');
   const [sortOrder, setSortOrder]         = useState<'newest' | 'oldest'>('newest');
-  const earnedBadges = getEarnedBadges(user);
-  const xp           = calcXP();
+  const badges       = getBadgeStatuses(user);
+  const earnedBadges = badges.filter(b => b.earned).map(b => b.id);
+  const xp           = calcXP(user);
   const xpLevel      = getUserLevel(xp);
-  const xpInLevel    = xp % 100;
-  const xpToNext     = 100 - xpInLevel;
+  const maxedOut     = xp >= MAX_XP;
+  const xpInLevel    = maxedOut ? 100 : xp % 100;
+  const xpToNext     = 100 - (xp % 100);
 
   const catLabel: Record<string, string> = {
     'فيزياء': t('physics'), 'هندسة': t('engineering'),
@@ -35,8 +46,16 @@ export function MyBooks({ user }: MyBooksProps) {
   };
 
   // ─── borrowed books ───────────────────────────────────────────────────────────
+  // The server has no record of borrows, and App refreshes the user from
+  // /api/me on every load — so a borrow made this session only survives in the
+  // locally tracked list. Show the union, or the book vanishes after a reload.
+  const borrowedIds = useMemo(
+    () => Array.from(new Set([...user.borrowedBooks, ...getTrackedBorrows()])),
+    [user.borrowedBooks],
+  );
+
   const borrowedBooks = useMemo(() => {
-    return MOCK_BOOKS.filter(b => user.borrowedBooks.includes(b.id))
+    return MOCK_BOOKS.filter(b => borrowedIds.includes(b.id))
       .map(book => {
         const borrow  = new Date(2024, 3, parseInt(book.id) * 5);
         const ret     = new Date(borrow.getTime() + 14 * 86400000);
@@ -53,10 +72,10 @@ export function MyBooks({ user }: MyBooksProps) {
         };
       })
       .sort((a, b) => sortOrder === 'newest' ? b.borrowTs - a.borrowTs : a.borrowTs - b.borrowTs);
-  }, [user.borrowedBooks, sortOrder, language]);
+  }, [borrowedIds, sortOrder, language]);
 
   const stats = {
-    books:    user.borrowedBooks.length,
+    books:    borrowedIds.length,
     hours:    borrowedBooks.reduce((s, b) => s + Math.round((b.progress / 100) * 6), 0),
     streak:   7 + Math.floor(xp / 200),
     badges:   earnedBadges.length,
@@ -115,7 +134,9 @@ export function MyBooks({ user }: MyBooksProps) {
         <div className="relative mt-8 space-y-2">
           <div className={cn('flex items-center justify-between text-[10px] font-black text-white/50 uppercase tracking-widest', ar ? 'flex-row-reverse' : '')}>
             <span>{t('currentRank')} — {t('eliteReader')}</span>
-            <span>{xpToNext} XP {ar ? 'للمستوى التالي' : 'to next level'}</span>
+            <span>{maxedOut
+              ? (ar ? 'اكتملت جميع الأوسمة 🏆' : 'All badges earned 🏆')
+              : `${xpToNext} XP ${ar ? 'للمستوى التالي' : 'to next level'}`}</span>
           </div>
           <div className="h-2 rounded-full bg-white/10 border border-white/5 overflow-hidden">
             <motion.div
@@ -338,39 +359,57 @@ export function MyBooks({ user }: MyBooksProps) {
               <BadgesCabinet user={user} />
             </section>
 
-            {/* How to earn XP */}
+            {/* How to earn XP — the badges are the only source, so this is the
+                same ledger the cabinet above draws, stated as a price list. */}
             <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
               <div className="text-center space-y-2">
                 <h4 className="text-xl font-black text-primary dark:text-white">
                   {ar ? 'كيف تكسب نقاط XP؟' : 'How to Earn XP'}
                 </h4>
                 <div className="w-10 h-[3px] bg-accent rounded-full mx-auto" />
+                <p className="text-[11px] font-bold text-slate-400 max-w-md mx-auto leading-relaxed">
+                  {ar
+                    ? 'كل نقطة تأتي من وسام. أكمل خطوات الوسام لتكسب نقاطه كاملة.'
+                    : 'Every point comes from a badge. Finish a badge\u2019s steps to collect its XP.'}
+                </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                {[
-                  { icon: '🗺️', ar: 'فتح خريطة المكتبة',  en: 'Open library map',    pts: 20,  note: ar ? 'مرة واحدة'         : 'once'          },
-                  { icon: '📍', ar: 'زيارة رف أو قسم', en: 'Visit a shelf/section', pts: 15,  note: ar ? 'لكل رف'            : 'per shelf'     },
-                  { icon: '🔑', ar: 'تسجيل الدخول',    en: 'Login session',          pts: 10,  note: ar ? 'بحد أقصى ٥ مرات'  : 'max 5 times'   },
-                  { icon: '🔍', ar: 'بحث ذكي',          en: 'Smart search',           pts: 10,  note: ar ? 'بحد أقصى ٥ بحثات' : 'max 5 searches' },
-                ].map((item, i) => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {badges.map((badge, i) => (
                   <motion.div
-                    key={i}
+                    key={badge.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.05 }}
-                    className={cn('official-card p-4 bg-white dark:bg-slate-900 flex items-center gap-3', ar ? 'flex-row-reverse' : '')}
+                    className={cn(
+                      'official-card p-4 bg-white dark:bg-slate-900 flex items-start gap-3',
+                      ar ? 'flex-row-reverse text-right' : '',
+                    )}
                   >
-                    <span className="text-xl shrink-0">{item.icon}</span>
-                    <div className={cn('flex-1 min-w-0', ar ? 'text-right' : '')}>
-                      <div className="text-[11px] font-black text-primary dark:text-white">{ar ? item.ar : item.en}</div>
-                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                        <span className="text-[10px] font-black text-accent">+{item.pts} XP</span>
-                        {'note' in item && <span className="text-[9px] font-bold text-slate-400">{(item as { note: string }).note}</span>}
+                    <span className="text-xl shrink-0">{badge.earned ? '\u2705' : '\u{1F512}'}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className={cn('flex items-center gap-2 flex-wrap', ar ? 'flex-row-reverse' : '')}>
+                        <span className="text-[11px] font-black text-primary dark:text-white">
+                          {ar ? badge.id : BADGE_NAME_EN[badge.id]}
+                        </span>
+                        <span dir="ltr" className="text-[10px] font-black text-accent">+{badge.xp} XP</span>
                       </div>
+                      <ul className="mt-1 space-y-0.5">
+                        {badge.steps.map((step, si) => (
+                          <li key={si} className={cn(
+                            'text-[9px] font-bold leading-snug',
+                            step.done ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400',
+                          )}>
+                            {step.done ? '\u2713 ' : '\u25CB '}{ar ? step.labelAr : step.labelEn}
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   </motion.div>
                 ))}
               </div>
+              <p className="text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <span dir="ltr">{xp} / {MAX_XP}</span> XP
+              </p>
             </section>
 
           </motion.div>

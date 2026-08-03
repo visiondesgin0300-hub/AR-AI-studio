@@ -1,9 +1,9 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search as SearchIcon, MapPin, Compass, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
-import { cn, incrementSearchCount } from '../lib/utils';
+import { cn, trackSearchTerm } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { BookCover } from '../components/BookCover';
 
@@ -11,11 +11,18 @@ export function Search() {
   const { t, dir, language } = useLanguage();
   const navigate = useNavigate();
   
-  const searchTracked = useRef(false);
-
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
+
+  // Record the search once typing settles, so one query typed key by key is
+  // one search — not one per keystroke, and not one per page visit.
+  useEffect(() => {
+    const q = query;
+    if (q.trim().length < 2) return;
+    const id = setTimeout(() => trackSearchTerm(q), 800);
+    return () => clearTimeout(id);
+  }, [query]);
 
   // Settle categories
   const categories = useMemo(() => {
@@ -67,10 +74,7 @@ export function Search() {
 
   const handleApplyPrompt = (q: string) => {
     setQuery(q);
-    if (!searchTracked.current && q.trim().length >= 2) {
-      searchTracked.current = true;
-      incrementSearchCount();
-    }
+    trackSearchTerm(q);
   };
 
   return (
@@ -104,14 +108,7 @@ export function Search() {
               type="text"
               placeholder={t('searchPlaceholderSearch')}
               value={query}
-              onChange={(e) => {
-                const val = e.target.value;
-                setQuery(val);
-                if (!searchTracked.current && val.trim().length >= 2) {
-                  searchTracked.current = true;
-                  incrementSearchCount();
-                }
-              }}
+              onChange={(e) => setQuery(e.target.value)}
               className={cn(
                 "w-full py-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-3xl text-base font-bold transition-all shadow-inner focus:outline-none focus:ring-2 focus:ring-accent",
                 dir === 'rtl' ? 'pr-16 pl-6 text-right' : 'pl-16 pr-6 text-left'

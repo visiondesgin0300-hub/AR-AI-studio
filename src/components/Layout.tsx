@@ -459,7 +459,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 <div>
                   <div className="text-[8px] font-black text-accent/70 uppercase tracking-wider">{t('experiencePoints')}</div>
                   <div className="text-sm font-black text-accent leading-none mt-0.5">
-                    {calcXP()} <span className="text-[9px] font-bold text-white/60">XP</span>
+                    {calcXP(user)} <span className="text-[9px] font-bold text-white/60">XP</span>
                   </div>
                 </div>
               </motion.div>

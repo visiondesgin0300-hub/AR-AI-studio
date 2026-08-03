@@ -1,72 +1,104 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, Compass, Lock, Zap, Trophy, Gamepad2, CheckCircle2, Sparkles } from 'lucide-react';
+import {
+  Search, Star, Compass, Lock, Zap, Trophy, Gamepad2, CheckCircle2, Sparkles,
+  Circle, Map as MapIcon, BookOpen, ArrowLeft,
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
-import { getEarnedBadges, calcXP } from '../lib/utils';
+import { getBadgeStatuses, BadgeStatus } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
 interface BadgesCabinetProps {
   user: User;
 }
 
-const ALL_BADGES = [
-  {
-    id: 'مستكشف',
-    gameLevel: 'explorer',
+/**
+ * Presentation for each badge. The rules and XP live in lib/utils
+ * (getBadgeStatuses) — this map only says how a badge looks and where its
+ * "earn it" button goes, so the requirements can't drift from the display.
+ */
+const BADGE_STYLE: Record<string, {
+  icon: React.ElementType;
+  color: string;
+  bg: string;
+  border: string;
+  iconBg: string;
+  glow: string;
+  pill: string;
+  titleAr: string; titleEn: string;
+  taglineAr: string; taglineEn: string;
+  /** Where the badge is actually earned. Omitted when it is derived. */
+  to?: string;
+  ctaAr?: string; ctaEn?: string;
+}> = {
+  'مستكشف': {
     icon: Compass,
-    colorEarned: 'text-blue-600',
-    bgEarned: 'from-blue-50 to-blue-50/30 dark:from-blue-950/40 dark:to-blue-950/10',
-    borderEarned: 'border-blue-200/80 dark:border-blue-500/25',
+    color: 'text-blue-600', bg: 'from-blue-50 to-blue-50/30 dark:from-blue-950/40 dark:to-blue-950/10',
+    border: 'border-blue-200/80 dark:border-blue-500/25',
     iconBg: 'bg-blue-500/12 border-blue-300/40 dark:bg-blue-500/20 dark:border-blue-500/30',
-    dot: 'bg-blue-500',
-    glowClass: 'shadow-blue-200 dark:shadow-blue-900/40',
-    pillClass: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
-    titleAr: 'مستكشف',
-    titleEn: 'Explorer',
-    descAr: 'افتح خريطة المكتبة',
-    descEn: 'Open the library map',
-    xp: 50,
-    xpRequired: 10,
+    glow: 'shadow-blue-200 dark:shadow-blue-900/40',
+    pill: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
+    titleAr: 'مستكشف', titleEn: 'Explorer',
+    taglineAr: 'اقرأ خريطة المكتبة', taglineEn: 'Read the library map',
+    to: '/map', ctaAr: 'افتح الخريطة', ctaEn: 'Open the map',
   },
-  {
-    id: 'باحث',
-    gameLevel: 'researcher',
+  'باحث': {
     icon: Search,
-    colorEarned: 'text-emerald-600',
-    bgEarned: 'from-emerald-50 to-emerald-50/30 dark:from-emerald-950/40 dark:to-emerald-950/10',
-    borderEarned: 'border-emerald-200/80 dark:border-emerald-500/25',
+    color: 'text-emerald-600', bg: 'from-emerald-50 to-emerald-50/30 dark:from-emerald-950/40 dark:to-emerald-950/10',
+    border: 'border-emerald-200/80 dark:border-emerald-500/25',
     iconBg: 'bg-emerald-500/12 border-emerald-300/40 dark:bg-emerald-500/20 dark:border-emerald-500/30',
-    dot: 'bg-emerald-500',
-    glowClass: 'shadow-emerald-200 dark:shadow-emerald-900/40',
-    pillClass: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
-    titleAr: 'باحث',
-    titleEn: 'Researcher',
-    descAr: 'تنقّل بين 3 رفوف',
-    descEn: 'Visit 3 shelves',
-    xp: 75,
-    xpRequired: 30,
+    glow: 'shadow-emerald-200 dark:shadow-emerald-900/40',
+    pill: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
+    titleAr: 'باحث', titleEn: 'Researcher',
+    taglineAr: 'ابحث في مصادر المكتبة', taglineEn: 'Search the library resources',
+    to: '/search', ctaAr: 'ابدأ البحث', ctaEn: 'Start searching',
   },
-  {
-    id: 'متميز',
-    gameLevel: 'distinguished',
+  'دليل المرافق': {
+    icon: MapIcon,
+    color: 'text-sky-600', bg: 'from-sky-50 to-sky-50/30 dark:from-sky-950/40 dark:to-sky-950/10',
+    border: 'border-sky-200/80 dark:border-sky-500/25',
+    iconBg: 'bg-sky-500/12 border-sky-300/40 dark:bg-sky-500/20 dark:border-sky-500/30',
+    glow: 'shadow-sky-200 dark:shadow-sky-900/40',
+    pill: 'bg-sky-100 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400',
+    titleAr: 'دليل المرافق', titleEn: 'Facility Guide',
+    taglineAr: 'اعرف طريقك إلى المرافق', taglineEn: 'Find your way to the facilities',
+    to: '/facilities', ctaAr: 'افتح المرافق', ctaEn: 'Open facilities',
+  },
+  'قارئ': {
+    icon: BookOpen,
+    color: 'text-violet-600', bg: 'from-violet-50 to-violet-50/30 dark:from-violet-950/40 dark:to-violet-950/10',
+    border: 'border-violet-200/80 dark:border-violet-500/25',
+    iconBg: 'bg-violet-500/12 border-violet-300/40 dark:bg-violet-500/20 dark:border-violet-500/30',
+    glow: 'shadow-violet-200 dark:shadow-violet-900/40',
+    pill: 'bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400',
+    titleAr: 'قارئ', titleEn: 'Reader',
+    taglineAr: 'استعر واحفظ ما يهمّك', taglineEn: 'Borrow and save what matters',
+    to: '/search', ctaAr: 'اختر كتاباً', ctaEn: 'Pick a book',
+  },
+  'بطل التحدي': {
+    icon: Gamepad2,
+    color: 'text-rose-600', bg: 'from-rose-50 to-rose-50/30 dark:from-rose-950/40 dark:to-rose-950/10',
+    border: 'border-rose-200/80 dark:border-rose-500/25',
+    iconBg: 'bg-rose-500/12 border-rose-300/40 dark:bg-rose-500/20 dark:border-rose-500/30',
+    glow: 'shadow-rose-200 dark:shadow-rose-900/40',
+    pill: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400',
+    titleAr: 'بطل التحدي', titleEn: 'Challenge Champion',
+    taglineAr: 'أتقن مستويات اللعبة الثلاثة', taglineEn: 'Master all three game levels',
+    to: '/cognitive-ar', ctaAr: 'العب الآن', ctaEn: 'Play now',
+  },
+  'متميز': {
     icon: Star,
-    colorEarned: 'text-amber-600',
-    bgEarned: 'from-amber-50 to-amber-50/30 dark:from-amber-950/40 dark:to-amber-950/10',
-    borderEarned: 'border-amber-200/80 dark:border-amber-500/25',
+    color: 'text-amber-600', bg: 'from-amber-50 to-amber-50/30 dark:from-amber-950/40 dark:to-amber-950/10',
+    border: 'border-amber-200/80 dark:border-amber-500/25',
     iconBg: 'bg-amber-500/12 border-amber-300/40 dark:bg-amber-500/20 dark:border-amber-500/30',
-    dot: 'bg-amber-500',
-    glowClass: 'shadow-amber-200 dark:shadow-amber-900/40',
-    pillClass: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
-    titleAr: 'متميز',
-    titleEn: 'Distinguished',
-    descAr: 'رحلة عبر جميع أقسام المكتبة',
-    descEn: 'Journey all library sections',
-    xp: 100,
-    xpRequired: 60,
+    glow: 'shadow-amber-200 dark:shadow-amber-900/40',
+    pill: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
+    titleAr: 'متميز', titleEn: 'Distinguished',
+    taglineAr: 'الوسام الختامي — بعد الأوسمة الخمسة', taglineEn: 'The final badge — after the other five',
   },
-];
+};
 
 function Particle({ angle, color }: { angle: number; color: string }) {
   return (
@@ -83,11 +115,10 @@ function Particle({ angle, color }: { angle: number; color: string }) {
 export function BadgesCabinet({ user }: BadgesCabinetProps) {
   const { language } = useLanguage();
   const isAr = language === 'ar';
-  const earnedBadges = getEarnedBadges(user);
-  const earnedCount  = earnedBadges.length;
-  const totalCount   = ALL_BADGES.length;
+  const badges       = getBadgeStatuses(user);
+  const earnedCount  = badges.filter(b => b.earned).length;
+  const totalCount   = badges.length;
   const allEarned    = earnedCount === totalCount;
-  const currentXP    = calcXP();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [particles, setParticles]             = useState(false);
@@ -104,15 +135,12 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
     }
   }, [allEarned]);
 
-  // Sort: earned first, then unlockable (XP met), then locked
-  const sorted = [...ALL_BADGES].sort((a, b) => {
-    const aE = earnedBadges.includes(a.id);
-    const bE = earnedBadges.includes(b.id);
-    if (aE !== bE) return aE ? -1 : 1;
-    const aU = currentXP >= a.xpRequired;
-    const bU = currentXP >= b.xpRequired;
-    if (aU !== bU) return aU ? -1 : 1;
-    return a.xpRequired - b.xpRequired;
+  // Earned first, then whichever badge is furthest along its own checklist.
+  // XP can no longer order this list — XP comes *from* these badges, so
+  // sorting by it would just rank each card by the reward it pays.
+  const sorted: BadgeStatus[] = [...badges].sort((a, b) => {
+    if (a.earned !== b.earned) return a.earned ? -1 : 1;
+    return (b.current / b.target) - (a.current / a.target);
   });
 
   return (
@@ -177,13 +205,13 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
         </span>
       </div>
 
-      {/* 3-column grid */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {sorted.map((badge, i) => {
-          const isEarned   = earnedBadges.includes(badge.id);
-          const isUnlocked = currentXP >= badge.xpRequired;
-          const Icon       = badge.icon;
-          const pct        = Math.min((currentXP / badge.xpRequired) * 100, 100);
+          const style      = BADGE_STYLE[badge.id];
+          const isEarned   = badge.earned;
+          const isStarted  = !isEarned && badge.current > 0;
+          const Icon       = style.icon;
+          const pct        = Math.min((badge.current / badge.target) * 100, 100);
 
           return (
             <motion.div
@@ -191,12 +219,12 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.07, type: 'spring', stiffness: 280, damping: 22 }}
-              whileHover={isEarned || isUnlocked ? { y: -4 } : {}}
+              whileHover={isEarned || isStarted ? { y: -4 } : {}}
               className={cn(
                 'relative rounded-2xl border p-5 flex flex-col items-center text-center gap-3 transition-all',
                 isEarned
-                  ? cn('bg-gradient-to-b shadow-lg', badge.bgEarned, badge.borderEarned, badge.glowClass)
-                  : isUnlocked
+                  ? cn('bg-gradient-to-b shadow-lg', style.bg, style.border, style.glow)
+                  : isStarted
                     ? 'bg-white dark:bg-slate-900 border-accent shadow-lg shadow-accent/20'
                     : 'bg-slate-50 dark:bg-slate-900/30 border-slate-100 dark:border-white/5'
               )}
@@ -204,7 +232,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
               {/* Corner indicator */}
               {isEarned ? (
                 <span className="absolute top-3 end-3 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900 shadow-sm" />
-              ) : isUnlocked ? (
+              ) : isStarted ? (
                 <motion.span
                   className="absolute top-2.5 end-2.5"
                   animate={{ rotate: [0, 15, -15, 0], scale: [1, 1.2, 1] }}
@@ -221,88 +249,90 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
               {/* Icon */}
               <div className={cn(
                 'w-14 h-14 rounded-2xl border-2 flex items-center justify-center transition-all',
-                isEarned || isUnlocked
-                  ? cn(badge.iconBg, badge.colorEarned)
+                isEarned || isStarted
+                  ? cn(style.iconBg, style.color)
                   : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-white/5 text-slate-300 dark:text-slate-600'
               )}>
                 <Icon className="w-7 h-7" />
               </div>
 
-              {/* Title */}
-              <p className={cn(
-                'text-sm font-black leading-tight',
-                isEarned || isUnlocked ? cn(badge.colorEarned) : 'text-slate-400 dark:text-slate-600'
-              )}>
-                {isAr ? badge.titleAr : badge.titleEn}
-              </p>
+              {/* Title + tagline */}
+              <div className="space-y-1">
+                <p className={cn(
+                  'text-sm font-black leading-tight',
+                  isEarned || isStarted ? style.color : 'text-slate-400 dark:text-slate-600'
+                )}>
+                  {isAr ? style.titleAr : style.titleEn}
+                </p>
+                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-snug">
+                  {isAr ? style.taglineAr : style.taglineEn}
+                </p>
+              </div>
 
-              {/* Status line */}
+              {/* XP reward pill — dir=ltr: the leading "+" is bidi-neutral and
+                  would render as "XP 50+" under RTL. */}
+              <span dir="ltr" className={cn(
+                'text-[9px] font-black px-2.5 py-1 rounded-xl',
+                isEarned || isStarted ? style.pill : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+              )}>
+                +{badge.xp} XP
+              </span>
+
               {isEarned ? (
                 <span className="flex items-center gap-1 text-[9px] font-black text-emerald-600 dark:text-emerald-400">
                   <CheckCircle2 className="w-3 h-3" />
                   {isAr ? 'مكتسب' : 'Earned'}
                 </span>
               ) : (
-                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-snug">
-                  {isAr ? badge.descAr : badge.descEn}
-                </p>
-              )}
+                <div className="w-full space-y-2.5">
+                  {/* What is left, spelled out */}
+                  <ul className="w-full space-y-1 text-start">
+                    {badge.steps.map((s, si) => (
+                      <li key={si} className="flex items-start gap-1.5">
+                        {s.done
+                          ? <CheckCircle2 className="w-3 h-3 mt-px shrink-0 text-emerald-500" />
+                          : <Circle className="w-3 h-3 mt-px shrink-0 text-slate-300 dark:text-slate-600" />}
+                        <span className={cn(
+                          'text-[9px] font-bold leading-snug',
+                          s.done ? 'text-slate-500 dark:text-slate-400 line-through' : 'text-slate-500 dark:text-slate-400'
+                        )}>
+                          {isAr ? s.labelAr : s.labelEn}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
 
-              {/* XP reward pill */}
-              <span className={cn(
-                'text-[9px] font-black px-2.5 py-1 rounded-xl',
-                isEarned || isUnlocked ? badge.pillClass : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-              )}>
-                +{badge.xp} XP
-              </span>
-
-              {/* XP progress bar — locked only */}
-              {!isEarned && !isUnlocked && (
-                <div className="w-full space-y-1.5 mt-0.5">
-                  <div className="relative h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
-                    <motion.div
-                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent/50 to-accent"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }}
-                      transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.1 }}
-                    />
+                  {/* Checklist progress */}
+                  <div className="space-y-1.5">
+                    <div className="relative h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
+                      <motion.div
+                        className="absolute inset-y-0 start-0 rounded-full bg-accent"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${pct}%` }}
+                        transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.1 }}
+                      />
+                    </div>
+                    <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500">
+                      <span dir="ltr">{badge.current} / {badge.target}</span>{' '}
+                      {isAr ? 'خطوات' : 'steps'}
+                    </p>
                   </div>
-                  <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500" dir="ltr">
-                    {currentXP} / {badge.xpRequired} XP
-                  </p>
-                </div>
-              )}
 
-              {/* Play Now — unlocked but not yet earned */}
-              {!isEarned && isUnlocked && (
-                <div className="w-full flex flex-col items-center gap-2 mt-1">
-                  {/* "Ready!" label */}
-                  <motion.div
-                    animate={{ opacity: [1, 0.6, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.6 }}
-                    className="flex items-center gap-1 text-[9px] font-black text-accent"
-                  >
-                    <Sparkles className="w-2.5 h-2.5" />
-                    {isAr ? 'جاهز للعب!' : 'Ready to play!'}
-                  </motion.div>
-
-                  {/* Pulsing Play Now button */}
-                  <div className="relative w-full">
-                    {/* Pulse ring */}
-                    <motion.div
-                      className="absolute inset-0 rounded-xl bg-accent/40"
-                      animate={{ scale: [1, 1.12, 1], opacity: [0.7, 0, 0.7] }}
-                      transition={{ repeat: Infinity, duration: 1.4, ease: 'easeInOut' }}
-                    />
+                  {/* Where to go and earn it */}
+                  {style.to && (
                     <Link
-                      to="/cognitive-ar"
-                      className="relative w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white text-[10px] font-black bg-accent hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/40"
-                      onClick={e => e.stopPropagation()}
+                      to={style.to}
+                      className={cn(
+                        'w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black transition-all active:scale-95',
+                        isStarted
+                          ? 'bg-accent text-white shadow-md shadow-accent/40 hover:brightness-110'
+                          : 'bg-primary/8 dark:bg-white/5 text-primary dark:text-accent hover:bg-primary/15'
+                      )}
                     >
-                      <Gamepad2 className="w-3.5 h-3.5" />
-                      {isAr ? 'العب الآن' : 'Play Now'}
+                      {isAr ? style.ctaAr : style.ctaEn}
+                      <ArrowLeft className={cn('w-3 h-3', isAr ? '' : 'rotate-180')} />
                     </Link>
-                  </div>
+                  )}
                 </div>
               )}
             </motion.div>
