@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, getUserLevel, getEarnedBadges, calcXP } from '../lib/utils';
+import { cn, getUserLevel, getEarnedBadges, calcXP, displayName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
 import { BadgesCabinet } from '../components/BadgesCabinet';
@@ -75,11 +75,11 @@ export function MyBooks({ user }: MyBooksProps) {
           {/* avatar + name */}
           <div className="flex items-center gap-5">
             <div className="w-16 h-16 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
-              <span className="text-2xl font-black text-white uppercase">{user.name.charAt(0)}</span>
+              <span className="text-2xl font-black text-white uppercase">{displayName(user, language).charAt(0)}</span>
             </div>
             <div>
               <div className={cn('flex items-center gap-2 flex-wrap', ar ? 'flex-row-reverse' : '')}>
-                <h1 className="text-2xl font-black text-white">{user.name}</h1>
+                <h1 className="text-2xl font-black text-white">{displayName(user, language)}</h1>
                 <span className="text-[10px] font-black bg-accent text-primary px-2.5 py-1 rounded-lg uppercase tracking-widest">
                   {t('level')} {xpLevel}
                 </span>

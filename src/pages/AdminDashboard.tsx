@@ -10,7 +10,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { BookCover } from '../components/BookCover';
 import { MOCK_BOOKS, MOCK_USERS, SHELF_IDS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, displayName } from '../lib/utils';
 import { User, Book } from '../types';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, LabelList, PieChart, Pie } from 'recharts';
 import { useLanguage } from '../hooks/useLanguage';
@@ -454,9 +454,9 @@ export function AdminDashboard() {
                           <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                             <td className="px-6 py-4">
                               <div className={cn('flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                                <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-primary dark:text-accent shadow-sm shrink-0">{user.name[0]}</div>
+                                <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-primary dark:text-accent shadow-sm shrink-0">{displayName(user, language)[0]}</div>
                                 <div>
-                                  <div className="text-xs font-black text-primary dark:text-white">{user.name}</div>
+                                  <div className="text-xs font-black text-primary dark:text-white">{displayName(user, language)}</div>
                                   <div className="text-[10px] text-slate-400 font-bold">{user.email}</div>
                                 </div>
                               </div>
