@@ -46,6 +46,14 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         body: JSON.stringify({ email, password }),
       });
 
+      // The server has no ADMIN_PASSWORD set, so no password can work here.
+      // Say so, rather than letting the operator keep retrying credentials.
+      if (res.status === 503) {
+        setError(ar
+          ? 'دخول الإدارة غير مُهيّأ على هذا الخادم. اضبط متغيّر البيئة ADMIN_PASSWORD ثم أعد التشغيل.'
+          : 'Admin sign-in is not configured on this server. Set the ADMIN_PASSWORD environment variable and restart.');
+        return;
+      }
       if (res.status === 429) {
         setError(ar
           ? 'محاولات كثيرة. انتظر دقيقة ثم حاول مرة أخرى.'

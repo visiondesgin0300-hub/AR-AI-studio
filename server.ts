@@ -86,6 +86,15 @@ app.post("/api/login", loginLimiter, (req, res) => {
   }
 
   const account = MOCK_USERS.find((u) => u.email.toLowerCase() === email);
+
+  // An unconfigured deployment refuses every admin login, and reporting that
+  // as "wrong password" sends the operator hunting for a credential that was
+  // never going to work. Say what is actually wrong — it grants nothing, since
+  // there is still no password that would get in.
+  if (account?.role === "admin" && !ADMIN_PASSWORD) {
+    return res.status(503).json({ error: "admin sign-in not configured" });
+  }
+
   // Same response whether the address is unknown or the password is wrong, so
   // the form cannot be used to enumerate who has an account.
   const expected = account?.role === "admin" ? ADMIN_PASSWORD : DEMO_PASSWORD;
