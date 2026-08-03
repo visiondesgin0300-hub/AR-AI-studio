@@ -119,14 +119,14 @@ export function Login({ onLogin }: LoginProps) {
   };
 
   return (
-    <div className={cn("min-h-screen flex items-center justify-center p-4 md:p-8 bg-bg-light dark:bg-slate-950 relative overflow-hidden font-sans", dir === 'rtl' ? 'text-right' : 'text-left')}>
+    <div className={cn("min-h-screen flex items-center justify-center px-4 pt-24 pb-8 md:p-8 bg-bg-light dark:bg-slate-950 relative overflow-hidden font-sans", dir === 'rtl' ? 'text-right' : 'text-left')}>
 
       {/* LANGUAGE SWITCHER */}
       <div className={cn("absolute top-6 z-20", dir === 'rtl' ? 'left-6' : 'right-6')}>
         <button
           type="button"
           onClick={toggleLanguage}
-          className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
         >
           <Globe className="w-3.5 h-3.5 text-[#D7C826] animate-spin-slow" />
           <span>{language === 'ar' ? 'English' : 'العربية'}</span>
@@ -138,7 +138,7 @@ export function Login({ onLogin }: LoginProps) {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
         >
           {dir === 'rtl' ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
           <span>{language === 'ar' ? 'رجوع' : 'Back'}</span>
@@ -210,7 +210,7 @@ export function Login({ onLogin }: LoginProps) {
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 className={cn(
-                  "w-full bg-[#E5E1E6]/40 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl py-4 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all duration-300",
+                  "w-full bg-[#E5E1E6]/40 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl py-4 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all duration-300",
                   dir === 'rtl' ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
                 )}
               />
@@ -234,7 +234,7 @@ export function Login({ onLogin }: LoginProps) {
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 className={cn(
-                  "w-full bg-[#E5E1E6]/40 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl py-4 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all duration-300",
+                  "w-full bg-[#E5E1E6]/40 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl py-4 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all duration-300",
                   dir === 'rtl' ? "pr-12 pl-12 text-right" : "pl-12 pr-12 text-left"
                 )}
               />
@@ -277,7 +277,7 @@ export function Login({ onLogin }: LoginProps) {
               <button
                 type="button"
                 onClick={() => { setShowCreateForm(!showCreateForm); setCreateError(''); }}
-                className="inline-flex items-center gap-1.5 text-[#004C6D] dark:text-[#D7C826] font-black hover:underline cursor-pointer"
+                className="inline-flex items-center gap-1.5 py-3 px-1 text-[#004C6D] dark:text-[#D7C826] font-black hover:underline cursor-pointer"
               >
                 <UserPlus className="w-3.5 h-3.5" />
                 {t('createNewAccount')}
@@ -309,7 +309,7 @@ export function Login({ onLogin }: LoginProps) {
                   value={newName}
                   onChange={(e) => { setNewName(e.target.value); setCreateError(''); }}
                   className={cn(
-                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
+                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
                     dir === 'rtl' ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
                   )}
                 />
@@ -326,7 +326,7 @@ export function Login({ onLogin }: LoginProps) {
                   value={newEmail}
                   onChange={(e) => { setNewEmail(e.target.value); setCreateError(''); }}
                   className={cn(
-                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
+                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
                     dir === 'rtl' ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
                   )}
                 />
@@ -343,7 +343,7 @@ export function Login({ onLogin }: LoginProps) {
                   value={newPassword}
                   onChange={(e) => { setNewPassword(e.target.value); setCreateError(''); }}
                   className={cn(
-                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
+                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
                     dir === 'rtl' ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
                   )}
                 />

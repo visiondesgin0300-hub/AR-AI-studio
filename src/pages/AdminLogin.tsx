@@ -81,15 +81,21 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     }
   };
 
+  // text-base, not text-sm: iOS Safari zooms the page in whenever a focused
+  // input is under 16px, and the user then has to pinch back out to see the
+  // form. Drops to 14px only from sm: upward, where that behaviour doesn't apply.
   const fieldCls = cn(
-    'w-full bg-white/5 text-white placeholder:text-white/25 rounded-2xl py-4 text-sm font-bold',
+    'w-full bg-white/5 text-white placeholder:text-white/25 rounded-2xl py-4 text-base sm:text-sm font-bold',
     'border border-white/10 focus:outline-none focus:ring-2 focus:ring-[#D7C826]/40 focus:border-[#D7C826]/40 transition-all',
-    dir === 'rtl' ? 'pr-12 pl-12 text-right' : 'pl-12 pr-12 text-left'
+    dir === 'rtl' ? 'pr-12 pl-14 text-right' : 'pl-12 pr-14 text-left'
   );
 
   return (
     <div
-      className={cn('min-h-screen flex items-center justify-center p-4 md:p-8 bg-[#01293b] relative font-sans',
+      // pt-24 reserves the language/back row. The card is vertically centred,
+      // so on a short phone it grew upward until those buttons sat on top of
+      // it — at 320px the language button landed over the shield badge.
+      className={cn('min-h-screen flex items-center justify-center px-4 pt-24 pb-8 md:p-8 bg-[#01293b] relative font-sans',
         dir === 'rtl' ? 'text-right' : 'text-left')}
       dir={dir}
     >
@@ -100,7 +106,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         <button
           type="button"
           onClick={toggleLanguage}
-          className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black text-white/80 uppercase tracking-widest hover:bg-white/15 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black text-white/80 uppercase tracking-widest hover:bg-white/15 transition-all cursor-pointer active:scale-95"
         >
           <Globe className="w-3.5 h-3.5 text-[#D7C826]" />
           <span>{ar ? 'English' : 'العربية'}</span>
@@ -111,7 +117,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-4 py-2 bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black text-white/80 uppercase tracking-widest hover:bg-white/15 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-[10px] font-black text-white/80 uppercase tracking-widest hover:bg-white/15 transition-all cursor-pointer active:scale-95"
         >
           {dir === 'rtl' ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
           <span>{ar ? 'رجوع' : 'Back'}</span>
@@ -187,7 +193,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
                 aria-label={ar ? (showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور')
                                : (showPassword ? 'Hide password' : 'Show password')}
                 aria-pressed={showPassword}
-                className={cn('absolute inset-y-0 flex items-center text-white/35 hover:text-white/70 transition-colors cursor-pointer', dir === 'rtl' ? 'left-4' : 'right-4')}
+                className={cn('absolute inset-y-0 w-12 flex items-center justify-center text-white/35 hover:text-white/70 transition-colors cursor-pointer', dir === 'rtl' ? 'left-0' : 'right-0')}
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
