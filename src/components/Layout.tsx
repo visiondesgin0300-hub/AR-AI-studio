@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, BookOpen, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, X, Sparkles, MapPin } from 'lucide-react';
+import { Home, BookOpen, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, X, Sparkles } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
 import { cn, calcXP, displayName } from '../lib/utils';
@@ -65,8 +65,11 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const isAdmin = user.role === 'admin';
 
   // Role-specific navigation so each storyboard reads clearly:
-  // - Student journey: home → search a book → locate it on the map → track it
-  //   in "my books" (AR stays reachable via the floating button).
+  // - Student journey: home → search the catalogue → search the facilities →
+  //   their own progress. The library map is not listed here on purpose: it is
+  //   opened from a specific book or facility rather than browsed on its own,
+  //   so the dashboard cards and the "locate" action on a book lead into it.
+  //   AR stays reachable via the floating button.
   // - Admin journey: management dashboard first (their real home; "/" already
   //   redirects admins to /admin), then the catalog search and map for
   //   reference. Personal, student-only surfaces (my borrowed books,
@@ -80,7 +83,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
     : [
         { icon: Home,     label: t('dashboard'),          path: '/'           },
         { icon: Search,   label: t('smartSearchCard'),    path: '/search'     },
-        { icon: MapPin,   label: t('libraryMap'),         path: '/map'        },
+        { icon: Compass,  label: t('libraryFacilities'),  path: '/facilities' },
         { icon: UserIcon, label: t('profile'),            path: '/profile'    },
       ];
 
