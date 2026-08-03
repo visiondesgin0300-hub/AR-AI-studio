@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   X, ArrowRight, ArrowLeft, Search, Map as MapIcon, Camera,
-  Sparkles, Award, BookOpen, Star, Zap, CheckCircle2,
+  Sparkles, Award, BookOpen, Crown, Zap, CheckCircle2,
   MessageCircle, Brain, MapPin, Navigation,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
@@ -223,10 +223,10 @@ function BadgesMockup({ isAr }: { isAr: boolean }) {
   const badges = isAr
     ? [{ icon: MapPin, label: 'مستكشف', earned: true, color: 'text-blue-400' },
        { icon: Search, label: 'باحث', earned: xp >= 45, color: 'text-emerald-400' },
-       { icon: Star, label: 'متميز', earned: xp >= 80, color: 'text-amber-400' }]
+       { icon: Crown, label: 'متميز', earned: xp >= 80, color: 'text-amber-400' }]
     : [{ icon: MapPin, label: 'Explorer', earned: true, color: 'text-blue-400' },
        { icon: Search, label: 'Researcher', earned: xp >= 45, color: 'text-emerald-400' },
-       { icon: Star, label: 'Distinguished', earned: xp >= 80, color: 'text-amber-400' }];
+       { icon: Crown, label: 'Distinguished', earned: xp >= 80, color: 'text-amber-400' }];
 
   return (
     <div className="w-full space-y-4">

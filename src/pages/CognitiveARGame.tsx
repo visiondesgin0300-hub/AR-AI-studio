@@ -11,7 +11,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { StarOff, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { StarOff, Zap, Star, Crown, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { cn, GAME_LEVEL_XP } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -95,7 +95,7 @@ const LEVELS: Level[] = [
     id: 'distinguished', nameAr: 'المتميز', nameEn: 'Distinguished',
     descAr: 'ثلاثة مصادر دفعة واحدة — ردود خاطفة!', descEn: 'Three sources at once — lightning-fast reactions!',
     hintAr: 'أصعب مستوى — التمييز في ثانية واحدة', hintEn: 'Hardest level — classify in under a second',
-    xp: GAME_LEVEL_XP.distinguished, Icon: Star,
+    xp: GAME_LEVEL_XP.distinguished, Icon: Crown,
     color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/40', shadow: 'shadow-amber-500/30',
     itemMs: 1900, scanMs: 900, spawnMs: 1400, maxItems: 3, winScore: 160,
   },
@@ -523,9 +523,9 @@ export function CognitiveARGame() {
                     </h4>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { icon: Star,   label: ar ? 'وسام مستكشف' : 'Explorer Badge',     xp: '+50 XP',  color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
-                        { icon: Trophy, label: ar ? 'وسام باحث'    : 'Researcher Badge',   xp: '+75 XP',  color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
-                        { icon: Zap,    label: ar ? 'وسام متميز'   : 'Distinguished Badge', xp: '+100 XP', color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' },
+                        { icon: Compass, label: ar ? 'وسام مستكشف' : 'Explorer Badge',     xp: `+${GAME_LEVEL_XP.explorer} XP`,      color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
+                        { icon: Search,  label: ar ? 'وسام باحث'    : 'Researcher Badge',   xp: `+${GAME_LEVEL_XP.researcher} XP`,    color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
+                        { icon: Crown,   label: ar ? 'وسام متميز'   : 'Distinguished Badge', xp: `+${GAME_LEVEL_XP.distinguished} XP`, color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' },
                       ].map((r, i) => (
                         <div key={i} className={cn('rounded-2xl border p-3 flex flex-col items-center gap-2 text-center', r.bg)}>
                           <r.icon className={cn('w-5 h-5', r.color)} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, Compass, Lock, Zap, Trophy, Gamepad2, CheckCircle2, Sparkles } from 'lucide-react';
+import { Search, Crown, Compass, Lock, Zap, Trophy, Gamepad2, CheckCircle2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
@@ -51,7 +51,7 @@ const ALL_BADGES = [
   {
     id: 'متميز',
     gameLevel: 'distinguished',
-    icon: Star,
+    icon: Crown,
     colorEarned: 'text-amber-600',
     bgEarned: 'from-amber-50 to-amber-50/30 dark:from-amber-950/40 dark:to-amber-950/10',
     borderEarned: 'border-amber-200/80 dark:border-amber-500/25',
