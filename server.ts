@@ -36,7 +36,17 @@ app.use("/api/", aiLimiter);
 // ADMIN_PASSWORD has no default — if it is not set in the environment, admin
 // login is refused outright rather than falling back to something guessable.
 const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "library2024";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+
+// The admin password falls back to a built-in value so a fresh deployment
+// works with no configuration. That fallback lives in this file, which means
+// it is readable by anyone with the source: on a public deployment it is a
+// published credential, not a secret. Set ADMIN_PASSWORD in the environment to
+// replace it, or set it to an empty string to switch admin sign-in off
+// entirely. Anything beyond a demo should do one of those two things.
+const DEFAULT_ADMIN_PASSWORD = "ARLibrary@Admin2026";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD !== undefined
+  ? process.env.ADMIN_PASSWORD
+  : DEFAULT_ADMIN_PASSWORD;
 
 // Constant-time compare so a wrong password cannot be narrowed by timing.
 function passwordMatches(supplied: string, expected: string): boolean {
@@ -1855,6 +1865,17 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Smart Library Server running on http://localhost:${PORT}`);
+    // Loud on purpose: running on the built-in admin password means anyone who
+    // can read the source can sign in as an administrator.
+    if (ADMIN_PASSWORD === DEFAULT_ADMIN_PASSWORD) {
+      console.warn(
+        "\n  WARNING  Admin sign-in is using the built-in password from server.ts.\n" +
+        "           It is public to anyone with the source. Set ADMIN_PASSWORD to\n" +
+        "           replace it, or ADMIN_PASSWORD=\"\" to disable admin sign-in.\n"
+      );
+    } else if (!ADMIN_PASSWORD) {
+      console.log("  Admin sign-in is disabled (ADMIN_PASSWORD is empty).");
+    }
   });
 }
 
