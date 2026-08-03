@@ -67,21 +67,6 @@ export function Login({ onLogin }: LoginProps) {
     navigate('/');
   };
 
-  const handleGuestAccess = () => {
-    const guestUser: User = {
-      id: `guest_${Date.now()}`,
-      name: language === 'ar' ? 'ضيف' : 'Guest',
-      email: 'guest@arlibrary.demo',
-      role: 'student',
-      borrowedBooks: [],
-      totalReadCount: 0,
-      points: 0,
-      badges: [],
-    };
-    onLogin(guestUser);
-    navigate('/');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -371,14 +356,6 @@ export function Login({ onLogin }: LoginProps) {
               </button>
             </motion.form>
           )}
-
-          <button
-            type="button"
-            onClick={handleGuestAccess}
-            className="text-[10px] font-bold text-slate-400 dark:text-slate-500 hover:text-[#004C6D] dark:hover:text-[#D7C826] transition-colors cursor-pointer underline-offset-2 hover:underline"
-          >
-            {language === 'ar' ? '← الدخول كضيف' : 'Continue as Guest →'}
-          </button>
         </div>
 
 
