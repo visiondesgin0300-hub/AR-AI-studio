@@ -3,7 +3,7 @@
  * Items (knowledge sources) appear in 6 portal slots.
  * GREEN items (reliable) must be clicked before they vanish → +score.
  * RED items (unreliable) must NOT be clicked → let them auto-expire.
- * Wrong action = −life. 3 lives per level. Combo multiplier rewards streaks.
+ * Wrong action = −star. 3 stars per level. Combo multiplier rewards streaks.
  *
  * After reaching the win score, a knowledge quiz unlocks the badge.
  */
@@ -11,7 +11,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { StarOff, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
 import { cn, GAME_LEVEL_XP } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -651,7 +651,7 @@ export function CognitiveARGame() {
 
                   <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                     <span>⏱ 45s</span>
-                    <span>❤️ ×3</span>
+                    <span>⭐ ×3</span>
                     <span className={lvl.color}>{ar ? 'هدف' : 'Target'}: {lvl.winScore}pts</span>
                   </div>
 
@@ -749,8 +749,8 @@ export function CognitiveARGame() {
                 {[0, 1, 2].map(i => (
                   <motion.div key={i} animate={i >= gs.lives ? { scale: [1.3, 0.8, 1] } : {}} transition={{ duration: 0.3 }}>
                     {i < gs.lives
-                      ? <Heart className="w-5 h-5 text-rose-400 fill-rose-400" />
-                      : <HeartCrack className="w-5 h-5 text-slate-700" />}
+                      ? <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
+                      : <StarOff className="w-5 h-5 text-slate-700" />}
                   </motion.div>
                 ))}
               </div>
@@ -1107,7 +1107,7 @@ export function CognitiveARGame() {
               <div className="relative z-10 grid grid-cols-3 gap-3 pt-2 border-t border-white/5">
                 {[
                   { label: ar ? 'أعلى كومبو' : 'Max Combo', val: `×${gs.maxCombo}` },
-                  { label: ar ? 'الأرواح المتبقية' : 'Lives Left', val: `${gs.lives}/3` },
+                  { label: ar ? 'النجوم المتبقية' : 'Stars Left', val: `${gs.lives}/3` },
                   { label: ar ? 'الوقت المتبقي' : 'Time Left', val: `${Math.floor(gs.timeLeft / 1000)}s` },
                 ].map(stat => (
                   <div key={stat.label} className="text-center">
