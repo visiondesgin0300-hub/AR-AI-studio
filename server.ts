@@ -98,6 +98,18 @@ app.post("/api/login", loginLimiter, (req, res) => {
   return res.json({ user: account, token });
 });
 
+// Returns the account behind a session token. The client stores a full copy of
+// the user at login and would otherwise keep showing that snapshot forever —
+// a renamed account, a changed role or a revoked session all went unnoticed
+// until the next manual sign-out.
+app.get("/api/me", (req, res) => {
+  const session = sessionFor(req);
+  if (!session) return res.status(401).json({ error: "no session" });
+  const account = MOCK_USERS.find((u) => u.email.toLowerCase() === session.email);
+  if (!account) return res.status(401).json({ error: "unknown account" });
+  return res.json({ user: account });
+});
+
 app.post("/api/logout", (req, res) => {
   const header = req.header("authorization") || "";
   if (header.startsWith("Bearer ")) sessions.delete(header.slice(7));

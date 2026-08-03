@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
@@ -65,6 +65,26 @@ function loadStoredUser(): User | null {
 function AppContent() {
   const [user, setUser] = useState<User | null>(loadStoredUser);
   const { dir } = useLanguage();
+
+  // The stored user is a snapshot taken at login. Without this it never
+  // changes, so a renamed account keeps showing its old name — and a session
+  // revoked on the server still looks signed in. Re-read the account on load
+  // and adopt whatever the server says.
+  useEffect(() => {
+    let token: string | null = null;
+    try { token = sessionStorage.getItem('library_token'); } catch { /* private mode */ }
+    if (!token) return;
+    let cancelled = false;
+    fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled || !data?.user) return;
+        setUser(data.user);
+        localStorage.setItem('library_user', JSON.stringify(data.user));
+      })
+      .catch(() => { /* offline: keep the stored copy */ });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleLogin = (userData: User) => {
     setUser(userData);
