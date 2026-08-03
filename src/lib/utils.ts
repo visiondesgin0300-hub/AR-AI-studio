@@ -35,8 +35,26 @@ function searchKey(): string { return `search_count_v1_${getCurrentUserId()}`; }
 function gameKey():   string { return `cognitive_ar_v4_${getCurrentUserId()}`; }
 function favKey():    string { return `favorite_books_v1_${getCurrentUserId()}`; }
 
-function getCompletedGameLevels(): string[] {
+export function getCompletedGameLevels(): string[] {
   try { return JSON.parse(localStorage.getItem(gameKey()) || '[]'); } catch { return []; }
+}
+
+/**
+ * XP paid for finishing each cognitive AR level. Single source of truth:
+ * CognitiveARGame builds its level cards from this, and calcXP() adds it to
+ * the app-wide total, so the "+50 XP" a card promises is the same 50 XP the
+ * header and the profile then show.
+ */
+export const GAME_LEVEL_XP: Record<string, number> = {
+  explorer: 50,
+  researcher: 75,
+  distinguished: 100,
+};
+
+/** XP earned from the cognitive AR game so far. */
+export function getGameXP(): number {
+  return getCompletedGameLevels()
+    .reduce((total, id) => total + (GAME_LEVEL_XP[id] ?? 0), 0);
 }
 
 export function trackMapVisit(locationId: string): void {
@@ -104,7 +122,10 @@ function getPlaceCount(): number {
   return getMapVisits().filter(v => /^[A-Z]-\d/.test(v) || v === 'facilities').length;
 }
 
-// XP for display: map open=20, each place/shelf=15, login 10/session (cap 5), search 10/visit (cap 5)
+// XP for display: map open=20, each place/shelf=15, login 10/session (cap 5),
+// search 10/visit (cap 5), plus whatever the cognitive AR levels have paid.
+// The game used to keep its own XP tally on its own page only, so a level card
+// promising "+50 XP" left the header and the profile unchanged.
 export function calcXP(): number {
   const visits = getMapVisits();
   let xp = 0;
@@ -112,6 +133,7 @@ export function calcXP(): number {
   xp += getPlaceCount() * 15;
   xp += Math.min(getLoginCount(), 5) * 10;
   xp += Math.min(getSearchCount(), 5) * 10;
+  xp += getGameXP();
   return xp;
 }
 

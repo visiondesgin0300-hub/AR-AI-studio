@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import {
-  cn, getUserLevel, getEarnedBadges, calcXP,
+  cn, getUserLevel, getEarnedBadges, calcXP, getGameXP, getCompletedGameLevels,
   getLoginCount, getSearchCount, getMapVisits, displayName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
@@ -25,7 +25,15 @@ function useXpBreakdown() {
   const shelvesXp = placeCount * 15;
   const loginXp   = Math.min(getLoginCount(), 5) * 10;
   const searchXp  = Math.min(getSearchCount(), 5) * 10;
-  return { mapXp, shelvesXp, loginXp, searchXp, placeCount };
+  const gameXp    = getGameXP();
+  const gameLevels = getCompletedGameLevels().length;
+  return { mapXp, shelvesXp, loginXp, searchXp, placeCount, gameXp, gameLevels };
+}
+
+/** "1 level" / "مستوى واحد" — Arabic has a dual form, so spell all three out. */
+function levelsLabel(n: number, ar: boolean): string {
+  if (ar) return n === 0 ? 'لا مستويات' : n === 1 ? 'مستوى واحد' : n === 2 ? 'مستويان' : `${n} مستويات`;
+  return `${n} level${n === 1 ? '' : 's'}`;
 }
 
 export function Profile({ user }: ProfileProps) {
@@ -42,7 +50,7 @@ export function Profile({ user }: ProfileProps) {
   const earnedBadges = getEarnedBadges(user);
   const loginCount   = getLoginCount();
   const bookCount    = user.borrowedBooks.length;
-  const { mapXp, shelvesXp, loginXp, searchXp, placeCount } = useXpBreakdown();
+  const { mapXp, shelvesXp, loginXp, searchXp, placeCount, gameXp, gameLevels } = useXpBreakdown();
 
   // ── Lock conditions ────────────────────────────────────────────────────────
   const hoursLocked  = bookCount === 0;
@@ -98,6 +106,7 @@ export function Profile({ user }: ProfileProps) {
     { icon: BookOpen,     labelAr: 'زيارة الرفوف',   labelEn: 'Shelf Visits',  earned: shelvesXp, max: null,  detail: ar ? `${placeCount} رف` : `${placeCount} shelves` },
     { icon: Flame,        labelAr: 'تسجيل الدخول',  labelEn: 'Login Sessions', earned: loginXp,   max: 50,   detail: ar ? 'بحد أقصى ٥' : 'cap 5'       },
     { icon: SearchIcon,   labelAr: 'البحث الذكي',    labelEn: 'Smart Search',  earned: searchXp,  max: 50,   detail: ar ? 'بحد أقصى ٥' : 'cap 5'       },
+    { icon: Gamepad2,     labelAr: 'تحدي الواقع المعزز', labelEn: 'AR Challenge', earned: gameXp,  max: 225,  detail: levelsLabel(gameLevels, ar) },
   ];
 
   return (

@@ -12,10 +12,20 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, HeartCrack, Zap, Star, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, GAME_LEVEL_XP } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
 const TICK = 100;
+
+/**
+ * Correct answers needed to pass: two thirds of the questions, as an exact
+ * fraction. This was written as `ceil(total * 0.67)` in two places, and 0.67
+ * sits just above two thirds — 3 × 0.67 = 2.01, whose ceiling is 3 — so a quiz
+ * described as 67% actually required every answer to be right.
+ */
+function passMarkFor(total: number): number {
+  return Math.ceil((total * 2) / 3);
+}
 
 function getGameStorageKey(): string {
   try {
@@ -69,7 +79,7 @@ const LEVELS: Level[] = [
     id: 'explorer', nameAr: 'المستكشف', nameEn: 'Explorer',
     descAr: 'انقر المصادر الخضراء قبل أن تختفي — تجنّب الحمراء!', descEn: 'Click green sources before they vanish — avoid red ones!',
     hintAr: 'الأخضر = موثوق ← انقر | الأحمر = تجنّب ← لا تنقر', hintEn: 'Green = reliable → click | Red = avoid → don\'t click',
-    xp: 50, Icon: Compass,
+    xp: GAME_LEVEL_XP.explorer, Icon: Compass,
     color: 'text-teal-400', bg: 'bg-teal-500/15', border: 'border-teal-500/40', shadow: 'shadow-teal-500/30',
     itemMs: 3200, scanMs: 500, spawnMs: 2000, maxItems: 1, winScore: 80,
   },
@@ -77,7 +87,7 @@ const LEVELS: Level[] = [
     id: 'researcher', nameAr: 'الباحث', nameEn: 'Researcher',
     descAr: 'مصادر متعددة تظهر معاً — سرعة ودقة!', descEn: 'Multiple sources appear together — speed and precision!',
     hintAr: 'اثنان في وقت واحد — وقت المسح أطول!', hintEn: 'Two at once — scan time is longer now!',
-    xp: 75, Icon: Search,
+    xp: GAME_LEVEL_XP.researcher, Icon: Search,
     color: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', shadow: 'shadow-emerald-500/30',
     itemMs: 2600, scanMs: 700, spawnMs: 1700, maxItems: 2, winScore: 130,
   },
@@ -85,7 +95,7 @@ const LEVELS: Level[] = [
     id: 'distinguished', nameAr: 'المتميز', nameEn: 'Distinguished',
     descAr: 'ثلاثة مصادر دفعة واحدة — ردود خاطفة!', descEn: 'Three sources at once — lightning-fast reactions!',
     hintAr: 'أصعب مستوى — التمييز في ثانية واحدة', hintEn: 'Hardest level — classify in under a second',
-    xp: 100, Icon: Star,
+    xp: GAME_LEVEL_XP.distinguished, Icon: Star,
     color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/40', shadow: 'shadow-amber-500/30',
     itemMs: 1900, scanMs: 900, spawnMs: 1400, maxItems: 3, winScore: 160,
   },
@@ -352,7 +362,7 @@ export function CognitiveARGame() {
 
   function finishQuiz() {
     if (!activeLevel) return;
-    const passed = quizCorrect >= Math.ceil(quizQuestions.length * 0.67);
+    const passed = quizCorrect >= passMarkFor(quizQuestions.length);
     setWon(passed);
     if (passed && !completed.includes(activeLevel.id)) {
       const next = [...completed, activeLevel.id];
@@ -864,7 +874,7 @@ export function CognitiveARGame() {
           const questions = quizQuestions;
           const q = questions[quizIndex];
           const total = questions.length;
-          const passThreshold = Math.ceil(total * 0.67);
+          const passThreshold = passMarkFor(total);
 
           return (
             <motion.div
