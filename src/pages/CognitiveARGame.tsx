@@ -709,7 +709,7 @@ export function CognitiveARGame() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950"
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950"
           >
             <div className="absolute inset-0 pointer-events-none opacity-[0.07]"
               style={{ backgroundImage: 'linear-gradient(rgba(0,220,180,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,180,1) 1px,transparent 1px)', backgroundSize: '44px 44px' }} />
@@ -738,7 +738,7 @@ export function CognitiveARGame() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-950 flex flex-col select-none"
+            className="fixed inset-0 z-[70] bg-slate-950 flex flex-col select-none"
           >
             <div className="absolute inset-0 pointer-events-none opacity-[0.07]"
               style={{ backgroundImage: 'linear-gradient(rgba(0,220,180,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,180,1) 1px,transparent 1px)', backgroundSize: '44px 44px' }} />
@@ -776,8 +776,8 @@ export function CognitiveARGame() {
             </div>
 
             {/* PORTAL GRID */}
-            <div className="relative z-10 flex-1 flex items-center justify-center p-4">
-              <div className="grid grid-cols-3 gap-4 w-full max-w-md">
+            <div className="relative z-10 flex-1 min-h-0 flex items-center justify-center p-3 sm:p-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5 w-full max-w-[19rem] sm:max-w-xl lg:max-w-3xl max-h-full">
                 {slotPositions.map((_, slotIdx) => {
                   const item = gs.items.find(x => x.slot === slotIdx);
                   const isRevealed = item ? item.elapsed >= item.scanEnd : false;
@@ -795,7 +795,7 @@ export function CognitiveARGame() {
                             transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                             onClick={() => handleClick(item)}
                             className={cn(
-                              'absolute inset-0 rounded-2xl border-2 flex flex-col items-center justify-center gap-1.5 p-2 overflow-hidden',
+                              'absolute inset-0 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 p-2.5 overflow-hidden',
                               !isRevealed
                                 ? 'bg-slate-800/80 border-slate-600/40 cursor-wait'
                                 : item.src.reliable
@@ -809,7 +809,7 @@ export function CognitiveARGame() {
                             {!isRevealed ? (
                               <div className="flex gap-1">
                                 {[0, 1, 2].map(i => (
-                                  <motion.div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-500"
+                                  <motion.div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-slate-500"
                                     animate={{ opacity: [0.3, 1, 0.3] }}
                                     transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.2 }}
                                   />
@@ -817,10 +817,10 @@ export function CognitiveARGame() {
                               </div>
                             ) : (
                               <>
-                                <div className={cn('text-lg', item.src.reliable ? 'text-teal-300' : 'text-red-400')}>
+                                <div className={cn('text-2xl sm:text-3xl leading-none', item.src.reliable ? 'text-teal-300' : 'text-red-400')}>
                                   {item.src.reliable ? '✓' : '✗'}
                                 </div>
-                                <p className={cn('text-[9px] font-black text-center leading-tight px-1 uppercase tracking-wide', item.src.reliable ? 'text-teal-200' : 'text-red-300')}>
+                                <p className={cn('text-[11px] sm:text-sm font-black text-center leading-tight px-1.5 tracking-tight', item.src.reliable ? 'text-teal-200' : 'text-red-300')}>
                                   {ar ? item.src.ar : item.src.en}
                                 </p>
                               </>
@@ -881,7 +881,7 @@ export function CognitiveARGame() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6"
+              className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6"
             >
               <motion.div
                 initial={{ scale: 0.85, opacity: 0, y: 30 }}
@@ -1057,7 +1057,7 @@ export function CognitiveARGame() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6"
+            className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6"
           >
             <motion.div
               initial={{ scale: 0.8, opacity: 0, y: 30 }}
