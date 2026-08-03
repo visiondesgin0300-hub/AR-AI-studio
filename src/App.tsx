@@ -7,6 +7,7 @@ import { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
+import { AdminLogin } from './pages/AdminLogin';
 import { Dashboard } from './pages/Dashboard';
 import { BookDetails } from './pages/BookDetails';
 import { LibraryMap } from './pages/LibraryMap';
@@ -122,6 +123,11 @@ function AppContent() {
           path="/login" 
           element={user ? <Navigate to="/" /> : <Login onLogin={handleLogin} />} 
         />
+        {/* Staff entrance. Deliberately not linked from anywhere in the app. */}
+        <Route
+          path="/admin-login"
+          element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/'} replace /> : <AdminLogin onLogin={handleLogin} />}
+        />
         <Route 
           path="/" 
           element={
@@ -172,7 +178,9 @@ function AppContent() {
         />
         <Route
           path="/admin"
-          element={user ? (user.role === 'admin' ? <Layout user={user} onLogout={handleLogout}><AdminDashboard /></Layout> : <Navigate to="/" replace />) : <Navigate to="/login" />}
+          // Signed out on /admin means someone is heading for the panel, so
+          // send them to the staff door rather than the student one.
+          element={user ? (user.role === 'admin' ? <Layout user={user} onLogout={handleLogout}><AdminDashboard /></Layout> : <Navigate to="/" replace />) : <Navigate to="/admin-login" replace />}
         />
         <Route
           path="/search"
