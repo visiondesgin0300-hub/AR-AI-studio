@@ -19,7 +19,6 @@ import {
   UserPlus
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { MOCK_USERS } from '../data/mockData';
 import { User } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
@@ -30,7 +29,6 @@ interface LoginProps {
 
 export function Login({ onLogin }: LoginProps) {
   const { t, dir, language, toggleLanguage } = useLanguage();
-  const [role, setRole] = useState<'student' | 'admin'>('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -73,9 +71,6 @@ export function Login({ onLogin }: LoginProps) {
     navigate('/');
   };
 
-  // Get matching mock users for quick access based on selected role
-  const quickAccessProfiles = MOCK_USERS.filter(u => u.role === role);
-
   const handleGuestAccess = () => {
     const guestUser: User = {
       id: `guest_${Date.now()}`,
@@ -91,20 +86,7 @@ export function Login({ onLogin }: LoginProps) {
     navigate('/');
   };
 
-  const handleProfileClick = (profile: User) => {
-    setEmail(profile.email);
-    setPassword('••••••••');
-    setError('');
-    
-    setIsLoading(true);
-    setTimeout(() => {
-      onLogin(profile);
-      setIsLoading(false);
-      navigate(profile.role === 'admin' ? '/admin' : '/');
-    }, 800);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -118,47 +100,41 @@ export function Login({ onLogin }: LoginProps) {
     }
 
     setIsLoading(true);
+    try {
+      // The server decides whether the credentials are valid and what role the
+      // account has. Nothing here invents a user, and the role selector above
+      // no longer grants anything — picking "Admin" cannot make you one.
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    setTimeout(() => {
-      const foundUser = MOCK_USERS.find(
-        u => u.email.toLowerCase() === email.toLowerCase() && u.role === role
-      );
-
-      if (foundUser) {
-        onLogin(foundUser);
-        setIsLoading(false);
-        navigate(foundUser.role === 'admin' ? '/admin' : '/');
-      } else {
-        const userWithWrongRole = MOCK_USERS.find(
-          u => u.email.toLowerCase() === email.toLowerCase()
-        );
-
-        if (userWithWrongRole) {
-          setError(
-            language === 'ar' 
-              ? `هذا الحساب مسجل كـ ${userWithWrongRole.role === 'admin' ? 'مسؤول' : 'مستخدم'}. يرجى تغيير نوع الحساب المختار فوق.` 
-              : `This account is registered as ${userWithWrongRole.role === 'admin' ? 'Admin' : 'User'}. Please change the account type above.`
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        const dynamicUser: User = {
-          id: `dynamic_${Date.now()}`,
-          name: email.split('@')[0].split('.')[0].replace(/^\w/, c => c.toUpperCase()) || (role === 'admin' ? 'Specialist' : 'User'),
-          email: email,
-          role: role,
-          borrowedBooks: [],
-          totalReadCount: 0,
-          points: 100,
-          badges: []
-        };
-
-        onLogin(dynamicUser);
-        setIsLoading(false);
-        navigate(dynamicUser.role === 'admin' ? '/admin' : '/');
+      if (res.status === 429) {
+        setError(language === 'ar'
+          ? 'محاولات كثيرة. انتظر دقيقة ثم حاول مرة أخرى.'
+          : 'Too many attempts. Please wait a minute and try again.');
+        return;
       }
-    }, 600);
+      if (!res.ok) {
+        setError(language === 'ar'
+          ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+          : 'Incorrect email or password.');
+        return;
+      }
+
+      const { user, token } = await res.json();
+      try { sessionStorage.setItem('library_token', token); } catch { /* private mode */ }
+      onLogin(user);
+      navigate(user.role === 'admin' ? '/admin' : '/');
+    } catch (err) {
+      console.error('Login request failed', err);
+      setError(language === 'ar'
+        ? 'تعذّر الاتصال بالخادم. تحقق من اتصالك وحاول مجدداً.'
+        : 'Could not reach the server. Check your connection and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -218,39 +194,10 @@ export function Login({ onLogin }: LoginProps) {
         </div>
 
         {/* Role Selection Tabs (Deep Teal and Gold highlight) */}
-        <div className="mb-6">
-          <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 text-center">
-            {t('selectRole')}
-          </label>
-          <div className="grid grid-cols-2 gap-2.5 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-2xl">
-            <button
-              type="button"
-              onClick={() => { setRole('student'); setError(''); }}
-              className={cn(
-                "py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer border border-transparent",
-                role === 'student' 
-                  ? "bg-white dark:bg-slate-900 text-[#004C6D] dark:text-[#D7C826] shadow-md shadow-black/[0.04] ring-2 ring-[#99d6ea] border-[#99d6ea]" 
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-              )}
-            >
-              <UserIcon className={cn("w-4.5 h-4.5 transition-all duration-300", role === 'student' ? "text-[#99d6ea] scale-110 drop-shadow-[0_0_5px_rgba(153,214,234,0.8)]" : "text-slate-400")} />
-              <span>{t('studentRole')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setRole('admin'); setError(''); }}
-              className={cn(
-                "py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer border border-transparent",
-                role === 'admin' 
-                  ? "bg-white dark:bg-slate-900 text-[#004C6D] dark:text-[#D7C826] shadow-md shadow-black/[0.04] ring-2 ring-[#99d6ea] border-[#99d6ea]" 
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-              )}
-            >
-              <UserCheck className={cn("w-4.5 h-4.5 transition-all duration-300", role === 'admin' ? "text-[#99d6ea] scale-110 drop-shadow-[0_0_5px_rgba(153,214,234,0.8)]" : "text-slate-400")} />
-              <span>{t('adminRole')}</span>
-            </button>
-          </div>
-        </div>
+        {/* The role picker that used to sit here is gone. It looked like a
+            choice of who to sign in as, and it behaved like one: selecting
+            "Admin" with any address at all produced an admin session. The
+            account's role now comes from the server with its credentials. */}
 
         {/* Form Fields */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -278,7 +225,7 @@ export function Login({ onLogin }: LoginProps) {
                 id="login-email"
                 type="email"
                 autoComplete="email"
-                placeholder={role === 'admin' ? "fatima@example.com" : "sarah@example.com"}
+                placeholder="user01@arlibrary.test"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 className={cn(
@@ -332,7 +279,9 @@ export function Login({ onLogin }: LoginProps) {
               <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
-                <span>{t('loginBtn')} ({role === 'admin' ? t('adminRole') : t('studentRole')})</span>
+                {/* No role in the label — the account's role comes from the
+                    server, so promising to sign in "as Admin" would be a lie. */}
+                <span>{t('loginBtn')}</span>
                 {dir === 'rtl' ? <ArrowLeft className="w-4 h-4 text-[#D7C826] dark:text-[#004C6D]" /> : <ArrowRight className="w-4 h-4 text-[#D7C826] dark:text-[#004C6D]" />}
               </>
             )}
@@ -341,7 +290,7 @@ export function Login({ onLogin }: LoginProps) {
 
         {/* Create account / guest access links */}
         <div className="mt-6 space-y-3 text-center">
-          {role === 'student' && (
+          {(
             <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
               <span>{t('noAccountPrompt')} </span>
               <button
@@ -355,7 +304,7 @@ export function Login({ onLogin }: LoginProps) {
             </div>
           )}
 
-          {role === 'student' && showCreateForm && (
+          {showCreateForm && (
             <motion.form
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
@@ -436,49 +385,6 @@ export function Login({ onLogin }: LoginProps) {
           </button>
         </div>
 
-        {/* Quick Demo Access Options */}
-        <div className="mt-8 pt-6 border-t border-slate-200/60 dark:border-white/5">
-          <div className="flex items-center justify-between mb-4">
-             <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5 font-bold">
-               <Sparkles className="w-3.5 h-3.5 text-[#D7C826] animate-pulse" />
-               {t('quickAccessDemo')}
-             </span>
-             <span className="text-[9px] font-bold text-[#004C6D] dark:text-[#D7C826] bg-[#004C6D]/5 dark:bg-[#D7C826]/10 px-2 py-0.5 rounded-lg border border-[#004C6D]/10 dark:border-[#D7C826]/20">
-               Demo accounts
-             </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {quickAccessProfiles.map((profile) => (
-              <button
-                key={profile.id}
-                type="button"
-                onClick={() => handleProfileClick(profile)}
-                disabled={isLoading}
-                className="group flex items-center justify-between p-3.5 bg-slate-50/70 dark:bg-slate-950/60 hover:bg-slate-100 dark:hover:bg-slate-800/40 rounded-2xl text-left border border-slate-200/50 dark:border-white/5 transition-all text-sm font-semibold hover:scale-[1.02] active:scale-95 disabled:pointer-events-none cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-[#004C6D] group-hover:bg-[#D7C826] text-white group-hover:text-[#004C6D] flex items-center justify-center text-xs font-black shadow-sm transition-colors duration-300">
-                    {profile.name.charAt(0)}
-                  </div>
-                  <div className="overflow-hidden">
-                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight group-hover:text-[#004C6D] dark:group-hover:text-[#D7C826] transition-colors">
-                      {profile.name}
-                    </h4>
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 truncate block max-w-[130px]">
-                      {profile.email}
-                    </span>
-                  </div>
-                </div>
-                {dir === 'rtl' ? (
-                  <ArrowLeft className="w-4 h-4 text-slate-400 group-hover:-translate-x-1 transition-transform group-hover:text-[#004C6D] dark:group-hover:text-[#D7C826]" />
-                ) : (
-                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform group-hover:text-[#004C6D] dark:group-hover:text-[#D7C826]" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* Access Technology features panel */}
         <div className="flex flex-col gap-3 pt-6 mt-6 border-t border-slate-200/60 dark:border-white/5 max-w-sm mx-auto">

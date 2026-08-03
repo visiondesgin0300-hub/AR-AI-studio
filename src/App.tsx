@@ -75,6 +75,15 @@ function AppContent() {
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('library_user');
+    // Invalidate the session server-side too, so the token cannot be replayed.
+    try {
+      const token = sessionStorage.getItem('library_token');
+      if (token) {
+        fetch('/api/logout', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+          .catch(() => { /* best effort — the local session is gone either way */ });
+      }
+      sessionStorage.removeItem('library_token');
+    } catch { /* private mode */ }
   };
 
   const handleUpdateUser = (updater: (current: User) => User) => {

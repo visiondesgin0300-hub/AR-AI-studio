@@ -1062,8 +1062,33 @@ export const MOCK_USER: User = {
   badges: ['باحث', 'متميز']
 };
 
+/**
+ * Fixed roster of twenty numbered test accounts, so the app can be handed to
+ * testers with real credentials instead of accepting any address typed into
+ * the form. They carry no personal names — just an account number — and hold
+ * no privileges beyond a student's own data.
+ *
+ * All twenty share the server's DEMO_PASSWORD. The single admin account is
+ * MOCK_USER below; its password comes from ADMIN_PASSWORD in the environment
+ * and is deliberately not in this file or anywhere else in the bundle.
+ */
+export const TEST_ACCOUNTS: User[] = Array.from({ length: 20 }, (_, i) => {
+  const n = String(i + 1).padStart(2, '0');
+  return {
+    id: `t${n}`,
+    name: `حساب تجريبي ${n}`,
+    email: `user${n}@arlibrary.test`,
+    role: 'student' as const,
+    borrowedBooks: [],
+    totalReadCount: 0,
+    points: 0,
+    badges: [],
+  };
+});
+
 export const MOCK_USERS: User[] = [
   MOCK_USER,
+  ...TEST_ACCOUNTS,
   {
     id: 'u2',
     name: 'سارة أحمد',

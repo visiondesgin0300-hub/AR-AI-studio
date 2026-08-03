@@ -3,8 +3,9 @@ import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
-import { MOCK_BOOKS } from "./src/data/mockData";
+import { MOCK_BOOKS, MOCK_USERS } from "./src/data/mockData";
 import rateLimit from "express-rate-limit";
+import crypto from "crypto";
 
 dotenv.config();
 
@@ -23,6 +24,85 @@ const aiLimiter = rateLimit({
   message: { error: "Too many requests. Please wait a minute and try again." },
 });
 app.use("/api/", aiLimiter);
+
+// ── Authentication ───────────────────────────────────────────────────
+// The login form used to decide everything client-side: an unknown email
+// combined with the "Admin" toggle fabricated a user with role 'admin' and
+// routed it straight to /admin. Credentials are now checked here, and the
+// role comes from this table rather than from anything the browser sends.
+//
+// Demo accounts share one password so the project can be handed to a marker
+// without distributing secrets; the admin account is deliberately different.
+// ADMIN_PASSWORD has no default — if it is not set in the environment, admin
+// login is refused outright rather than falling back to something guessable.
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "library2024";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+
+// Constant-time compare so a wrong password cannot be narrowed by timing.
+function passwordMatches(supplied: string, expected: string): boolean {
+  if (!expected) return false;
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+// token -> the account it was issued for. In memory: sessions end when the
+// process restarts, which is the right lifetime for a demo server.
+const sessions = new Map<string, { email: string; role: string }>();
+
+function sessionFor(req: express.Request): { email: string; role: string } | null {
+  const header = req.header("authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  return token ? sessions.get(token) ?? null : null;
+}
+
+function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const session = sessionFor(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "admin session required" });
+  }
+  return next();
+}
+
+// Five *failed* attempts a minute per IP — enough for a fumbled password, not
+// enough to work through a password list. Successful logins are not counted,
+// so a shared address (a lab, a lecture theatre) doesn't lock legitimate
+// students out just because several sign in at once.
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please wait a minute." },
+});
+
+app.post("/api/login", loginLimiter, (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const password = String(req.body?.password || "");
+  if (!email || !password) {
+    return res.status(400).json({ error: "email and password required" });
+  }
+
+  const account = MOCK_USERS.find((u) => u.email.toLowerCase() === email);
+  // Same response whether the address is unknown or the password is wrong, so
+  // the form cannot be used to enumerate who has an account.
+  const expected = account?.role === "admin" ? ADMIN_PASSWORD : DEMO_PASSWORD;
+  if (!account || !passwordMatches(password, expected)) {
+    return res.status(401).json({ error: "invalid credentials" });
+  }
+
+  const token = crypto.randomBytes(24).toString("hex");
+  sessions.set(token, { email, role: account.role });
+  return res.json({ user: account, token });
+});
+
+app.post("/api/logout", (req, res) => {
+  const header = req.header("authorization") || "";
+  if (header.startsWith("Bearer ")) sessions.delete(header.slice(7));
+  return res.json({ ok: true });
+});
 
 // Strip characters that could escape prompt string boundaries or inject instructions
 function sanitizeInput(raw: unknown, maxLen = 300): string {
@@ -118,8 +198,11 @@ app.post("/api/feedback", (req, res) => {
   return res.json({ ok: true, id: entry.id });
 });
 
-// Admin retrieves all submitted feedback
-app.get("/api/feedback", (_req, res) => {
+// Admin retrieves all submitted feedback. This is the one endpoint that hands
+// back other people's messages — including the reply addresses on help-centre
+// inquiries — so it needs a real admin session, not just a client-side route
+// guard that anyone can walk around by editing localStorage.
+app.get("/api/feedback", requireAdmin, (_req, res) => {
   return res.json({ entries: feedbackStore, count: feedbackStore.length });
 });
 

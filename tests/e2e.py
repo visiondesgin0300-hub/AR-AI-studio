@@ -25,8 +25,15 @@ OUT = tempfile.mkdtemp(prefix='arlibrary-e2e-')
 
 STUDENT = {"id": "u2", "name": "سارة أحمد", "email": "sarah@example.com", "role": "student",
            "borrowedBooks": ["7"], "totalReadCount": 5, "points": 85, "badges": []}
-ADMIN = {"id": "a1", "name": "مدير النظام", "email": "admin@lib.om", "role": "admin",
-         "borrowedBooks": [], "totalReadCount": 0, "points": 0, "badges": []}
+ADMIN = {"id": "u1", "name": "فاطمة المعمري", "email": "fatima@example.com", "role": "admin",
+         "borrowedBooks": ["3", "1"], "totalReadCount": 12, "points": 450,
+         "badges": ["باحث", "متميز"]}
+
+# Credentials are checked server-side now. DEMO_PASSWORD matches the server
+# default; ADMIN_PASSWORD has none, so admin-session tests skip themselves
+# when the environment does not define one.
+DEMO_PASSWORD = os.environ.get('DEMO_PASSWORD', 'library2024')
+ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', '')
 
 results = []
 
@@ -36,7 +43,14 @@ def record(name, ok, detail=""):
     print(f"  {'PASS' if ok else 'FAIL'}  {name}" + (f"\n          {detail}" if detail else ""))
 
 
-def new_page(browser, user=STUDENT, lang='ar', width=1280, height=900):
+def api_token(browser, email, password):
+    """Log in through the real endpoint and return the session token."""
+    res = browser.new_context().request.post(
+        BASE + '/api/login', data={'email': email, 'password': password})
+    return res.json().get('token') if res.status == 200 else None
+
+
+def new_page(browser, user=STUDENT, lang='ar', width=1280, height=900, token=None):
     ctx = browser.new_context(viewport={'width': width, 'height': height},
                               permissions=['camera'], accept_downloads=True)
     page = ctx.new_page()
@@ -44,12 +58,13 @@ def new_page(browser, user=STUDENT, lang='ar', width=1280, height=900):
     errors = []
     page.on('pageerror', lambda e: errors.append(str(e).split('\n')[0][:120]))
     page.goto(BASE + '/', wait_until='domcontentloaded')
-    page.evaluate("""([u, l]) => {
+    page.evaluate("""([u, l, tok]) => {
         localStorage.setItem('library_user', JSON.stringify(u));
         localStorage.setItem('library_lang', l);
         localStorage.setItem('onboarding_done', '1');
         localStorage.setItem('ar_fab_seen', '1');
-    }""", [user, lang])
+        if (tok) sessionStorage.setItem('library_token', tok);
+    }""", [user, lang, token])
     return ctx, page, errors
 
 
@@ -73,7 +88,7 @@ def t_login_journey(browser):
     page.wait_for_load_state('networkidle')
     page.wait_for_timeout(1500)
     page.fill('#login-email', 'sarah@example.com')
-    page.fill('#login-password', 'anything')
+    page.fill('#login-password', DEMO_PASSWORD)
     page.click('button[type="submit"]')
     page.wait_for_timeout(2500)
     landed = page.evaluate("location.pathname")
@@ -322,7 +337,11 @@ def t_help_to_admin(browser):
     record('help→admin: student sees a success state', sent)
     ctx.close()
 
-    ctx2, page2, _ = new_page(browser, ADMIN)
+    if not ADMIN_PASSWORD:
+        record('help→admin: admin inbox (skipped — ADMIN_PASSWORD unset)', True,
+               'set ADMIN_PASSWORD to exercise the admin side')
+        return
+    ctx2, page2, _ = new_page(browser, ADMIN, token=api_token(browser, ADMIN['email'], ADMIN_PASSWORD))
     goto(page2, '/admin', 'table')
     page2.evaluate("""() => [...document.querySelectorAll('.rounded-\\\\[2rem\\\\].w-fit button')][6]?.click()""")
     page2.wait_for_timeout(2500)

@@ -84,11 +84,22 @@ export function AdminDashboard() {
     try { return JSON.parse(localStorage.getItem('admin_feedback_notes') || '{}'); } catch { return {}; }
   });
 
+  // Reading other users' feedback now needs the admin session token issued at
+  // login; the endpoint rejects anyone else with 403.
+  const [feedbackDenied, setFeedbackDenied] = useState(false);
   useEffect(() => {
-    fetch('/api/feedback')
-      .then(r => r.json())
+    const token = (() => {
+      try { return sessionStorage.getItem('library_token') || ''; } catch { return ''; }
+    })();
+    fetch('/api/feedback', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => {
+        if (r.status === 403) { setFeedbackDenied(true); return null; }
+        return r.json();
+      })
       .then(data => {
-        if (Array.isArray(data.entries)) {
+        if (data && Array.isArray(data.entries)) {
           setRealFeedback(data.entries);
           setNewFeedbackCount(data.count || 0);
         }
@@ -785,6 +796,13 @@ export function AdminDashboard() {
                   <div className="space-y-1">
                     <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'طلبات المستخدمين' : 'User Requests'}</h3>
                     <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{ar ? 'آراء وملاحظات المستخدمين المُستلمة من تطبيق ARLibrary' : 'User feedback received from the ARLibrary app'}</p>
+                    {feedbackDenied && (
+                      <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400" role="alert">
+                        {ar
+                          ? 'جلسة الإدارة منتهية — سجّل الدخول مجدداً لعرض الرسائل الواردة. المعروض أدناه بيانات تجريبية فقط.'
+                          : 'Admin session expired — sign in again to load incoming messages. Only demo entries are shown below.'}
+                      </p>
+                    )}
                   </div>
                   <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                     {realFeedback.length > 0 && (
