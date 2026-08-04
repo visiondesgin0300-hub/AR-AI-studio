@@ -26,6 +26,10 @@ export function bookAuthor(book: { author: string; authorEn?: string }, language
   return language === 'en' && book.authorEn ? book.authorEn : book.author;
 }
 
+export function bookDescription(book: { description?: string; descriptionEn?: string }, language: string): string {
+  return (language === 'en' && book.descriptionEn ? book.descriptionEn : book.description) ?? '';
+}
+
 /**
  * Category names are stored in Arabic on every book, so anywhere that printed
  * book.category raw showed "فيزياء" to an English reader. Search had its own

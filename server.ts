@@ -565,6 +565,18 @@ app.post("/api/summarize-chapter", async (req, res) => {
 
 // Local, category-based key themes so the academic profile always has themes
 // to show even without an API key.
+// Category names are stored in Arabic on every book (same map as the client's
+// bookCategory helper) — needed so an English profile does not name the field
+// in Arabic.
+const CATEGORY_EN: Record<string, string> = {
+  'فيزياء': 'Physics',
+  'هندسة': 'Engineering',
+  'عام': 'General',
+  'علم نفس': 'Psychology',
+  'طب': 'Medicine',
+  'أدب': 'Literature',
+};
+
 const THEMES_BY_CATEGORY: Record<string, string[]> = {
   'فيزياء': ['قوانين الحركة والطاقة', 'النظريات الفيزيائية الحديثة', 'التطبيقات التجريبية'],
   'هندسة': ['مبادئ التصميم الهندسي', 'الأنظمة والتقنيات', 'التطبيقات العملية والصناعية'],
@@ -572,16 +584,37 @@ const THEMES_BY_CATEGORY: Record<string, string[]> = {
   'عام': ['المعرفة العامة', 'الفكر والثقافة', 'العلوم الإنسانية'],
 };
 
-function localInsight(book: { title?: string; author?: string; category?: string; description?: string }) {
+const THEMES_BY_CATEGORY_EN: Record<string, string[]> = {
+  'فيزياء': ['Laws of motion and energy', 'Modern physical theory', 'Experimental applications'],
+  'هندسة': ['Engineering design principles', 'Systems and technologies', 'Practical and industrial applications'],
+  'علم نفس': ['Human behaviour and motivation', 'Cognitive processes', 'Psychological analysis and practice'],
+  'عام': ['General knowledge', 'Thought and culture', 'The humanities'],
+};
+
+// Both this and the Gemini prompt below were written Arabic-only, so an
+// English reader looking at the AR info layer got an Arabic profile no matter
+// what the client asked for. The request already carried `language`; it just
+// was not read.
+function localInsight(
+  book: { title?: string; author?: string; category?: string; description?: string },
+  language = 'ar',
+) {
   const category = book.category ?? 'عام';
+  const en = language === 'en';
+  const categoryLabel = en ? (CATEGORY_EN[category] ?? category) : category;
   const summary = book.description
-    ? `${book.description} يُصنّف هذا المرجع ضمن مجال ${category}، ويُعد من المصادر الأكاديمية الموصى بها للطلاب والباحثين المهتمين بهذا التخصص.`
-    : `مرجع أكاديمي متخصص في مجال ${category} للمؤلف ${book.author ?? 'غير محدد'}، متاح ضمن مقتنيات المكتبة الرقمية.`;
-  const keyThemes = THEMES_BY_CATEGORY[category] ?? THEMES_BY_CATEGORY['عام'];
+    ? en
+      ? `${book.description} This reference sits within ${categoryLabel} and is among the academic sources recommended to students and researchers working in the field.`
+      : `${book.description} يُصنّف هذا المرجع ضمن مجال ${category}، ويُعد من المصادر الأكاديمية الموصى بها للطلاب والباحثين المهتمين بهذا التخصص.`
+    : en
+      ? `An academic reference in ${categoryLabel} by ${book.author ?? 'an unlisted author'}, held in the library's digital collection.`
+      : `مرجع أكاديمي متخصص في مجال ${category} للمؤلف ${book.author ?? 'غير محدد'}، متاح ضمن مقتنيات المكتبة الرقمية.`;
+  const themes = en ? THEMES_BY_CATEGORY_EN : THEMES_BY_CATEGORY;
+  const keyThemes = themes[category] ?? themes['عام'];
   const recommendedReading = MOCK_BOOKS
     .filter((b) => b.category === book.category && b.title !== book.title)
     .slice(0, 3)
-    .map((b) => b.title);
+    .map((b) => (en && b.titleEn ? b.titleEn : b.title));
   return { summary, keyThemes, recommendedReading };
 }
 
@@ -599,7 +632,8 @@ app.post("/api/book-insight", async (req, res) => {
     return res.status(400).json({ error: "Missing title" });
   }
 
-  const fallback = localInsight({ title, author, category, description });
+  const language = raw.language === 'en' ? 'en' : 'ar';
+  const fallback = localInsight({ title, author, category, description }, language);
 
   const client = getGeminiClient();
   if (!client) {
@@ -607,7 +641,18 @@ app.post("/api/book-insight", async (req, res) => {
   }
 
   try {
-    const prompt = `أنشئ ملفاً أكاديمياً موجزاً باللغة العربية عن الكتاب التالي لعرضه في نافذة معلومات معزّزة داخل المكتبة:
+    const prompt = language === 'en'
+      ? `Write a short academic profile in English for the following book, to be shown in an augmented-reality info panel inside a library:
+    Title: ${title}
+    Author: ${author ?? 'unlisted'}
+    Category: ${category ?? 'General'}
+    Description: ${description ?? ''}
+
+    Return a JSON object containing:
+    - summary: a brief academic summary (two to three lines) that encourages a student to read it.
+    - keyThemes: an array of 3 main themes the book covers.
+    - recommendedReading: an array of 2 to 3 titles or topics worth reading before or after it.`
+      : `أنشئ ملفاً أكاديمياً موجزاً باللغة العربية عن الكتاب التالي لعرضه في نافذة معلومات معزّزة داخل المكتبة:
     العنوان: ${title}
     المؤلف: ${author ?? 'غير محدد'}
     التصنيف: ${category ?? 'عام'}
@@ -622,7 +667,9 @@ app.post("/api/book-insight", async (req, res) => {
       model: "gemini-1.5-flash",
       contents: prompt,
       config: {
-        systemInstruction: "أنت أمين مكتبة أكاديمي يكتب ملفات معرفية موجزة ودقيقة للكتب.",
+        systemInstruction: language === 'en'
+          ? "You are an academic librarian writing brief, accurate knowledge profiles for books."
+          : "أنت أمين مكتبة أكاديمي يكتب ملفات معرفية موجزة ودقيقة للكتب.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,

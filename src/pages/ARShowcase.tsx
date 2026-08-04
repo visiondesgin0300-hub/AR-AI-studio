@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
-import { cn, bookTitle, bookAuthor, bookCategory } from '../lib/utils';
+import { cn, bookTitle, bookAuthor, bookCategory, bookDescription } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -69,7 +69,9 @@ export function ARShowcase() {
         title: bookTitle(selectedBook, language),
         author: bookAuthor(selectedBook, language),
         category: selectedBook.category,
-        description: (selectedBook as any).description,
+        // The server prepends this to the profile it composes, so sending the
+        // Arabic description made an otherwise English summary open in Arabic.
+        description: bookDescription(selectedBook as any, language),
         language,
       }),
     })
@@ -101,6 +103,28 @@ export function ARShowcase() {
     setHasInteracted(true);
   };
 
+  /*
+   * Walk the shelf from the keyboard. The spines are buttons now, so they are
+   * already reachable by Tab; the arrows move along the row the way they do in
+   * a native toolbar, wrapping at both ends, and roving focus with the
+   * selection so the panel and the focus ring never disagree. RTL flips which
+   * arrow means "next", because on screen the shelf runs the other way.
+   */
+  const spineRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const onShelfKeyDown = (e: React.KeyboardEvent, index: number) => {
+    const forward = ar ? 'ArrowLeft' : 'ArrowRight';
+    const back = ar ? 'ArrowRight' : 'ArrowLeft';
+    let next: number | null = null;
+    if (e.key === forward) next = (index + 1) % shelfBooks.length;
+    else if (e.key === back) next = (index - 1 + shelfBooks.length) % shelfBooks.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = shelfBooks.length - 1;
+    if (next === null) return;
+    e.preventDefault();
+    handleBookClick(shelfBooks[next]);
+    spineRefs.current[next]?.focus();
+  };
+
   return (
     <div className={cn('flex flex-col gap-8 animate-in duration-500', dir === 'rtl' ? 'text-right' : 'text-left')}>
 
@@ -126,14 +150,18 @@ export function ARShowcase() {
         <div className="xl:w-[52%] bg-[#01354C] dark:bg-[#010f1a] flex flex-col">
 
           {/* Shelf selector in-panel */}
-          <div className="px-4 pt-3 pb-2 border-b border-white/5 flex items-center justify-between gap-2">
-            <div className={cn('flex gap-1 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+          {/* One scrollable row: wrapping put the eleven shelves on three rows
+              on a phone and pushed the shelf itself off the screen. The active
+              chip already names the shelf, so the mono "SHELF A-1" caption that
+              repeated it is gone. */}
+          <div className="px-4 pt-3 pb-2 border-b border-white/5">
+            <div className={cn('flex gap-1 overflow-x-auto no-scrollbar', dir === 'rtl' ? 'flex-row-reverse' : '')}>
               {ALL_SHELVES.map(sid => (
                 <button
                   key={sid}
                   onClick={() => setActiveShelf(sid)}
                   className={cn(
-                    'px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all',
+                    'px-3.5 py-3 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0',
                     activeShelf === sid
                       ? 'bg-accent text-primary'
                       : 'text-white/30 hover:text-white/60'
@@ -143,9 +171,6 @@ export function ARShowcase() {
                 </button>
               ))}
             </div>
-            <span className="font-mono text-[8px] text-white/20 shrink-0 uppercase">
-              {ar ? 'رف' : 'SHELF'} {activeShelf}
-            </span>
           </div>
 
           {/* Book spines */}
@@ -160,16 +185,27 @@ export function ARShowcase() {
                 const spineH = 140 + (i % 4) * 20;
                 const color = SPINE_COLORS[i % SPINE_COLORS.length];
                 return (
-                  <motion.div
+                  <motion.button
                     key={book.id}
+                    type="button"
+                    ref={el => { spineRefs.current[i] = el; }}
                     onClick={() => handleBookClick(book)}
-                    whileHover={{ y: -10, transition: { duration: 0.18 } }}
+                    onKeyDown={e => onShelfKeyDown(e, i)}
+                    aria-pressed={isSelected}
+                    aria-label={`${bookTitle(book, language)} — ${bookAuthor(book, language)}`}
+                    /* The picked book slides out of the shelf. It used to carry
+                       a ring, a sweeping scanline and a pulsing dot all at once;
+                       the movement says it better than three static badges. */
+                    animate={{ y: isSelected ? -14 : 0 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 26 }}
+                    whileHover={{ y: isSelected ? -18 : -8, transition: { duration: 0.18 } }}
                     whileTap={{ scale: 0.95 }}
                     className={cn(
-                      'relative flex-shrink-0 w-[52px] rounded-t-[3px] cursor-pointer overflow-hidden flex items-center justify-center transition-all duration-300',
+                      'relative flex-shrink-0 w-[52px] rounded-t-[3px] cursor-pointer overflow-hidden flex items-center justify-center transition-[opacity,filter] duration-300',
+                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#01354C]',
                       isSelected
                         ? 'ring-2 ring-accent ring-offset-1 ring-offset-[#01354C] brightness-110'
-                        : 'opacity-60 hover:opacity-90'
+                        : 'opacity-60 hover:opacity-95'
                     )}
                     style={{ height: spineH, background: `linear-gradient(175deg, ${color}ee, ${color}88)` }}
                   >
@@ -192,12 +228,7 @@ export function ARShowcase() {
                     >
                       {bookTitle(book, language)}
                     </span>
-                    {isSelected && (
-                      <div className="absolute bottom-2 inset-x-0 flex justify-center">
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                      </div>
-                    )}
-                  </motion.div>
+                  </motion.button>
                 );
               })
             )}
@@ -405,8 +436,10 @@ export function ARShowcase() {
           whileTap={{ scale: 0.99 }}
           onClick={() => navigate('/smart-lens')}
           className={cn(
+            // A <button> centres its text by default, which left the title and
+            // the description floating in the middle of the row.
             'official-card w-full p-4 sm:p-5 bg-white dark:bg-slate-900 flex items-center gap-4 group cursor-pointer',
-            dir === 'rtl' ? 'flex-row-reverse text-right' : ''
+            dir === 'rtl' ? 'flex-row-reverse text-right' : 'text-left'
           )}
         >
           <div className="w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 text-cyan-500 bg-cyan-500/10 border-cyan-500/20">
