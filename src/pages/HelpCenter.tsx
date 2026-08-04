@@ -155,37 +155,10 @@ export function HelpCenter({ user }: HelpCenterProps) {
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('searchForAnswer')}
               className={cn(
-                'w-full py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent',
+                'w-full py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-base sm:text-sm font-bold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent',
                 dir === 'rtl' ? 'pr-14 pl-5 text-right' : 'pl-14 pr-5 text-left'
               )}
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <button
-              onClick={() => navigate('/map')}
-              className="official-card p-6 flex items-center gap-4 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all text-start"
-            >
-              <div className="w-12 h-12 shrink-0 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
-                <MapPin className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-primary dark:text-white tracking-tight mb-1">{t('smartNavigationCard')}</h3>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('smartNavigationCardDesc')}</p>
-              </div>
-            </button>
-            <button
-              onClick={() => navigate('/my-books?tab=badges')}
-              className="official-card p-6 flex items-center gap-4 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all text-start"
-            >
-              <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 dark:bg-white/10 flex items-center justify-center text-primary dark:text-white">
-                <Award className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-primary dark:text-white tracking-tight mb-1">{t('pointsBadgesCard')}</h3>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('pointsBadgesCardDesc')}</p>
-              </div>
-            </button>
           </div>
 
           <div className="space-y-4">
@@ -261,7 +234,7 @@ export function HelpCenter({ user }: HelpCenterProps) {
                   value={contactName}
                   onChange={(e) => setContactName(e.target.value)}
                   placeholder={t('yourName')}
-                  className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-base sm:text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent"
                 />
               </div>
               <div className="space-y-1.5">
@@ -275,7 +248,7 @@ export function HelpCenter({ user }: HelpCenterProps) {
                   value={contactEmail}
                   onChange={(e) => setContactEmail(e.target.value)}
                   placeholder={t('yourEmail')}
-                  className={cn('w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent', dir === 'rtl' ? 'text-right' : 'text-left')}
+                  className={cn('w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-base sm:text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent', dir === 'rtl' ? 'text-right' : 'text-left')}
                 />
               </div>
               <div className="space-y-1.5">
@@ -287,7 +260,7 @@ export function HelpCenter({ user }: HelpCenterProps) {
                   value={contactMessage}
                   onChange={(e) => setContactMessage(e.target.value)}
                   placeholder={t('yourMessage')}
-                  className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+                  className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-base sm:text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent resize-none"
                 />
               </div>
 
