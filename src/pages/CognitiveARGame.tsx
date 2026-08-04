@@ -1,27 +1,31 @@
 /**
- * Cognitive AR Badge Game — real-time reaction game.
- * Items (knowledge sources) appear in 6 portal slots.
- * GREEN items (reliable) must be clicked before they vanish → +score.
- * RED items (unreliable) must NOT be clicked → let them auto-expire.
- * Wrong action = −star. 3 stars per level. Combo multiplier rewards streaks.
+ * Information Literacy Challenge.
  *
- * After reaching the win score, a knowledge quiz unlocks the badge.
+ * Each level is a short round of questions about doing research well: judging
+ * a source, building a search, citing honestly, reading evidence. Answer, and
+ * the reason behind the answer is shown — right or wrong — because the
+ * explanation is the teaching, not the score.
+ *
+ * A wrong answer or a timeout costs a star; three stars end the round. Pass
+ * two thirds of the questions to earn the level's badge and its XP.
  */
 
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { StarOff, Zap, Star, Crown, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { StarOff, Zap, Star, Crown, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, XCircle, Lightbulb, ArrowRight, ArrowLeft } from 'lucide-react';
 import { cn, GAME_LEVEL_XP } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
-
-const TICK = 100;
+import {
+  LiteracyQuestion, LiteracyOption, LiteracyLevel,
+  SKILL_LABEL, pickQuestions, shuffleOptions,
+} from '../data/infoLiteracy';
 
 /**
  * Correct answers needed to pass: two thirds of the questions, as an exact
- * fraction. This was written as `ceil(total * 0.67)` in two places, and 0.67
- * sits just above two thirds — 3 × 0.67 = 2.01, whose ceiling is 3 — so a quiz
- * described as 67% actually required every answer to be right.
+ * fraction. Written as `ceil(total * 0.67)` this rounded the wrong way —
+ * 3 × 0.67 = 2.01, whose ceiling is 3 — so a round described as 67% actually
+ * required every answer to be right.
  */
 function passMarkFor(total: number): number {
   return Math.ceil((total * 2) / 3);
@@ -34,160 +38,116 @@ function getGameStorageKey(): string {
     return `cognitive_ar_v4_${JSON.parse(stored)?.id || 'anonymous'}`;
   } catch { return 'cognitive_ar_v4_anonymous'; }
 }
-const SLOTS = 6;
-
-// ── Knowledge source pool ─────────────────────────────────────────────
-
-const SOURCES = [
-  { ar: 'مقال محكّم في Nature', en: 'Nature peer-reviewed article', reliable: true },
-  { ar: 'تقرير UNESCO الرسمي', en: 'Official UNESCO report', reliable: true },
-  { ar: 'بحث أكاديمي من MIT', en: 'MIT academic research paper', reliable: true },
-  { ar: 'كتاب من جامعة أكسفورد', en: 'Oxford University textbook', reliable: true },
-  { ar: 'إحصائيات منظمة الصحة العالمية', en: 'WHO statistics', reliable: true },
-  { ar: 'مجلة Science المحكّمة', en: 'Science peer-reviewed journal', reliable: true },
-  { ar: 'تقرير البنك الدولي', en: 'World Bank report', reliable: true },
-  { ar: 'ورقة بحثية معتمدة دولياً', en: 'Internationally accredited paper', reliable: true },
-  { ar: 'منشور تويتر بلا مصادر', en: 'Twitter post without sources', reliable: false },
-  { ar: 'مدونة شخصية مجهولة', en: 'Anonymous personal blog', reliable: false },
-  { ar: 'فيديو يوتيوب غير موثق', en: 'Undocumented YouTube video', reliable: false },
-  { ar: 'منتدى إنترنت عشوائي', en: 'Random internet forum', reliable: false },
-  { ar: 'موقع إخباري مجهول المصدر', en: 'Unknown news site', reliable: false },
-  { ar: 'رسالة واتساب غير موثقة', en: 'Unverified WhatsApp message', reliable: false },
-  { ar: 'مدوّنة بلا مراجع', en: 'Blog post without references', reliable: false },
-  { ar: 'إعلان تجاري يتنكّر كبحث', en: 'Commercial ad disguised as research', reliable: false },
-];
 
 // ── Level definitions ─────────────────────────────────────────────────
 
 interface Level {
-  id: string;
+  id: LiteracyLevel;
   nameAr: string; nameEn: string;
   descAr: string; descEn: string;
   hintAr: string; hintEn: string;
   xp: number;
   Icon: React.ElementType;
   color: string; bg: string; border: string; shadow: string;
-  itemMs: number;
-  scanMs: number;
-  spawnMs: number;
-  maxItems: number;
-  winScore: number;
+  /** Questions in a round, and the seconds allowed for each. */
+  questionCount: number;
+  seconds: number;
 }
 
 const LEVELS: Level[] = [
   {
     id: 'explorer', nameAr: 'المستكشف', nameEn: 'Explorer',
-    descAr: 'انقر المصادر الخضراء قبل أن تختفي — تجنّب الحمراء!', descEn: 'Click green sources before they vanish — avoid red ones!',
-    hintAr: 'الأخضر = موثوق ← انقر | الأحمر = تجنّب ← لا تنقر', hintEn: 'Green = reliable → click | Red = avoid → don\'t click',
+    descAr: 'من أين تأتي المعرفة الموثوقة؟', descEn: 'Where does trustworthy knowledge come from?',
+    hintAr: 'أساسيات: المصدر، المؤلف، التاريخ، والنسبة', hintEn: 'Basics: the source, the author, the date, and credit',
     xp: GAME_LEVEL_XP.explorer, Icon: Compass,
     color: 'text-teal-400', bg: 'bg-teal-500/15', border: 'border-teal-500/40', shadow: 'shadow-teal-500/30',
-    itemMs: 3200, scanMs: 500, spawnMs: 2000, maxItems: 1, winScore: 80,
+    questionCount: 6, seconds: 25,
   },
   {
     id: 'researcher', nameAr: 'الباحث', nameEn: 'Researcher',
-    descAr: 'مصادر متعددة تظهر معاً — سرعة ودقة!', descEn: 'Multiple sources appear together — speed and precision!',
-    hintAr: 'اثنان في وقت واحد — وقت المسح أطول!', hintEn: 'Two at once — scan time is longer now!',
+    descAr: 'كيف تبني بحثاً وتوثّقه؟', descEn: 'How do you build a search and cite it?',
+    hintAr: 'المعاملات المنطقية، المكنز، التحكيم، والتوثيق', hintEn: 'Boolean operators, thesauri, peer review, citation',
     xp: GAME_LEVEL_XP.researcher, Icon: Search,
     color: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', shadow: 'shadow-emerald-500/30',
-    itemMs: 2600, scanMs: 700, spawnMs: 1700, maxItems: 2, winScore: 130,
+    questionCount: 6, seconds: 20,
   },
   {
     id: 'distinguished', nameAr: 'المتميز', nameEn: 'Distinguished',
-    descAr: 'ثلاثة مصادر دفعة واحدة — ردود خاطفة!', descEn: 'Three sources at once — lightning-fast reactions!',
-    hintAr: 'أصعب مستوى — التمييز في ثانية واحدة', hintEn: 'Hardest level — classify in under a second',
+    descAr: 'أحكام صعبة: التحيّز، التمويل، والمراجع الوهمية', descEn: 'Hard calls: bias, funding, and fabricated references',
+    hintAr: 'المجلات المفترسة، الأدلة المنتقاة، ومراجع الذكاء الاصطناعي', hintEn: 'Predatory journals, cherry-picked evidence, AI citations',
     xp: GAME_LEVEL_XP.distinguished, Icon: Crown,
     color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/40', shadow: 'shadow-amber-500/30',
-    itemMs: 1900, scanMs: 900, spawnMs: 1400, maxItems: 3, winScore: 160,
+    questionCount: 6, seconds: 16,
   },
 ];
 
-// ── Quiz questions ────────────────────────────────────────────────────
+// ── Questions for a round ─────────────────────────────────────────────
 
-interface QuizQuestion {
-  qAr: string; qEn: string;
-  options: { ar: string; en: string; correct: boolean }[];
+interface RoundQuestion {
+  q: LiteracyQuestion;
+  /** Options in a fixed random order, so the right one is not always first. */
+  options: LiteracyOption[];
 }
 
-async function fetchQuizQuestions(level: Level): Promise<QuizQuestion[]> {
+/**
+ * Ask the server for AI-written questions, and fall back to the local bank.
+ *
+ * The bank is the guarantee: it is complete, reviewed, and works offline, so a
+ * slow or unavailable model can never leave a level unplayable. The request is
+ * given a short budget and anything malformed is rejected outright.
+ */
+async function buildRound(level: Level, ar: boolean): Promise<RoundQuestion[]> {
+  const local = pickQuestions(level.id, level.questionCount);
+
+  const valid = (q: any): q is LiteracyQuestion =>
+    typeof q?.qAr === 'string' && typeof q?.qEn === 'string' &&
+    typeof q?.whyAr === 'string' && typeof q?.whyEn === 'string' &&
+    q.whyAr.trim().length > 0 && q.whyEn.trim().length > 0 &&
+    Array.isArray(q.options) && q.options.length >= 2 &&
+    q.options.filter((o: any) => o?.correct).length === 1;
+
   try {
-    const res = await fetch('/api/quiz-questions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        levelId: level.id,
-        levelNameAr: level.nameAr,
-        levelNameEn: level.nameEn,
-      }),
-    });
-    const data = await res.json();
-    if (data.questions?.length >= 2) return data.questions;
-  } catch {}
-  // Fallback (same as server fallback)
-  return [
-    {
-      qAr: 'ما المصدر الأكثر موثوقية للبحث العلمي؟',
-      qEn: 'Which is the most reliable source for scientific research?',
-      options: [
-        { ar: 'مقال محكّم في مجلة علمية', en: 'Peer-reviewed scientific article', correct: true },
-        { ar: 'منشور في التواصل الاجتماعي', en: 'Social media post', correct: false },
-        { ar: 'مدونة شخصية', en: 'Personal blog', correct: false },
-      ],
-    },
-    {
-      qAr: 'لماذا يجب التحقق من مصدر المعلومة؟',
-      qEn: 'Why should you verify the source of information?',
-      options: [
-        { ar: 'لضمان دقتها وموثوقيتها', en: 'To ensure its accuracy and reliability', correct: true },
-        { ar: 'لأن كل المعلومات خاطئة', en: 'Because all information is wrong', correct: false },
-        { ar: 'لا داعي للتحقق أبداً', en: 'Verification is never necessary', correct: false },
-      ],
-    },
-    {
-      qAr: 'أي من هذه يُعدّ مصدراً أولياً؟',
-      qEn: 'Which of these is a primary source?',
-      options: [
-        { ar: 'ورقة بحثية أكاديمية محكّمة', en: 'Peer-reviewed academic paper', correct: true },
-        { ar: 'خبر منقول بلا مرجع', en: 'Unattributed news story', correct: false },
-        { ar: 'تعليق في منتدى', en: 'Forum comment', correct: false },
-      ],
-    },
-  ];
+    const res = await Promise.race([
+      fetch('/api/quiz-questions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ levelId: level.id, levelNameAr: level.nameAr, levelNameEn: level.nameEn, count: level.questionCount }),
+      }).then(r => r.json()),
+      new Promise<null>(resolve => setTimeout(() => resolve(null), 5000)),
+    ]);
+    const generated: LiteracyQuestion[] = (res as any)?.questions?.filter(valid) ?? [];
+    if (generated.length >= 4) {
+      const merged = generated.slice(0, level.questionCount).map((q, i) => ({
+        ...q,
+        id: `ai-${i}`,
+        level: level.id,
+        skill: q.skill ?? local[i % local.length]?.skill ?? 'evaluate',
+      }));
+      return merged.map(q => ({ q, options: shuffleOptions(q) }));
+    }
+  } catch { /* fall through to the bank */ }
+
+  return local.map(q => ({ q, options: shuffleOptions(q) }));
 }
 
-// ── Game state ────────────────────────────────────────────────────────
+// ── Round state ───────────────────────────────────────────────────────
 
-interface GameItem {
-  id: string;
-  slot: number;
-  src: typeof SOURCES[0];
-  elapsed: number;
-  total: number;
-  scanEnd: number;
-}
+type Outcome = 'right' | 'wrong' | 'timeout';
 
-interface GS {
-  items: GameItem[];
-  lives: number;
+interface Round {
+  questions: RoundQuestion[];
+  index: number;
+  correct: number;
+  stars: number;
   score: number;
   combo: number;
   maxCombo: number;
-  timeLeft: number;
-  spawnIn: number;
-  feedback: Array<{ id: string; correct: boolean; slot: number }>;
+  selected: number;
+  outcome: Outcome | null;
 }
 
-function newGS(): GS {
-  return { items: [], lives: 3, score: 0, combo: 0, maxCombo: 0, timeLeft: 45_000, spawnIn: 600, feedback: [] };
-}
-
-let uid = 0;
-function spawnItem(level: Level, occupiedSlots: number[]): GameItem | null {
-  const free: number[] = [];
-  for (let i = 0; i < SLOTS; i++) if (!occupiedSlots.includes(i)) free.push(i);
-  if (free.length === 0) return null;
-  const slot = free[Math.floor(Math.random() * free.length)];
-  const src = SOURCES[Math.floor(Math.random() * SOURCES.length)];
-  return { id: String(++uid), slot, src, elapsed: 0, total: level.itemMs, scanEnd: level.scanMs };
+function newRound(questions: RoundQuestion[]): Round {
+  return { questions, index: 0, correct: 0, stars: 3, score: 0, combo: 0, maxCombo: 0, selected: -1, outcome: null };
 }
 
 function loadCompleted(): string[] {
@@ -203,180 +163,112 @@ export function CognitiveARGame() {
 
   const [completed, setCompleted] = useState<string[]>(loadCompleted);
   const [showInfo, setShowInfo] = useState(false);
-  const [phase, setPhase] = useState<'hub' | 'countdown' | 'playing' | 'quiz' | 'result'>('hub');
+  const [phase, setPhase] = useState<'hub' | 'countdown' | 'playing' | 'result'>('hub');
   const [activeLevel, setActiveLevel] = useState<Level | null>(null);
   const [won, setWon] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [loading, setLoading] = useState(false);
 
-  // quiz state
-  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
-  const [quizLoading, setQuizLoading]     = useState(false);
-  const [quizIndex, setQuizIndex]         = useState(0);
-  const [quizCorrect, setQuizCorrect]     = useState(0);
-  const [quizSelected, setQuizSelected]   = useState(-1);
-  const [quizRevealed, setQuizRevealed]   = useState(false);
-  const [quizDone, setQuizDone]           = useState(false);
+  const [round, setRound] = useState<Round | null>(null);
+  const [timeLeft, setTimeLeft] = useState(0);
+  const [countdownDone, setCountdownDone] = useState(false);
 
-  const [tick, setTick] = useState(0);
-  const gsRef = useRef<GS | null>(null);
-  const gs = gsRef.current;
+  const pending = useRef<RoundQuestion[] | null>(null);
 
   const totalXP = completed.reduce((s, id) => s + (LEVELS.find(l => l.id === id)?.xp ?? 0), 0);
+  const current = round?.questions[round.index] ?? null;
+  const revealed = round?.outcome !== null && round?.outcome !== undefined;
+  const passMark = activeLevel ? passMarkFor(activeLevel.questionCount) : 0;
 
   // ── Countdown ──
   useEffect(() => {
-    if (phase !== 'countdown') return;
+    if (phase !== 'countdown' || !activeLevel) return;
     setCountdown(3);
+    setCountdownDone(false);
     let n = 3;
     const id = setInterval(() => {
       n -= 1;
       setCountdown(n);
-      if (n <= 0) { clearInterval(id); setPhase('playing'); }
+      if (n <= 0) { clearInterval(id); setCountdownDone(true); }
     }, 800);
     return () => clearInterval(id);
-  }, [phase]);
-
-  // ── Main game loop ──
-  useEffect(() => {
-    if (phase !== 'playing' || !activeLevel) return;
-    if (!gsRef.current) gsRef.current = newGS();
-
-    const id = setInterval(() => {
-      const g = gsRef.current!;
-      let { items, lives, score, combo, maxCombo, timeLeft, spawnIn, feedback } = g;
-
-      timeLeft -= TICK;
-      spawnIn  -= TICK;
-
-      feedback = feedback.filter(f => {
-        (f as any)._age = ((f as any)._age ?? 0) + TICK;
-        return (f as any)._age < 700;
-      });
-
-      const expired: GameItem[] = [];
-      items = items.map(it => {
-        const next = { ...it, elapsed: it.elapsed + TICK };
-        if (next.elapsed >= next.total) expired.push(next);
-        return next;
-      });
-
-      for (const it of expired) {
-        items = items.filter(x => x.id !== it.id);
-        if (it.src.reliable) {
-          lives = Math.max(0, lives - 1);
-          combo = 0;
-          feedback = [...feedback, { id: it.id, correct: false, slot: it.slot }];
-        }
-      }
-
-      const activeSlots = items.map(x => x.slot);
-      if (spawnIn <= 0 && items.length < activeLevel.maxItems) {
-        const newItem = spawnItem(activeLevel, activeSlots);
-        if (newItem) items = [...items, newItem];
-        spawnIn = activeLevel.spawnMs;
-      }
-
-      maxCombo = Math.max(maxCombo, combo);
-      const over = lives <= 0 || timeLeft <= 0;
-
-      gsRef.current = { items, lives, score, combo, maxCombo, timeLeft, spawnIn, feedback };
-      setTick(t => t + 1);
-
-      if (over) {
-        clearInterval(id);
-        const didWin = score >= activeLevel.winScore;
-        if (didWin) {
-          // Go to quiz before awarding the badge
-          loadAndStartQuiz(activeLevel);
-        } else {
-          setWon(false);
-          setPhase('result');
-        }
-      }
-    }, TICK);
-
-    return () => clearInterval(id);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, activeLevel]);
 
-  // ── Click handler ──
-  function handleClick(item: GameItem) {
-    const g = gsRef.current;
-    if (!g || !activeLevel) return;
-    if (item.elapsed < item.scanEnd) return;
+  // The round starts when the countdown has finished *and* the questions are
+  // ready — the fetch can outlast the countdown, and starting without them
+  // would leave the player staring at an empty screen.
+  useEffect(() => {
+    if (phase !== 'countdown' || !countdownDone || loading || !activeLevel) return;
+    const qs = pending.current ?? [];
+    if (!qs.length) { setPhase('hub'); return; }
+    setRound(newRound(qs));
+    setTimeLeft(activeLevel.seconds);
+    setPhase('playing');
+  }, [phase, countdownDone, loading, activeLevel]);
 
-    let { items, lives, score, combo, maxCombo, feedback } = g;
-    items = items.filter(x => x.id !== item.id);
+  // ── Per-question timer ──
+  useEffect(() => {
+    if (phase !== 'playing' || !round || revealed) return;
+    if (timeLeft <= 0) { resolve(-1); return; }
+    const id = setTimeout(() => setTimeLeft(t => t - 1), 1000);
+    return () => clearTimeout(id);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, timeLeft, revealed, round?.index]);
 
-    if (item.src.reliable) {
-      const multiplier = Math.min(4, 1 + Math.floor(combo / 3));
-      score += 10 * multiplier;
-      combo += 1;
-      maxCombo = Math.max(maxCombo, combo);
-      feedback = [...feedback, { id: item.id, correct: true, slot: item.slot }];
-    } else {
-      lives = Math.max(0, lives - 1);
-      combo = 0;
-      feedback = [...feedback, { id: item.id, correct: false, slot: item.slot }];
-    }
-
-    gsRef.current = { ...g, items, lives, score, combo, maxCombo, feedback };
-    setTick(t => t + 1);
+  /** Score an answer. `choice` of -1 means the clock ran out. */
+  function resolve(choice: number) {
+    setRound(r => {
+      if (!r || r.outcome !== null) return r;
+      const opts = r.questions[r.index].options;
+      const right = choice >= 0 && opts[choice]?.correct === true;
+      const multiplier = Math.min(4, 1 + Math.floor(r.combo / 3));
+      return {
+        ...r,
+        selected: choice,
+        outcome: right ? 'right' : choice < 0 ? 'timeout' : 'wrong',
+        correct: r.correct + (right ? 1 : 0),
+        score: r.score + (right ? 10 * multiplier : 0),
+        combo: right ? r.combo + 1 : 0,
+        maxCombo: right ? Math.max(r.maxCombo, r.combo + 1) : r.maxCombo,
+        stars: right ? r.stars : Math.max(0, r.stars - 1),
+      };
+    });
   }
 
-  function startLevel(level: Level) {
-    gsRef.current = null;
+  /** Move on, or end the round. */
+  function advance() {
+    if (!round || !activeLevel) return;
+    const isLast = round.index >= round.questions.length - 1;
+    const outOfStars = round.stars <= 0;
+
+    if (isLast || outOfStars) {
+      const passed = round.correct >= passMarkFor(round.questions.length) && !outOfStars;
+      setWon(passed);
+      if (passed && !completed.includes(activeLevel.id)) {
+        const next = [...completed, activeLevel.id];
+        setCompleted(next);
+        localStorage.setItem(getGameStorageKey(), JSON.stringify(next));
+      }
+      setPhase('result');
+      return;
+    }
+    setRound({ ...round, index: round.index + 1, selected: -1, outcome: null });
+    setTimeLeft(activeLevel.seconds);
+  }
+
+  async function startLevel(level: Level) {
     setActiveLevel(level);
+    setRound(null);
+    setLoading(true);
     setPhase('countdown');
+    pending.current = await buildRound(level, ar);
+    setLoading(false);
   }
 
-  function backToHub() { setPhase('hub'); setActiveLevel(null); gsRef.current = null; }
-  function retry()     { gsRef.current = null; if (activeLevel) setPhase('countdown'); }
+  function backToHub() { setPhase('hub'); setActiveLevel(null); setRound(null); }
+  function retry()     { if (activeLevel) startLevel(activeLevel); }
 
-  // ── Quiz helpers ──
-  function resetQuizState() {
-    setQuizIndex(0);
-    setQuizCorrect(0);
-    setQuizSelected(-1);
-    setQuizRevealed(false);
-    setQuizDone(false);
-  }
 
-  async function loadAndStartQuiz(level: Level) {
-    setQuizLoading(true);
-    resetQuizState();
-    setPhase('quiz');
-    const questions = await fetchQuizQuestions(level);
-    setQuizQuestions(questions);
-    setQuizLoading(false);
-  }
-
-  function handleQuizSelect(optionIdx: number) {
-    if (quizRevealed || !quizQuestions[quizIndex]) return;
-    const q = quizQuestions[quizIndex];
-    const isCorrect = q.options[optionIdx].correct;
-    setQuizSelected(optionIdx);
-    setQuizRevealed(true);
-    if (isCorrect) setQuizCorrect(c => c + 1);
-  }
-
-  function finishQuiz() {
-    if (!activeLevel) return;
-    const passed = quizCorrect >= passMarkFor(quizQuestions.length);
-    setWon(passed);
-    if (passed && !completed.includes(activeLevel.id)) {
-      const next = [...completed, activeLevel.id];
-      setCompleted(next);
-      localStorage.setItem(getGameStorageKey(), JSON.stringify(next));
-    }
-    setPhase('result');
-  }
-
-  // ── Slot grid layout ──
-  const slotPositions = [
-    { col: 0, row: 0 }, { col: 1, row: 0 }, { col: 2, row: 0 },
-    { col: 0, row: 1 }, { col: 1, row: 1 }, { col: 2, row: 1 },
-  ];
 
   // ─────────────────────────────────────────────────────────────────────
   return (
@@ -386,11 +278,11 @@ export function CognitiveARGame() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-black text-primary dark:text-white tracking-tight">
-            {ar ? 'لعبة الوعي المعلوماتي AR' : 'Info Literacy AR Game'}
+            {ar ? 'تحدّي الوعي المعلوماتي' : 'Information Literacy Challenge'}
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-0.5">
-            {ar ? 'حدّد المصادر الموثوقة — اجتز الاختبار — اكسب الوسام'
-                : 'Identify reliable sources — pass the quiz — earn the badge'}
+            {ar ? 'أسئلة تبني وعيك المعلوماتي في البحث — أجب، واعرف السبب'
+                : 'Questions that build your research literacy — answer, and learn why'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -453,7 +345,7 @@ export function CognitiveARGame() {
                         {ar ? 'ميزة تفاعلية' : 'Interactive Feature'}
                       </div>
                       <h3 className="text-xl font-black text-white leading-tight">
-                        {ar ? 'لعبة الوعي المعرفي' : 'Cognitive Awareness Game'}
+                        {ar ? 'تحدّي الوعي المعلوماتي' : 'Information Literacy Challenge'}
                       </h3>
                     </div>
                   </div>
@@ -465,8 +357,8 @@ export function CognitiveARGame() {
                   {/* Description */}
                   <p className={cn('text-sm text-slate-600 dark:text-slate-300 font-semibold leading-relaxed', ar ? 'text-right' : 'text-left')}>
                     {ar
-                      ? 'اختبر وعيك المعلوماتي من خلال أسئلة ذكية تولّدها تقنية الذكاء الاصطناعي (Gemini). اجتز الاختبار لاكتساب الأوسمة وتصعيد نقاط الخبرة XP الخاصة بك.'
-                      : 'Test your information literacy through AI-generated questions powered by Gemini. Pass the quiz to earn badges and level up your XP score.'}
+                      ? 'ثلاث جولات من الأسئلة تبني وعيك المعلوماتي في البحث: كيف تحكم على مصدر، وكيف تبني بحثاً، وكيف تُوثّق، وكيف تقرأ الأدلة. كل إجابة يتبعها سببها.'
+                      : 'Three rounds of questions that build research literacy: judging a source, building a search, citing honestly, and reading evidence. Every answer is followed by its reason.'}
                   </p>
 
                   {/* How it works */}
@@ -478,26 +370,26 @@ export function CognitiveARGame() {
                       {
                         icon: Brain,
                         color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
-                        titleAr: 'أسئلة بالذكاء الاصطناعي',
-                        titleEn: 'AI-Generated Questions',
-                        descAr: 'يولّد Gemini أسئلة متنوعة في كل جلسة عن المصادر المعرفية والمكتبة.',
-                        descEn: 'Gemini generates varied questions each session about knowledge resources and the library.',
+                        titleAr: 'أسئلة من الواقع البحثي',
+                        titleEn: 'Questions from real research',
+                        descAr: 'مواقف يواجهها الباحث فعلاً: عنوان مبالغ، ورقة preprint، مرجع ولّده ذكاء اصطناعي.',
+                        descEn: 'Situations researchers actually meet: an inflated headline, a preprint, an AI-invented reference.',
                       },
                       {
                         icon: Timer,
                         color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-                        titleAr: 'لعبة الردود السريعة',
-                        titleEn: 'Quick Reaction Game',
-                        descAr: 'استجب بسرعة لضغطات الزر وفق تعليمات اللون لكسب النقاط.',
-                        descEn: 'React quickly to button prompts based on color instructions to score points.',
+                        titleAr: 'وقت محدود لكل سؤال',
+                        titleEn: 'A clock on each question',
+                        descAr: 'لكل سؤال ثوانٍ معدودة تقصر كلما صعد المستوى. الخطأ أو التأخر يكلّف نجمة.',
+                        descEn: 'Each question has seconds that shrink as levels rise. A miss or a timeout costs a star.',
                       },
                       {
                         icon: Target,
                         color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-                        titleAr: 'اجتز الاختبار',
-                        titleEn: 'Pass the Quiz',
-                        descAr: 'بعد اللعبة تجيب على أسئلة قصيرة. النجاح يمنحك الوسام مباشرة.',
-                        descEn: 'After the game, answer short questions. Passing unlocks your badge instantly.',
+                        titleAr: 'الشرح بعد كل إجابة',
+                        titleEn: 'The reason, every time',
+                        descAr: 'يظهر سبب صحّة الإجابة سواء أصبت أم أخطأت — الشرح هو الفائدة، لا النتيجة.',
+                        descEn: 'The reason appears whether you were right or wrong — the explanation is the point, not the score.',
                       },
                     ].map((step, i) => (
                       <div key={i} className={cn('flex items-start gap-3', ar ? 'flex-row-reverse' : '')}>
@@ -586,8 +478,8 @@ export function CognitiveARGame() {
             </div>
             <p className="text-sm font-black text-primary dark:text-white leading-snug">
               {ar
-                ? 'العب واجتز الاختبار لاكتساب الأوسمة مباشرةً'
-                : 'Play and pass the quiz to earn your badges instantly'}
+                ? 'أجب عن ثلثي الأسئلة لتكسب الوسام — وكل إجابة تشرح سببها'
+                : 'Answer two thirds of the questions to earn the badge — every answer explains itself'}
             </p>
           </motion.div>
 
@@ -637,11 +529,11 @@ export function CognitiveARGame() {
                   {/* Flow steps */}
                   <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase">
                     <span className={cn('px-1.5 py-0.5 rounded-md', lvl.bg, lvl.color)}>
-                      {ar ? '١ اللعبة' : '1 Game'}
+                      {ar ? '١ أسئلة' : '1 Questions'}
                     </span>
                     <span>→</span>
                     <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
-                      {ar ? '٢ اختبار' : '2 Quiz'}
+                      {ar ? '٢ الشرح' : '2 Why'}
                     </span>
                     <span>→</span>
                     <span className="px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800">
@@ -650,9 +542,12 @@ export function CognitiveARGame() {
                   </div>
 
                   <div className="flex items-center gap-3 text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    <span>⏱ 45s</span>
+                    <span dir="ltr">⏱ {lvl.seconds}s</span>
                     <span>⭐ ×3</span>
-                    <span className={lvl.color}>{ar ? 'هدف' : 'Target'}: {lvl.winScore}pts</span>
+                    <span className={lvl.color}>
+                      <span dir="ltr">{passMarkFor(lvl.questionCount)} / {lvl.questionCount}</span>{' '}
+                      {ar ? 'للنجاح' : 'to pass'}
+                    </span>
                   </div>
 
                   <motion.button
@@ -673,7 +568,7 @@ export function CognitiveARGame() {
                       ? (ar ? '🔒 أكمل المستوى السابق' : '🔒 Complete previous level')
                       : isEarned
                       ? (ar ? '🔄 العب مجدداً' : '🔄 Play Again')
-                      : (ar ? '▶ ابدأ اللعبة' : '▶ Start Game')}
+                      : (ar ? '▶ ابدأ الجولة' : '▶ Start Round')}
                   </motion.button>
                 </motion.div>
               );
@@ -687,10 +582,10 @@ export function CognitiveARGame() {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { emoji: '🟢', ar: 'المصدر الأخضر = موثوق، انقر عليه قبل انتهاء وقته', en: 'Green source = reliable, click it before time runs out' },
-                { emoji: '🔴', ar: 'المصدر الأحمر = غير موثوق، لا تنقر عليه، دعه يختفي', en: 'Red source = unreliable, don\'t click — let it disappear' },
-                { emoji: '⚡', ar: 'كومبو 3+ تضاعف نقاطك × 2 × 3 × 4', en: 'Combo 3+ multiplies your score ×2 ×3 ×4' },
-                { emoji: '📝', ar: 'بعد النقاط: اجتز اختبار المعرفة لتحصل على الوسام', en: 'After scoring: pass the knowledge quiz to earn the badge' },
+                { emoji: '❓', ar: 'اقرأ السؤال واختر الإجابة قبل انتهاء وقتها', en: 'Read the question and choose before its timer runs out' },
+                { emoji: '💡', ar: 'بعد كل إجابة يظهر سبب صحّتها — صحيحة كانت أم خاطئة', en: 'After every answer you see why it is right — whether you got it or not' },
+                { emoji: '⭐', ar: 'الخطأ أو انتهاء الوقت يكلّفك نجمة، وثلاث نجوم تنهي الجولة', en: 'A wrong answer or a timeout costs a star; three stars end the round' },
+                { emoji: '🏅', ar: 'أجب عن ثلثي الأسئلة لتكسب وسام المستوى ونقاط خبرته', en: 'Answer two thirds correctly to earn the level badge and its XP' },
               ].map((h, i) => (
                 <div key={i} className="flex items-start gap-2.5">
                   <span className="text-xl shrink-0">{h.emoji}</span>
@@ -723,32 +618,37 @@ export function CognitiveARGame() {
                 animate={{ scale: 1, opacity: 1 }}
                 className="text-[120px] font-black text-white leading-none"
               >
-                {countdown}
+                {countdownDone ? '…' : countdown}
               </motion.div>
-              <div className="text-white/50 font-bold text-sm">{ar ? 'استعدّ...' : 'Get ready...'}</div>
+              <div className="text-white/50 font-bold text-sm">
+                {countdownDone && loading
+                  ? (ar ? 'جاري تجهيز الأسئلة…' : 'Preparing the questions…')
+                  : (ar ? 'استعدّ...' : 'Get ready...')}
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ═══════════════════ GAME SCREEN ═══════════════════ */}
+      {/* ═══════════════════ QUESTION ROUND ═══════════════════ */}
       <AnimatePresence>
-        {phase === 'playing' && activeLevel && gs && (
+        {phase === 'playing' && activeLevel && round && current && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            dir={dir}
             className="fixed inset-0 z-[70] bg-slate-950 flex flex-col select-none"
           >
             <div className="absolute inset-0 pointer-events-none opacity-[0.07]"
               style={{ backgroundImage: 'linear-gradient(rgba(0,220,180,1) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,180,1) 1px,transparent 1px)', backgroundSize: '44px 44px' }} />
 
-            {/* HUD */}
+            {/* HUD — stars, clock, progress */}
             <div className="relative z-10 px-4 pt-4 pb-3 border-b border-white/5 flex items-center justify-between gap-4">
               <div className="flex items-center gap-1.5">
                 {[0, 1, 2].map(i => (
-                  <motion.div key={i} animate={i >= gs.lives ? { scale: [1.3, 0.8, 1] } : {}} transition={{ duration: 0.3 }}>
-                    {i < gs.lives
+                  <motion.div key={i} animate={i >= round.stars ? { scale: [1.3, 0.8, 1] } : {}} transition={{ duration: 0.3 }}>
+                    {i < round.stars
                       ? <Star className="w-5 h-5 text-amber-400 fill-amber-400" />
                       : <StarOff className="w-5 h-5 text-slate-700" />}
                   </motion.div>
@@ -756,303 +656,141 @@ export function CognitiveARGame() {
               </div>
 
               <div className="flex flex-col items-center">
-                <div className={cn('text-2xl font-black tabular-nums', gs.timeLeft <= 10000 ? 'text-red-400' : gs.timeLeft <= 20000 ? 'text-amber-400' : 'text-white')}>
-                  {Math.ceil(gs.timeLeft / 1000)}
+                <div className={cn('text-2xl font-black tabular-nums', timeLeft <= 5 ? 'text-red-400' : timeLeft <= 10 ? 'text-amber-400' : 'text-white')}>
+                  {Math.max(0, timeLeft)}
                 </div>
                 <div className="w-24 h-1 bg-white/10 rounded-full overflow-hidden mt-1">
                   <motion.div
-                    className={cn('h-full rounded-full', gs.timeLeft <= 10000 ? 'bg-red-400' : 'bg-teal-400')}
-                    style={{ width: `${(gs.timeLeft / 45000) * 100}%` }}
+                    className={cn('h-full rounded-full', timeLeft <= 5 ? 'bg-red-400' : 'bg-teal-400')}
+                    animate={{ width: `${(timeLeft / activeLevel.seconds) * 100}%` }}
+                    transition={{ duration: 0.4, ease: 'linear' }}
                   />
                 </div>
               </div>
 
               <div className="text-end">
-                <div className="text-lg font-black text-white tabular-nums">{gs.score}</div>
-                <div className={cn('text-[10px] font-black uppercase tracking-widest transition-colors', gs.combo >= 6 ? 'text-amber-400' : gs.combo >= 3 ? 'text-emerald-400' : 'text-slate-600')}>
-                  {gs.combo >= 3 ? `×${Math.min(4, 1 + Math.floor(gs.combo / 3))} 🔥` : `COMBO ${gs.combo}`}
+                <div className="text-lg font-black text-white tabular-nums" dir="ltr">
+                  {round.index + 1} / {round.questions.length}
+                </div>
+                <div dir="ltr" className={cn('text-[10px] font-black uppercase tracking-widest transition-colors', round.combo >= 6 ? 'text-amber-400' : round.combo >= 3 ? 'text-emerald-400' : 'text-slate-600')}>
+                  {round.combo >= 3 ? `×${Math.min(4, 1 + Math.floor(round.combo / 3))} 🔥` : `${round.score} PTS`}
                 </div>
               </div>
             </div>
 
-            {/* PORTAL GRID */}
-            <div className="relative z-10 flex-1 min-h-0 flex items-center justify-center p-3 sm:p-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-5 w-full max-w-[19rem] sm:max-w-xl lg:max-w-3xl max-h-full">
-                {slotPositions.map((_, slotIdx) => {
-                  const item = gs.items.find(x => x.slot === slotIdx);
-                  const isRevealed = item ? item.elapsed >= item.scanEnd : false;
+            {/* Question card */}
+            <div className="relative z-10 flex-1 min-h-0 overflow-y-auto flex items-start sm:items-center justify-center p-4 sm:p-6">
+              <motion.div
+                key={round.index}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="w-full max-w-2xl space-y-4"
+              >
+                {/* Skill tag */}
+                <div className="flex items-center justify-center">
+                  <span className={cn('text-[10px] font-black uppercase tracking-[0.2em] px-3 py-1 rounded-xl', activeLevel.bg, activeLevel.color)}>
+                    {SKILL_LABEL[current.q.skill][ar ? 'ar' : 'en']}
+                  </span>
+                </div>
 
-                  return (
-                    <div key={slotIdx} className="relative aspect-square">
-                      <div className="absolute inset-0 rounded-2xl border border-white/5 bg-white/3" />
-                      <AnimatePresence>
-                        {item && (
-                          <motion.button
-                            key={item.id}
-                            initial={{ scale: 0.4, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.4, opacity: 0 }}
-                            transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            onClick={() => handleClick(item)}
-                            className={cn(
-                              'absolute inset-0 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 p-2.5 overflow-hidden',
-                              !isRevealed
-                                ? 'bg-slate-800/80 border-slate-600/40 cursor-wait'
-                                : item.src.reliable
-                                ? 'bg-teal-950/60 border-teal-400/70 cursor-pointer shadow-[0_0_20px_rgba(20,184,166,0.25)]'
-                                : 'bg-red-950/60 border-red-500/60 cursor-not-allowed shadow-[0_0_20px_rgba(239,68,68,0.2)]'
-                            )}
-                          >
-                            <div className="absolute inset-0 rounded-2xl pointer-events-none"
-                              style={{ background: `conic-gradient(transparent ${(1 - item.elapsed / item.total) * 360}deg, rgba(255,255,255,0.04) 0deg)` }} />
+                {/* The question */}
+                <p className="text-white font-black text-lg sm:text-2xl leading-snug text-center px-1">
+                  {ar ? current.q.qAr : current.q.qEn}
+                </p>
 
-                            {!isRevealed ? (
-                              <div className="flex gap-1">
-                                {[0, 1, 2].map(i => (
-                                  <motion.div key={i} className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-slate-500"
-                                    animate={{ opacity: [0.3, 1, 0.3] }}
-                                    transition={{ repeat: Infinity, duration: 0.8, delay: i * 0.2 }}
-                                  />
-                                ))}
-                              </div>
-                            ) : (
-                              <>
-                                <div className={cn('text-2xl sm:text-3xl leading-none', item.src.reliable ? 'text-teal-300' : 'text-red-400')}>
-                                  {item.src.reliable ? '✓' : '✗'}
-                                </div>
-                                <p className={cn('text-[11px] sm:text-sm font-black text-center leading-tight px-1.5 tracking-tight', item.src.reliable ? 'text-teal-200' : 'text-red-300')}>
-                                  {ar ? item.src.ar : item.src.en}
-                                </p>
-                              </>
-                            )}
+                {/* Options */}
+                <div className="space-y-2.5 pt-1">
+                  {current.options.map((opt, oi) => {
+                    const isSelected = round.selected === oi;
+                    let cls = 'bg-white/5 border-white/10 text-white/85 hover:bg-white/10';
+                    if (revealed) {
+                      if (opt.correct)      cls = 'bg-emerald-500/20 border-emerald-500/60 text-emerald-200';
+                      else if (isSelected)  cls = 'bg-red-500/20 border-red-500/60 text-red-200';
+                      else                  cls = 'bg-white/3 border-white/5 text-white/30';
+                    }
+                    return (
+                      <motion.button
+                        key={oi}
+                        whileHover={!revealed ? { scale: 1.01 } : {}}
+                        whileTap={!revealed ? { scale: 0.99 } : {}}
+                        onClick={() => resolve(oi)}
+                        disabled={revealed}
+                        className={cn('w-full px-4 py-4 rounded-2xl border-2 text-sm sm:text-base font-bold text-start transition-all', cls)}
+                      >
+                        <span className={cn('flex items-center gap-3', ar ? 'flex-row-reverse text-right' : '')}>
+                          <span className={cn('w-7 h-7 rounded-full border flex items-center justify-center text-[11px] font-black shrink-0',
+                            revealed && opt.correct ? 'bg-emerald-500/30 border-emerald-400 text-emerald-200'
+                              : revealed && isSelected ? 'bg-red-500/30 border-red-400 text-red-200'
+                              : 'border-white/20 text-white/50')}>
+                            {revealed && opt.correct ? '✓' : revealed && isSelected ? '✗' : String.fromCharCode(65 + oi)}
+                          </span>
+                          <span className="flex-1 leading-snug">{ar ? opt.ar : opt.en}</span>
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
 
-                            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/20 rounded-b-2xl overflow-hidden">
-                              <div className={cn('h-full transition-none', isRevealed ? (item.src.reliable ? 'bg-teal-400' : 'bg-red-400') : 'bg-slate-600')}
-                                style={{ width: `${Math.max(0, (1 - item.elapsed / item.total) * 100)}%` }} />
-                            </div>
-                          </motion.button>
-                        )}
-                      </AnimatePresence>
+                {/* Why — the part that teaches */}
+                <AnimatePresence>
+                  {revealed && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      className="overflow-hidden"
+                    >
+                      <div className={cn('rounded-2xl border p-4 space-y-2',
+                        round.outcome === 'right' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30')}>
+                        <div className={cn('flex items-center gap-2 text-[11px] font-black uppercase tracking-widest',
+                          round.outcome === 'right' ? 'text-emerald-400' : 'text-amber-400', ar ? 'flex-row-reverse' : '')}>
+                          {round.outcome === 'right'
+                            ? <><CheckCircle2 className="w-4 h-4" />{ar ? 'إجابة صحيحة' : 'Correct'}</>
+                            : round.outcome === 'timeout'
+                            ? <><Timer className="w-4 h-4" />{ar ? 'انتهى الوقت' : 'Time up'}</>
+                            : <><XCircle className="w-4 h-4" />{ar ? 'إجابة خاطئة' : 'Not quite'}</>}
+                        </div>
+                        <div className={cn('flex items-start gap-2.5', ar ? 'flex-row-reverse text-right' : '')}>
+                          <Lightbulb className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                          <p className="text-sm text-white/80 font-medium leading-relaxed">
+                            {ar ? current.q.whyAr : current.q.whyEn}
+                          </p>
+                        </div>
+                      </div>
 
-                      <AnimatePresence>
-                        {gs.feedback.filter(f => f.slot === slotIdx).map(f => (
-                          <motion.div key={f.id}
-                            initial={{ opacity: 1, scale: 0.5, y: 0 }}
-                            animate={{ opacity: 0, scale: 1.5, y: -30 }}
-                            transition={{ duration: 0.5 }}
-                            className={cn('absolute inset-0 rounded-2xl pointer-events-none flex items-center justify-center text-2xl font-black', f.correct ? 'text-emerald-400' : 'text-red-400')}
-                          >
-                            {f.correct ? '+10' : '−♥'}
-                          </motion.div>
-                        ))}
-                      </AnimatePresence>
-                    </div>
-                  );
-                })}
-              </div>
+                      <motion.button
+                        whileTap={{ scale: 0.98 }}
+                        onClick={advance}
+                        className="mt-3 w-full py-3.5 rounded-2xl bg-white text-primary font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2"
+                      >
+                        {round.index >= round.questions.length - 1 || round.stars <= 0
+                          ? (ar ? 'إنهاء الجولة' : 'Finish round')
+                          : (ar ? 'السؤال التالي' : 'Next question')}
+                        <ArrowLeft className={cn('w-4 h-4', ar ? '' : 'rotate-180')} />
+                      </motion.button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
             </div>
 
-            {/* Score progress */}
-            <div className="relative z-10 px-4 pb-4 flex items-center justify-center gap-3">
-              <div className="h-2 flex-1 max-w-xs bg-white/5 rounded-full overflow-hidden">
-                <motion.div
-                  className={cn('h-full rounded-full', activeLevel.bg.replace('/15', ''))}
-                  style={{ width: `${Math.min(100, (gs.score / activeLevel.winScore) * 100)}%` }}
-                />
+            {/* Bottom progress */}
+            <div className="relative z-10 px-6 pb-5 flex items-center gap-3">
+              <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <motion.div className="h-full rounded-full bg-teal-400"
+                  animate={{ width: `${(round.correct / passMark) * 100}%` }} />
               </div>
-              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest whitespace-nowrap">
-                <span dir="ltr">{gs.score} / {activeLevel.winScore}</span> {ar ? 'للفوز' : 'to win'}
-              </div>
+              <span className="text-[10px] font-black text-white/50 uppercase tracking-widest whitespace-nowrap">
+                <span dir="ltr">{round.correct} / {passMark}</span> {ar ? 'للنجاح' : 'to pass'}
+              </span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ═══════════════════ QUIZ SCREEN ═══════════════════ */}
-      <AnimatePresence>
-        {phase === 'quiz' && activeLevel && (() => {
-          const questions = quizQuestions;
-          const q = questions[quizIndex];
-          const total = questions.length;
-          const passThreshold = passMarkFor(total);
-
-          return (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/95 backdrop-blur-xl p-6"
-            >
-              <motion.div
-                initial={{ scale: 0.85, opacity: 0, y: 30 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-                className="bg-slate-900 border border-white/10 rounded-3xl p-7 max-w-sm w-full relative overflow-hidden space-y-6"
-              >
-                <div className={cn('absolute inset-0 opacity-[0.06] pointer-events-none', activeLevel.bg)} />
-
-                {/* Loading state */}
-                {quizLoading && (
-                  <div className="relative z-10 flex flex-col items-center justify-center gap-4 py-8">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}
-                      className={cn('w-12 h-12 rounded-full border-4 border-t-transparent', activeLevel.border.replace('border-', 'border-'))}
-                    />
-                    <div className={cn('text-xs font-black uppercase tracking-widest', activeLevel.color)}>
-                      {ar ? 'جاري إعداد الاختبار...' : 'Preparing quiz...'}
-                    </div>
-                    <div className="text-[10px] text-slate-500 font-medium">
-                      {ar ? 'تولّد الذكاء الاصطناعي الأسئلة' : 'AI is generating questions'}
-                    </div>
-                  </div>
-                )}
-
-                {/* Header */}
-                {!quizLoading && !quizDone ? (
-                  <>
-                    <div className="relative z-10 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <HelpCircle className={cn('w-5 h-5', activeLevel.color)} />
-                        <span className={cn('text-xs font-black uppercase tracking-widest', activeLevel.color)}>
-                          {ar ? 'اختبار المعرفة' : 'Knowledge Quiz'}
-                        </span>
-                      </div>
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest" dir="ltr">
-                        {quizIndex + 1} / {total}
-                      </span>
-                    </div>
-
-                    {/* Progress dots */}
-                    <div className="relative z-10 flex gap-1.5 justify-center">
-                      {questions.map((_, i) => (
-                        <div key={i} className={cn('h-1.5 rounded-full transition-all', i < quizIndex ? activeLevel.bg.replace('/15', '/60') : i === quizIndex ? cn('w-6', activeLevel.bg.replace('/15', '')) : 'w-3 bg-white/10')} style={{ width: i === quizIndex ? 24 : 12 }} />
-                      ))}
-                    </div>
-
-                    {/* Question */}
-                    <motion.div
-                      key={quizIndex}
-                      initial={{ opacity: 0, x: ar ? -20 : 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="relative z-10 space-y-4"
-                    >
-                      <p className="text-white font-black text-base leading-snug text-center">
-                        {ar ? q.qAr : q.qEn}
-                      </p>
-
-                      <div className="space-y-2.5">
-                        {q.options.map((opt, oi) => {
-                          const isSelected = quizSelected === oi;
-                          const isCorrect  = opt.correct;
-                          let btnClass = 'bg-white/5 border-white/10 text-white/80 hover:bg-white/10';
-                          if (quizRevealed) {
-                            if (isCorrect)          btnClass = 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300';
-                            else if (isSelected)    btnClass = 'bg-red-500/20 border-red-500/50 text-red-300';
-                            else                    btnClass = 'bg-white/3 border-white/5 text-white/30';
-                          }
-
-                          return (
-                            <motion.button
-                              key={oi}
-                              whileHover={!quizRevealed ? { scale: 1.02 } : {}}
-                              whileTap={!quizRevealed ? { scale: 0.98 } : {}}
-                              onClick={() => handleQuizSelect(oi)}
-                              disabled={quizRevealed}
-                              className={cn('w-full px-4 py-3 rounded-2xl border text-sm font-bold text-start transition-all', btnClass)}
-                            >
-                              <span className="flex items-center gap-3">
-                                <span className={cn('w-6 h-6 rounded-full border flex items-center justify-center text-[10px] font-black shrink-0',
-                                  quizRevealed && isCorrect ? 'bg-emerald-500/30 border-emerald-400 text-emerald-300'
-                                  : quizRevealed && isSelected ? 'bg-red-500/30 border-red-400 text-red-300'
-                                  : 'border-white/20 text-white/50')}>
-                                  {quizRevealed ? (isCorrect ? '✓' : isSelected ? '✗' : String.fromCharCode(65 + oi)) : String.fromCharCode(65 + oi)}
-                                </span>
-                                {ar ? opt.ar : opt.en}
-                              </span>
-                            </motion.button>
-                          );
-                        })}
-                      </div>
-
-                      {quizRevealed && (
-                        <motion.button
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => {
-                            if (quizIndex + 1 >= total) {
-                              setQuizDone(true);
-                            } else {
-                              setQuizIndex(qi => qi + 1);
-                              setQuizSelected(-1);
-                              setQuizRevealed(false);
-                            }
-                          }}
-                          className={cn('w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all', activeLevel.bg, activeLevel.color, 'border-2', activeLevel.border)}
-                        >
-                          {quizIndex + 1 >= total
-                            ? (ar ? 'عرض النتيجة ←' : 'See Result →')
-                            : (ar ? 'السؤال التالي ←' : 'Next Question →')}
-                        </motion.button>
-                      )}
-                    </motion.div>
-                  </>
-                ) : !quizLoading && (
-                  /* Quiz result */
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="relative z-10 text-center space-y-5"
-                  >
-                    <div className={cn('w-20 h-20 rounded-3xl border-2 mx-auto flex items-center justify-center shadow-2xl',
-                      quizCorrect >= passThreshold ? cn(activeLevel.bg, activeLevel.border) : 'bg-slate-800 border-slate-700')}>
-                      {quizCorrect >= passThreshold
-                        ? <Trophy className={cn('w-10 h-10', activeLevel.color)} />
-                        : <RotateCcw className="w-9 h-9 text-slate-500" />}
-                    </div>
-
-                    <div>
-                      <div className={cn('text-[11px] font-black uppercase tracking-widest mb-1',
-                        quizCorrect >= passThreshold ? activeLevel.color : 'text-slate-500')}>
-                        {quizCorrect >= passThreshold
-                          ? (ar ? '🎉 اجتزت الاختبار!' : '🎉 Quiz Passed!')
-                          : (ar ? 'لم تجتز الاختبار' : 'Quiz Not Passed')}
-                      </div>
-                      <div className="text-3xl font-black text-white" dir="ltr">{quizCorrect} / {total}</div>
-                      <div className="text-slate-400 text-xs font-medium mt-1">
-                        {ar ? `تحتاج ${passThreshold} إجابات صحيحة على الأقل` : `Need at least ${passThreshold} correct answers`}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <motion.button whileTap={{ scale: 0.97 }} onClick={finishQuiz}
-                        className={cn('w-full py-3.5 rounded-2xl font-black text-sm uppercase tracking-widest',
-                          quizCorrect >= passThreshold
-                            ? 'bg-white text-primary hover:bg-white/90'
-                            : cn('border-2', activeLevel.border, activeLevel.color, activeLevel.bg))}>
-                        {quizCorrect >= passThreshold
-                          ? (ar ? '🏆 احصل على الوسام' : '🏆 Claim Badge')
-                          : (ar ? 'عرض النتيجة' : 'See Result')}
-                      </motion.button>
-                      {quizCorrect < passThreshold && (
-                        <motion.button whileTap={{ scale: 0.97 }} onClick={() => loadAndStartQuiz(activeLevel)}
-                          className="w-full py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-bold text-sm hover:bg-white/10 transition-all">
-                          {ar ? '🔄 أعد الاختبار' : '🔄 Retry Quiz'}
-                        </motion.button>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </motion.div>
-            </motion.div>
-          );
-        })()}
-      </AnimatePresence>
 
       {/* ═══════════════════ RESULT SCREEN ═══════════════════ */}
       <AnimatePresence>
-        {phase === 'result' && activeLevel && gs && (
+        {phase === 'result' && activeLevel && round && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -1091,7 +829,12 @@ export function CognitiveARGame() {
                 <div className={cn('text-[11px] font-black uppercase tracking-widest', won ? activeLevel.color : 'text-slate-500')}>
                   {won ? (ar ? '🏆 وسام مكتسب!' : '🏆 Badge Earned!') : (ar ? 'حاول مجدداً' : 'Try Again')}
                 </div>
-                <div className="text-3xl font-black text-white">{gs.score} pts</div>
+                <div className="text-3xl font-black text-white" dir="ltr">
+                  {round.correct} / {round.questions.length}
+                </div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                  {ar ? 'إجابات صحيحة' : 'correct answers'}
+                </div>
                 {won && (
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-black">
                     <Zap className="w-4 h-4" /> +{activeLevel.xp} XP {ar ? 'مكتسبة' : 'earned'}
@@ -1099,16 +842,20 @@ export function CognitiveARGame() {
                 )}
                 {!won && (
                   <div className="text-sm text-slate-400 font-medium">
-                    {ar ? `تحتاج ${activeLevel.winScore} نقطة للفوز — حصلت على ${gs.score}` : `Need ${activeLevel.winScore} pts — you scored ${gs.score}`}
+                    {round.stars <= 0
+                      ? (ar ? 'نفدت النجوم الثلاث — أعد المحاولة' : 'All three stars gone — try again')
+                      : ar
+                        ? `تحتاج ${passMark} إجابات صحيحة على الأقل`
+                        : `You need at least ${passMark} correct answers`}
                   </div>
                 )}
               </div>
 
               <div className="relative z-10 grid grid-cols-3 gap-3 pt-2 border-t border-white/5">
                 {[
-                  { label: ar ? 'أعلى كومبو' : 'Max Combo', val: `×${gs.maxCombo}` },
-                  { label: ar ? 'النجوم المتبقية' : 'Stars Left', val: `${gs.lives}/3` },
-                  { label: ar ? 'الوقت المتبقي' : 'Time Left', val: `${Math.floor(gs.timeLeft / 1000)}s` },
+                  { label: ar ? 'النقاط' : 'Points', val: `${round.score}` },
+                  { label: ar ? 'أعلى كومبو' : 'Max Combo', val: `×${round.maxCombo}` },
+                  { label: ar ? 'النجوم المتبقية' : 'Stars Left', val: `${round.stars}/3` },
                 ].map(stat => (
                   <div key={stat.label} className="text-center">
                     <div className="text-base font-black text-white">{stat.val}</div>

@@ -1747,12 +1747,13 @@ app.post("/api/oman-corner", async (req, res) => {
 
 // ── Quiz Questions (Gemini-generated for CognitiveARGame) ────────────────
 app.post("/api/quiz-questions", async (req, res) => {
-  const { levelId, levelNameAr, levelNameEn, language } = req.body || {};
+  const { levelId, levelNameAr, levelNameEn, count } = req.body || {};
+  const wanted = Math.min(Math.max(Number(count) || 6, 3), 8);
 
   const difficultyMap: Record<string, string> = {
-    explorer:      'سهل — مفاهيم أساسية عن مصادر المعلومات الموثوقة',
-    researcher:    'متوسط — مفاهيم البحث العلمي والمراجعة الأكاديمية',
-    distinguished: 'متقدم — الوعي المعلوماتي والتفكير النقدي',
+    explorer:      'سهل — من أين تأتي المعرفة الموثوقة: المصدر والمؤلف والتاريخ والنسبة',
+    researcher:    'متوسط — بناء البحث وتوثيقه: المعاملات المنطقية، المكنز، التحكيم، الاقتباس، الـDOI',
+    distinguished: 'متقدم — أحكام صعبة: المجلات المفترسة، الـpreprint، تضارب المصالح، انتقاء الأدلة، المراجع التي يولّدها الذكاء الاصطناعي، القراءة الجانبية',
   };
   const difficulty = difficultyMap[levelId] || 'متوسط';
 
@@ -1765,6 +1766,8 @@ app.post("/api/quiz-questions", async (req, res) => {
         { ar: 'منشور في التواصل الاجتماعي', en: 'Social media post', correct: false },
         { ar: 'مدونة شخصية', en: 'Personal blog', correct: false },
       ],
+      whyAr: 'التحكيم فحص مسبق من باحثين مختصين — ليس ضماناً مطلقاً لكنه فرق حقيقي عن نص لم يراجعه أحد.',
+      whyEn: 'Peer review is a prior check by specialists — not a guarantee, but a real difference from an unreviewed text.',
     },
     {
       qAr: 'لماذا يجب التحقق من مصدر المعلومة؟',
@@ -1774,6 +1777,8 @@ app.post("/api/quiz-questions", async (req, res) => {
         { ar: 'لأن كل المعلومات خاطئة', en: 'Because all information is wrong', correct: false },
         { ar: 'لا داعي للتحقق أبداً', en: 'Verification is never necessary', correct: false },
       ],
+      whyAr: 'المعلومة تُستعمل في بناء نتيجة؛ فإن كان أساسها غير موثوق انهارت النتيجة معه.',
+      whyEn: 'Information is the foundation of a conclusion; if the foundation is unreliable the conclusion falls with it.',
     },
     {
       qAr: 'أي من هذه يُعدّ مصدراً أولياً؟',
@@ -1783,6 +1788,8 @@ app.post("/api/quiz-questions", async (req, res) => {
         { ar: 'خبر منقول بلا مرجع', en: 'Unattributed news story', correct: false },
         { ar: 'تعليق في منتدى', en: 'Forum comment', correct: false },
       ],
+      whyAr: 'المصدر الأولي يقدّم البيانات أو الشهادة مباشرة، بخلاف ما ينقل عن غيره.',
+      whyEn: 'A primary source presents the data or testimony directly, unlike one relaying someone else.',
     },
   ];
 
@@ -1790,13 +1797,17 @@ app.post("/api/quiz-questions", async (req, res) => {
   if (!client) return res.json({ questions: fallbackQuestions });
 
   try {
-    const prompt = `أنت خبير في الوعي المعلوماتي. أنشئ 3 أسئلة اختيار من متعدد لاختبار معرفة الطالب بمصادر المعلومات الموثوقة.
+    const prompt = `أنت خبير في الوعي المعلوماتي وتدريب الباحثين. أنشئ ${wanted} أسئلة اختيار من متعدد تنمّي وعي الطالب المعلوماتي في البحث العلمي.
 
 مستوى الصعوبة: ${difficulty}
-اسم الوسام: ${levelNameAr} (${levelNameEn})
+اسم المستوى: ${levelNameAr} (${levelNameEn})
 
-لكل سؤال: نص السؤال بالعربية والإنجليزية، و3 خيارات، خيار واحد فقط صحيح.
-الأسئلة يجب أن تكون متنوعة وتقيس فهماً حقيقياً لمصادر المعلومات الأكاديمية.`;
+شروط لازمة:
+- صغ كل سؤال كموقف عملي يواجهه باحث، لا كتعريف يُستظهر.
+- 3 خيارات لكل سؤال، خيار واحد فقط صحيح، والخيارات الخاطئة معقولة لا سخيفة.
+- لكل سؤال شرح موجز (whyAr / whyEn) يوضّح لماذا الإجابة صحيحة — هذا الشرح هو الفائدة التعليمية وليس اختيارياً.
+- وزّع الأسئلة على المهارات: تقييم المصادر، استراتيجية البحث، التوثيق والأمانة، قراءة الأدلة.
+- النص بالعربية والإنجليزية معاً، بلغة سليمة ومختصرة.`;
 
     const response = await withGeminiRetry(() => client.models.generateContent({
       model: "gemini-1.5-flash",
@@ -1814,6 +1825,9 @@ app.post("/api/quiz-questions", async (req, res) => {
                 properties: {
                   qAr:     { type: Type.STRING },
                   qEn:     { type: Type.STRING },
+                  whyAr:   { type: Type.STRING },
+                  whyEn:   { type: Type.STRING },
+                  skill:   { type: Type.STRING },
                   options: {
                     type: Type.ARRAY,
                     items: {
@@ -1827,7 +1841,7 @@ app.post("/api/quiz-questions", async (req, res) => {
                     },
                   },
                 },
-                required: ["qAr", "qEn", "options"],
+                required: ["qAr", "qEn", "whyAr", "whyEn", "options"],
               },
             },
           },
@@ -1837,8 +1851,8 @@ app.post("/api/quiz-questions", async (req, res) => {
     }));
 
     const parsed = JSON.parse(response.text || "{}");
-    const questions = parsed.questions?.slice(0, 3);
-    if (!questions || questions.length < 2) return res.json({ questions: fallbackQuestions });
+    const questions = parsed.questions?.slice(0, wanted);
+    if (!questions || questions.length < 3) return res.json({ questions: fallbackQuestions });
     return res.json({ questions });
   } catch (err: any) {
     const isQuota = String(err).includes('RESOURCE_EXHAUSTED') || (err as any)?.status === 429;
