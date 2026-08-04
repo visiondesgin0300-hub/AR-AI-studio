@@ -19,11 +19,15 @@ import {
   QrCode,
   Cpu,
   AlertTriangle,
+  Inbox,
+  ShieldCheck,
+  ArrowLeft,
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
+import { User } from '../types';
 
-type HelpTab = 'faqs' | 'contact' | 'requests' | 'tech';
+type HelpTab = 'faqs' | 'contact' | 'requests' | 'tech' | 'inbox';
 
 interface TechStage {
   icon: React.ComponentType<{ className?: string }>;
@@ -72,8 +76,15 @@ function loadRequests(): HelpRequest[] {
   try { return JSON.parse(localStorage.getItem(requestsKey()) || '[]'); } catch { return []; }
 }
 
-export function HelpCenter() {
+interface HelpCenterProps {
+  /** Optional so the page still renders if mounted without one. */
+  user?: User;
+}
+
+export function HelpCenter({ user }: HelpCenterProps) {
   const { t, dir, language } = useLanguage();
+  const ar = language === 'ar';
+  const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<HelpTab>('faqs');
   const [query, setQuery] = useState('');
@@ -136,18 +147,34 @@ export function HelpCenter() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t('helpCenterBadge')}</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">{t('howCanWeHelp')}</h1>
-          <p className="text-white/70 dark:text-white/60 font-medium leading-relaxed">{t('helpCenterDesc')}</p>
+          <p className="text-white/70 dark:text-white/60 font-medium leading-relaxed">
+            {isAdmin
+              ? (ar
+                  ? 'تصفّح الأسئلة الشائعة وشرح التقنية، وراجع الرسائل التي يرسلها المستخدمون من نموذج التواصل.'
+                  : 'Browse the FAQs and the technology guide, and review the messages users send through the contact form.')
+              : t('helpCenterDesc')}
+          </p>
         </div>
       </section>
 
       {/* Tabs */}
       <div className="flex flex-wrap justify-center gap-3 -mt-4 relative z-10">
-        {([
-          { id: 'faqs', label: t('faqsGuideTab'), icon: HelpCircle, badge: 0 },
-          { id: 'tech', label: t('aboutTechTab'), icon: Cpu, badge: 0 },
-          { id: 'contact', label: t('contactUsTab'), icon: Mail, badge: 0 },
-          { id: 'requests', label: t('myRequestsTab'), icon: MessageSquare, badge: requests.length },
-        ] as const).map((tab) => (
+        {/* An admin has nowhere to send an inquiry — these messages land in
+            their own dashboard — so they get a route to that inbox instead of
+            a contact form and a personal request list. */}
+        {(isAdmin
+          ? [
+              { id: 'faqs' as const, label: t('faqsGuideTab'), icon: HelpCircle, badge: 0 },
+              { id: 'tech' as const, label: t('aboutTechTab'), icon: Cpu, badge: 0 },
+              { id: 'inbox' as const, label: ar ? 'رسائل المستخدمين' : 'User messages', icon: Inbox, badge: 0 },
+            ]
+          : [
+              { id: 'faqs' as const, label: t('faqsGuideTab'), icon: HelpCircle, badge: 0 },
+              { id: 'tech' as const, label: t('aboutTechTab'), icon: Cpu, badge: 0 },
+              { id: 'contact' as const, label: t('contactUsTab'), icon: Mail, badge: 0 },
+              { id: 'requests' as const, label: t('myRequestsTab'), icon: MessageSquare, badge: requests.length },
+            ]
+        ).map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -384,6 +411,43 @@ export function HelpCenter() {
               </button>
             </form>
           )}
+        </div>
+      )}
+
+      {activeTab === 'inbox' && (
+        <div className="official-card p-8 md:p-10 max-w-xl mx-auto bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm space-y-6">
+          <div className={cn('flex items-start gap-4', dir === 'rtl' ? 'flex-row-reverse text-right' : '')}>
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent shrink-0">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-primary dark:text-white leading-snug">
+                {ar ? 'أنت تدير هذه الرسائل، لا ترسلها' : 'You handle these messages, you don’t send them'}
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                {ar
+                  ? 'نموذج «تواصل معنا» مخصص للطلاب، وما يُرسل منه يصل إلى تبويب الملاحظات في لوحة التحكم — وهو نفسه صندوق واردك.'
+                  : 'The contact form belongs to students, and what they send lands in the feedback tab of the dashboard — which is your inbox.'}
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => navigate('/admin?tab=feedback')}
+            className={cn(
+              'w-full py-4 bg-primary dark:bg-accent text-white dark:text-primary rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95',
+            )}
+          >
+            <Inbox className="w-4 h-4" />
+            {ar ? 'افتح رسائل المستخدمين' : 'Open user messages'}
+            <ArrowLeft className={cn('w-4 h-4', ar ? '' : 'rotate-180')} />
+          </button>
+
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed text-center">
+            {ar
+              ? 'للأعطال التقنية في النظام نفسه، راجع تبويب «عن التقنية» أعلاه أو تواصل مع مزوّد النظام.'
+              : 'For faults in the system itself, see the “About the technology” tab above or contact the system provider.'}
+          </p>
         </div>
       )}
 

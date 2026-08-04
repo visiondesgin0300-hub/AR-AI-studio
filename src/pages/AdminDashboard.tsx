@@ -63,7 +63,13 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const ar = language === 'ar';
 
-  const [activeTab, setActiveTab] = useState<AdminTab>('users');
+  // ?tab=feedback lets another page link straight to a tab — the help centre
+  // sends admins here to read the messages students send.
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    const wanted = new URLSearchParams(window.location.search).get('tab');
+    const valid: AdminTab[] = ['users', 'books', 'facilities', 'qr', 'stats', 'logs', 'feedback'];
+    return valid.includes(wanted as AdminTab) ? (wanted as AdminTab) : 'users';
+  });
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [books, setBooks] = useState<Book[]>(MOCK_BOOKS);
   const [facilities, setFacilities] = useState<Facility[]>(INITIAL_FACILITIES);

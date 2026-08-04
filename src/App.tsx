@@ -188,7 +188,7 @@ function AppContent() {
         />
         <Route
           path="/help"
-          element={user ? <Layout user={user} onLogout={handleLogout}><HelpCenter /></Layout> : <Navigate to="/login" />}
+          element={user ? <Layout user={user} onLogout={handleLogout}><HelpCenter user={user} /></Layout> : <Navigate to="/login" />}
         />
         <Route
           path="/ar-showcase"
