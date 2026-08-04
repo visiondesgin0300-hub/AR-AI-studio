@@ -61,7 +61,7 @@ const LEVELS: Level[] = [
     hintAr: 'أساسيات: المصدر، المؤلف، التاريخ، والنسبة', hintEn: 'Basics: the source, the author, the date, and credit',
     xp: GAME_LEVEL_XP.explorer, Icon: Compass,
     color: 'text-teal-400', bg: 'bg-teal-500/15', border: 'border-teal-500/40', shadow: 'shadow-teal-500/30',
-    questionCount: 6, seconds: 25,
+    questionCount: 5, seconds: 25,
   },
   {
     id: 'researcher', nameAr: 'الباحث', nameEn: 'Researcher',
@@ -69,7 +69,7 @@ const LEVELS: Level[] = [
     hintAr: 'المعاملات المنطقية، المكنز، التحكيم، والتوثيق', hintEn: 'Boolean operators, thesauri, peer review, citation',
     xp: GAME_LEVEL_XP.researcher, Icon: Search,
     color: 'text-emerald-400', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', shadow: 'shadow-emerald-500/30',
-    questionCount: 6, seconds: 20,
+    questionCount: 5, seconds: 20,
   },
   {
     id: 'distinguished', nameAr: 'المتميز', nameEn: 'Distinguished',
@@ -77,7 +77,7 @@ const LEVELS: Level[] = [
     hintAr: 'المجلات المفترسة، الأدلة المنتقاة، ومراجع الذكاء الاصطناعي', hintEn: 'Predatory journals, cherry-picked evidence, AI citations',
     xp: GAME_LEVEL_XP.distinguished, Icon: Crown,
     color: 'text-amber-400', bg: 'bg-amber-500/15', border: 'border-amber-500/40', shadow: 'shadow-amber-500/30',
-    questionCount: 6, seconds: 16,
+    questionCount: 5, seconds: 16,
   },
 ];
 
@@ -116,7 +116,7 @@ async function buildRound(level: Level, ar: boolean): Promise<RoundQuestion[]> {
       new Promise<null>(resolve => setTimeout(() => resolve(null), 5000)),
     ]);
     const generated: LiteracyQuestion[] = (res as any)?.questions?.filter(valid) ?? [];
-    if (generated.length >= 4) {
+    if (generated.length >= level.questionCount) {
       const merged = generated.slice(0, level.questionCount).map((q, i) => ({
         ...q,
         id: `ai-${i}`,
