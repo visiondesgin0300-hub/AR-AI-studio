@@ -239,10 +239,19 @@ export function Search() {
                           <span className="text-[10px] font-black text-accent tracking-wider uppercase block">
                             {categoryTranslationMap[book.category] || book.category}
                           </span>
-                          <h4 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2 group-hover:text-[#004C6D] dark:group-hover:text-accent transition-colors">
+                          {/* Latin script reads smaller than Arabic at the same
+                              px size, so the English title takes a step up to
+                              carry the same weight on the card. */}
+                          <h4 className={cn(
+                            'font-black text-primary dark:text-white leading-tight line-clamp-2 group-hover:text-[#004C6D] dark:group-hover:text-accent transition-colors',
+                            language === 'en' ? 'text-base sm:text-lg' : 'text-sm',
+                          )}>
                             {bookTitle(book, language)}
                           </h4>
-                          <span className="text-xs text-slate-400 font-bold block truncate">
+                          <span className={cn(
+                            'text-slate-400 font-bold block truncate',
+                            language === 'en' ? 'text-sm' : 'text-xs',
+                          )}>
                             {bookAuthor(book, language)}
                           </span>
                         </div>
