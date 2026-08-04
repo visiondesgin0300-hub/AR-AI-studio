@@ -113,7 +113,7 @@ export function Profile({ user }: ProfileProps) {
     <div dir={dir} className="space-y-8 max-w-3xl mx-auto pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-[2rem] bg-primary p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-[2rem] bg-primary p-6 sm:p-8 md:p-10">
         <div className="absolute -top-20 -right-20 w-72 h-72 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-10 -left-10 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
 
@@ -144,8 +144,14 @@ export function Profile({ user }: ProfileProps) {
                   className="h-full bg-accent rounded-full"
                 />
               </div>
-              <p className="text-[9px] font-black text-white/40 uppercase tracking-widest">
-                {xp} XP — {ar ? `${xpToNext} للمستوى التالي` : `${xpToNext} to next level`}
+              {/* Two spans, the numeric one forced LTR — same shape as the
+                  caption under the big progress bar below. As one string this
+                  reached the screen as "التالي للمستوى XP — 90 10": bidi pulled
+                  the 10 and the 90 together and stranded the XP label. */}
+              <p className="flex items-center gap-1.5 text-[10px] font-black text-white/40 uppercase tracking-widest">
+                <span dir="ltr">{xp} XP</span>
+                <span>—</span>
+                <span>{ar ? `${xpToNext} للمستوى التالي` : `${xpToNext} to next level`}</span>
               </p>
             </div>
           </div>
@@ -153,7 +159,7 @@ export function Profile({ user }: ProfileProps) {
       </div>
 
       {/* ── XP breakdown ─────────────────────────────────────────────────────── */}
-      <div className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
+      <div className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
         <div className={cn('flex items-center justify-between', ar ? 'flex-row-reverse' : '')}>
           <div>
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
@@ -198,7 +204,9 @@ export function Profile({ user }: ProfileProps) {
                   <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300 truncate">
                     {ar ? labelAr : labelEn}
                   </span>
-                  <span className={cn('text-[11px] font-black shrink-0', earned > 0 ? 'text-accent' : 'text-slate-300 dark:text-slate-600')}>
+                  {/* dir=ltr: the leading + is neutral, so Arabic laid these
+                      out as "XP 10 +" with the sign on the far side. */}
+                  <span dir="ltr" className={cn('text-[11px] font-black shrink-0', earned > 0 ? 'text-accent' : 'text-slate-300 dark:text-slate-600')}>
                     +{earned} XP
                   </span>
                 </div>
@@ -211,7 +219,7 @@ export function Profile({ user }: ProfileProps) {
                   />
                 </div>
               </div>
-              <span className="text-[9px] font-bold text-slate-400 shrink-0 min-w-[40px] text-end">{detail}</span>
+              <span className="text-[10px] font-bold text-slate-400 shrink-0 min-w-[44px] text-end">{detail}</span>
             </div>
           ))}
         </div>
@@ -232,7 +240,7 @@ export function Profile({ user }: ProfileProps) {
               </p>
               <button
                 onClick={() => navigate('/map')}
-                className="mt-3 px-5 py-2 bg-primary dark:bg-accent text-white dark:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all"
+                className="mt-3 px-5 py-3.5 bg-primary dark:bg-accent text-white dark:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all"
               >
                 {ar ? 'اذهب للخريطة' : 'Open Map'}
               </button>
@@ -274,24 +282,24 @@ export function Profile({ user }: ProfileProps) {
             </div>
 
             {/* label */}
-            <div className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-tight">
+            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-tight">
               {ar ? labelAr : labelEn}
             </div>
 
-            {/* lock overlay hint */}
+            {/* How to unlock. In normal flow, not an absolute overlay pinned to
+                the card's bottom edge — as an overlay it was drawn straight on
+                top of the label whenever the hint needed a second line. */}
             {locked && (hintAr || hintEn) && (
-              <div className="absolute inset-0 flex items-end justify-center pb-3 px-2 bg-gradient-to-t from-slate-50/95 dark:from-slate-900/95 to-transparent rounded-[inherit]">
-                <p className="text-[8px] font-bold text-slate-400 text-center leading-snug">
-                  {ar ? hintAr : hintEn}
-                </p>
-              </div>
+              <p className="text-[10px] font-bold text-slate-400 text-center leading-snug">
+                {ar ? hintAr : hintEn}
+              </p>
             )}
           </motion.div>
         ))}
       </div>
 
       {/* ── Badges & achievements ────────────────────────────────────────────── */}
-      <div className="official-card p-8 bg-white dark:bg-slate-900 space-y-6 relative overflow-hidden">
+      <div className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6 relative overflow-hidden">
         <div className={cn('flex items-center justify-between', ar ? 'flex-row-reverse' : '')}>
           <div>
             <h3 className="text-lg font-black text-primary dark:text-white">
@@ -333,7 +341,7 @@ export function Profile({ user }: ProfileProps) {
               </div>
               <button
                 onClick={() => navigate('/cognitive-ar')}
-                className={cn('flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary dark:bg-accent text-white dark:text-primary text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all shrink-0', ar ? 'flex-row-reverse' : '')}
+                className={cn('flex items-center gap-2 px-4 py-3.5 rounded-xl bg-primary dark:bg-accent text-white dark:text-primary text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all shrink-0', ar ? 'flex-row-reverse' : '')}
               >
                 <Gamepad2 className="w-3.5 h-3.5" />
                 {ar ? 'العب الآن' : 'Play Now'}
@@ -344,7 +352,7 @@ export function Profile({ user }: ProfileProps) {
       </div>
 
       {/* ── Notifications ───────────────────────────────────────────────────── */}
-      <div className="official-card p-8 bg-white dark:bg-slate-900 space-y-5">
+      <div className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-5">
         {/* header */}
         <div className={cn('flex items-center justify-between', ar ? 'flex-row-reverse' : '')}>
           <div className={cn('flex items-center gap-3', ar ? 'flex-row-reverse' : '')}>
@@ -425,7 +433,7 @@ export function Profile({ user }: ProfileProps) {
                     <p className="text-xs font-black text-primary dark:text-white leading-snug">
                       {notif.title}
                     </p>
-                    <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 shrink-0 whitespace-nowrap">
+                    <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 shrink-0 whitespace-nowrap">
                       {ar ? 'منذ قليل' : 'just now'}
                     </span>
                   </div>

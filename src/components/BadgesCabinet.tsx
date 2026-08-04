@@ -267,7 +267,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                 <div className="w-full space-y-1.5 mt-0.5">
                   <div className="relative h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden">
                     <motion.div
-                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-accent/50 to-accent"
+                      className="absolute inset-y-0 start-0 rounded-full bg-gradient-to-r from-accent/50 to-accent"
                       initial={{ width: 0 }}
                       animate={{ width: `${pct}%` }}
                       transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.1 }}
