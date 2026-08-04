@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Users, BookOpen, Activity, PlusCircle, Download, Trash2, Edit, X,
+  Users, BookOpen, Activity, PlusCircle, Trash2, Edit, X,
   BarChart3, Bell, TrendingUp, Search,
   QrCode, Building2, MapPin,
   Printer, Monitor, VolumeX, User as UserIcon,
@@ -334,27 +334,6 @@ export function AdminDashboard() {
   // The export control used to be inert. It now downloads whichever table the
   // admin is actually looking at, as CSV. The BOM keeps Excel from mangling
   // the Arabic columns.
-  const handleExport = () => {
-    const rows: (string | number)[][] =
-      activeTab === 'books'
-        ? [[ar ? 'العنوان' : 'Title', ar ? 'المؤلف' : 'Author', ar ? 'التصنيف' : 'Category', ar ? 'الرف' : 'Shelf', ar ? 'الحالة' : 'Status'],
-           ...filteredBooks.map(b => [b.title, b.author, b.category || '', b.shelf || '', b.status || 'available'])]
-      : activeTab === 'facilities'
-        ? [[ar ? 'المرفق' : 'Facility', ar ? 'الاسم (EN)' : 'Name (EN)', ar ? 'الموقع' : 'Location', ar ? 'الحالة' : 'Status'],
-           ...filteredFacilities.map(f => [f.name, f.nameEn, f.cellId, f.status])]
-        : [[ar ? 'الاسم' : 'Name', ar ? 'البريد الإلكتروني' : 'Email', ar ? 'الدور' : 'Role', ar ? 'الاستعارات' : 'Borrowed'],
-           ...filteredUsers.map(u => [u.name, u.email, u.role, u.borrowedBooks.length])];
-
-    const csv = rows
-      .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
-      .join('\r\n');
-    const url = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `arlibrary-${activeTab}-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
 
   const tabs = [
     { id: 'users', label: t('usersTab'), icon: Users },
@@ -399,14 +378,6 @@ export function AdminDashboard() {
             <div className="bg-primary/5 dark:bg-accent/10 text-primary dark:text-accent px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/10 dark:border-accent/20 whitespace-nowrap">{t('centralControlPanel')}</div>
           </div>
           <p className="text-slate-400 dark:text-slate-500 font-bold text-sm">{t('fullControlDesc')}</p>
-        </div>
-        <div className={cn('flex items-center gap-3 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-          <button onClick={handleExport} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
-            <Download className="w-4 h-4" />{t('exportReports')}
-          </button>
-          <button onClick={() => openModal('book')} className="bg-primary dark:bg-accent text-white dark:text-primary px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all flex items-center gap-2 shadow-xl shadow-primary/20 dark:shadow-accent/20 whitespace-nowrap">
-            <PlusCircle className="w-4 h-4 text-accent dark:text-primary" />{t('addNewResource')}
-          </button>
         </div>
       </div>
 
