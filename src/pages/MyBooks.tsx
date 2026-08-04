@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, getUserLevel, getEarnedBadges, calcXP, displayName } from '../lib/utils';
+import { cn, getUserLevel, getEarnedBadges, calcXP, displayName, bookTitle, bookAuthor } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
 import { BadgesCabinet } from '../components/BadgesCabinet';
@@ -258,9 +258,9 @@ export function MyBooks({ user }: MyBooksProps) {
                           <span className="text-[9px] font-black text-accent uppercase tracking-widest">
                             {catLabel[book.category] || book.category}
                           </span>
-                          <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2 mt-0.5">{book.title}</h5>
+                          <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2 mt-0.5">{bookTitle(book, language)}</h5>
                           <p className={cn('text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-1', ar ? 'flex-row-reverse' : '')}>
-                            <UserIcon className="w-3 h-3" />{book.author}
+                            <UserIcon className="w-3 h-3" />{bookAuthor(book, language)}
                           </p>
                         </div>
                         <div className={cn('bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 px-3 py-2 rounded-xl text-center shrink-0', book.daysLeft <= 3 ? 'border-rose-200 dark:border-rose-500/20' : '')}>

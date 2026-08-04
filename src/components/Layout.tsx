@@ -275,7 +275,9 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
           <div className="flex-1 min-w-0 relative z-10 hidden md:block">
             <h1 className="text-lg lg:text-xl font-black text-white tracking-tight truncate">
-              {t('welcomeUser').replace('{name}', displayName(user, language))}
+              {/* An admin is greeted by role, not by name — the dashboard is a
+                  staff console, not a personal page. */}
+              {t('welcomeUser').replace('{name}', isAdmin ? t('adminRole') : displayName(user, language))}
             </h1>
           </div>
 

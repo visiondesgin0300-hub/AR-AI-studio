@@ -4,13 +4,13 @@ import {
   BarChart3, Bell, TrendingUp, Search,
   QrCode, Building2, MapPin,
   Printer, Monitor, VolumeX, User as UserIcon,
-  CheckCircle2, Clock, MessageSquareReply, ChevronDown, ChevronUp, Mail,
+  CheckCircle2, Clock, MessageSquareReply, MessageSquare, ChevronDown, ChevronUp, Mail,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { BookCover } from '../components/BookCover';
 import { MOCK_BOOKS, MOCK_USERS, SHELF_IDS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, displayName } from '../lib/utils';
+import { cn, displayName, bookTitle, bookAuthor } from '../lib/utils';
 import { User, Book } from '../types';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, LabelList, PieChart, Pie } from 'recharts';
 import { useLanguage } from '../hooks/useLanguage';
@@ -78,6 +78,10 @@ export function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [bookFilter, setBookFilter] = useState('all');
   const [qrSection, setQrSection] = useState<'shelves' | 'books' | 'facilities'>('shelves');
+  // Two different things arrive in this tab: a request is a question waiting
+  // for a reply, a rating is an opinion to read. They were listed together, so
+  // a support ticket sat in the same queue as "the AR navigation is great".
+  const [inboxView, setInboxView] = useState<'requests' | 'ratings'>('requests');
   const [realFeedback, setRealFeedback] = useState<any[]>([]);
   const [newFeedbackCount, setNewFeedbackCount] = useState(0);
   const [feedbackStatuses, setFeedbackStatuses] = useState<Record<string, 'pending' | 'reviewing' | 'resolved'>>(() => {
@@ -231,6 +235,7 @@ export function AdminDashboard() {
     ...mockFeedbackEntries.map(m => ({ ...m, isInquiry: false, email: '' })),
   ];
 
+  const visibleEntries = feedbackEntries.filter(e => (inboxView === 'requests' ? e.isInquiry : !e.isInquiry));
   const inquiryCount = feedbackEntries.filter(e => e.isInquiry).length;
   const ratingCount = feedbackEntries.length - inquiryCount;
 
@@ -555,7 +560,7 @@ export function AdminDashboard() {
                       name="resources"
                       rows={[
                         [ar ? 'العنوان' : 'Title', ar ? 'المؤلف' : 'Author', ar ? 'التصنيف' : 'Category', ar ? 'الرف' : 'Shelf', ar ? 'الحالة' : 'Status'],
-                        ...filteredBooks.map(b => [b.title, b.author, b.category || '', b.shelf || '', b.status || 'available']),
+                        ...filteredBooks.map(b => [bookTitle(b, language), bookAuthor(b, language), b.category || '', b.shelf || '', b.status || 'available']),
                       ]}
                     />
                     <button onClick={() => openModal('book')} className="bg-primary dark:bg-accent text-white dark:text-primary p-2.5 rounded-xl shadow-lg hover:scale-105 transition-all shrink-0">
@@ -582,8 +587,8 @@ export function AdminDashboard() {
                               <div className={cn('flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                                 <BookCover book={book} className="w-10 h-14 rounded-xl shadow-md border-2 border-slate-100 dark:border-white/5 shrink-0 overflow-hidden" />
                                 <div>
-                                  <div className="text-xs font-black text-primary dark:text-white truncate max-w-[180px]">{book.title}</div>
-                                  <div className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest">{book.author}</div>
+                                  <div className="text-xs font-black text-primary dark:text-white truncate max-w-[180px]">{bookTitle(book, language)}</div>
+                                  <div className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest">{bookAuthor(book, language)}</div>
                                 </div>
                               </div>
                             </td>
@@ -705,7 +710,7 @@ export function AdminDashboard() {
                              ...SHELVES.map(id => [id, `ARLIBRARY:SHELF:${id}`])]
                           : qrSection === 'books'
                           ? [[ar ? 'العنوان' : 'Title', ar ? 'الرف' : 'Shelf', ar ? 'رمز AR' : 'AR code'],
-                             ...books.map(bk => [bk.title, bk.shelf || '', `ARLIBRARY:BOOK:${bk.id}`])]
+                             ...books.map(bk => [bookTitle(bk, language), bk.shelf || '', `ARLIBRARY:BOOK:${bk.id}`])]
                           : [[ar ? 'المرفق' : 'Facility', ar ? 'الموقع' : 'Location', ar ? 'رمز AR' : 'AR code'],
                              ...facilities.map(f => [f.name, f.cellId, `ARLIBRARY:FACILITY:${f.cellId}`])]
                       }
@@ -750,7 +755,7 @@ export function AdminDashboard() {
                         <div key={book.id} className="official-card p-4 flex flex-col items-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-lg hover:shadow-xl transition-shadow">
                           <QRCodeSVG value={`ARLIBRARY:BOOK:${book.id}`} size={100} level="M" fgColor="#004C6D" />
                           <div className="text-center w-full">
-                            <div className="text-[10px] font-black text-primary dark:text-white truncate w-full">{book.title}</div>
+                            <div className="text-[10px] font-black text-primary dark:text-white truncate w-full">{bookTitle(book, language)}</div>
                             <div className="text-[8px] font-mono text-slate-400 mt-0.5">BOOK:{book.id} · {book.shelf}</div>
                           </div>
                         </div>
@@ -881,8 +886,16 @@ export function AdminDashboard() {
               <motion.div key="feedback" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
                 <div className={cn('flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3', dir === 'rtl' ? 'sm:flex-row-reverse' : '')}>
                   <div className="space-y-1">
-                    <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'طلبات المستخدمين' : 'User Requests'}</h3>
-                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">{ar ? 'آراء وملاحظات المستخدمين المُستلمة من تطبيق ARLibrary' : 'User feedback received from the ARLibrary app'}</p>
+                    <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">
+                      {inboxView === 'requests'
+                        ? (ar ? 'طلبات المستخدمين' : 'User Requests')
+                        : (ar ? 'تقييمات المستخدمين' : 'User Feedback')}
+                    </h3>
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                      {inboxView === 'requests'
+                        ? (ar ? 'استفسارات مُرسَلة من مركز المساعدة وتنتظر رداً' : 'Inquiries sent from the help centre, awaiting a reply')
+                        : (ar ? 'آراء وتقييمات مُرسَلة من نافذة الملاحظات' : 'Opinions and ratings sent from the feedback widget')}
+                    </p>
                     {feedbackDenied && (
                       <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400" role="alert">
                         {ar
@@ -898,25 +911,47 @@ export function AdminDashboard() {
                         {realFeedback.length} {ar ? 'جديد' : 'live'}
                       </span>
                     )}
-                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{feedbackEntries.length} {ar ? 'إجمالي' : 'total'}</span>
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{visibleEntries.length} {ar ? 'إجمالي' : 'total'}</span>
                     <ExportButton
-                      name="user-requests"
-                      rows={[
-                        [ar ? 'النوع' : 'Type', ar ? 'المرسل' : 'From', ar ? 'البريد' : 'Email',
-                         ar ? 'التقييم' : 'Rating', ar ? 'الرسالة' : 'Message', ar ? 'الوقت' : 'Time'],
-                        ...feedbackEntries.map(e => [
-                          e.isInquiry ? (ar ? 'استفسار' : 'Inquiry') : (ar ? 'تقييم' : 'Rating'),
-                          e.user, e.email,
-                          e.isInquiry ? '' : e.moodLabel,
-                          e.text, e.time,
-                        ]),
-                      ]}
+                      name={inboxView === 'requests' ? 'user-requests' : 'user-feedback'}
+                      rows={
+                        inboxView === 'requests'
+                          ? [[ar ? 'المرسل' : 'From', ar ? 'البريد' : 'Email', ar ? 'الاستفسار' : 'Inquiry', ar ? 'الوقت' : 'Time'],
+                             ...visibleEntries.map(e => [e.user, e.email, e.text, e.time])]
+                          : [[ar ? 'المرسل' : 'From', ar ? 'التقييم' : 'Rating', ar ? 'المحاور' : 'Topics', ar ? 'الملاحظة' : 'Comment', ar ? 'الوقت' : 'Time'],
+                             ...visibleEntries.map(e => [e.user, e.moodLabel, (e.categories || []).join(' / '), e.text, e.time])]
+                      }
                     />
                   </div>
                 </div>
 
+                {/* The split itself. Same control the AR-codes tab uses. */}
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 p-1.5 rounded-2xl w-fit shadow-inner">
+                  {([
+                    ['requests', ar ? 'الطلبات' : 'Requests', inquiryCount],
+                    ['ratings',  ar ? 'التقييمات' : 'Feedback', ratingCount],
+                  ] as const).map(([id, label, count]) => (
+                    <button
+                      key={id}
+                      onClick={() => setInboxView(id)}
+                      className={cn(
+                        'flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap',
+                        inboxView === id ? 'bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-md' : 'text-slate-400 hover:text-slate-600',
+                      )}
+                    >
+                      {id === 'requests' ? <Mail className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                      {label}
+                      <span className={cn(
+                        'min-w-[20px] px-1.5 py-0.5 rounded-lg text-[9px] tabular-nums',
+                        inboxView === id ? 'bg-primary/10 dark:bg-accent/15' : 'bg-slate-200/70 dark:bg-slate-800',
+                      )}>{count}</span>
+                    </button>
+                  ))}
+                </div>
+
                 {/* Mood summary — ratings only. Inquiries carry no mood, so
                     folding them into these percentages would misreport them. */}
+                {inboxView === 'ratings' && (
                 <div className="space-y-3">
                   <div className={cn('flex items-baseline gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                     <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
@@ -940,10 +975,23 @@ export function AdminDashboard() {
                   ))}
                 </div>
                 </div>
+                )}
 
-                {/* Feedback entries */}
+                {/* Entries for the active view */}
                 <div className="space-y-4">
-                  {feedbackEntries.map(entry => {
+                  {visibleEntries.length === 0 && (
+                    <div className="official-card p-10 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 text-center space-y-3">
+                      <div className="w-12 h-12 mx-auto rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
+                        {inboxView === 'requests' ? <Mail className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+                      </div>
+                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500">
+                        {inboxView === 'requests'
+                          ? (ar ? 'لا توجد استفسارات واردة' : 'No inquiries received')
+                          : (ar ? 'لا توجد تقييمات بعد' : 'No ratings yet')}
+                      </p>
+                    </div>
+                  )}
+                  {visibleEntries.map(entry => {
                     const status = feedbackStatuses[entry.id] || 'pending';
                     const isResolved = status === 'resolved';
                     const isReviewing = status === 'reviewing';

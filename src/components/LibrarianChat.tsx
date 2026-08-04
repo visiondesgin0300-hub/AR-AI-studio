@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Send, MapPin, BookOpen } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, bookTitle } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
 import { RafeeqAvatar } from './RafeeqAvatar';
@@ -18,7 +18,7 @@ interface LibrarianChatProps {
 }
 
 export function LibrarianChat({ onClose }: LibrarianChatProps) {
-  const { t, dir } = useLanguage();
+  const { t, dir, language } = useLanguage();
   const navigate = useNavigate();
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: t('librarianGreeting') },
@@ -134,7 +134,7 @@ export function LibrarianChat({ onClose }: LibrarianChatProps) {
                             className="flex-1 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 text-primary dark:text-accent text-[11px] font-black hover:brightness-95 transition-all"
                           >
                             <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">{book.title}</span>
+                            <span className="truncate">{bookTitle(book, language)}</span>
                           </button>
                           <button
                             onClick={() => { navigate('/map', { state: { bookId: id } }); onClose(); }}

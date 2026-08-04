@@ -11,6 +11,21 @@ export function displayName(user: Pick<User, 'name' | 'nameEn'>, language: strin
   return language === 'en' && user.nameEn ? user.nameEn : user.name;
 }
 
+/**
+ * The title/author to show for a book in the active language.
+ *
+ * Every book in the catalogue carries an English title and author alongside
+ * the Arabic ones; the app simply never reached for them, so an English
+ * reader saw Arabic titles throughout. Mirrors displayName() for users.
+ */
+export function bookTitle(book: { title: string; titleEn?: string }, language: string): string {
+  return language === 'en' && book.titleEn ? book.titleEn : book.title;
+}
+
+export function bookAuthor(book: { author: string; authorEn?: string }, language: string): string {
+  return language === 'en' && book.authorEn ? book.authorEn : book.author;
+}
+
 export function getUserLevel(points: number): number {
   return Math.floor(points / 100) + 1;
 }

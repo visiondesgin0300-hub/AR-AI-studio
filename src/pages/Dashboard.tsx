@@ -4,7 +4,7 @@ import { Search, BookOpen, Clock, ChevronRight, Compass, MapPin, Layers, Message
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, calcXP, getSearchCount, displayName } from '../lib/utils';
+import { cn, calcXP, getSearchCount, displayName, bookTitle, bookAuthor } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
@@ -263,8 +263,8 @@ export function Dashboard({ user }: DashboardProps) {
                 <div className={cn("flex gap-4", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
                   <BookCover book={book} className="w-16 h-20 rounded-xl shrink-0" />
                   <div className="min-w-0 space-y-1">
-                    <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2">{book.title}</h5>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{book.author}</p>
+                    <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2">{bookTitle(book, language)}</h5>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{bookAuthor(book, language)}</p>
                   </div>
                 </div>
                 <div className={cn("flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
@@ -347,8 +347,8 @@ export function Dashboard({ user }: DashboardProps) {
                 </div>
                 <div className="p-6 space-y-2">
                   <div className="text-[10px] font-black text-secondary dark:text-accent uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</div>
-                  <h4 className="font-black text-primary dark:text-white group-hover:text-accent transition-colors text-sm leading-tight line-clamp-1">{book.title}</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">{book.author}</p>
+                  <h4 className="font-black text-primary dark:text-white group-hover:text-accent transition-colors text-sm leading-tight line-clamp-1">{bookTitle(book, language)}</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">{bookAuthor(book, language)}</p>
                 </div>
               </Link>
             </motion.div>
@@ -380,8 +380,8 @@ export function Dashboard({ user }: DashboardProps) {
                 </div>
                 <div className="p-4 flex flex-col justify-center gap-1">
                   <div className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t('shelfItem')} {book.shelf}</div>
-                  <h4 className="font-black text-primary dark:text-white text-xs leading-tight line-clamp-2 uppercase">{book.title}</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">{book.author}</p>
+                  <h4 className="font-black text-primary dark:text-white text-xs leading-tight line-clamp-2 uppercase">{bookTitle(book, language)}</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">{bookAuthor(book, language)}</p>
                 </div>
               </Link>
             ))}

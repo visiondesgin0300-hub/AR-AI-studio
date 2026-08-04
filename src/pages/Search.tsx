@@ -3,7 +3,7 @@ import { Search as SearchIcon, MapPin, Compass, HelpCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
-import { cn, incrementSearchCount } from '../lib/utils';
+import { cn, incrementSearchCount, bookTitle, bookAuthor } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { BookCover } from '../components/BookCover';
 
@@ -240,10 +240,10 @@ export function Search() {
                             {categoryTranslationMap[book.category] || book.category}
                           </span>
                           <h4 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2 group-hover:text-[#004C6D] dark:group-hover:text-accent transition-colors">
-                            {book.title}
+                            {bookTitle(book, language)}
                           </h4>
                           <span className="text-xs text-slate-400 font-bold block truncate">
-                            {book.author}
+                            {bookAuthor(book, language)}
                           </span>
                         </div>
 
