@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
-import { cn } from '../lib/utils';
+import { cn, bookTitle, bookAuthor, bookCategory } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -20,11 +20,15 @@ const SPINE_COLORS = [
 // B-3/B-4/E-1/E-2 could not be reached from the demo at all.
 const ALL_SHELVES = SHELF_IDS;
 
-function getCitation(book: Book, fmt: 'apa' | 'mla' | 'chicago' | 'bibtex'): string {
+// The citation is built from the catalogue's English strings when the app is
+// in English: it used book.title/book.author directly, so an English reader
+// copying an APA reference got an Arabic title and author inside an otherwise
+// Latin citation.
+function getCitation(book: Book, fmt: 'apa' | 'mla' | 'chicago' | 'bibtex', language: string): string {
   const y = book.year ?? 2022;
   const pub = book.publisher ?? 'Academic Press';
-  const a = book.author;
-  const t = book.title;
+  const a = bookAuthor(book, language);
+  const t = bookTitle(book, language);
   switch (fmt) {
     case 'apa':      return `${a} (${y}). ${t}. ${pub}.`;
     case 'mla':      return `${a}. "${t}." ${pub}, ${y}.`;
@@ -62,8 +66,8 @@ export function ARShowcase() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        title: selectedBook.title,
-        author: selectedBook.author,
+        title: bookTitle(selectedBook, language),
+        author: bookAuthor(selectedBook, language),
         category: selectedBook.category,
         description: (selectedBook as any).description,
         language,
@@ -82,7 +86,7 @@ export function ARShowcase() {
   const handleCopy = async () => {
     if (!selectedBook) return;
     try {
-      await navigator.clipboard.writeText(getCitation(selectedBook, citeFmt));
+      await navigator.clipboard.writeText(getCitation(selectedBook, citeFmt, language));
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
@@ -186,7 +190,7 @@ export function ARShowcase() {
                         overflow: 'hidden',
                       }}
                     >
-                      {book.title}
+                      {bookTitle(book, language)}
                     </span>
                     {isSelected && (
                       <div className="absolute bottom-2 inset-x-0 flex justify-center">
@@ -242,15 +246,15 @@ export function ARShowcase() {
                 >
                   {/* Section tag */}
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/5 dark:bg-accent/10 text-primary dark:text-accent text-[9px] font-black uppercase tracking-wider">
-                    {selectedBook.section ?? 'QC'} · {selectedBook.category ?? '—'}
+                    {selectedBook.section ?? 'QC'} · {bookCategory(selectedBook.category, language) || '—'}
                   </span>
 
                   {/* Title */}
                   <div>
                     <h2 className={cn('text-xl font-black text-primary dark:text-white leading-tight', dir === 'rtl' ? 'text-right' : '')}>
-                      {selectedBook.title}
+                      {bookTitle(selectedBook, language)}
                     </h2>
-                    <p className="text-slate-400 font-bold text-sm mt-0.5">{selectedBook.author}</p>
+                    <p className="text-slate-400 font-bold text-sm mt-0.5">{bookAuthor(selectedBook, language)}</p>
                   </div>
 
                   {/* Key metadata — compact */}
@@ -309,7 +313,7 @@ export function ARShowcase() {
                     </div>
                     <div className="relative p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-white/5">
                       <p className={cn('text-[9px] font-mono text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap', dir === 'rtl' ? 'text-right pr-0 pl-7' : 'pr-7')}>
-                        {getCitation(selectedBook, citeFmt)}
+                        {getCitation(selectedBook, citeFmt, language)}
                       </p>
                       <button
                         onClick={handleCopy}
@@ -390,48 +394,37 @@ export function ARShowcase() {
         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
           {ar ? 'تجربة الواقع المعزز' : 'AR Experience'}
         </span>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {[
-            {
-              icon: ScanSearch,
-              route: '/smart-lens',
-              colorClass: 'text-cyan-500 bg-cyan-500/10 border-cyan-500/20',
-              titleAr: 'العدسة الذكية',
-              titleEn: 'Smart Lens',
-              tagAr: 'كاميرا حقيقية',
-              tagEn: 'Real Camera',
-            },
-          ].map((f, i) => {
-            const Icon = f.icon;
-            return (
-              <motion.button
-                key={f.route}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, type: 'spring', stiffness: 300, damping: 24 }}
-                whileHover={{ y: -3 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => navigate(f.route)}
-                className={cn(
-                  'official-card p-4 bg-white dark:bg-slate-900 flex flex-col items-start gap-3 group cursor-pointer w-full',
-                  dir === 'rtl' ? 'items-end text-right' : ''
-                )}
-              >
-                <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center', f.colorClass)}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-black text-primary dark:text-white">{ar ? f.titleAr : f.titleEn}</p>
-                  <p className="text-[9px] font-bold text-slate-400 mt-0.5">{ar ? f.tagAr : f.tagEn}</p>
-                </div>
-                {/* The arrow is mirrored under RTL, so it must slide the other way. The
-                    RTL branch used to pass both -translate-x-1 and translate-x-0;
-                    tailwind-merge kept the last one and the hover did nothing. */}
-                <ChevronRight className={cn('w-3.5 h-3.5 text-slate-300 dark:text-slate-600 transition-transform', dir === 'rtl' ? 'rotate-180 self-start group-hover:-translate-x-1' : 'self-end group-hover:translate-x-1')} />
-              </motion.button>
-            );
-          })}
-        </div>
+        {/* A single full-width row, not one small card stranded in a
+            three-column grid — with the other entries gone it measured 309px
+            inside a 950px track with the rest of the row empty. */}
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
+          whileHover={{ y: -3 }}
+          whileTap={{ scale: 0.99 }}
+          onClick={() => navigate('/smart-lens')}
+          className={cn(
+            'official-card w-full p-4 sm:p-5 bg-white dark:bg-slate-900 flex items-center gap-4 group cursor-pointer',
+            dir === 'rtl' ? 'flex-row-reverse text-right' : ''
+          )}
+        >
+          <div className="w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 text-cyan-500 bg-cyan-500/10 border-cyan-500/20">
+            <ScanSearch className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-primary dark:text-white">
+              {ar ? 'العدسة الذكية' : 'Smart Lens'}
+            </p>
+            <p className="text-[11px] font-bold text-slate-400 mt-0.5">
+              {ar ? 'وجّه الكاميرا نحو الرف للتعرّف على الكتب' : 'Point the camera at a shelf to identify books'}
+            </p>
+          </div>
+          {/* The arrow is mirrored under RTL, so it must slide the other way. The
+              RTL branch used to pass both -translate-x-1 and translate-x-0;
+              tailwind-merge kept the last one and the hover did nothing. */}
+          <ChevronRight className={cn('w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0 transition-transform', dir === 'rtl' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1')} />
+        </motion.button>
       </div>
 
     </div>

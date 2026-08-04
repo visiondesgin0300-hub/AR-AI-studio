@@ -3,7 +3,7 @@ import { Search as SearchIcon, MapPin, Compass, HelpCircle } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
-import { cn, incrementSearchCount, bookTitle, bookAuthor } from '../lib/utils';
+import { cn, incrementSearchCount, bookTitle, bookAuthor, bookCategory } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { BookCover } from '../components/BookCover';
 
@@ -22,15 +22,6 @@ export function Search() {
     return ['all', ...Array.from(new Set(MOCK_BOOKS.map(b => b.category)))];
   }, []);
 
-  const categoryTranslationMap: Record<string, string> = {
-    'all': language === 'ar' ? 'الكل' : 'All',
-    'فيزياء': language === 'ar' ? 'فيزياء' : 'Physics',
-    'هندسة': language === 'ar' ? 'هندسة' : 'Engineering',
-    'عام': language === 'ar' ? 'عام' : 'General',
-    'علم نفس': language === 'ar' ? 'علم نفس' : 'Psychology',
-    'طب': language === 'ar' ? 'طب' : 'Medicine',
-    'أدب': language === 'ar' ? 'أدب' : 'Literature'
-  };
 
   // Live filter mock books
   const filteredBooks = useMemo(() => {
@@ -165,7 +156,7 @@ export function Search() {
                           : "bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5 hover:border-slate-300"
                       )}
                     >
-                      {categoryTranslationMap[cat] || cat}
+                      {bookCategory(cat, language)}
                     </button>
                   ))}
                 </div>
@@ -237,7 +228,7 @@ export function Search() {
                       <div className="flex-1 flex flex-col justify-between min-w-0">
                         <div className="space-y-1">
                           <span className="text-[10px] font-black text-accent tracking-wider uppercase block">
-                            {categoryTranslationMap[book.category] || book.category}
+                            {bookCategory(book.category, language)}
                           </span>
                           {/* Latin script reads smaller than Arabic at the same
                               px size, so the English title takes a step up to

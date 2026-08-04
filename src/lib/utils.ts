@@ -26,6 +26,27 @@ export function bookAuthor(book: { author: string; authorEn?: string }, language
   return language === 'en' && book.authorEn ? book.authorEn : book.author;
 }
 
+/**
+ * Category names are stored in Arabic on every book, so anywhere that printed
+ * book.category raw showed "فيزياء" to an English reader. Search had its own
+ * local copy of this map; keeping one here stops the next page that needs it
+ * from growing a third.
+ */
+const CATEGORY_EN: Record<string, string> = {
+  'all': 'All',
+  'فيزياء': 'Physics',
+  'هندسة': 'Engineering',
+  'عام': 'General',
+  'علم نفس': 'Psychology',
+  'طب': 'Medicine',
+  'أدب': 'Literature',
+};
+
+export function bookCategory(category: string | undefined, language: string): string {
+  if (!category) return '';
+  return language === 'en' ? (CATEGORY_EN[category] ?? category) : category;
+}
+
 export function getUserLevel(points: number): number {
   return Math.floor(points / 100) + 1;
 }
