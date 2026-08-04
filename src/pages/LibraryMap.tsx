@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, User as UserIcon, Search, Layers, Maximize2, Clock } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
-import { cn, trackMapVisit } from '../lib/utils';
+import { cn, trackMapVisit, bookCategory } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
@@ -402,7 +402,7 @@ export function LibraryMap() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="relative z-10 w-full h-full p-12 flex flex-col"
+                className="relative z-10 w-full h-full p-4 sm:p-8 lg:p-12 flex flex-col"
               >
                   {/* Rafeeq floating guide — AR-floor view only.
                       The flat map and the Unity view each already draw their
@@ -431,9 +431,12 @@ export function LibraryMap() {
                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-800 border-b border-r border-slate-200/60 dark:border-white/10 rotate-45" />
                             <button
                               onClick={() => setRafeeqDismissed(true)}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-red-400 transition-colors"
+                              aria-label={language === 'ar' ? 'إخفاء رفيق' : 'Dismiss Rafeeq'}
+                              className="absolute -top-5 -right-5 w-11 h-11 flex items-center justify-center text-slate-400 hover:text-red-400 transition-colors"
                             >
-                              <X className="w-3 h-3" />
+                              <span className="w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center">
+                                <X className="w-3 h-3" />
+                              </span>
                             </button>
                           </motion.div>
                         </AnimatePresence>
@@ -445,7 +448,7 @@ export function LibraryMap() {
                         >
                           <RafeeqAvatar className="w-20 h-20 drop-shadow-xl" />
                         </motion.div>
-                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                           {language === 'ar' ? 'رفيق' : 'Rafeeq'}
                         </span>
                       </motion.div>
@@ -493,13 +496,13 @@ export function LibraryMap() {
                       <div className="absolute top-12 sm:top-3 right-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-xl rounded-xl p-1 border border-white/10 pointer-events-auto">
                         <button
                           onClick={() => setMapMode('flat')}
-                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all text-white/60 hover:text-white hover:bg-white/10"
+                          className="px-4 py-3 rounded-lg text-[11px] font-black transition-all text-white/60 hover:text-white hover:bg-white/10"
                         >
                           2D
                         </button>
                         <button
                           onClick={() => setMapMode('ar-floor')}
-                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all bg-[#0EA5D6] text-[#050c1a] shadow"
+                          className="px-4 py-3 rounded-lg text-[11px] font-black transition-all bg-[#0EA5D6] text-[#050c1a] shadow"
                         >
                           3D
                         </button>
@@ -668,15 +671,22 @@ export function LibraryMap() {
                       {/* 2D / 3D mode toggle */}
                       <div className="absolute top-3 right-3 z-40 flex items-center gap-1 bg-white/80 backdrop-blur-xl rounded-xl p-1 border border-slate-200 shadow-sm">
                         <button onClick={() => setMapMode('flat')}
-                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all bg-slate-800 text-white shadow">
+                          className="px-4 py-3 rounded-lg text-[11px] font-black transition-all bg-slate-800 text-white shadow">
                           2D
                         </button>
                         <button onClick={() => setMapMode('ar-floor')}
-                          className="px-3 py-1.5 rounded-lg text-[10px] font-black transition-all text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+                          className="px-4 py-3 rounded-lg text-[11px] font-black transition-all text-slate-400 hover:text-slate-700 hover:bg-slate-100">
                           3D
                         </button>
                       </div>
 
+                      {/* The plan draws with xMidYMid meet, so in a box that is
+                          not 600:500 it letterboxes itself: on an iPhone SE the
+                          svg box was 275x398 and the drawing only 275x229, with
+                          169px of the map card left blank. Giving the shared box
+                          the plan's own ratio removes the dead band. */}
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="relative w-full max-h-full" style={{ aspectRatio: '600 / 500' }}>
                       <svg viewBox="0 0 600 500" className="absolute inset-0 w-full h-full" style={{ userSelect: 'none' }}>
                         <defs>
                           {/* Vertical book-spine stripe patterns per zone */}
@@ -718,29 +728,29 @@ export function LibraryMap() {
                         <rect x="18" y="40" width="249" height="200" rx="12" fill="#DBEAFE" fillOpacity="0.45"/>
                         <rect x="18" y="40" width="249" height="200" rx="12" fill="url(#stripA)"/>
                         <rect x="18" y="40" width="249" height="200" rx="12" fill="none" stroke="#93C5FD" strokeWidth="1"/>
-                        <text x="142" y="72" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#1D4ED8" fontFamily="'IBM Plex Mono',monospace">A · NATURAL SCIENCES</text>
-                        <text x="142" y="83" textAnchor="middle" fontSize="6.5" fontWeight="600" fill="#60A5FA" fontFamily="sans-serif">العلوم الطبيعية</text>
+                        <text x="142" y="72" textAnchor="middle" fontSize="15" fontWeight="700" fill="#1D4ED8" fontFamily="'IBM Plex Mono',monospace">A · NATURAL SCIENCES</text>
+                        <text x="142" y="91" textAnchor="middle" fontSize="11" fontWeight="600" fill="#60A5FA" fontFamily="sans-serif">العلوم الطبيعية</text>
 
                         {/* ── Zone B: upper-right — Engineering & Tech (orange) ── */}
                         <rect x="333" y="40" width="252" height="200" rx="12" fill="#FED7AA" fillOpacity="0.45"/>
                         <rect x="333" y="40" width="252" height="200" rx="12" fill="url(#stripB)"/>
                         <rect x="333" y="40" width="252" height="200" rx="12" fill="none" stroke="#FDBA74" strokeWidth="1"/>
-                        <text x="459" y="72" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#C2410C" fontFamily="'IBM Plex Mono',monospace">B · ENGINEERING &amp; TECH</text>
-                        <text x="459" y="83" textAnchor="middle" fontSize="6.5" fontWeight="600" fill="#FB923C" fontFamily="sans-serif">الهندسة والتقنية</text>
+                        <text x="459" y="72" textAnchor="middle" fontSize="15" fontWeight="700" fill="#C2410C" fontFamily="'IBM Plex Mono',monospace">B · ENGINEERING &amp; TECH</text>
+                        <text x="459" y="91" textAnchor="middle" fontSize="11" fontWeight="600" fill="#FB923C" fontFamily="sans-serif">الهندسة والتقنية</text>
 
                         {/* ── Zone C: lower-left — Arts & Crafts (purple) ── */}
                         <rect x="18" y="258" width="249" height="200" rx="12" fill="#EDE9FE" fillOpacity="0.45"/>
                         <rect x="18" y="258" width="249" height="200" rx="12" fill="url(#stripC)"/>
                         <rect x="18" y="258" width="249" height="200" rx="12" fill="none" stroke="#C4B5FD" strokeWidth="1"/>
-                        <text x="142" y="290" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#6D28D9" fontFamily="'IBM Plex Mono',monospace">C · ARTS &amp; CRAFTS</text>
-                        <text x="142" y="301" textAnchor="middle" fontSize="6.5" fontWeight="600" fill="#A78BFA" fontFamily="sans-serif">الفنون والعلوم الإنسانية</text>
+                        <text x="142" y="290" textAnchor="middle" fontSize="15" fontWeight="700" fill="#6D28D9" fontFamily="'IBM Plex Mono',monospace">C · ARTS &amp; CRAFTS</text>
+                        <text x="142" y="309" textAnchor="middle" fontSize="11" fontWeight="600" fill="#A78BFA" fontFamily="sans-serif">الفنون والعلوم الإنسانية</text>
 
                         {/* ── Zone D: lower-right — Humanities (green) ── */}
                         <rect x="333" y="258" width="252" height="200" rx="12" fill="#DCFCE7" fillOpacity="0.45"/>
                         <rect x="333" y="258" width="252" height="200" rx="12" fill="url(#stripD)"/>
                         <rect x="333" y="258" width="252" height="200" rx="12" fill="none" stroke="#86EFAC" strokeWidth="1"/>
-                        <text x="459" y="290" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#15803D" fontFamily="'IBM Plex Mono',monospace">D · HUMANITIES</text>
-                        <text x="459" y="301" textAnchor="middle" fontSize="6.5" fontWeight="600" fill="#4ADE80" fontFamily="sans-serif">العلوم الإنسانية والاقتصاد</text>
+                        <text x="459" y="290" textAnchor="middle" fontSize="15" fontWeight="700" fill="#15803D" fontFamily="'IBM Plex Mono',monospace">D · HUMANITIES</text>
+                        <text x="459" y="309" textAnchor="middle" fontSize="11" fontWeight="600" fill="#4ADE80" fontFamily="sans-serif">العلوم الإنسانية والاقتصاد</text>
 
                         {/* Center aisles */}
                         <rect x="267" y="40" width="66" height="418" fill="#F1F5F9" rx="3"/>
@@ -799,8 +809,8 @@ export function LibraryMap() {
                                 />
                               ))}
                               {/* Shelf ID */}
-                              <text x={cx} y={cy - 10} textAnchor="middle"
-                                fontSize="11" fontWeight="900"
+                              <text x={cx} y={cy - 12} textAnchor="middle"
+                                fontSize="17" fontWeight="900"
                                 fill={isDest ? '#92400E' : '#1E293B'}
                                 fontFamily="'IBM Plex Mono',monospace"
                                 filter={isDest ? 'url(#fmGlow)' : undefined}
@@ -808,7 +818,7 @@ export function LibraryMap() {
                               >{id}</text>
                               {/* LC class badge */}
                               {SHELF_LC_CLASS[id] && (
-                                <text x={cx} y={cy + 2} textAnchor="middle" fontSize="7" fontWeight="700"
+                                <text x={cx} y={cy + 3} textAnchor="middle" fontSize="11" fontWeight="700"
                                   fill={isDest ? '#B45309' : zStroke.replace('4', '7').replace('E', '9')}
                                   fontFamily="'IBM Plex Mono',monospace" style={{ pointerEvents: 'none' }}
                                 >{SHELF_LC_CLASS[id]}</text>
@@ -816,11 +826,11 @@ export function LibraryMap() {
                               {/* Subject English */}
                               {cellLabel && (
                                 <>
-                                  <text x={cx} y={cy + 15} textAnchor="middle" fontSize="6.5"
+                                  <text x={cx} y={cy + 18} textAnchor="middle" fontSize="10"
                                     fill={isDest ? '#92400E' : '#334155'}
                                     fontFamily="'IBM Plex Mono',monospace" style={{ pointerEvents: 'none' }}
                                   >{(cellLabel.en || '').slice(0, 16)}</text>
-                                  <text x={cx} y={cy + 24} textAnchor="middle" fontSize="5.5"
+                                  <text x={cx} y={cy + 31} textAnchor="middle" fontSize="9"
                                     fill={isDest ? '#B45309' : '#94A3B8'}
                                     fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
                                   >{cellLabel.ar || ''}</text>
@@ -832,8 +842,8 @@ export function LibraryMap() {
 
                         {/* Entrance */}
                         <rect x="242" y="451" width="116" height="24" rx="12" fill="#1E293B"/>
-                        <text x="300" y="462" textAnchor="middle" fontSize="8" fontWeight="700" fill="white" fontFamily="'IBM Plex Mono',monospace">🚪 ENTRANCE</text>
-                        <text x="300" y="471" textAnchor="middle" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">المدخل</text>
+                        <text x="300" y="461" textAnchor="middle" fontSize="12" fontWeight="700" fill="white" fontFamily="'IBM Plex Mono',monospace">🚪 ENTRANCE</text>
+                        <text x="300" y="474" textAnchor="middle" fontSize="9" fill="#94A3B8" fontFamily="sans-serif">المدخل</text>
 
                         {/* Compass rose — bottom right */}
                         <g opacity="0.12" transform="translate(558, 448) scale(0.7)">
@@ -854,7 +864,7 @@ export function LibraryMap() {
                           <text x="52" y="57" fontSize="8.5" fontWeight="700" fill="#2563EB" fontFamily="sans-serif">Computer Lab</text>
                           <text x="52" y="67" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">مختبر الحاسوب</text>
                           <rect x="52" y="72" width="36" height="14" rx="7" fill="#FEE2E2"/>
-                          <text x="70" y="82" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#DC2626" fontFamily="sans-serif">Busy</text>
+                          <text x="70" y="90" textAnchor="middle" fontSize="11" fontWeight="700" fill="#DC2626" fontFamily="sans-serif">Busy</text>
                           <circle cx="104" cy="42" r="4.5" fill="#EF4444">
                             <animate attributeName="opacity" values="1;0.3;1" dur="1.4s" repeatCount="indefinite"/>
                           </circle>
@@ -867,7 +877,7 @@ export function LibraryMap() {
                           <text x="516" y="57" fontSize="8" fontWeight="700" fill="#2563EB" fontFamily="sans-serif">Study Rooms</text>
                           <text x="516" y="67" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">غرف الدراسة</text>
                           <rect x="496" y="72" width="44" height="14" rx="7" fill="#DCFCE7"/>
-                          <text x="518" y="82" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
+                          <text x="518" y="90" textAnchor="middle" fontSize="11" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
                           <circle cx="496" cy="42" r="4.5" fill="#22C55E">
                             <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
                           </circle>
@@ -880,7 +890,7 @@ export function LibraryMap() {
                           <text x="48" y="418" fontSize="8" fontWeight="700" fill="#C2410C" fontFamily="sans-serif">Print &amp; Copy</text>
                           <text x="48" y="428" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">الطباعة والنسخ</text>
                           <rect x="26" y="433" width="44" height="14" rx="7" fill="#DCFCE7"/>
-                          <text x="48" y="443" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
+                          <text x="48" y="451" textAnchor="middle" fontSize="11" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
                           <circle cx="104" cy="401" r="4.5" fill="#22C55E">
                             <animate attributeName="opacity" values="1;0.4;1" dur="1.8s" repeatCount="indefinite"/>
                           </circle>
@@ -893,7 +903,7 @@ export function LibraryMap() {
                           <text x="516" y="418" fontSize="8" fontWeight="700" fill="#6D28D9" fontFamily="sans-serif">Silent Zone</text>
                           <text x="516" y="428" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">منطقة هادئة</text>
                           <rect x="496" y="433" width="44" height="14" rx="7" fill="#DCFCE7"/>
-                          <text x="518" y="443" textAnchor="middle" fontSize="6.5" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
+                          <text x="518" y="451" textAnchor="middle" fontSize="11" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
                           <circle cx="496" cy="401" r="4.5" fill="#22C55E">
                             <animate attributeName="opacity" values="1;0.4;1" dur="2.2s" repeatCount="indefinite"/>
                           </circle>
@@ -943,6 +953,8 @@ export function LibraryMap() {
                           );
                         })()}
                       </svg>
+                        </div>
+                      </div>
 
                       {/* Navigation HUD — live distance / ETA / arrival time */}
                       {showPath && destinationShelfId && (
@@ -1476,13 +1488,13 @@ export function LibraryMap() {
                     onChange={e => setSidebarSearch(e.target.value)}
                     placeholder={language === 'ar' ? 'اسم الكتاب، المؤلف، التصنيف...' : 'Title, author, category...'}
                     className={cn(
-                      "w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors",
+                      "w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-base sm:text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors",
                       dir === 'rtl' ? 'pr-11 pl-4 text-right' : 'pl-11 pr-4 text-left'
                     )}
                   />
                   {sidebarSearch && (
-                    <button onClick={() => setSidebarSearch('')} className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors", dir === 'rtl' ? 'left-4' : 'right-4')}>
-                      <X className="w-3.5 h-3.5" />
+                    <button onClick={() => setSidebarSearch('')} aria-label={language === 'ar' ? 'مسح البحث' : 'Clear search'} className={cn("absolute top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors", dir === 'rtl' ? 'left-2' : 'right-2')}>
+                      <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -1515,7 +1527,7 @@ export function LibraryMap() {
                         <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">{book.author}</p>
                         <div className={cn("flex items-center gap-2 mt-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                           <span className="text-[9px] font-black text-primary/60 dark:text-accent/80 bg-primary/5 dark:bg-accent/10 px-2 py-0.5 rounded-lg uppercase tracking-wider">{book.shelf}</span>
-                          <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 truncate">{book.category}</span>
+                          <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 truncate">{bookCategory(book.category, language)}</span>
                         </div>
                       </div>
                       <Navigation className={cn("w-4 h-4 shrink-0 text-slate-200 dark:text-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-colors", dir === 'rtl' ? 'rotate-180' : '')} />
