@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
-  Star, GitBranch, ChevronRight, ScanSearch, Navigation,
-  Dna, Swords, Map, Gamepad2, Landmark, Trophy, X, ScanLine, Boxes,
+  ChevronRight, ScanSearch, Navigation,
+  Dna, Swords, Map, Gamepad2, Landmark, Trophy, X,
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
@@ -483,7 +483,7 @@ export function ARShowcase() {
       {/* ── 5. EXPLORE MORE — only after the demo ── */}
       <div className="space-y-3">
         <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-          {ar ? 'استكشف تجارب AR أخرى' : 'Explore More AR Experiences'}
+          {ar ? 'تجربة الواقع المعزز' : 'AR Experience'}
         </span>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {[
@@ -495,51 +495,6 @@ export function ARShowcase() {
               titleEn: 'Smart Lens',
               tagAr: 'كاميرا حقيقية',
               tagEn: 'Real Camera',
-            },
-            {
-              icon: Star,
-              route: '/knowledge-stars',
-              colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
-              titleAr: 'نجوم المعرفة',
-              titleEn: 'Knowledge Stars',
-              tagAr: 'رسم بياني',
-              tagEn: 'Graph',
-            },
-            {
-              icon: ScanLine,
-              route: '/shelf-scan',
-              colorClass: 'text-violet-500 bg-violet-500/10 border-violet-500/20',
-              titleAr: 'مسح الرف',
-              titleEn: 'Shelf Scan',
-              tagAr: 'كاميرا حقيقية',
-              tagEn: 'Real Camera',
-            },
-            {
-              icon: Compass,
-              route: '/compass',
-              colorClass: 'text-teal-500 bg-teal-500/10 border-teal-500/20',
-              titleAr: 'بوصلة الرفوف',
-              titleEn: 'Shelf Compass',
-              tagAr: 'حساس الاتجاه',
-              tagEn: 'Device Orientation',
-            },
-            {
-              icon: Boxes,
-              route: '/webxr',
-              colorClass: 'text-fuchsia-500 bg-fuchsia-500/10 border-fuchsia-500/20',
-              titleAr: 'واقع معزز غامر',
-              titleEn: 'Immersive AR',
-              tagAr: 'أندرويد + ARCore',
-              tagEn: 'Android + ARCore',
-            },
-            {
-              icon: GitBranch,
-              route: '/hidden-bridges',
-              colorClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
-              titleAr: 'الجسور الخفية',
-              titleEn: 'Hidden Bridges',
-              tagAr: 'متعدد التخصصات',
-              tagEn: 'Cross-Field',
             },
           ].map((f, i) => {
             const Icon = f.icon;
