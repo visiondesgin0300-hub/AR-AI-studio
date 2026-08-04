@@ -177,14 +177,26 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
              <div className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-accent relative overflow-hidden shrink-0 shadow-sm">
                 <UserIcon className="w-5 h-5 relative z-10 group-hover:scale-110 transition-transform" />
              </div>
+             {/* An admin is identified by role here too. Naming the role on
+                 both lines would just repeat itself, so the card collapses to
+                 one line for them. */}
              <div className="overflow-hidden flex-1">
-                <div className="text-xs font-black text-primary dark:text-white truncate uppercase tracking-tight group-hover:text-accent transition-colors">
-                  {displayName(user, language)}
-                </div>
-                <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-1.5 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-                  {user.role === 'admin' ? t('adminRole') : t('academicResearcher')}
-                </div>
+                {isAdmin ? (
+                  <div className="text-xs font-black text-primary dark:text-white truncate uppercase tracking-tight flex items-center gap-1.5 group-hover:text-accent transition-colors">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full shrink-0" />
+                    {t('adminRole')}
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-xs font-black text-primary dark:text-white truncate uppercase tracking-tight group-hover:text-accent transition-colors">
+                      {displayName(user, language)}
+                    </div>
+                    <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-none mt-1.5 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+                      {t('academicResearcher')}
+                    </div>
+                  </>
+                )}
              </div>
           </div>
 
