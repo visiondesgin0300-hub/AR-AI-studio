@@ -380,7 +380,7 @@ export function ARShowcase() {
                           key={fmt}
                           onClick={() => setCiteFmt(fmt)}
                           className={cn(
-                            'px-3 py-1.5 rounded-xl text-[8px] font-black uppercase tracking-wider transition-all',
+                            'px-3.5 py-3.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all',
                             citeFmt === fmt
                               ? 'bg-primary text-white dark:bg-accent dark:text-primary'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-400 hover:text-slate-600'
@@ -391,7 +391,7 @@ export function ARShowcase() {
                       ))}
                     </div>
                     <div className="relative p-3 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-white/5">
-                      <p className={cn('text-[9px] font-mono text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap', dir === 'rtl' ? 'text-right pr-0 pl-7' : 'pr-7')}>
+                      <p className={cn('text-[9px] font-mono text-slate-500 dark:text-slate-400 leading-relaxed whitespace-pre-wrap', dir === 'rtl' ? 'text-right pr-0 pl-10' : 'pr-10')}>
                         {getCitation(selectedBook, citeFmt, language)}
                       </p>
                       <button
@@ -399,14 +399,14 @@ export function ARShowcase() {
                         title={copyFailed ? (ar ? 'تعذّر النسخ' : 'Copy failed') : (ar ? 'نسخ الاقتباس' : 'Copy citation')}
                         aria-label={ar ? 'نسخ الاقتباس' : 'Copy citation'}
                         className={cn(
-                          'absolute top-2 p-1.5 rounded-lg transition-colors',
-                          dir === 'rtl' ? 'left-2' : 'right-2',
+                          'absolute top-1 w-10 h-10 flex items-center justify-center rounded-lg transition-colors',
+                          dir === 'rtl' ? 'left-1' : 'right-1',
                           copied ? 'text-emerald-500' : copyFailed ? 'text-red-500' : 'text-slate-300 hover:text-slate-500'
                         )}
                       >
-                        {copied ? <Check className="w-3.5 h-3.5" />
-                          : copyFailed ? <X className="w-3.5 h-3.5" />
-                          : <Copy className="w-3.5 h-3.5" />}
+                        {copied ? <Check className="w-4 h-4" />
+                          : copyFailed ? <X className="w-4 h-4" />
+                          : <Copy className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
