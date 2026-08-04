@@ -279,12 +279,31 @@ export function Search() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="p-12 text-center bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200/50 dark:border-white/5 space-y-3"
+                  className="p-6 sm:p-12 text-center bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200/50 dark:border-white/5 space-y-3"
                 >
+                  {/*
+                    This branch only ever renders when a query or a filter has
+                    excluded everything — with nothing typed and both filters on
+                    "all" the catalogue always matches. It used to show only the
+                    search hint, so someone who narrowed to Engineering +
+                    Borrowed (0 books) was told how to search rather than that
+                    nothing matched, with no sign a filter was hiding the
+                    results. noResultsFound/noResultsFor already existed in the
+                    translations and were never wired up.
+                  */}
                   <HelpCircle className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto animate-bounce" />
+                  <p className="text-primary dark:text-white font-black text-base">
+                    {query.trim() ? `${t('noResultsFor')} "${query.trim()}"` : t('noResultsFound')}
+                  </p>
                   <p className="text-slate-400 dark:text-slate-500 font-bold max-w-sm mx-auto text-sm leading-relaxed">
                     {t('searchHintText')}
                   </p>
+                  <button
+                    onClick={() => { setQuery(''); setSelectedCategory('all'); setSelectedStatus('all'); }}
+                    className="mt-1 px-5 py-3 rounded-xl bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all"
+                  >
+                    {language === 'ar' ? 'إعادة تعيين البحث' : 'Reset search'}
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>

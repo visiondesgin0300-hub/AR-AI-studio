@@ -55,6 +55,38 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
     return () => window.removeEventListener('open-rafeeq', handler);
   }, []);
 
+  /*
+   * Step aside while someone is typing.
+   *
+   * The bottom nav is fixed to the viewport, and on Android Chrome the visual
+   * viewport shrinks when the on-screen keyboard opens — so the nav rides up
+   * and lands on top of the field being typed into. At a 375x340 viewport
+   * (roughly a phone with the keyboard up) the nav's top edge sat at 208px
+   * while the search field on /search ran from 274 to 340: entirely covered.
+   * Hiding the nav for as long as a text field holds focus keeps every form on
+   * the site reachable, and it comes straight back on blur.
+   */
+  const [fieldFocused, setFieldFocused] = useState(false);
+  useEffect(() => {
+    const TYPEABLE = ['checkbox', 'radio', 'button', 'submit', 'reset', 'range', 'file', 'color'];
+    const sync = () => {
+      const el = document.activeElement as HTMLElement | null;
+      setFieldFocused(
+        !!el && (el.tagName === 'TEXTAREA' || el.isContentEditable ||
+          (el.tagName === 'INPUT' && !TYPEABLE.includes((el as HTMLInputElement).type)))
+      );
+    };
+    // focusout fires before the next focusin, so re-read on the next frame
+    // instead of flickering when focus moves between two fields.
+    const onOut = () => requestAnimationFrame(sync);
+    document.addEventListener('focusin', sync);
+    document.addEventListener('focusout', onOut);
+    return () => {
+      document.removeEventListener('focusin', sync);
+      document.removeEventListener('focusout', onOut);
+    };
+  }, []);
+
 
   const dismissFabHint = () => {
     localStorage.setItem('ar_fab_seen', '1');
@@ -519,7 +551,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             items needed 377px inside a 333px bar on an iPhone SE — the Logout
             label was sliced off the edge. Equal flex-1 columns that are allowed
             to shrink (min-w-0) let the labels wrap instead of overflow. */}
-        <nav className="lg:hidden fixed bottom-5 left-5 right-5 z-50 rounded-[2rem] flex justify-between items-start px-1 py-3.5 bg-white/85 dark:bg-slate-950/80 backdrop-blur-3xl border border-white/45 dark:border-white/5 shadow-[0_15px_35px_rgba(0,0,0,0.18)]">
+        <nav className={cn(
+          "lg:hidden fixed bottom-5 left-5 right-5 z-50 rounded-[2rem] flex justify-between items-start px-1 py-3.5 bg-white/85 dark:bg-slate-950/80 backdrop-blur-3xl border border-white/45 dark:border-white/5 shadow-[0_15px_35px_rgba(0,0,0,0.18)]",
+          fieldFocused && "hidden"
+        )}>
           {navItems.map((item) => {
             const isActive = item.path.includes('?')
               ? (location.pathname === item.path.split('?')[0] && location.search === '?' + item.path.split('?')[1])
