@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
-  ChevronRight, ScanSearch, Navigation,
-  Dna, Swords, Map, Gamepad2, Landmark, Trophy, X,
+  ChevronRight, ScanSearch, Navigation, X,
 } from 'lucide-react';
 import { Book } from '../types';
 import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
@@ -385,100 +384,6 @@ export function ARShowcase() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── 4. STUDENT RESEARCH TOOLS ── */}
-      <div className="space-y-3">
-        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-          {ar ? 'أدوات الباحث الذكية' : 'Student Research Tools'}
-        </span>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {[
-            {
-              icon: Dna,
-              route: '/research-dna',
-              colorClass: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
-              titleAr: 'الحمض النووي',
-              titleEn: 'Research DNA',
-              descAr: 'خارطة معرفتك',
-              descEn: 'Knowledge Profile',
-            },
-            {
-              icon: Swords,
-              route: '/book-duel',
-              colorClass: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
-              titleAr: 'مبارزة الكتب',
-              titleEn: 'Book Duel',
-              descAr: 'قارن بين كتابين',
-              descEn: 'Compare Two Books',
-            },
-            {
-              icon: Map,
-              route: '/reading-roadmap',
-              colorClass: 'text-sky-500 bg-sky-500/10 border-sky-500/20',
-              titleAr: 'مسار القراءة',
-              titleEn: 'Reading Roadmap',
-              descAr: 'خطة متدرجة بالذكاء',
-              descEn: 'AI-Staged Reading Plan',
-            },
-            {
-              icon: Gamepad2,
-              route: '/library-quest',
-              colorClass: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
-              titleAr: 'مغامرة المكتبة',
-              titleEn: 'Library Adventure',
-              descAr: 'ألغاز واكتشاف الكتب',
-              descEn: 'Riddles & Book Discovery',
-            },
-            {
-              icon: Landmark,
-              route: '/oman-corner',
-              colorClass: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
-              titleAr: 'ركن عُمان الحي',
-              titleEn: 'Living Oman Corner',
-              descAr: 'تراث وثقافة بالواقع المعزز',
-              descEn: 'Heritage & Culture via AR',
-            },
-            {
-              icon: Trophy,
-              route: '/cognitive-ar',
-              colorClass: 'text-indigo-500 bg-indigo-500/10 border-indigo-500/20',
-              titleAr: 'الوعي المعلوماتي AR',
-              titleEn: 'Info Literacy AR',
-              descAr: 'لعبة الأوسمة المعرفية',
-              descEn: 'Cognitive Badge Game',
-            },
-          ].map((f, i) => {
-            const Icon = f.icon;
-            return (
-              <motion.button
-                key={f.route}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, type: 'spring', stiffness: 300, damping: 24 }}
-                whileHover={{ y: -3 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={() => navigate(f.route)}
-                className={cn(
-                  'official-card p-4 bg-white dark:bg-slate-900 flex flex-col items-start gap-3 group cursor-pointer w-full',
-                  dir === 'rtl' ? 'items-end text-right' : ''
-                )}
-              >
-                <div className={cn('w-9 h-9 rounded-xl border flex items-center justify-center', f.colorClass)}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div className="flex-1">
-                  <p className="text-xs font-black text-primary dark:text-white">{ar ? f.titleAr : f.titleEn}</p>
-                  <p className="text-[9px] font-bold text-slate-400 mt-0.5">{ar ? f.descAr : f.descEn}</p>
-                </div>
-                {/* The arrow is mirrored under RTL, so it must slide the other way. The
-                    RTL branch used to pass both -translate-x-1 and translate-x-0;
-                    tailwind-merge kept the last one and the hover did nothing. */}
-                <ChevronRight className={cn('w-3.5 h-3.5 text-slate-300 dark:text-slate-600 transition-transform', dir === 'rtl' ? 'rotate-180 self-start group-hover:-translate-x-1' : 'self-end group-hover:translate-x-1')} />
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
 
       {/* ── 5. EXPLORE MORE — only after the demo ── */}
       <div className="space-y-3">
