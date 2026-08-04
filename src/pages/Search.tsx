@@ -120,7 +120,7 @@ export function Search() {
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-2 bg-slate-100 dark:bg-slate-800 rounded-full text-xs font-black z-20 transition-all", dir === 'rtl' ? 'left-6' : 'right-6')}
+                className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full text-sm font-black z-20 transition-all", dir === 'rtl' ? 'left-6' : 'right-6')}
               >
                 ✕
               </button>
@@ -137,7 +137,7 @@ export function Search() {
               <button
                 key={idx}
                 onClick={() => handleApplyPrompt(prompt.q)}
-                className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-[#004C6D]/5 hover:text-primary dark:hover:bg-[#D7C826]/10 dark:hover:text-accent border border-slate-200/65 dark:border-white/5 text-xs text-slate-600 dark:text-slate-300 transition-all font-semibold active:scale-95 shadow-sm cursor-pointer"
+                className="px-3.5 py-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-[#004C6D]/5 hover:text-primary dark:hover:bg-[#D7C826]/10 dark:hover:text-accent border border-slate-200/65 dark:border-white/5 text-xs text-slate-600 dark:text-slate-300 transition-all font-semibold active:scale-95 shadow-sm cursor-pointer"
               >
                 {prompt.text}
               </button>
@@ -159,7 +159,7 @@ export function Search() {
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        "px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95",
+                        "px-4 py-3 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95",
                         selectedCategory === cat
                           ? "bg-primary text-white border-primary dark:bg-accent dark:text-primary dark:border-accent"
                           : "bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5 hover:border-slate-300"
@@ -182,7 +182,7 @@ export function Search() {
                       key={status}
                       onClick={() => setSelectedStatus(status)}
                       className={cn(
-                        "px-3 py-2 rounded-xl text-xs font-bold transition-all border flex-1 cursor-pointer",
+                        "px-3 py-3 rounded-xl text-xs font-bold transition-all border flex-1 cursor-pointer",
                         selectedStatus === status
                           ? "bg-primary text-white border-primary dark:bg-accent dark:text-primary dark:border-accent"
                           : "bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5"
@@ -263,7 +263,7 @@ export function Search() {
                           </div>
 
                           <span className={cn(
-                            "text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider",
+                            "text-[10px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider",
                             book.status === 'available'
                               ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/45"
                               : "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/45"

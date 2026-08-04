@@ -30,7 +30,11 @@ export function BookCover({ book, className, imgClassName }: BookCoverProps) {
       {(!book.coverUrl || failed) ? (
         <>
           <BookOpen className="w-1/4 h-1/4 min-w-6 min-h-6 opacity-80 text-white/90" />
-          <span className="px-3 text-center text-[11px] font-black leading-tight line-clamp-3 opacity-90 text-white/90">{bookTitle(book, language)}</span>
+          {/* w-full + break-words: as a centred flex child the span sized to
+              its max-content width, so on the 80px thumbnail in search results
+              a long title measured 104px and the tile's overflow-hidden shaved
+              ~13px off each side of the text. */}
+          <span className="w-full px-3 text-center text-[11px] font-black leading-tight line-clamp-3 break-words opacity-90 text-white/90">{bookTitle(book, language)}</span>
         </>
       ) : (
         <img
