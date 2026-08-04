@@ -4,6 +4,7 @@ import {
   QrCode, MapPin, Copy, Check, Zap, Layers, Compass,
   ChevronRight, ScanSearch, Navigation, X,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { Book } from '../types';
 import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
 import { cn, bookTitle, bookAuthor, bookCategory, bookDescription } from '../lib/utils';
@@ -143,7 +144,54 @@ export function ARShowcase() {
         </div>
       </div>
 
-      {/* ── 2. THE DEMO — the hero, immediately ── */}
+      {/* ── 2. AR ENTRY — the camera, and the marker it reads ── */}
+      <div className={cn(
+        'rounded-2xl bg-primary p-5 sm:p-6 flex flex-col md:flex-row gap-4',
+        dir === 'rtl' ? 'md:flex-row-reverse text-right' : ''
+      )}>
+        {/* Open the camera */}
+        <button
+          onClick={() => navigate('/smart-lens')}
+          className={cn(
+            'flex-1 min-w-0 flex items-center gap-4 rounded-xl bg-white/8 hover:bg-white/12 border border-white/10 p-4 transition-colors group cursor-pointer',
+            dir === 'rtl' ? 'flex-row-reverse text-right' : 'text-left'
+          )}
+        >
+          <div className="w-11 h-11 rounded-xl bg-accent text-primary flex items-center justify-center shrink-0">
+            <ScanSearch className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-white">{ar ? 'العدسة الذكية' : 'Smart Lens'}</p>
+            <p className="text-[11px] font-bold text-white/50 mt-0.5">
+              {ar ? 'وجّه الكاميرا نحو الرف للتعرّف على الكتب' : 'Point the camera at a shelf to identify books'}
+            </p>
+          </div>
+          <ChevronRight className={cn('w-4 h-4 text-white/30 shrink-0 transition-transform', dir === 'rtl' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1')} />
+        </button>
+
+        {/* The marker printed on the shelf you are browsing. Same
+            ARLIBRARY:SHELF:<id> payload the scanner already reads and the admin
+            sheet already prints, so what is on screen is what is on the shelf. */}
+        <div className={cn(
+          'flex items-center gap-4 rounded-xl bg-white/8 border border-white/10 p-4 shrink-0',
+          dir === 'rtl' ? 'flex-row-reverse' : ''
+        )}>
+          <div className="bg-white rounded-lg p-2 shrink-0">
+            <QRCodeSVG value={`ARLIBRARY:SHELF:${activeShelf}`} size={64} level="H" fgColor="#004C6D" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+              {ar ? 'رمز الرف' : 'Shelf marker'}
+            </p>
+            <p className="text-sm font-black text-white mt-0.5" dir="ltr">{activeShelf}</p>
+            <p className="text-[11px] font-bold text-white/40 mt-0.5 leading-snug">
+              {ar ? 'هذا هو الرمز المطبوع على الرف — امسحه لفتحه بالواقع المعزز' : 'This is the code printed on the shelf — scan it to open it in AR'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* ── 3. THE DEMO — the hero, immediately ── */}
       <div className={cn('flex flex-col xl:flex-row gap-0 rounded-2xl overflow-hidden border border-slate-100 dark:border-white/5 shadow-lg', dir === 'rtl' ? 'xl:flex-row-reverse' : '')}>
 
         {/* Left: Camera / Bookshelf */}
@@ -161,7 +209,7 @@ export function ARShowcase() {
                   key={sid}
                   onClick={() => setActiveShelf(sid)}
                   className={cn(
-                    'px-3.5 py-3 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0',
+                    'px-3.5 py-3.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all shrink-0',
                     activeShelf === sid
                       ? 'bg-accent text-primary'
                       : 'text-white/30 hover:text-white/60'
@@ -419,46 +467,6 @@ export function ARShowcase() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* ── 5. EXPLORE MORE — only after the demo ── */}
-      <div className="space-y-3">
-        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-          {ar ? 'تجربة الواقع المعزز' : 'AR Experience'}
-        </span>
-        {/* A single full-width row, not one small card stranded in a
-            three-column grid — with the other entries gone it measured 309px
-            inside a 950px track with the rest of the row empty. */}
-        <motion.button
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 24 }}
-          whileHover={{ y: -3 }}
-          whileTap={{ scale: 0.99 }}
-          onClick={() => navigate('/smart-lens')}
-          className={cn(
-            // A <button> centres its text by default, which left the title and
-            // the description floating in the middle of the row.
-            'official-card w-full p-4 sm:p-5 bg-white dark:bg-slate-900 flex items-center gap-4 group cursor-pointer',
-            dir === 'rtl' ? 'flex-row-reverse text-right' : 'text-left'
-          )}
-        >
-          <div className="w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 text-cyan-500 bg-cyan-500/10 border-cyan-500/20">
-            <ScanSearch className="w-5 h-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-primary dark:text-white">
-              {ar ? 'العدسة الذكية' : 'Smart Lens'}
-            </p>
-            <p className="text-[11px] font-bold text-slate-400 mt-0.5">
-              {ar ? 'وجّه الكاميرا نحو الرف للتعرّف على الكتب' : 'Point the camera at a shelf to identify books'}
-            </p>
-          </div>
-          {/* The arrow is mirrored under RTL, so it must slide the other way. The
-              RTL branch used to pass both -translate-x-1 and translate-x-0;
-              tailwind-merge kept the last one and the hover did nothing. */}
-          <ChevronRight className={cn('w-4 h-4 text-slate-300 dark:text-slate-600 shrink-0 transition-transform', dir === 'rtl' ? 'rotate-180 group-hover:-translate-x-1' : 'group-hover:translate-x-1')} />
-        </motion.button>
-      </div>
 
     </div>
   );
