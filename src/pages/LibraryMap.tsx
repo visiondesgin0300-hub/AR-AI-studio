@@ -233,7 +233,7 @@ export function LibraryMap() {
   // Actual clock time of arrival (updates live as walkProgress changes)
   const arrivalTime = (() => {
     const arrival = new Date(Date.now() + liveEtaSeconds * 1000);
-    return arrival.toLocaleTimeString(language === 'ar' ? 'ar-SA' : 'en-US', {
+    return arrival.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', {
       hour: '2-digit', minute: '2-digit', hour12: true,
     });
   })();

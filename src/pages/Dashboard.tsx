@@ -54,7 +54,15 @@ export function Dashboard({ user }: DashboardProps) {
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
       {/* Hero banner */}
       <div className="space-y-10">
-        <div className="relative overflow-hidden rounded-[2rem] bg-primary p-8 md:p-10 flex flex-col md:flex-row gap-8 items-end">
+        {/*
+          items-stretch below md is load-bearing: in a column flex container
+          `items-end` sizes each child to its max-content width instead of the
+          container's, so on a phone the text block (336px of headline) spilled
+          past the 247px content box and `overflow-hidden` sliced the date and
+          the "AR" off "ARLibrary". Only align to the end once the row layout
+          kicks in at md.
+        */}
+        <div className="relative overflow-hidden rounded-[2rem] bg-primary p-6 sm:p-8 md:p-10 flex flex-col md:flex-row gap-8 items-stretch md:items-end">
           {/* Background decoration */}
           <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
@@ -64,7 +72,9 @@ export function Dashboard({ user }: DashboardProps) {
             {/* Date row */}
             <div>
               <span className="text-[11px] font-black text-white/50 uppercase tracking-widest">
-                {new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {/* ar-EG, not ar-SA: ar-SA resolves to the Umm al-Qura calendar
+                    in browsers, so today read "الثلاثاء، ٢١ صفر" instead of ٤ أغسطس. */}
+                {new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
               </span>
             </div>
 
@@ -81,24 +91,33 @@ export function Dashboard({ user }: DashboardProps) {
             </div>
 
             {/* Stats row */}
-            <div className="flex gap-4">
-              <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
+            {/* Stacked on a phone: side by side there was only ~47px left for
+                the label once the icon was placed, so "KNOWLEDGE" ran off the
+                card in English and "وقت التعلم الكلي" broke onto three lines. */}
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              {/* min-w-0 keeps the two cards the same width: without it the
+                  flex items refuse to shrink below their content and the pair
+                  came out lopsided (120px next to 129px) on a phone. */}
+              <div className="flex-1 min-w-0 bg-white/8 border border-white/10 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
                   <Clock className="w-5 h-5 text-white/70" />
                 </div>
-                <div>
-                  <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t('totalLearningTime')}</div>
+                <div className="min-w-0">
+                  <div className="text-[10px] font-black text-white/50 uppercase tracking-widest">{t('totalLearningTime')}</div>
                   <div className="text-xl font-black text-white leading-none mt-0.5">
-                    {language === 'ar' ? totalLearningHours.toLocaleString('ar-EG') : totalLearningHours} <span className="text-[10px] font-bold text-white/40">{t('hoursShort')}</span>
+                    {/* Plain digits, like the XP figure beside it and the header
+                        capsule: the Arabic-Indic zero (٠) is a dot, so a fresh
+                        account's "0 hours" looked like a stray full stop. */}
+                    {totalLearningHours} <span className="text-[10px] font-bold text-white/40">{t('hoursShort')}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
+              <div className="flex-1 min-w-0 bg-white/8 border border-white/10 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
                   <span className="text-xl">💡</span>
                 </div>
-                <div>
-                  <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-black text-white/50 uppercase tracking-widest">
                     {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
                   </div>
                   <div className="text-xl font-black text-accent leading-none mt-0.5">
@@ -140,7 +159,7 @@ export function Dashboard({ user }: DashboardProps) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-primary text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 shadow-lg"
+              className="flex items-center gap-2 px-5 py-3.5 rounded-xl bg-accent text-primary text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 shadow-lg"
             >
               <MessageCircle className="w-3.5 h-3.5" />
               {language === 'ar' ? 'تحدث مع رفيق' : 'Chat with Rafeeq'}
@@ -214,7 +233,7 @@ export function Dashboard({ user }: DashboardProps) {
       </div>
 
       {/* ── Cognitive Badges ── */}
-      <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900 space-y-8">
+      <section className="official-card p-5 sm:p-8 md:p-10 bg-white dark:bg-slate-900 space-y-8">
         <div className="text-center space-y-3 max-w-xl mx-auto">
           <h4 className="text-2xl font-black text-primary dark:text-white">
             {language === 'ar' ? 'الأوسمة المعرفية' : 'Cognitive Badges'}
@@ -237,7 +256,7 @@ export function Dashboard({ user }: DashboardProps) {
       </div>
 
       {recommendations.length > 0 && (
-        <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
+        <section className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
           <div className="text-center space-y-3">
             <h4 className="text-2xl font-black text-primary dark:text-white">
               {language === 'ar' ? 'الكتب المقترحة' : 'Recommended Books'}
@@ -363,7 +382,12 @@ export function Dashboard({ user }: DashboardProps) {
                 <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('bestInCatalog')}</h3>
                 <div className="w-12 h-1.5 bg-accent rounded-full"></div>
              </div>
-             <button className="text-secondary dark:text-accent/80 text-xs font-black uppercase tracking-widest hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-2">
+             {/* This used to be an inert button — it looked like a link and did
+                 nothing when tapped. It now goes where a reader expects. */}
+             <button
+                onClick={() => navigate('/search')}
+                className="text-secondary dark:text-accent/80 text-xs font-black uppercase tracking-widest hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-2 px-2 py-3.5 shrink-0"
+             >
                 {t('viewMore')} <ChevronRight className="w-4 h-4 rtl-flip" />
              </button>
           </div>

@@ -177,8 +177,11 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
         </span>
       </div>
 
-      {/* 3-column grid */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* One per row on a phone, three across from sm.
+          At three columns a 375px screen left each badge ~72px wide: the
+          description broke one word per line, "+50 XP" wrapped in half, and
+          the Play Now button shrank to 29px. */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {sorted.map((badge, i) => {
           const isEarned   = earnedBadges.includes(badge.id);
           const isUnlocked = currentXP >= badge.xpRequired;
@@ -194,6 +197,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
               whileHover={isEarned || isUnlocked ? { y: -4 } : {}}
               className={cn(
                 'relative rounded-2xl border p-5 flex flex-col items-center text-center gap-3 transition-all',
+                'w-full max-w-sm mx-auto sm:max-w-none',
                 isEarned
                   ? cn('bg-gradient-to-b shadow-lg', badge.bgEarned, badge.borderEarned, badge.glowClass)
                   : isUnlocked
@@ -243,17 +247,19 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                   {isAr ? 'مكتسب' : 'Earned'}
                 </span>
               ) : (
-                <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-snug">
+                <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 leading-snug">
                   {isAr ? badge.descAr : badge.descEn}
                 </p>
               )}
 
               {/* XP reward pill */}
               <span className={cn(
-                'text-[9px] font-black px-2.5 py-1 rounded-xl',
+                'text-[11px] font-black px-2.5 py-1 rounded-xl',
                 isEarned || isUnlocked ? badge.pillClass : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
               )}>
-                +{badge.xp} XP
+                {/* dir=ltr: the leading + is a neutral character, so in Arabic
+                    the pill rendered as "XP 50+". */}
+                <span dir="ltr">+{badge.xp} XP</span>
               </span>
 
               {/* XP progress bar — locked only */}
@@ -267,7 +273,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                       transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.1 }}
                     />
                   </div>
-                  <p className="text-[8px] font-bold text-slate-400 dark:text-slate-500" dir="ltr">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500" dir="ltr">
                     {currentXP} / {badge.xpRequired} XP
                   </p>
                 </div>
@@ -296,7 +302,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                     />
                     <Link
                       to="/cognitive-ar"
-                      className="relative w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-white text-[10px] font-black bg-accent hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/40"
+                      className="relative w-full flex items-center justify-center gap-1.5 px-3 py-3.5 rounded-xl text-white text-[11px] font-black bg-accent hover:brightness-110 active:scale-95 transition-all shadow-md shadow-accent/40"
                       onClick={e => e.stopPropagation()}
                     >
                       <Gamepad2 className="w-3.5 h-3.5" />

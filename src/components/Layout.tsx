@@ -514,7 +514,12 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         </main>
 
         {/* Bottom Floating Navigation (Mobile Only) */}
-        <nav className="lg:hidden fixed bottom-5 left-5 right-5 z-50 rounded-[2rem] flex justify-around items-center py-3.5 bg-white/85 dark:bg-slate-950/80 backdrop-blur-3xl border border-white/45 dark:border-white/5 shadow-[0_15px_35px_rgba(0,0,0,0.18)]">
+        {/* The English labels ("Search Library Resources", "Logout") are far
+            wider than the Arabic ones, and with fixed px-3 padding the five
+            items needed 377px inside a 333px bar on an iPhone SE — the Logout
+            label was sliced off the edge. Equal flex-1 columns that are allowed
+            to shrink (min-w-0) let the labels wrap instead of overflow. */}
+        <nav className="lg:hidden fixed bottom-5 left-5 right-5 z-50 rounded-[2rem] flex justify-between items-start px-1 py-3.5 bg-white/85 dark:bg-slate-950/80 backdrop-blur-3xl border border-white/45 dark:border-white/5 shadow-[0_15px_35px_rgba(0,0,0,0.18)]">
           {navItems.map((item) => {
             const isActive = item.path.includes('?')
               ? (location.pathname === item.path.split('?')[0] && location.search === '?' + item.path.split('?')[1])
@@ -525,7 +530,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex flex-col items-center gap-1.5 px-3 transition-all duration-300 relative group",
+                  "flex-1 min-w-0 flex flex-col items-center gap-1.5 px-1 transition-all duration-300 relative group",
                   isActive ? "text-primary dark:text-accent" : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
                 )}
               >
@@ -538,7 +543,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                   <Icon className={cn("w-5 h-5 transition-transform duration-300", isActive ? "text-accent scale-110" : "text-slate-400 dark:text-slate-500")} />
                 </div>
                 <span className={cn(
-                  "text-[9px] font-black uppercase tracking-wider transition-all duration-300",
+                  "text-[9px] font-black uppercase tracking-wider transition-all duration-300 text-center leading-tight",
                   isActive ? "opacity-100 font-black text-primary dark:text-accent" : "opacity-60 font-semibold"
                 )}>
                   {item.label}
@@ -555,12 +560,12 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
           {/* Logout — mobile only — confirm to prevent accidental tap */}
           <button
             onClick={() => { if (window.confirm(language === 'ar' ? 'هل تريد تسجيل الخروج؟' : 'Sign out?')) onLogout(); }}
-            className="flex flex-col items-center gap-1.5 px-3 text-red-400 hover:text-red-500 transition-all duration-300 group"
+            className="flex-1 min-w-0 flex flex-col items-center gap-1.5 px-1 text-red-400 hover:text-red-500 transition-all duration-300 group"
           >
             <div className="p-2.5 rounded-2xl group-hover:bg-red-50 dark:group-hover:bg-red-500/10 transition-all duration-300">
               <LogOut className="w-5 h-5" />
             </div>
-            <span className="text-[9px] font-black uppercase tracking-wider opacity-70">
+            <span className="text-[9px] font-black uppercase tracking-wider opacity-70 text-center leading-tight">
               {language === 'ar' ? 'خروج' : 'Logout'}
             </span>
           </button>
