@@ -5,14 +5,12 @@ import {
   HelpCircle,
   Search as SearchIcon,
   Mail,
-  MessageSquare,
   MapPin,
   Award,
   BookOpen,
   ChevronDown,
   Send,
   CheckCircle2,
-  Clock,
   AlertTriangle,
   Inbox,
   ShieldCheck,
@@ -22,7 +20,7 @@ import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
 import { User } from '../types';
 
-type HelpTab = 'faqs' | 'contact' | 'requests' | 'inbox';
+type HelpTab = 'faqs' | 'contact' | 'inbox';
 
 interface FaqItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -37,26 +35,6 @@ const FAQ_ITEMS: FaqItem[] = [
   { icon: HelpCircle, qKey: 'faqFacilities', aKey: 'faqFacilitiesAnswer' },
   { icon: HelpCircle, qKey: 'faqGroupRooms', aKey: 'faqGroupRoomsAnswer' },
 ];
-
-// Requests the user has actually submitted from the contact tab, kept per
-// user in localStorage. This list used to be a single hardcoded entry, so
-// every visitor saw a phantom request #R1 they had never sent.
-interface HelpRequest {
-  id: string;
-  subject: string;
-  sentAt: number;
-}
-
-function requestsKey(): string {
-  try {
-    const stored = localStorage.getItem('library_user');
-    return `help_requests_v1_${stored ? JSON.parse(stored)?.id || 'anonymous' : 'anonymous'}`;
-  } catch { return 'help_requests_v1_anonymous'; }
-}
-
-function loadRequests(): HelpRequest[] {
-  try { return JSON.parse(localStorage.getItem(requestsKey()) || '[]'); } catch { return []; }
-}
 
 interface HelpCenterProps {
   /** Optional so the page still renders if mounted without one. */
@@ -79,7 +57,6 @@ export function HelpCenter({ user }: HelpCenterProps) {
   const [contactEmail, setContactEmail] = useState('');
   const [contactMessage, setContactMessage] = useState('');
   const [contactState, setContactState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
-  const [requests, setRequests] = useState<HelpRequest[]>(loadRequests);
 
   const needle = query.trim().toLowerCase();
   const filteredFaqs = FAQ_ITEMS.filter((item) =>
@@ -104,13 +81,6 @@ export function HelpCenter({ user }: HelpCenterProps) {
         }),
       });
       if (!res.ok) throw new Error(String(res.status));
-      const { id } = await res.json();
-      const next = [
-        { id: String(id), subject: contactMessage.slice(0, 60), sentAt: Date.now() },
-        ...requests,
-      ];
-      setRequests(next);
-      try { localStorage.setItem(requestsKey(), JSON.stringify(next)); } catch {}
       setContactState('sent');
     } catch (err) {
       console.error('Help Center contact submit failed', err);
@@ -152,7 +122,6 @@ export function HelpCenter({ user }: HelpCenterProps) {
           : [
               { id: 'faqs' as const, label: t('faqsGuideTab'), icon: HelpCircle, badge: 0 },
               { id: 'contact' as const, label: t('contactUsTab'), icon: Mail, badge: 0 },
-              { id: 'requests' as const, label: t('myRequestsTab'), icon: MessageSquare, badge: requests.length },
             ]
         ).map((tab) => (
           <button
@@ -379,41 +348,6 @@ export function HelpCenter({ user }: HelpCenterProps) {
         </div>
       )}
 
-      {activeTab === 'requests' && (
-        <div className="official-card p-8 md:p-10 max-w-xl mx-auto bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm space-y-6">
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">{t('myRequestsDesc')}</p>
-          {requests.length === 0 ? (
-            <div className="p-8 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/5 text-center space-y-3">
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-white/5 flex items-center justify-center text-slate-300 dark:text-slate-600">
-                <Mail className="w-5 h-5" />
-              </div>
-              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 leading-relaxed">{t('noRequestsYet')}</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {requests.map((req) => (
-                <div key={req.id} className={cn('flex items-center justify-between gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/5', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                  <div className={cn('flex items-center gap-3 min-w-0', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                    <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
-                      <Mail className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0">
-                      {/* dir="ltr": the leading "#" is a neutral character, so
-                          under RTL it flips to the far side and reads "R1#". */}
-                      <span dir="ltr" className="block text-sm font-bold text-primary dark:text-white font-mono">#{req.id.toUpperCase()}</span>
-                      {req.subject && <span className="block text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate">{req.subject}</span>}
-                    </div>
-                  </div>
-                  <span className="flex items-center gap-1.5 shrink-0 text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 px-3 py-1.5 rounded-lg uppercase tracking-widest">
-                    <Clock className="w-3 h-3" />
-                    {t('requestStatusPending')}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }
