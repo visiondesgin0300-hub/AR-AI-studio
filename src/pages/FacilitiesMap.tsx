@@ -198,7 +198,7 @@ export function FacilitiesMap() {
       <button
         onClick={() => setMapMode('flat')}
         className={cn(
-          'px-3 py-1.5 rounded-lg text-[10px] font-black transition-all',
+          'px-4 py-3 rounded-lg text-[11px] font-black transition-all',
           mapMode === 'flat'
             ? 'bg-primary text-white dark:bg-[#0EA5D6] dark:text-[#050c1a] shadow'
             : 'text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'
@@ -207,7 +207,7 @@ export function FacilitiesMap() {
       <button
         onClick={() => setMapMode('3d')}
         className={cn(
-          'px-3 py-1.5 rounded-lg text-[10px] font-black transition-all',
+          'px-4 py-3 rounded-lg text-[11px] font-black transition-all',
           mapMode === '3d'
             ? 'bg-primary text-white dark:bg-[#0EA5D6] dark:text-[#050c1a] shadow'
             : 'text-slate-500 dark:text-white/60 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-white/10'
@@ -401,6 +401,21 @@ export function FacilitiesMap() {
                 {/* 2D/3D toggle */}
                 <MapToggle />
 
+                {/*
+                  The plan and its pins share one box, and that box carries the
+                  plan's own 600:520 ratio.
+
+                  They used to be siblings in the container: the svg letterboxed
+                  itself inside it (xMidYMid meet) while the pins were placed as
+                  a percentage of the container. On a phone the container is
+                  309x650 but the plan only draws 309x268, so 382px of the height
+                  is empty — and the two upper pins landed at viewBox y=-79 and
+                  y=-90, floating in blank space well above the building. Sizing
+                  the shared box to the plan's ratio puts every pin back on its
+                  room at any width.
+                */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="relative w-full max-h-full" style={{ aspectRatio: '600 / 520' }}>
                 <svg
                   className="absolute inset-0 w-full h-full"
                   viewBox="0 0 600 520"
@@ -445,29 +460,29 @@ export function FacilitiesMap() {
                   <rect x="28" y="28" width="217" height="192" rx="12" fill="#DBEAFE" fillOpacity="0.45"/>
                   <rect x="28" y="28" width="217" height="192" rx="12" fill="url(#fStripA)"/>
                   <rect x="28" y="28" width="217" height="192" rx="12" fill="none" stroke="#93C5FD" strokeWidth="1"/>
-                  <text x="136" y="104" textAnchor="middle" fontSize="8" fontWeight="700" fill="#1D4ED8" fontFamily="'IBM Plex Mono',monospace">A · NATURAL SCIENCES</text>
-                  <text x="136" y="115" textAnchor="middle" fontSize="6" fontWeight="600" fill="#60A5FA" fontFamily="sans-serif">العلوم الطبيعية</text>
+                  <text x="136" y="104" textAnchor="middle" fontSize="15" fontWeight="700" fill="#1D4ED8" fontFamily="'IBM Plex Mono',monospace">A · NATURAL SCIENCES</text>
+                  <text x="136" y="122" textAnchor="middle" fontSize="12" fontWeight="600" fill="#60A5FA" fontFamily="sans-serif">العلوم الطبيعية</text>
 
                   {/* Zone B — upper-right (orange) */}
                   <rect x="355" y="28" width="217" height="192" rx="12" fill="#FED7AA" fillOpacity="0.45"/>
                   <rect x="355" y="28" width="217" height="192" rx="12" fill="url(#fStripB)"/>
                   <rect x="355" y="28" width="217" height="192" rx="12" fill="none" stroke="#FDBA74" strokeWidth="1"/>
-                  <text x="463" y="104" textAnchor="middle" fontSize="8" fontWeight="700" fill="#C2410C" fontFamily="'IBM Plex Mono',monospace">B · ENGINEERING</text>
-                  <text x="463" y="115" textAnchor="middle" fontSize="6" fontWeight="600" fill="#FB923C" fontFamily="sans-serif">الهندسة والتقنية</text>
+                  <text x="463" y="104" textAnchor="middle" fontSize="15" fontWeight="700" fill="#C2410C" fontFamily="'IBM Plex Mono',monospace">B · ENGINEERING</text>
+                  <text x="463" y="122" textAnchor="middle" fontSize="12" fontWeight="600" fill="#FB923C" fontFamily="sans-serif">الهندسة والتقنية</text>
 
                   {/* Zone C — lower-left (purple) */}
                   <rect x="28" y="300" width="217" height="172" rx="12" fill="#EDE9FE" fillOpacity="0.45"/>
                   <rect x="28" y="300" width="217" height="172" rx="12" fill="url(#fStripC)"/>
                   <rect x="28" y="300" width="217" height="172" rx="12" fill="none" stroke="#C4B5FD" strokeWidth="1"/>
-                  <text x="136" y="378" textAnchor="middle" fontSize="8" fontWeight="700" fill="#6D28D9" fontFamily="'IBM Plex Mono',monospace">C · ARTS &amp; CRAFTS</text>
-                  <text x="136" y="389" textAnchor="middle" fontSize="6" fontWeight="600" fill="#A78BFA" fontFamily="sans-serif">الفنون والعلوم الإنسانية</text>
+                  <text x="136" y="378" textAnchor="middle" fontSize="15" fontWeight="700" fill="#6D28D9" fontFamily="'IBM Plex Mono',monospace">C · ARTS &amp; CRAFTS</text>
+                  <text x="136" y="396" textAnchor="middle" fontSize="12" fontWeight="600" fill="#A78BFA" fontFamily="sans-serif">الفنون والعلوم الإنسانية</text>
 
                   {/* Zone D — lower-right (green) */}
                   <rect x="355" y="300" width="217" height="172" rx="12" fill="#DCFCE7" fillOpacity="0.45"/>
                   <rect x="355" y="300" width="217" height="172" rx="12" fill="url(#fStripD)"/>
                   <rect x="355" y="300" width="217" height="172" rx="12" fill="none" stroke="#86EFAC" strokeWidth="1"/>
-                  <text x="463" y="378" textAnchor="middle" fontSize="8" fontWeight="700" fill="#15803D" fontFamily="'IBM Plex Mono',monospace">D · HUMANITIES</text>
-                  <text x="463" y="389" textAnchor="middle" fontSize="6" fontWeight="600" fill="#4ADE80" fontFamily="sans-serif">العلوم الإنسانية</text>
+                  <text x="463" y="378" textAnchor="middle" fontSize="15" fontWeight="700" fill="#15803D" fontFamily="'IBM Plex Mono',monospace">D · HUMANITIES</text>
+                  <text x="463" y="396" textAnchor="middle" fontSize="12" fontWeight="600" fill="#4ADE80" fontFamily="sans-serif">العلوم الإنسانية</text>
 
                   {/* Center aisles */}
                   <rect x="255" y="28" width="90" height="464" fill="#F1F5F9" rx="3"/>
@@ -479,8 +494,8 @@ export function FacilitiesMap() {
 
                   {/* Entrance */}
                   <rect x="248" y="478" width="104" height="22" rx="8" fill="#1E293B"/>
-                  <text x="300" y="488" textAnchor="middle" fontSize="7" fontWeight="800" fill="white" fontFamily="'IBM Plex Mono',monospace">🚪 ENTRANCE</text>
-                  <text x="300" y="497" textAnchor="middle" fontSize="5.5" fill="#94A3B8" fontFamily="sans-serif">المدخل</text>
+                  <text x="300" y="487" textAnchor="middle" fontSize="12" fontWeight="800" fill="white" fontFamily="'IBM Plex Mono',monospace">🚪 ENTRANCE</text>
+                  <text x="300" y="500" textAnchor="middle" fontSize="9" fill="#94A3B8" fontFamily="sans-serif">المدخل</text>
                   <line x1="300" y1="478" x2="300" y2="464" stroke="#334155" strokeWidth="1.5"/>
 
                   {/* Nav path + arrows — pure native SVG so nothing conflicts */}
@@ -541,20 +556,30 @@ export function FacilitiesMap() {
                         setWalkProgress(0);
                       }}
                       style={{ top: pos.top, left: pos.left, right: pos.right }}
+                      aria-label={`${f.name} — ${f.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}`}
                       className={cn(
-                        'absolute flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all duration-300 shadow-lg cursor-pointer z-10 w-28',
+                        // Icon-only pins on a phone. Full cards are 96x111 each,
+                        // and four of them covered half of the 309x268 plan —
+                        // the names and statuses are already in the list right
+                        // below the map, so the pin only has to mark the spot.
+                        'absolute flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-2xl border-2 transition-all duration-300 shadow-lg cursor-pointer z-10 w-auto sm:w-28',
                         isSelected
                           ? 'bg-amber-500 border-amber-400/60 shadow-[0_8px_30px_rgba(217,179,16,0.4)] scale-110'
                           : 'bg-white border-slate-200 hover:border-primary/40 hover:scale-105 shadow-md'
                       )}
                     >
-                      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center transition-colors', isSelected ? 'bg-black/15 text-primary' : 'bg-primary/10 text-primary')}>
+                      <div className={cn('relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors', isSelected ? 'bg-black/15 text-primary' : 'bg-primary/10 text-primary')}>
                         <f.icon className="w-5 h-5" />
+                        {/* status dot — carries availability on the phone pin,
+                            where the text badge below is hidden */}
+                        <span className={cn('sm:hidden absolute -top-1 -end-1 w-2.5 h-2.5 rounded-full border-2 border-white',
+                          f.status === 'available' ? 'bg-emerald-500' : 'bg-amber-500'
+                        )} />
                       </div>
-                      <span className={cn('text-[9px] font-black text-center leading-tight', isSelected ? 'text-primary' : 'text-primary dark:text-white')}>
+                      <span className={cn('hidden sm:block text-[10px] font-black text-center leading-tight', isSelected ? 'text-primary' : 'text-primary dark:text-white')}>
                         {f.name}
                       </span>
-                      <span className={cn('text-[8px] font-bold px-2 py-0.5 rounded-full',
+                      <span className={cn('hidden sm:inline-block text-[10px] font-bold px-2 py-0.5 rounded-full',
                         f.status === 'available' ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-700'
                       )}>
                         {f.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
@@ -562,6 +587,8 @@ export function FacilitiesMap() {
                     </button>
                   );
                 })}
+                  </div>
+                </div>
 
                 {/* Switch to 3D nudge */}
                 {manualTarget && (
@@ -615,7 +642,7 @@ export function FacilitiesMap() {
                       {targetFacility.location}
                     </p>
                     <span className={cn(
-                      'inline-block text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider',
+                      'inline-block text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider',
                       targetFacility.status === 'available'
                         ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
                         : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
@@ -753,7 +780,9 @@ export function FacilitiesMap() {
                       onChange={e => setFacilitySearch(e.target.value)}
                       placeholder={language === 'ar' ? 'اسم المرفق أو الموقع...' : 'Facility name or location...'}
                       className={cn(
-                        'w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors',
+                        // text-base below sm: iOS zooms the whole page in when a
+                        // focused field is under 16px, and this one was 14px.
+                        'w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-base sm:text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors',
                         dir === 'rtl' ? 'pr-11 pl-4 text-right' : 'pl-11 pr-4 text-left'
                       )}
                     />
@@ -799,7 +828,7 @@ export function FacilitiesMap() {
                             <span className="text-[10px] font-bold text-primary/50 dark:text-accent/70 truncate">
                               {facility.location}
                             </span>
-                            <span className={cn('shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider',
+                            <span className={cn('shrink-0 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider',
                               facility.status === 'available'
                                 ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
                                 : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
