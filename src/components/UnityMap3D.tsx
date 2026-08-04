@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { RafeeqAvatar } from './RafeeqAvatar';
 import { BookCover } from './BookCover';
 import { cn } from '../lib/utils';
 import type { Book } from '../types';
@@ -280,7 +281,7 @@ export function UnityMap3D({
         </g>
       </svg>
 
-      {/* ── Bottom card: book info + navigation steps ── */}
+      {/* ── Bottom card: book info + navigation steps + Rafeeq ── */}
       <AnimatePresence>
         {hasDestination && (
           <motion.div
@@ -291,6 +292,19 @@ export function UnityMap3D({
             transition={{ type: 'spring', stiffness: 280, damping: 26, delay: 0.15 }}
             className="absolute bottom-3 inset-x-3 z-30 flex items-end gap-3"
           >
+            {/* Rafeeq */}
+            <div className="flex flex-col items-center gap-0.5 shrink-0">
+              <motion.div
+                animate={{ y: [0, -6, 0] }}
+                transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <RafeeqAvatar className="w-14 h-14 drop-shadow-2xl" />
+              </motion.div>
+              <span className="text-[7px] font-black text-white/40 uppercase tracking-widest">
+                {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+              </span>
+            </div>
+
             {/* Info card */}
             <div className="flex-1 bg-[#01202e]/90 backdrop-blur-xl border border-[#D4AF37]/30 rounded-2xl p-3 shadow-2xl overflow-hidden">
               {/* book row */}
