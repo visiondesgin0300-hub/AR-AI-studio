@@ -133,11 +133,29 @@ export function AdminDashboard() {
   const filteredFacilities = facilities.filter(f =>
     f.name.includes(searchQuery) || f.nameEn.toLowerCase().includes(searchQuery.toLowerCase()));
 
+  // System usage: the share of accounts that have actually used the library —
+  // a current loan or a past one. Counted from the accounts themselves rather
+  // than stated as a figure, so it moves as the accounts do.
+  const activeUsers = users.filter(u => u.borrowedBooks.length > 0 || u.totalReadCount > 0).length;
+  const usageRate = users.length ? Math.round((activeUsers / users.length) * 100) : 0;
+
   const stats = [
     { label: t('totalUsersCount'), value: users.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     { label: t('totalBooksCount'), value: books.length, icon: BookOpen, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
     { label: ar ? 'المرافق' : 'Facilities', value: facilities.length, icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
     { label: t('sentNotificationsCount'), value: 48, icon: Bell, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+    {
+      label: ar ? 'نسبة استخدام النظام' : 'System Usage',
+      value: `${usageRate}%`,
+      icon: Activity,
+      color: 'text-rose-600',
+      bg: 'bg-rose-50 dark:bg-rose-900/20',
+      // A bare percentage hides its own basis, so the card carries the ratio.
+      detail: ar
+        ? `${activeUsers} من ${users.length} حساباً لديه نشاط`
+        : `${activeUsers} of ${users.length} accounts have activity`,
+      bar: usageRate,
+    },
   ];
 
   const logs = [
@@ -387,7 +405,7 @@ export function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
         {stats.map((s, i) => (
           <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
             className={cn('official-card p-8 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5', dir === 'rtl' ? 'text-right' : 'text-left')}>
@@ -395,8 +413,23 @@ export function AdminDashboard() {
               <div className={cn('p-4 rounded-2xl shadow-inner', s.bg)}><s.icon className={cn('w-6 h-6', s.color)} /></div>
               <div className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">{t('updatedNow')}</div>
             </div>
-            <div className="text-4xl font-black text-primary dark:text-white tracking-tighter font-mono">{s.value}</div>
+            <div className="text-4xl font-black text-primary dark:text-white tracking-tighter font-mono" dir="ltr">{s.value}</div>
             <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-1">{s.label}</div>
+            {'bar' in s && (
+              <div className="mt-3 space-y-1.5">
+                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(s as { bar: number }).bar}%` }}
+                    transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
+                    className="h-full rounded-full bg-rose-500"
+                  />
+                </div>
+                <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-snug">
+                  {(s as { detail: string }).detail}
+                </div>
+              </div>
+            )}
           </motion.div>
         ))}
       </div>

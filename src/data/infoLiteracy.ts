@@ -144,6 +144,56 @@ export const LITERACY_QUESTIONS: LiteracyQuestion[] = [
     whyEn: 'Headlines compress and inflate. The word “proves” is rarely in the paper itself.',
   },
 
+  // ── Explorer — databases and referencing, first contact ──────────────
+  {
+    id: 'e9', level: 'explorer', skill: 'search',
+    qAr: 'ما الفرق بين البحث في قاعدة بيانات المكتبة والبحث في الويب المفتوح؟',
+    qEn: 'What is the difference between searching a library database and searching the open web?',
+    options: [
+      { ar: 'قاعدة البيانات تبحث في محتوى مُنتقى ومفهرس، والويب يبحث في كل ما نُشر', en: 'A database searches selected, indexed content; the web searches whatever was published', correct: true },
+      { ar: 'قاعدة البيانات أسرع فقط', en: 'A database is simply faster', correct: false },
+      { ar: 'لا فرق، كلاهما يستعمل المحرك نفسه', en: 'No difference — both use the same engine', correct: false },
+    ],
+    whyAr: 'الانتقاء والفهرسة هما الفرق: القاعدة تعرف نوع كل وثيقة وحقولها، فتتيح تضييقاً لا يقدر عليه محرك عام.',
+    whyEn: 'Selection and indexing are the difference: a database knows each document’s type and fields, so it allows filtering a general engine cannot.',
+  },
+  {
+    id: 'e10', level: 'explorer', skill: 'evaluate',
+    qAr: 'Google Scholar مجاني وواسع التغطية. ما حدوده التي يجب الانتباه لها؟',
+    qEn: 'Google Scholar is free and broad. What limitation must you keep in mind?',
+    options: [
+      { ar: 'لا يميّز المحكّم من غيره، وتغطيته غير معلنة بدقة', en: 'It does not separate peer-reviewed from other material, and its coverage is not precisely disclosed', correct: true },
+      { ar: 'يقتصر على المجلات الطبية', en: 'It is limited to medical journals', correct: false },
+      { ar: 'لا يعرض إلا الأبحاث المدفوعة', en: 'It only shows paywalled research', correct: false },
+    ],
+    whyAr: 'يخلط الرسائل والعروض والمسودات بالمقالات المحكّمة. أداة كشف ممتازة، لكنها ليست ضماناً للجودة.',
+    whyEn: 'It mixes theses, slides and drafts with peer-reviewed articles. An excellent discovery tool, not a quality guarantee.',
+  },
+  {
+    id: 'e11', level: 'explorer', skill: 'cite',
+    qAr: 'ما وظيفة قائمة المراجع في نهاية البحث؟',
+    qEn: 'What is the reference list at the end of a paper for?',
+    options: [
+      { ar: 'تمكين القارئ من العودة إلى كل مصدر استندت إليه والتحقق منه', en: 'To let a reader reach and check every source you relied on', correct: true },
+      { ar: 'إظهار سعة اطلاع الباحث', en: 'To show how widely the author has read', correct: false },
+      { ar: 'استيفاء شرط شكلي في التنسيق', en: 'To satisfy a formatting requirement', correct: false },
+    ],
+    whyAr: 'المرجع وعد بإمكان التتبع. لذلك تُذكر بيانات تكفي للوصول إلى المصدر نفسه لا للإشارة إليه فحسب.',
+    whyEn: 'A reference is a promise of traceability, which is why it carries enough detail to reach the source, not merely to name it.',
+  },
+  {
+    id: 'e12', level: 'explorer', skill: 'cite',
+    qAr: 'ما الفرق بين الاستشهاد داخل النص وقائمة المراجع؟',
+    qEn: 'What is the difference between an in-text citation and the reference list?',
+    options: [
+      { ar: 'داخل النص إشارة مختصرة تدل على مدخل كامل في القائمة', en: 'The in-text citation is a short pointer to a full entry in the list', correct: true },
+      { ar: 'داخل النص للكتب والقائمة للمقالات', en: 'In-text is for books, the list is for articles', correct: false },
+      { ar: 'أحدهما اختياري والآخر إلزامي', en: 'One is optional and the other is required', correct: false },
+    ],
+    whyAr: 'الاثنان نظام واحد: الإشارة تربط الجملة بالمصدر، والقائمة تعطي بياناته كاملة. كل إشارة يقابلها مدخل.',
+    whyEn: 'They are one system: the pointer ties a sentence to a source, the list gives its full detail. Every pointer has an entry.',
+  },
+
   // ── Researcher — working the literature ──────────────────────────────
   {
     id: 'r1', level: 'researcher', skill: 'search',
@@ -242,6 +292,68 @@ export const LITERACY_QUESTIONS: LiteracyQuestion[] = [
     whyEn: 'The date records which version of the page you relied on, so a reader can trace what you saw.',
   },
 
+  // ── Researcher — choosing a database, following a style ──────────────
+  {
+    id: 'r9', level: 'researcher', skill: 'search',
+    qAr: 'تبحث في موضوع طبي حيوي. أي قاعدة بيانات هي نقطة البداية الطبيعية؟',
+    qEn: 'You are researching a biomedical topic. Which database is the natural starting point?',
+    options: [
+      { ar: 'PubMed — تغطي العلوم الطبية والحيوية', en: 'PubMed — it covers medicine and the life sciences', correct: true },
+      { ar: 'IEEE Xplore', en: 'IEEE Xplore', correct: false },
+      { ar: 'ERIC', en: 'ERIC', correct: false },
+    ],
+    whyAr: 'لكل قاعدة تخصص: PubMed للطب والعلوم الحيوية، وIEEE Xplore للهندسة والحوسبة، وERIC للتربية. اختيار القاعدة نصف البحث.',
+    whyEn: 'Each database has a domain: PubMed for medicine and life sciences, IEEE Xplore for engineering and computing, ERIC for education. Choosing the right one is half the search.',
+  },
+  {
+    id: 'r10', level: 'researcher', skill: 'search',
+    qAr: 'ما طبيعة Scopus وWeb of Science؟',
+    qEn: 'What kind of resource are Scopus and Web of Science?',
+    options: [
+      { ar: 'كشّافان للاستشهادات متعددا التخصصات يتيحان تتبّع من استشهد بمن', en: 'Multidisciplinary citation indexes that let you trace who cited whom', correct: true },
+      { ar: 'مستودعان لنصوص الكتب الكاملة', en: 'Repositories of full-text books', correct: false },
+      { ar: 'محركا بحث عامان مثل محركات الويب', en: 'General web search engines', correct: false },
+    ],
+    whyAr: 'قيمتهما في شبكة الاستشهادات: تتقدّم من ورقة إلى ما استشهد بها، أو ترجع إلى ما بُنيت عليه.',
+    whyEn: 'Their value is the citation network: from a paper you can move forward to what cited it, or back to what it was built on.',
+  },
+  {
+    id: 'r11', level: 'researcher', skill: 'cite',
+    qAr: 'كيف يظهر الاستشهاد داخل النص في نمط APA؟',
+    qEn: 'How does an in-text citation appear in APA style?',
+    options: [
+      { ar: 'اسم المؤلف والسنة: (الحارثي، 2021)', en: 'Author and year: (Al-Harthy, 2021)', correct: true },
+      { ar: 'رقم بين معقوفتين: [3]', en: 'A number in brackets: [3]', correct: false },
+      { ar: 'حاشية سفلية في أسفل الصفحة', en: 'A footnote at the bottom of the page', correct: false },
+    ],
+    whyAr: 'APA نمط «مؤلف — تاريخ»، فالسنة جزء من الإشارة نفسها لأن حداثة المصدر معلومة مهمة في العلوم الاجتماعية.',
+    whyEn: 'APA is an author–date style: the year sits inside the pointer because currency matters in the social sciences.',
+  },
+  {
+    id: 'r12', level: 'researcher', skill: 'cite',
+    qAr: 'في نمط IEEE، بأي ترتيب تُرقَّم المراجع؟',
+    qEn: 'In IEEE style, in what order are references numbered?',
+    options: [
+      { ar: 'بترتيب ظهورها أول مرة في النص', en: 'By the order of their first appearance in the text', correct: true },
+      { ar: 'أبجدياً حسب اسم المؤلف', en: 'Alphabetically by author name', correct: false },
+      { ar: 'حسب سنة النشر من الأقدم للأحدث', en: 'By publication year, oldest first', correct: false },
+    ],
+    whyAr: 'IEEE نمط رقمي: [1] هو أول مرجع ذُكر في النص. الترتيب الأبجدي من خصائص الأنماط المؤلف-تاريخ مثل APA.',
+    whyEn: 'IEEE is a numeric style: [1] is the first reference mentioned. Alphabetical ordering belongs to author–date styles such as APA.',
+  },
+  {
+    id: 'r13', level: 'researcher', skill: 'search',
+    qAr: 'تبحث عن دراسات عربية محكّمة في التربية. أين تتوجّه؟',
+    qEn: 'You need peer-reviewed Arabic-language studies in education. Where do you go?',
+    options: [
+      { ar: 'قواعد الدوريات العربية مثل دار المنظومة وe-Marefa', en: 'Arabic journal databases such as Dar Almandumah and e-Marefa', correct: true },
+      { ar: 'ترجمة البحث إلى الإنجليزية والاكتفاء بالقواعد الأجنبية', en: 'Translate the query and rely on English-language databases only', correct: false },
+      { ar: 'الاكتفاء بما يظهر في محرك بحث عام', en: 'Rely on what a general search engine shows', correct: false },
+    ],
+    whyAr: 'الإنتاج العلمي العربي مفهرس في قواعد مخصصة له. الاكتفاء بالقواعد الأجنبية يُسقط أدبيات كاملة عن بحثك.',
+    whyEn: 'Arabic scholarship is indexed in databases built for it; relying only on English-language ones drops an entire literature from your review.',
+  },
+
   // ── Distinguished — the hard judgement calls ─────────────────────────
   {
     id: 'd1', level: 'distinguished', skill: 'evaluate',
@@ -338,6 +450,56 @@ export const LITERACY_QUESTIONS: LiteracyQuestion[] = [
     ],
     whyAr: 'النسبة واجب أخلاقي، والرخصة مسألة حقوق منفصلة. إعادة الرسم لا تنقل ملكية المحتوى.',
     whyEn: 'Attribution is an ethical duty; licensing is a separate legal one. Redrawing does not transfer ownership of the content.',
+  },
+
+  // ── Distinguished — coverage, indexing, and citation edge cases ──────
+  {
+    id: 'd9', level: 'distinguished', skill: 'search',
+    qAr: 'متى تفضّل قاعدة متخصصة على أداة الاكتشاف الموحّدة في المكتبة؟',
+    qEn: 'When do you prefer a subject database over the library’s single discovery search?',
+    options: [
+      { ar: 'حين تحتاج مكنزاً وحقولاً وفلاتر دقيقة لا توفّرها الأداة الموحّدة', en: 'When you need the thesaurus, fields and fine filters the unified tool does not offer', correct: true },
+      { ar: 'حين تريد أكبر عدد من النتائج', en: 'When you want the largest number of results', correct: false },
+      { ar: 'لا فرق بينهما في العمق', en: 'There is no depth difference between them', correct: false },
+    ],
+    whyAr: 'الأداة الموحّدة تتسع ولا تعمّق. القاعدة المتخصصة تعطي أدوات ضبط تجعل نتائجك أقل عدداً وأدق مطابقة.',
+    whyEn: 'Discovery goes wide, not deep. A subject database gives control that returns fewer results but far better matched ones.',
+  },
+  {
+    id: 'd10', level: 'distinguished', skill: 'cite',
+    qAr: 'قرأت في مصدر أن باحثاً آخر قال شيئاً، ولم تطّلع على الأصل. ماذا تفعل؟',
+    qEn: 'A source reports what another researcher said, and you have not seen the original. What do you do?',
+    options: [
+      { ar: 'تبحث عن الأصل وتستشهد به؛ فإن تعذّر صرّحت بأنه نقل غير مباشر', en: 'Find the original and cite it; if that is impossible, declare it as a secondary citation', correct: true },
+      { ar: 'تستشهد بالأصل مباشرة كأنك قرأته', en: 'Cite the original directly as though you had read it', correct: false },
+      { ar: 'تحذف الفكرة تجنّباً للتعقيد', en: 'Drop the idea to avoid the complication', correct: false },
+    ],
+    whyAr: 'الاستشهاد بما لم تقرأه ينقل خطأ الوسيط إليك ويُنسب إليك. النقل غير المباشر جائز عند التعذّر بشرط التصريح به.',
+    whyEn: 'Citing what you have not read inherits the intermediary’s error and attributes it to you. Secondary citation is acceptable only when unavoidable and declared.',
+  },
+  {
+    id: 'd11', level: 'distinguished', skill: 'cite',
+    qAr: 'في APA (الإصدار السابع)، بحث لثلاثة مؤلفين فأكثر — كيف يُستشهد به داخل النص؟',
+    qEn: 'In APA 7th edition, how do you cite a work with three or more authors in text?',
+    options: [
+      { ar: 'المؤلف الأول متبوعاً بـ et al. منذ الاستشهاد الأول', en: 'First author followed by et al., from the very first citation', correct: true },
+      { ar: 'تُذكر أسماء الجميع في الاستشهاد الأول ثم et al. لاحقاً', en: 'List every author the first time, then et al. afterwards', correct: false },
+      { ar: 'تُذكر أسماء الجميع في كل استشهاد', en: 'List every author in every citation', correct: false },
+    ],
+    whyAr: 'هذا تغيير أدخله الإصدار السابع؛ القاعدة القديمة (ذكر الجميع أولاً) ما زالت شائعة الاستعمال خطأً.',
+    whyEn: 'This changed in the seventh edition; the older rule — naming everyone the first time — is still widely applied by mistake.',
+  },
+  {
+    id: 'd12', level: 'distinguished', skill: 'reason',
+    qAr: 'ورقة منشورة في مجلة ذات معامل تأثير مرتفع. ماذا يعني ذلك عن هذه الورقة بعينها؟',
+    qEn: 'A paper appears in a journal with a high impact factor. What does that say about this particular paper?',
+    options: [
+      { ar: 'لا شيء مؤكداً — المعامل وصف للمجلة لا حكم على ورقة منفردة', en: 'Nothing definite — the factor describes the journal, not an individual paper', correct: true },
+      { ar: 'أنها ورقة عالية الجودة بالضرورة', en: 'That it is necessarily a high-quality paper', correct: false },
+      { ar: 'أنها استُشهد بها كثيراً', en: 'That it has been cited a great deal', correct: false },
+    ],
+    whyAr: 'المعامل متوسط استشهادات المجلة، وتوزيع الاستشهادات داخلها شديد التفاوت. الورقة تُقيَّم بمنهجها وأدلتها.',
+    whyEn: 'The factor is a journal-level average, and citations inside a journal are distributed very unevenly. A paper is judged by its methods and evidence.',
   },
 ];
 
