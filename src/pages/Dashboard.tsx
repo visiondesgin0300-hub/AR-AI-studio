@@ -103,6 +103,9 @@ export function Dashboard({ user }: DashboardProps) {
                   <Clock className="w-5 h-5 text-white/70" />
                 </div>
                 <div className="min-w-0">
+                  {/* "Estimated", not "total": the figure is derived —
+                      3 hours per book read or borrowed, plus half an hour per
+                      two searches — not time the app actually measures. */}
                   <div className="text-[10px] font-black text-white/50 uppercase tracking-widest">{t('totalLearningTime')}</div>
                   <div className="text-xl font-black text-white leading-none mt-0.5">
                     {/* Plain digits, like the XP figure beside it and the header
