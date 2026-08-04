@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
-  Users, BookOpen, Activity, PlusCircle, Trash2, Edit, X,
+  Users, BookOpen, Activity, PlusCircle, Download, Trash2, Edit, X,
   BarChart3, Bell, TrendingUp, Search,
   QrCode, Building2, MapPin,
   Printer, Monitor, VolumeX, User as UserIcon,
@@ -335,6 +335,38 @@ export function AdminDashboard() {
   // admin is actually looking at, as CSV. The BOM keeps Excel from mangling
   // the Arabic columns.
 
+  /**
+   * Download the tab's own table as CSV.
+   *
+   * Each tab passes the columns it actually shows, so the file matches what is
+   * on screen — including the current search filter — rather than one shape of
+   * export guessed from whichever tab happens to be open.
+   */
+  const exportCsv = (name: string, rows: (string | number)[][]) => {
+    const csv = rows
+      .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+    // The BOM is what makes Excel read the Arabic columns as UTF-8.
+    const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `arlibrary-${name}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /** The compact export control that sits in each tab's toolbar. */
+  const ExportButton = ({ name, rows }: { name: string; rows: (string | number)[][] }) => (
+    <button
+      onClick={() => exportCsv(name, rows)}
+      title={ar ? 'تصدير CSV' : 'Export CSV'}
+      className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-3.5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm shrink-0 whitespace-nowrap"
+    >
+      <Download className="w-4 h-4" />
+      <span className="hidden sm:inline">{ar ? 'تصدير' : 'Export'}</span>
+    </button>
+  );
+
   const tabs = [
     { id: 'users', label: t('usersTab'), icon: Users },
     { id: 'books', label: t('libraryTab'), icon: BookOpen },
@@ -444,6 +476,13 @@ export function AdminDashboard() {
                       <input type="text" placeholder={t('searchUserPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                         className={cn('py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/10 outline-none w-56 text-slate-900 dark:text-slate-100 placeholder:text-slate-400/50', dir === 'rtl' ? 'pr-10 pl-4' : 'pl-10 pr-4')} />
                     </div>
+                    <ExportButton
+                      name="users"
+                      rows={[
+                        [ar ? 'الاسم' : 'Name', ar ? 'البريد الإلكتروني' : 'Email', ar ? 'الدور' : 'Role', ar ? 'الاستعارات' : 'Borrowed'],
+                        ...filteredUsers.map(u => [displayName(u, language), u.email, u.role, u.borrowedBooks.length]),
+                      ]}
+                    />
                     <button onClick={() => openModal('user')} className="bg-primary dark:bg-accent text-white dark:text-primary p-2.5 rounded-xl shadow-lg hover:scale-105 transition-all shrink-0">
                       <PlusCircle className="w-5 h-5" />
                     </button>
@@ -512,6 +551,13 @@ export function AdminDashboard() {
                       <input type="text" placeholder={t('searchPlaceholderAdmin')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                         className={cn('py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/10 outline-none w-48 text-slate-900 dark:text-slate-100', dir === 'rtl' ? 'pr-10 pl-4' : 'pl-10 pr-4')} />
                     </div>
+                    <ExportButton
+                      name="resources"
+                      rows={[
+                        [ar ? 'العنوان' : 'Title', ar ? 'المؤلف' : 'Author', ar ? 'التصنيف' : 'Category', ar ? 'الرف' : 'Shelf', ar ? 'الحالة' : 'Status'],
+                        ...filteredBooks.map(b => [b.title, b.author, b.category || '', b.shelf || '', b.status || 'available']),
+                      ]}
+                    />
                     <button onClick={() => openModal('book')} className="bg-primary dark:bg-accent text-white dark:text-primary p-2.5 rounded-xl shadow-lg hover:scale-105 transition-all shrink-0">
                       <PlusCircle className="w-5 h-5" />
                     </button>
@@ -578,6 +624,13 @@ export function AdminDashboard() {
                       <input type="text" placeholder={ar ? 'بحث...' : 'Search...'} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                         className={cn('py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/10 outline-none w-48 text-slate-900 dark:text-slate-100', dir === 'rtl' ? 'pr-10 pl-4' : 'pl-10 pr-4')} />
                     </div>
+                    <ExportButton
+                      name="facilities"
+                      rows={[
+                        [ar ? 'المرفق' : 'Facility', ar ? 'الاسم (EN)' : 'Name (EN)', ar ? 'الموقع' : 'Location', ar ? 'الحالة' : 'Status'],
+                        ...filteredFacilities.map(f => [f.name, f.nameEn, f.cellId, f.status]),
+                      ]}
+                    />
                     <button onClick={() => openModal('facility')} className="bg-primary dark:bg-accent text-white dark:text-primary p-2.5 rounded-xl shadow-lg hover:scale-105 transition-all shrink-0">
                       <PlusCircle className="w-5 h-5" />
                     </button>
@@ -643,9 +696,24 @@ export function AdminDashboard() {
               <motion.div key="qr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className={cn('flex flex-col sm:flex-row items-center justify-between gap-4', dir === 'rtl' ? 'sm:flex-row-reverse' : '')}>
                   <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'رموز AR التلقائية' : 'Auto-Generated AR Codes'}</h3>
-                  <button onClick={handlePrintQR} className="flex items-center gap-2 bg-primary dark:bg-accent text-white dark:text-primary px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-primary/20">
-                    <Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}
-                  </button>
+                  <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                    <ExportButton
+                      name={`qr-${qrSection}`}
+                      rows={
+                        qrSection === 'shelves'
+                          ? [[ar ? 'الرف' : 'Shelf', ar ? 'رمز AR' : 'AR code'],
+                             ...SHELVES.map(id => [id, `ARLIBRARY:SHELF:${id}`])]
+                          : qrSection === 'books'
+                          ? [[ar ? 'العنوان' : 'Title', ar ? 'الرف' : 'Shelf', ar ? 'رمز AR' : 'AR code'],
+                             ...books.map(bk => [bk.title, bk.shelf || '', `ARLIBRARY:BOOK:${bk.id}`])]
+                          : [[ar ? 'المرفق' : 'Facility', ar ? 'الموقع' : 'Location', ar ? 'رمز AR' : 'AR code'],
+                             ...facilities.map(f => [f.name, f.cellId, `ARLIBRARY:FACILITY:${f.cellId}`])]
+                      }
+                    />
+                    <button onClick={handlePrintQR} className="flex items-center gap-2 bg-primary dark:bg-accent text-white dark:text-primary px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-primary/20">
+                      <Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Section switcher */}
@@ -718,7 +786,16 @@ export function AdminDashboard() {
             {/* ── LOGS ── */}
             {activeTab === 'logs' && (
               <motion.div key="logs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{t('digitalActivityLogs')}</h3>
+                <div className={cn('flex items-center justify-between gap-4 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                  <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{t('digitalActivityLogs')}</h3>
+                  <ExportButton
+                    name="logs"
+                    rows={[
+                      [ar ? 'المستخدم' : 'User', ar ? 'الإجراء' : 'Action', ar ? 'الهدف' : 'Target', ar ? 'الوقت' : 'Time'],
+                      ...logs.map(l => [l.user, l.action, l.target, l.time]),
+                    ]}
+                  />
+                </div>
                 <div className="space-y-4">
                   {logs.map(log => (
                     <div key={log.id} className={cn('official-card p-6 flex items-center gap-6 border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900 shadow-xl shadow-black/5', dir === 'rtl' ? 'flex-row-reverse text-right' : 'text-left')}>
@@ -822,6 +899,19 @@ export function AdminDashboard() {
                       </span>
                     )}
                     <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{feedbackEntries.length} {ar ? 'إجمالي' : 'total'}</span>
+                    <ExportButton
+                      name="user-requests"
+                      rows={[
+                        [ar ? 'النوع' : 'Type', ar ? 'المرسل' : 'From', ar ? 'البريد' : 'Email',
+                         ar ? 'التقييم' : 'Rating', ar ? 'الرسالة' : 'Message', ar ? 'الوقت' : 'Time'],
+                        ...feedbackEntries.map(e => [
+                          e.isInquiry ? (ar ? 'استفسار' : 'Inquiry') : (ar ? 'تقييم' : 'Rating'),
+                          e.user, e.email,
+                          e.isInquiry ? '' : e.moodLabel,
+                          e.text, e.time,
+                        ]),
+                      ]}
+                    />
                   </div>
                 </div>
 
