@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Map as MapIcon } from 'lucide-react';
+import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Map as MapIcon, Clock } from 'lucide-react';
 import { cn, trackMapVisit } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
@@ -161,7 +161,15 @@ export function FacilitiesMap() {
 
   const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
+  const liveEtaSeconds = Math.max(0, Math.round(totalWalkSeconds * (1 - walkProgress)));
   const hasArrived = showPath && walkProgress >= 1;
+
+  // Clock time of arrival, counting down live with the walk. "3 min" tells you
+  // how long; this tells you when — the thing you actually compare against the
+  // lecture you are heading to. ar-EG, not ar-SA, for the same reason as the
+  // dates elsewhere.
+  const arrivalClock = new Date(Date.now() + liveEtaSeconds * 1000)
+    .toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
   const navigationSteps = targetFacility
     ? [
@@ -280,18 +288,6 @@ export function FacilitiesMap() {
 
                 {/* HUD overlay */}
                 <div className="absolute inset-0 z-10 pointer-events-none flex flex-col">
-                  {/* Top controls */}
-                  <div className={cn('flex items-start gap-3 p-3 pt-12 sm:pt-3 pointer-events-auto', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                    {manualTarget && (
-                      <button
-                        onClick={() => { setManualTarget(null); setShowPath(false); setWalkProgress(0); }}
-                        className="px-4 py-2 rounded-full bg-black/60 backdrop-blur-xl text-white text-[10px] font-black uppercase tracking-widest border border-white/15 hover:bg-black/80 transition-all active:scale-95"
-                      >
-                        {t('changeRouteLabel')}
-                      </button>
-                    )}
-                  </div>
-
                   {/* 2D/3D toggle */}
                   <MapToggle />
 
@@ -308,10 +304,15 @@ export function FacilitiesMap() {
                           <Box className="w-3 h-3 text-[#0EA5D6]/80" />
                           {targetFacility.location}
                         </div>
-                        <div className="px-4 py-1.5 rounded-full bg-[#0EA5D6]/20 backdrop-blur-xl border border-[#0EA5D6]/30 text-[#0EA5D6] text-[11px] font-black flex items-center gap-2.5">
+                        <div className="px-4 py-1.5 rounded-full bg-[#0EA5D6]/20 backdrop-blur-xl border border-[#0EA5D6]/30 text-[#0EA5D6] text-[11px] font-black flex items-center gap-2.5 flex-wrap justify-center">
                           <span>{t('distanceLabel')}: {showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
                           <span className="w-1 h-1 rounded-full bg-[#0EA5D6]/50" />
                           <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                          <span className="w-1 h-1 rounded-full bg-[#0EA5D6]/50" />
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            {language === 'ar' ? 'الوصول' : 'Arrive'} <span dir="ltr">{arrivalClock}</span>
+                          </span>
                         </div>
                         {navigationSteps.length > 0 && (
                           <AnimatePresence mode="wait">

@@ -567,14 +567,24 @@ export function LibraryMap() {
                                     <p className="text-white font-black text-sm leading-tight mt-0.5 truncate">
                                       {navigationSteps[liveStepIndex] || (language === 'ar' ? `توجه إلى رف ${displayShelfCode}` : `Head to Shelf ${displayShelfCode}`)}
                                     </p>
-                                    <div className={cn("flex items-center gap-2 mt-1", dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                                    {/* The clock used to sit here bare — "36m left · 01:12 PM" —
+                                        with nothing saying what the time was, and no
+                                        remaining minutes at all. Both are named now. */}
+                                    <div className={cn("flex items-center gap-2 mt-1 flex-wrap", dir === 'rtl' ? 'flex-row-reverse' : '')}>
                                       <span className="text-[#D4AF37] text-[10px] font-black">{displayShelfCode}</span>
                                       <span className="text-white/20">·</span>
-                                      <span className="text-white/50 text-[10px]">
-                                        {liveDistanceMeters}m {language === 'ar' ? 'متبقي' : 'left'}
+                                      <span className="text-white/50 text-[10px]" dir="ltr">
+                                        {liveDistanceMeters}m
                                       </span>
                                       <span className="text-white/20">·</span>
-                                      <span className="text-white/40 text-[10px]">{arrivalTime}</span>
+                                      <span className="text-white/70 text-[10px] font-black">
+                                        {liveEtaMinutes > 0 ? liveEtaMinutes : '< 1'} {language === 'ar' ? 'دقيقة' : 'min'}
+                                      </span>
+                                      <span className="text-white/20">·</span>
+                                      <span className={cn('text-white/50 text-[10px] flex items-center gap-1', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                                        <Clock className="w-2.5 h-2.5 shrink-0" />
+                                        {language === 'ar' ? 'الوصول' : 'Arrive'} <span dir="ltr">{arrivalTime}</span>
+                                      </span>
                                     </div>
                                   </div>
                                   {/* Progress ring */}
@@ -1080,14 +1090,34 @@ export function LibraryMap() {
                       />
                     </div>
 
-                    <div className={cn("absolute top-6 z-20 flex items-center gap-3", dir === 'rtl' ? 'right-6' : 'left-6')}>
-                      <button
-                        onClick={() => { setManualTarget(null); setSelectedBook(null); setShowPath(false); }}
-                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-xl border border-white/10 transition-all active:scale-95"
+                    {/* Walking readout, pinned to the top of the 3D view where
+                        it stays glanceable. The distance, remaining minutes and
+                        arrival clock were only inside Rafeeq's 150px bubble at
+                        the bottom, at 9-10px — too small to read while walking,
+                        and the clock time is the part you compare against the
+                        lecture you are heading to. */}
+                    {showPath && destinationShelfId && !hasArrived && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={cn('absolute top-6 z-30 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/15 shadow-xl', dir === 'rtl' ? 'right-6 flex-row-reverse' : 'left-6')}
                       >
-                        {t('changeRouteLabel')}
-                      </button>
-                    </div>
+                        <Clock className="w-4 h-4 text-accent shrink-0" />
+                        <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
+                          <div className="flex items-baseline gap-1.5 text-white">
+                            <span className="text-lg font-black leading-none">
+                              {liveEtaMinutes > 0 ? liveEtaMinutes : '<1'}
+                            </span>
+                            <span className="text-[10px] font-bold text-white/60">{language === 'ar' ? 'دقيقة' : 'min'}</span>
+                            <span className="w-1 h-1 rounded-full bg-white/25 mx-0.5" />
+                            <span className="text-[11px] font-black text-accent" dir="ltr">{liveDistanceMeters}m</span>
+                          </div>
+                          <div className="text-[10px] font-bold text-white/50 mt-0.5">
+                            {language === 'ar' ? 'الوصول' : 'Arrive'} <span dir="ltr">{arrivalTime}</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
 
                     {/* Rafeeq mini guide in AR dark view — live demo countdown */}
                     <motion.div
@@ -1104,19 +1134,6 @@ export function LibraryMap() {
                           exit={{ opacity: 0, y: 4 }}
                           className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-3 py-2 max-w-[150px] text-center mb-1 shadow-xl"
                         >
-                          {showPath && destinationShelfId && !hasArrived && (
-                            <div className="flex flex-col items-center gap-0.5 mb-1">
-                              <div className="flex items-center gap-2">
-                                <span className="text-accent font-black text-sm leading-none">{liveDistanceMeters}م</span>
-                                <span className="text-white/40 text-[9px]">·</span>
-                                <span className="text-white/70 font-bold text-[10px]">{liveEtaMinutes > 0 ? `${liveEtaMinutes} د` : '< 1 د'}</span>
-                              </div>
-                              <div className="flex items-center gap-1 text-[9px] text-white/50 font-bold">
-                                <Clock className="w-2.5 h-2.5" />
-                                <span>{language === 'ar' ? 'الوصول' : 'Arrive'} {arrivalTime}</span>
-                              </div>
-                            </div>
-                          )}
                           <p className="text-[10px] font-black text-white leading-snug">
                             {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
                           </p>
