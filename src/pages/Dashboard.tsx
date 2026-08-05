@@ -255,7 +255,7 @@ export function Dashboard({ user }: DashboardProps) {
                 className="official-card p-5 space-y-4 cursor-pointer bg-white dark:bg-slate-900 hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all"
               >
                 <div className={cn("flex items-center justify-between", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-1 rounded-lg uppercase tracking-widest">
+                  <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-1 rounded-lg uppercase tracking-widest">
                     {MATCH_SCORES[idx] ?? 90}% {t('matchLabel')}
                   </span>
                 </div>
@@ -383,7 +383,7 @@ export function Dashboard({ user }: DashboardProps) {
                   <BookCover book={book} className="w-full h-full" imgClassName="group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="p-4 flex flex-col justify-center gap-1">
-                  <div className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t('shelfItem')} {book.shelf}</div>
+                  <div className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t('shelfItem')} {book.shelf}</div>
                   <h4 className="font-black text-primary dark:text-white text-xs leading-tight line-clamp-2 uppercase">{bookTitle(book, language)}</h4>
                   <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">{bookAuthor(book, language)}</p>
                 </div>
