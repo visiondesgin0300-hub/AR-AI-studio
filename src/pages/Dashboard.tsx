@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Compass, MapPin, Layers, MessageCircle } from 'lucide-react';
+import { Search, BookOpen, ChevronRight, Compass, MapPin, Layers, MessageCircle } from 'lucide-react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, calcXP, getSearchCount, displayName, bookTitle, bookAuthor } from '../lib/utils';
+import { cn, calcXP, displayName, bookTitle, bookAuthor } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
@@ -17,8 +17,6 @@ interface DashboardProps {
 export function Dashboard({ user }: DashboardProps) {
   const navigate = useNavigate();
   const { t, dir, language } = useLanguage();
-
-  const totalLearningHours = (user.totalReadCount + user.borrowedBooks.length) * 3 + Math.floor(getSearchCount() / 2);
 
   const mostRead = MOCK_BOOKS.slice(0, 4);
   const categories: string[] = Array.from(new Set(MOCK_BOOKS.map(b => b.category)));
@@ -90,42 +88,21 @@ export function Dashboard({ user }: DashboardProps) {
               </p>
             </div>
 
-            {/* Stats row */}
-            {/* Stacked on a phone: side by side there was only ~47px left for
-                the label once the icon was placed, so "KNOWLEDGE" ran off the
-                card in English and "وقت التعلم الكلي" broke onto three lines. */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              {/* min-w-0 keeps the two cards the same width: without it the
-                  flex items refuse to shrink below their content and the pair
-                  came out lopsided (120px next to 129px) on a phone. */}
-              <div className="flex-1 min-w-0 bg-white/8 border border-white/10 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                  <Clock className="w-5 h-5 text-white/70" />
-                </div>
-                <div className="min-w-0">
-                  {/* "Estimated", not "total": the figure is derived —
-                      3 hours per book read or borrowed, plus half an hour per
-                      two searches — not time the app actually measures. */}
-                  <div className="text-[10px] font-black text-white/50 uppercase tracking-widest">{t('totalLearningTime')}</div>
-                  <div className="text-xl font-black text-white leading-none mt-0.5">
-                    {/* Plain digits, like the XP figure beside it and the header
-                        capsule: the Arabic-Indic zero (٠) is a dot, so a fresh
-                        account's "0 hours" looked like a stray full stop. */}
-                    {totalLearningHours} <span className="text-[10px] font-bold text-white/40">{t('hoursShort')}</span>
-                  </div>
-                </div>
+            {/* Stats row — Knowledge Points is the only stat here now. The
+                estimated-hours card was removed: two of its three inputs
+                (totalReadCount, borrowedBooks) are constants baked into the
+                seed data that /api/me returns unchanged, so it read 0 for
+                every account no matter what the reader did. */}
+            <div className="w-full sm:w-fit bg-white/8 border border-white/10 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
+                <span className="text-xl">💡</span>
               </div>
-              <div className="flex-1 min-w-0 bg-white/8 border border-white/10 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
-                  <span className="text-xl">💡</span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-black text-white/50 uppercase tracking-widest">
+                  {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
                 </div>
-                <div className="min-w-0">
-                  <div className="text-[10px] font-black text-white/50 uppercase tracking-widest">
-                    {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
-                  </div>
-                  <div className="text-xl font-black text-accent leading-none mt-0.5">
-                    {calcXP()} <span className="text-[10px] font-bold text-white/40">XP</span>
-                  </div>
+                <div className="text-xl font-black text-accent leading-none mt-0.5">
+                  {calcXP()} <span className="text-[10px] font-bold text-white/40">XP</span>
                 </div>
               </div>
             </div>

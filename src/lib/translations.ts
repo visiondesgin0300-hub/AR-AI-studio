@@ -115,8 +115,6 @@ export const translations = {
     viewMore: 'عرض المزيد',
     shelfItem: 'الرف',
     achievementsHistory: 'سجل الإنجازات',
-    totalLearningTime: 'ساعات تعلّم تقديرية',
-    hoursShort: 'ساعة',
     levelProgress: 'تطور المستوى',
     
     // Login
@@ -734,8 +732,6 @@ export const translations = {
     viewMore: 'View More',
     shelfItem: 'Shelf',
     achievementsHistory: 'Achievements History',
-    totalLearningTime: 'Estimated study hours',
-    hoursShort: 'h',
     levelProgress: 'Level Progress',
 
     // Login
