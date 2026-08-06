@@ -344,7 +344,10 @@ export function QRScanner() {
 
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => navigate('/shelf-ar', { state: { shelfId: detectedShelf } })}
+                // '/shelf-ar' was never a route — the catch-all silently redirected the
+                // main action of the whole scan flow to the home page. The page is
+                // registered at '/shelf-scan'.
+                onClick={() => navigate('/shelf-scan', { state: { shelfId: detectedShelf } })}
                 className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-accent/25 active:scale-95 transition-all"
               >
                 <BookOpen className="w-4 h-4" />
