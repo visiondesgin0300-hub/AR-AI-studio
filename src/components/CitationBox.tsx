@@ -14,7 +14,7 @@ interface CitationBoxProps {
 }
 
 export function CitationBox({ book, variant = 'light' }: CitationBoxProps) {
-  const { t, dir } = useLanguage();
+  const { t } = useLanguage();
   const citations = useMemo(() => getCitations(book), [book]);
   const [style, setStyle] = useState<CitationStyle>('APA');
   const [copied, setCopied] = useState(false);
@@ -36,7 +36,10 @@ export function CitationBox({ book, variant = 'light' }: CitationBoxProps) {
       'rounded-2xl border p-4 space-y-3',
       dark ? 'bg-white/5 border-white/10' : 'bg-slate-50 dark:bg-slate-950 border-slate-100 dark:border-white/5'
     )}>
-      <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+      {/* No flex-row-reverse: the page is already RTL in Arabic, and reversing
+          again made the quote mark trail the label here while every other card
+          on the page keeps its icon leading. */}
+      <div className="flex items-center gap-2">
         <Quote className="w-3.5 h-3.5 text-accent" />
         <span className={cn('text-[10px] font-black uppercase tracking-widest', dark ? 'text-white/70' : 'text-primary dark:text-accent')}>
           {t('citeThisBook')}
@@ -49,7 +52,7 @@ export function CitationBox({ book, variant = 'light' }: CitationBoxProps) {
             key={s}
             onClick={() => setStyle(s)}
             className={cn(
-              'px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all',
+              'px-3 min-h-11 inline-flex items-center justify-center rounded-lg text-[10px] font-black uppercase tracking-widest transition-all',
               style === s
                 ? 'bg-accent text-primary'
                 : dark
@@ -64,17 +67,24 @@ export function CitationBox({ book, variant = 'light' }: CitationBoxProps) {
 
       <div className="relative">
         <pre className={cn(
-          'text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-words rounded-xl p-3 pe-11',
+          'text-[11px] font-mono leading-relaxed whitespace-pre-wrap break-words rounded-xl p-3 pe-14',
           dark ? 'bg-black/30 text-white/80' : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-white/5'
         )} dir="ltr">
           {citations[style]}
         </pre>
+        {/*
+          Pinned to the right, not to the reading direction. A citation is
+          always typeset LTR — the <pre> forces it — so its reserved padding
+          (pe-14) is always on the right too. Following the page direction put
+          the button on the *left* in Arabic, straight on top of the first
+          words of the citation, with the 44px of empty space stranded on the
+          opposite side.
+        */}
         <button
           onClick={copy}
           title={t(copied ? 'citeCopiedLabel' : 'citeCopyLabel')}
           className={cn(
-            'absolute top-2 flex items-center justify-center w-8 h-8 rounded-lg transition-all active:scale-90',
-            dir === 'rtl' ? 'left-2' : 'right-2',
+            'absolute top-2 right-2 flex items-center justify-center w-11 h-11 rounded-lg transition-all active:scale-90',
             copied ? 'bg-emerald-500 text-white' : 'bg-accent text-primary hover:brightness-110'
           )}
         >
