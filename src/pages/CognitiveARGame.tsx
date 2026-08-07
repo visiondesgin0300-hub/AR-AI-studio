@@ -290,7 +290,7 @@ export function CognitiveARGame() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowInfo(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+            className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
           >
             <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
@@ -421,8 +421,8 @@ export function CognitiveARGame() {
                       ].map((r, i) => (
                         <div key={i} className={cn('rounded-2xl border p-3 flex flex-col items-center gap-2 text-center', r.bg)}>
                           <r.icon className={cn('w-5 h-5', r.color)} />
-                          <span className="text-[9px] font-black text-primary dark:text-white leading-tight">{r.label}</span>
-                          <span className={cn('text-[9px] font-black px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/5', r.color)}>{r.xp}</span>
+                          <span className="text-[10px] font-black text-primary dark:text-white leading-tight">{r.label}</span>
+                          <span className={cn('text-[10px] font-black px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/5', r.color)}>{r.xp}</span>
                         </div>
                       ))}
                     </div>
@@ -509,7 +509,7 @@ export function CognitiveARGame() {
                         ? <Lock className="w-6 h-6 text-slate-300 dark:text-slate-600" />
                         : <Icon className={cn('w-7 h-7', lvl.color)} />}
                     </div>
-                    <span className={cn('text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest', isEarned ? cn(lvl.bg, lvl.color) : 'bg-slate-100 dark:bg-slate-800 text-slate-400')}>
+                    <span className={cn('text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest', isEarned ? cn(lvl.bg, lvl.color) : 'bg-slate-100 dark:bg-slate-800 text-slate-400')}>
                       {isEarned ? (ar ? '✓ مكتسب' : '✓ Earned') : `+${lvl.xp} XP`}
                     </span>
                   </div>
@@ -527,7 +527,7 @@ export function CognitiveARGame() {
                   </div>
 
                   {/* Flow steps */}
-                  <div className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase">
                     <span className={cn('px-1.5 py-0.5 rounded-md', lvl.bg, lvl.color)}>
                       {ar ? '١ أسئلة' : '1 Questions'}
                     </span>
@@ -756,25 +756,40 @@ export function CognitiveARGame() {
                           </p>
                         </div>
                       </div>
-
-                      <motion.button
-                        whileTap={{ scale: 0.98 }}
-                        onClick={advance}
-                        className="mt-3 w-full py-3.5 rounded-2xl bg-white text-primary font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2"
-                      >
-                        {round.index >= round.questions.length - 1 || round.stars <= 0
-                          ? (ar ? 'إنهاء الجولة' : 'Finish round')
-                          : (ar ? 'السؤال التالي' : 'Next question')}
-                        <ArrowLeft className={cn('w-4 h-4', ar ? '' : 'rotate-180')} />
-                      </motion.button>
                     </motion.div>
                   )}
                 </AnimatePresence>
               </motion.div>
             </div>
 
+            {/*
+              The continue control lives here, outside the scrolling question
+              area, not inside it. A long question plus a long explanation
+              pushed it past the fold on a 375x667 screen in English — the
+              round's primary action, off-screen after every single answer.
+              Sticky positioning could not rescue it either: the reveal block is
+              inside an animated (transformed) subtree, which becomes its own
+              containing block and detaches sticky from the real scroller.
+            */}
+            {revealed && (
+              <div className="relative z-10 px-6 pb-3 shrink-0">
+                <motion.button
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={advance}
+                  className="w-full py-3.5 rounded-2xl bg-white text-primary font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2"
+                >
+                  {round.index >= round.questions.length - 1 || round.stars <= 0
+                    ? (ar ? 'إنهاء الجولة' : 'Finish round')
+                    : (ar ? 'السؤال التالي' : 'Next question')}
+                  <ArrowLeft className={cn('w-4 h-4', ar ? '' : 'rotate-180')} />
+                </motion.button>
+              </div>
+            )}
+
             {/* Bottom progress */}
-            <div className="relative z-10 px-6 pb-5 flex items-center gap-3">
+            <div className="relative z-10 px-6 pb-5 shrink-0 flex items-center gap-3">
               <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
                 <motion.div className="h-full rounded-full bg-teal-400"
                   animate={{ width: `${(round.correct / passMark) * 100}%` }} />
@@ -859,7 +874,7 @@ export function CognitiveARGame() {
                 ].map(stat => (
                   <div key={stat.label} className="text-center">
                     <div className="text-base font-black text-white">{stat.val}</div>
-                    <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mt-0.5">{stat.label}</div>
+                    <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mt-0.5">{stat.label}</div>
                   </div>
                 ))}
               </div>
