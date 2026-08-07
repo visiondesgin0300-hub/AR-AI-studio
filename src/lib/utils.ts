@@ -157,9 +157,53 @@ export function toggleFavoriteBook(bookId: string): boolean {
   } catch { return false; }
 }
 
+// ── Activity tags ─────────────────────────────────────────────────────
+// A per-user set of things the student has actually done: which map views
+// they used, which AR features they opened, whether they scanned anything.
+// Map visits and the login/search counters already existed; these are the
+// signals the badge requirements needed that nothing was recording yet.
+function actKey(): string { return `activity_tags_v1_${getCurrentUserId()}`; }
+
+export function getActivityTags(): string[] {
+  try { return JSON.parse(localStorage.getItem(actKey()) || '[]'); } catch { return []; }
+}
+
+function trackActivity(tag: string): void {
+  try {
+    const current = getActivityTags();
+    if (!current.includes(tag)) {
+      localStorage.setItem(actKey(), JSON.stringify([...current, tag]));
+    }
+  } catch {}
+}
+
+/** The library map was viewed in this mode. 'flat' is 2D, the rest are 3D. */
+export function trackMapMode(mode: 'flat' | 'unity' | 'ar-floor'): void {
+  trackActivity(mode === 'flat' ? 'map-2d' : 'map-3d');
+}
+
+/** An augmented-reality feature was opened. Counted once per feature. */
+export function trackArUse(featureId: string): void {
+  trackActivity(`ar:${featureId}`);
+}
+
+/** The scanning camera was opened (shelf marker or book cover). */
+export function trackScanUse(): void {
+  trackActivity('scan');
+}
+
+function countArFeatures(): number {
+  return getActivityTags().filter(t => t.startsWith('ar:')).length;
+}
+
 // Shelf/place navigations = visits whose ID matches a shelf pattern or 'facilities'
 function getPlaceCount(): number {
   return getMapVisits().filter(v => /^[A-Z]-\d/.test(v) || v === 'facilities').length;
+}
+
+/** Distinct shelves the student has navigated to, excluding whole-map opens. */
+function getShelfCount(): number {
+  return getMapVisits().filter(v => /^[A-Z]-\d/.test(v)).length;
 }
 
 // XP for display: map open=20, each place/shelf=15, login 10/session (cap 5),
@@ -177,37 +221,107 @@ export function calcXP(): number {
   return xp;
 }
 
-// Single source of truth for earned badges.
-// A badge can be earned via map/shelf navigation OR by completing the
-// corresponding level in CognitiveARGame (whichever comes first).
+// ── Badges ────────────────────────────────────────────────────────────
+//
+// A badge is earned in two stages, not one.
+//
+//   1. Use the library. Each badge lists the activity it stands for, and the
+//      student has to actually do it — open the app, search the catalogue and
+//      the facilities, walk the shelves, use the 2D/3D map, use AR, scan.
+//   2. Answer the questions. Finishing the activity unlocks that badge's round
+//      in the Information Literacy Challenge; passing the round earns it.
+//
+// Activity alone used to be enough — the badge was granted by map navigation
+// OR by the quiz, whichever came first, so the quiz was optional and a student
+// could collect all three without answering a single question. Now the
+// activity opens the door and the questions decide.
+//
+// These definitions are the only place the rules exist. The badges cabinet
+// draws its checklist from them and the game gates its levels on them, so the
+// requirement a student reads is by construction the requirement being tested.
+
+export type BadgeId = 'مستكشف' | 'باحث' | 'متميز';
+
+/** Badge ↔ the quiz level that awards it. */
+export const BADGE_GAME_LEVEL: Record<BadgeId, string> = {
+  'مستكشف': 'explorer',
+  'باحث': 'researcher',
+  'متميز': 'distinguished',
+};
+
+export const BADGE_ORDER: BadgeId[] = ['مستكشف', 'باحث', 'متميز'];
+
+export interface BadgeRequirement {
+  id: string;
+  labelAr: string;
+  labelEn: string;
+  /** How far along, and how far there is to go. Both count the same unit. */
+  current: number;
+  target: number;
+  met: boolean;
+}
+
+function req(
+  id: string, labelAr: string, labelEn: string, current: number, target: number,
+): BadgeRequirement {
+  return { id, labelAr, labelEn, current: Math.min(current, target), target, met: current >= target };
+}
+
+/**
+ * What each badge asks for, with live progress. Order matters: the list is
+ * rendered in this order wherever it is shown.
+ */
+export function getBadgeRequirements(badge: BadgeId): BadgeRequirement[] {
+  const logins   = getLoginCount();
+  const searches = getSearchCount();
+  const visits   = getMapVisits();
+  const tags     = getActivityTags();
+  const completed = getCompletedGameLevels();
+
+  switch (badge) {
+    // مستكشف — فتح التطبيق والبحث عن المصادر والمرافق
+    case 'مستكشف':
+      return [
+        req('open-app',   'افتح التطبيق',              'Open the app',                  logins, 1),
+        req('search',     'ابحث عن مصادر المكتبة',      'Search the library resources',  searches, 1),
+        req('facilities', 'استكشف مرافق المكتبة',       'Explore the library facilities', visits.includes('facilities') ? 1 : 0, 1),
+      ];
+
+    // باحث — زيارة دائمة للبحث بين الرفوف واستخدام الخريطة ثنائية أو ثلاثية الأبعاد
+    case 'باحث':
+      return [
+        req('visits',  'زُر المكتبة في ٣ جلسات',                     'Visit the library in 3 sessions',      logins, 3),
+        req('shelves', 'ابحث عن المصادر بين ٣ رفوف',                 'Search 3 shelves for resources',       getShelfCount(), 3),
+        req('map-view', 'استخدم الخريطة ثنائية أو ثلاثية الأبعاد',    'Use the 2D or 3D map',
+            (tags.includes('map-2d') || tags.includes('map-3d')) ? 1 : 0, 1),
+      ];
+
+    // متميز — الزيارة المستمرة والاستخدام الدائم للواقع المعزز وكاميرا المسح
+    case 'متميز':
+      return [
+        req('visits',  'زُر المكتبة في ٦ جلسات',                'Visit the library in 6 sessions',   logins, 6),
+        req('ar',      'استخدم ٣ من أدوات الواقع المعزز',        'Use 3 augmented reality tools',     countArFeatures(), 3),
+        req('scan',    'امسح رفاً أو غلاف كتاب بالكاميرا',       'Scan a shelf or a book cover',      tags.includes('scan') ? 1 : 0, 1),
+        req('prior',   'احصل على وسامَي المستكشف والباحث',       'Earn the Explorer and Researcher badges',
+            ['explorer', 'researcher'].filter(l => completed.includes(l)).length, 2),
+      ];
+  }
+}
+
+/** True once the activity is done and the badge's questions can be answered. */
+export function isBadgeUnlocked(badge: BadgeId): boolean {
+  return getBadgeRequirements(badge).every(r => r.met);
+}
+
+/** 0..1 across the badge's requirements, counting partial progress on each. */
+export function getBadgeProgress(badge: BadgeId): number {
+  const reqs = getBadgeRequirements(badge);
+  const sum = reqs.reduce((total, r) => total + r.current / r.target, 0);
+  return reqs.length ? sum / reqs.length : 0;
+}
+
+/** Badges actually earned: the quiz round was passed. */
 export function getEarnedBadges(_user: User): string[] {
-  const visits  = getMapVisits();
-  const places  = getPlaceCount();
-  const game    = getCompletedGameLevels();
-  const earned: string[] = [];
-
-  // مستكشف — فتح الخريطة  OR  إتمام مستوى المستكشف في اللعبة
-  if (visits.includes('map') || visits.includes('facilities') || game.includes('explorer')) {
-    earned.push('مستكشف');
-  }
-
-  // باحث — التنقل بين ≥ 3 رفوف  OR  إتمام مستوى الباحث في اللعبة
-  if (places >= 3 || game.includes('researcher')) {
-    earned.push('باحث');
-  }
-
-  // متميز — رحلة عبر جميع الأقسام  OR  إتمام مستوى المتميز في اللعبة
-  const ALL_SECTIONS = ['A', 'B', 'C', 'D'];
-  const visitedSections = new Set(
-    visits.filter(v => /^[A-Z]-\d/.test(v)).map(v => v.split('-')[0])
-  );
-  const completedJourney = ALL_SECTIONS.every(s => visitedSections.has(s));
-  if (
-    (completedJourney || game.includes('distinguished')) &&
-    earned.includes('مستكشف') && earned.includes('باحث')
-  ) {
-    earned.push('متميز');
-  }
-
-  return earned;
+  const completed = getCompletedGameLevels();
+  return BADGE_ORDER.filter(b => completed.includes(BADGE_GAME_LEVEL[b]));
 }

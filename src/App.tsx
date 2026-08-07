@@ -36,7 +36,7 @@ import { WebXRAR } from './pages/WebXRAR';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
-import { incrementLoginCount } from './lib/utils';
+import { incrementLoginCount, trackArUse, trackScanUse } from './lib/utils';
 
 // Lazy-loaded: pulls in mind-ar + tensorflow.js + three.js + AR.js, several
 // multi-MB dependencies that should only load once a user actually opens the
@@ -61,6 +61,39 @@ function loadStoredUser(): User | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Records which AR tools and scanning cameras the student has actually used.
+ *
+ * These signals live here rather than inside each AR page on purpose: the
+ * badge requirements need to know about nine separate routes, and nine
+ * separate tracking calls is nine places to forget one when a route is added
+ * or renamed. One table, watched from one effect.
+ */
+const AR_ROUTES: Record<string, string> = {
+  '/ar': 'hub',
+  '/ar-showcase': 'showcase',
+  '/smart-lens': 'smart-lens',
+  '/shelf-scan': 'shelf-scan',
+  '/webxr': 'webxr',
+  '/compass': 'compass',
+  '/oman-corner': 'oman-corner',
+  '/knowledge-stars': 'knowledge-stars',
+  '/hidden-bridges': 'hidden-bridges',
+};
+
+// Routes that open a camera to read a shelf marker or a book cover.
+const SCAN_ROUTES = ['/scan', '/shelf-scan'];
+
+function ActivityTracker() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const feature = AR_ROUTES[pathname];
+    if (feature) trackArUse(feature);
+    if (SCAN_ROUTES.includes(pathname)) trackScanUse();
+  }, [pathname]);
+  return null;
 }
 
 function AppContent() {
@@ -118,6 +151,7 @@ function AppContent() {
 
   return (
     <div dir={dir} className="min-h-screen bg-[#F5F7FA] font-sans transition-all duration-500">
+      <ActivityTracker />
       <Routes>
         <Route 
           path="/login" 

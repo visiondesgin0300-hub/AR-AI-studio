@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, User as UserIcon, Search, Layers, Maximize2, Clock } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
-import { cn, trackMapVisit, bookCategory } from '../lib/utils';
+import { cn, trackMapVisit, trackMapMode, bookCategory } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
@@ -61,6 +61,10 @@ export function LibraryMap() {
   const [map3D, setMap3D] = useState(false);
   const [mapMode, setMapMode] = useState<'flat' | 'unity' | 'ar-floor'>('ar-floor');
   const [showARFloor, setShowARFloor] = useState(false);
+
+  // Which view the student actually used to find resources — the Researcher
+  // badge asks for the 2D or the 3D map, and only this page knows which is on.
+  useEffect(() => { trackMapMode(mapMode); }, [mapMode]);
 
   const [sidebarSearch, setSidebarSearch] = useState('');
 
