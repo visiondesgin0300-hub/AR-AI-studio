@@ -144,6 +144,10 @@ export const translations = {
     shareViaWhatsApp: 'واتساب',
     shareViaEmail: 'البريد',
     shareCopyInvite: 'نسخ الدعوة',
+    shareCopy: 'نسخ',
+    shareTitle: 'مشاركة',
+    shareApp: 'مشاركة التطبيق',
+    shareFacility: 'مشاركة هذا المرفق',
     shareMore: 'مشاركة عبر تطبيق آخر',
     inviteCopiedHint: 'تم نسخ الدعوة — الصقها في أي محادثة',
 
@@ -770,6 +774,10 @@ export const translations = {
     shareViaWhatsApp: 'WhatsApp',
     shareViaEmail: 'Email',
     shareCopyInvite: 'Copy invite',
+    shareCopy: 'Copy',
+    shareTitle: 'Share',
+    shareApp: 'Share the app',
+    shareFacility: 'Share this facility',
     shareMore: 'Share via another app',
     inviteCopiedHint: 'Invitation copied — paste it into any chat',
 

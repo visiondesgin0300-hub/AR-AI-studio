@@ -1,7 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Map as MapIcon, Clock } from 'lucide-react';
+import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Share2, Map as MapIcon, Clock } from 'lucide-react';
 import { cn, trackMapVisit } from '../lib/utils';
+import { ShareSheet } from '../components/ShareSheet';
+import { facilitySharePayload } from '../lib/share';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -29,6 +31,9 @@ export function FacilitiesMap() {
   const { t, language, dir } = useLanguage();
 
   useEffect(() => { trackMapVisit('facilities'); }, []);
+
+  // The facility whose share dialog is open, if any.
+  const [shareFacility, setShareFacility] = useState<{ name: string; desc: string; location: string; status: string } | null>(null);
 
   const [manualTarget, setManualTarget] = useState<{ id: string } | null>(() => {
     if (location.state?.facilityCell) return { id: location.state.facilityCell };
@@ -650,6 +655,19 @@ export function FacilitiesMap() {
                     )}>
                       {targetFacility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
                     </span>
+
+                    {/* Telling a classmate where to meet is the most ordinary
+                        thing to do with a facility, so the share sits with the
+                        facility's own details rather than in a page toolbar. */}
+                    <div className="flex justify-center pt-1">
+                      <button
+                        onClick={() => setShareFacility(targetFacility)}
+                        className="min-h-11 flex items-center gap-2 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-primary dark:text-white text-[11px] font-black hover:bg-secondary/10 hover:text-secondary active:scale-95 transition-all"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        {t('shareFacility')}
+                      </button>
+                    </div>
                   </div>
 
                   {/* Distance + ETA chips */}
@@ -856,6 +874,15 @@ export function FacilitiesMap() {
           </AnimatePresence>
         </div>
       </div>
+
+      {shareFacility && (
+        <ShareSheet
+          open
+          onClose={() => setShareFacility(null)}
+          title={shareFacility.name}
+          payload={facilitySharePayload(shareFacility, language)}
+        />
+      )}
     </div>
   );
 }

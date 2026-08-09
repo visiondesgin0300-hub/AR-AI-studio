@@ -16,11 +16,13 @@
  */
 
 import { useState } from 'react';
-import { MessageCircle, Mail, Link2, Check, Share2, UserPlus } from 'lucide-react';
+import { Share2, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
-import { cn, getEarnedBadges, calcXP, badgeName } from '../lib/utils';
+import { getEarnedBadges, calcXP, badgeName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
+import { SharePayload, appOrigin, canNativeShare, openNativeShare } from '../lib/share';
+import { ShareChannels } from './ShareChannels';
 
 interface ShareInviteProps {
   user: User;
@@ -37,9 +39,8 @@ export function ShareInvite({ user, variant = 'card' }: ShareInviteProps) {
   const xp = calcXP();
 
   // The invitation link is the app's own origin, so it works wherever this is
-  // deployed rather than pointing at a hardcoded host that would break the
-  // moment the address changes.
-  const url = typeof window !== 'undefined' ? window.location.origin : '';
+  // deployed rather than pointing at a hardcoded host.
+  const url = appOrigin();
 
   /**
    * The student's progress, only when there is progress to report. Zero
@@ -62,80 +63,35 @@ export function ShareInvite({ user, variant = 'card' }: ShareInviteProps) {
     if (xp > 0) {
       parts.push(ar ? `و${xp} نقطة معرفة` : `and ${xp} knowledge points`);
     }
-    return parts.join(ar ? ' ' : ' ');
+    return parts.join(' ');
   })();
 
-  const message = ar
-    ? [
-        `${user.name} يدعوك لتجربة المكتبة المعززة الذكية 📚`,
-        proof ? `${proof} — جرّبها وشوف إذا تقدر تلحقني!` : 'ابحث عن الكتب، اتبع الخريطة للرف، وامسح الرفوف بالواقع المعزز.',
-        '',
-        url,
-      ].filter(Boolean).join('\n')
-    : [
-        `${user.name} is inviting you to try the Smart AR Library 📚`,
-        proof ? `${proof} — see if you can catch up!` : 'Search the catalogue, follow the map to the shelf, and scan shelves in AR.',
-        '',
-        url,
-      ].filter(Boolean).join('\n');
+  const message = [
+    ar
+      ? `${user.name} يدعوك لتجربة المكتبة المعززة الذكية 📚`
+      : `${user.name} is inviting you to try the Smart AR Library 📚`,
+    proof
+      ? (ar ? `${proof} — جرّبها وشوف إذا تقدر تلحقني!` : `${proof} — see if you can catch up!`)
+      : (ar
+          ? 'ابحث عن الكتب، اتبع الخريطة للرف، وامسح الرفوف بالواقع المعزز.'
+          : 'Search the catalogue, follow the map to the shelf, and scan shelves in AR.'),
+    '',
+    url,
+  ].filter(Boolean).join('\n');
 
-  const subject = ar ? 'جرّب المكتبة المعززة الذكية' : 'Try the Smart AR Library';
-
-  const whatsappHref = `https://wa.me/?text=${encodeURIComponent(message)}`;
-  const mailHref = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
-
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(message);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      /* clipboard blocked — the WhatsApp and email links still work */
-    }
-  };
-
-  const nativeShare = async () => {
-    try {
-      await navigator.share({ title: subject, text: message, url });
-    } catch {
-      /* dismissed, or unsupported — the explicit channels are still there */
-    }
+  const payload: SharePayload = {
+    subject: ar ? 'جرّب المكتبة المعززة الذكية' : 'Try the Smart AR Library',
+    message,
+    url,
   };
 
   const channels = (
-    <div className={cn('grid gap-2', variant === 'card' ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-3')}>
-      {/* target=_blank + noopener: wa.me is a third-party origin. */}
-      <a
-        href={whatsappHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="min-h-12 flex items-center justify-center gap-2 px-4 rounded-2xl bg-[#25D366] text-white font-black text-sm shadow-lg shadow-[#25D366]/25 hover:brightness-105 active:scale-95 transition-all"
-      >
-        <MessageCircle className="w-4 h-4 shrink-0" />
-        <span className="truncate">{t('shareViaWhatsApp')}</span>
-      </a>
-
-      <a
-        href={mailHref}
-        className="min-h-12 flex items-center justify-center gap-2 px-4 rounded-2xl bg-secondary text-white font-black text-sm shadow-lg shadow-secondary/25 hover:brightness-105 active:scale-95 transition-all"
-      >
-        <Mail className="w-4 h-4 shrink-0" />
-        <span className="truncate">{t('shareViaEmail')}</span>
-      </a>
-
-      <button
-        onClick={copyLink}
-        className={cn(
-          'min-h-12 flex items-center justify-center gap-2 px-4 rounded-2xl font-black text-sm border transition-all active:scale-95',
-          copied
-            ? 'bg-emerald-500 text-white border-emerald-500'
-            : 'bg-white dark:bg-slate-900 text-primary dark:text-white border-slate-200 dark:border-white/10 hover:border-secondary'
-        )}
-      >
-        {copied ? <Check className="w-4 h-4 shrink-0" /> : <Link2 className="w-4 h-4 shrink-0" />}
-        <span className="truncate">{copied ? t('linkCopied') : t('shareCopyInvite')}</span>
-      </button>
-    </div>
+    <ShareChannels
+      payload={payload}
+      layout={variant === 'card' ? 'stack' : 'compact'}
+      copyLabel={t('shareCopyInvite')}
+      onCopied={() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+    />
   );
 
   if (variant === 'row') return channels;
@@ -157,9 +113,9 @@ export function ShareInvite({ user, variant = 'card' }: ShareInviteProps) {
         {/* The OS share sheet, where the device offers one. It reaches
             channels we do not list, so it sits beside them rather than
             replacing them — on a desktop browser it simply is not there. */}
-        {typeof navigator !== 'undefined' && 'share' in navigator && (
+        {canNativeShare() && (
           <button
-            onClick={nativeShare}
+            onClick={() => openNativeShare(payload)}
             title={t('shareMore')}
             className="w-11 h-11 shrink-0 flex items-center justify-center rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-secondary active:scale-90 transition-all"
           >

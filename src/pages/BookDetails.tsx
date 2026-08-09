@@ -3,12 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, Share2, Heart, BookOpen, Clock, CheckCircle2, AlertCircle, X, Tag } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { User, Book } from '../types';
-import { bookCategory, cn, isFavoriteBook, toggleFavoriteBook } from '../lib/utils';
+import { bookCategory, bookTitle, cn, isFavoriteBook, toggleFavoriteBook } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { CitationBox } from '../components/CitationBox';
 import { BookCover } from '../components/BookCover';
 import { getArBookMeta } from '../lib/arCatalog';
+import { ShareSheet } from '../components/ShareSheet';
+import { bookSharePayload } from '../lib/share';
 
 const BORROW_XP_REWARD = 15;
 
@@ -22,8 +24,8 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
   const navigate = useNavigate();
   const [justBorrowed, setJustBorrowed] = useState(false);
   const [showSummary, setShowSummary] = useState(false);
+  const [showShare, setShowShare] = useState(false);
   const [isFavorite, setIsFavorite] = useState(() => (id ? isFavoriteBook(id) : false));
-  const [shareNotice, setShareNotice] = useState(false);
   const { t, dir, language } = useLanguage();
 
   const book = MOCK_BOOKS.find(b => b.id === id);
@@ -57,22 +59,11 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
 
   const handleToggleFavorite = () => setIsFavorite(toggleFavoriteBook(book.id));
 
-  const handleShare = async () => {
-    const url = window.location.href;
-    const payload = { title: book.title, text: `${book.title} — ${book.author}`, url };
-    try {
-      if (navigator.share) {
-        await navigator.share(payload);
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      setShareNotice(true);
-      setTimeout(() => setShareNotice(false), 2000);
-    } catch {
-      // User dismissed the share sheet, or clipboard access was denied —
-      // nothing to recover from, so leave the page as-is.
-    }
-  };
+  // The share used to hand over the bare page URL. On its own that tells the
+  // person receiving it nothing they could act on — the point of sharing a
+  // book is telling someone where to find it, so the message now carries the
+  // section, shelf, call number and whether it is on the shelf right now.
+  const sharePayload = bookSharePayload(book, getArBookMeta(book).callNumber, language);
 
   const handleBorrow = () => {
     if (!isAvailable) return;
@@ -123,18 +114,6 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
           <span>{t('back')}</span>
         </button>
         <div className="flex items-center gap-3">
-            <AnimatePresence>
-              {shareNotice && (
-                <motion.span
-                  initial={{ opacity: 0, y: -4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className="text-[11px] font-black text-secondary bg-secondary/10 px-3 py-1.5 rounded-full"
-                >
-                  {t('linkCopied')}
-                </motion.span>
-              )}
-            </AnimatePresence>
             <button
               onClick={handleToggleFavorite}
               aria-pressed={isFavorite}
@@ -149,7 +128,7 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
                 <Heart className={cn("w-5 h-5 transition-transform active:scale-90", isFavorite && "fill-current")} />
             </button>
             <button
-              onClick={handleShare}
+              onClick={() => setShowShare(true)}
               title={t('shareBook')}
               className="p-3 bg-white dark:bg-slate-900 rounded-full border border-gray-100 dark:border-white/5 hover:bg-secondary/10 hover:text-secondary transition-all shadow-md"
             >
@@ -306,6 +285,13 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
 
         </div>
       </div>
+
+      <ShareSheet
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        title={bookTitle(book, language)}
+        payload={sharePayload}
+      />
 
       {/* Summary Modal */}
       <AnimatePresence>

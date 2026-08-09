@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, ChevronRight, Compass, MapPin, Layers, MessageCircle } from 'lucide-react';
+import { Search, BookOpen, ChevronRight, Compass, MapPin, Layers, MessageCircle, Share2 } from 'lucide-react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
@@ -9,6 +9,8 @@ import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
 import { RafeeqAvatar } from '../components/RafeeqAvatar';
+import { ShareSheet } from '../components/ShareSheet';
+import { appSharePayload } from '../lib/share';
 
 interface DashboardProps {
   user: User;
@@ -17,6 +19,7 @@ interface DashboardProps {
 export function Dashboard({ user }: DashboardProps) {
   const navigate = useNavigate();
   const { t, dir, language } = useLanguage();
+  const [showShare, setShowShare] = useState(false);
 
   const mostRead = MOCK_BOOKS.slice(0, 4);
   const categories: string[] = Array.from(new Set(MOCK_BOOKS.map(b => b.category)));
@@ -67,13 +70,24 @@ export function Dashboard({ user }: DashboardProps) {
 
           {/* Left: text + stats */}
           <div className="relative flex-1 flex flex-col gap-6">
-            {/* Date row */}
-            <div>
+            {/* Date row, and the share icon.
+                Sharing the app belongs on the page a student lands on, next to
+                the brand — that is where they are when they think to tell
+                someone about it, not buried on the profile. */}
+            <div className="flex items-center justify-between gap-3">
               <span className="text-[11px] font-black text-white/50 uppercase tracking-widest">
                 {/* ar-EG, not ar-SA: ar-SA resolves to the Umm al-Qura calendar
                     in browsers, so today read "الثلاثاء، ٢١ صفر" instead of ٤ أغسطس. */}
                 {new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
               </span>
+              <button
+                onClick={() => setShowShare(true)}
+                title={t('shareApp')}
+                aria-label={t('shareApp')}
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-2xl bg-white/10 border border-white/10 text-white/70 hover:text-accent hover:bg-white/15 active:scale-90 transition-all"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Brand + tagline */}
@@ -391,6 +405,13 @@ export function Dashboard({ user }: DashboardProps) {
             ))}
           </div>
       </div>
+
+      <ShareSheet
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        title={t('shareApp')}
+        payload={appSharePayload(language)}
+      />
     </div>
   );
 }
