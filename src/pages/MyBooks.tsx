@@ -9,7 +9,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, getUserLevel, getEarnedBadges, calcXP, displayName, bookTitle, bookAuthor } from '../lib/utils';
+import { cn, getUserLevel, getEarnedBadges, displayName, bookTitle, bookAuthor } from '../lib/utils';
+import { useXP } from '../hooks/useXP';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
 import { BadgesCabinet } from '../components/BadgesCabinet';
@@ -24,7 +25,7 @@ export function MyBooks({ user }: MyBooksProps) {
   const [activeTab, setActiveTab]         = useState<'books' | 'achievements'>('books');
   const [sortOrder, setSortOrder]         = useState<'newest' | 'oldest'>('newest');
   const earnedBadges = getEarnedBadges(user);
-  const xp           = calcXP();
+  const xp           = useXP();
   const xpLevel      = getUserLevel(xp);
   const xpInLevel    = xp % 100;
   const xpToNext     = 100 - xpInLevel;

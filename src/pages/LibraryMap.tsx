@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, User as UserIcon, Search, Layers, Maximize2, Clock } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
-import { cn, trackMapVisit, trackMapMode, bookCategory } from '../lib/utils';
+import { cn, trackMapVisit, trackMapMode, bookCategory, bookTitle } from '../lib/utils';
+import { useAchievements } from '../hooks/useAchievements';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
@@ -47,6 +48,9 @@ export function LibraryMap() {
   const location = useLocation();
   const navigate = useNavigate();
   const { t, language, dir } = useLanguage();
+  const { completed } = useAchievements();
+  // When the current walk began, for the elapsed time in the arrival pop-up.
+  const navStartedAt = useRef<number | null>(null);
 
   // Award XP for opening the map
   useEffect(() => { trackMapVisit('map'); }, []);
@@ -233,6 +237,30 @@ export function LibraryMap() {
   const liveEtaSeconds = Math.max(0, Math.round(totalWalkSeconds * (1 - walkProgress)));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
   const hasArrived = showPath && walkProgress >= 1;
+
+  /*
+    Arrival is the locate-book task. It fires from an effect on hasArrived
+    rather than from the click that started the walk, because the student has
+    not located anything until the route actually finishes — and the elapsed
+    time in the pop-up is only real if it is measured across the walk.
+  */
+  useEffect(() => {
+    if (showPath) navStartedAt.current = Date.now();
+  }, [showPath]);
+
+  useEffect(() => {
+    if (!hasArrived || !destinationShelfId) return;
+    const seconds = navStartedAt.current
+      ? Math.max(1, Math.round((Date.now() - navStartedAt.current) / 1000))
+      : null;
+    completed('locate-book', [
+      ...(bookData ? [{ icon: '📚', text: bookTitle(bookData, language) }] : []),
+      { icon: '📍', text: (language === 'ar' ? 'الرف ' : 'Shelf ') + destinationShelfId },
+      ...(seconds ? [{ icon: '⏱️', text: language === 'ar' ? `${seconds} ثانية` : `${seconds} seconds` }] : []),
+      // trackMapVisit is the side effect: the shelf counts toward the Researcher
+      // requirement, and running it here folds its XP into the reported delta.
+    ], () => trackMapVisit(destinationShelfId));
+  }, [hasArrived, destinationShelfId]);
 
   // Actual clock time of arrival (updates live as walkProgress changes)
   const arrivalTime = (() => {

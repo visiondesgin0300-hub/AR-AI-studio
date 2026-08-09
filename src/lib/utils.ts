@@ -207,9 +207,14 @@ function getShelfCount(): number {
 }
 
 // XP for display: map open=20, each place/shelf=15, login 10/session (cap 5),
-// search 10/visit (cap 5), plus whatever the cognitive AR levels have paid.
-// The game used to keep its own XP tally on its own page only, so a level card
-// promising "+50 XP" left the header and the profile unchanged.
+// search 10/visit (cap 5), the one-off achievement tasks, plus whatever the
+// cognitive AR levels have paid. The game used to keep its own XP tally on its
+// own page only, so a level card promising "+50 XP" left the header and the
+// profile unchanged.
+//
+// This is the single total. The achievement pop-up does not carry its own
+// number — it measures the change in this one across a completion, so what it
+// announces is by construction what the header then shows.
 export function calcXP(): number {
   const visits = getMapVisits();
   let xp = 0;
@@ -217,8 +222,33 @@ export function calcXP(): number {
   xp += getPlaceCount() * 15;
   xp += Math.min(getLoginCount(), 5) * 10;
   xp += Math.min(getSearchCount(), 5) * 10;
+  xp += getTaskXP();
   xp += getGameXP();
   return xp;
+}
+
+/**
+ * Fired whenever something changes the XP total. Displays subscribe through
+ * useXP() — without it a screen keeps rendering whatever calcXP() returned
+ * when it last rendered, which for the achievement pop-up meant announcing
+ * points the header would not show until the next navigation.
+ */
+export const XP_CHANGED_EVENT = 'library:xp-changed';
+
+export function notifyXPChanged(): void {
+  try { window.dispatchEvent(new Event(XP_CHANGED_EVENT)); } catch { /* SSR */ }
+}
+
+/** Task XP, read here to keep calcXP the one place the total is assembled. */
+function getTaskXP(): number {
+  const TASK_XP: Record<string, number> = {
+    'find-book': 25, 'locate-book': 50, 'evaluate-source': 75, 'cite-source': 100,
+  };
+  try {
+    const raw = localStorage.getItem(`completed_tasks_v1_${getCurrentUserId()}`);
+    return (JSON.parse(raw || '[]') as string[])
+      .reduce((total, id) => total + (TASK_XP[id] ?? 0), 0);
+  } catch { return 0; }
 }
 
 // ── Badges ────────────────────────────────────────────────────────────

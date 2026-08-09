@@ -19,7 +19,8 @@ import { useState } from 'react';
 import { Share2, UserPlus } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
-import { getEarnedBadges, calcXP, badgeName } from '../lib/utils';
+import { getEarnedBadges, badgeName } from '../lib/utils';
+import { useXP } from '../hooks/useXP';
 import { useLanguage } from '../hooks/useLanguage';
 import { SharePayload, appOrigin, canNativeShare, openNativeShare } from '../lib/share';
 import { ShareChannels } from './ShareChannels';
@@ -36,7 +37,7 @@ export function ShareInvite({ user, variant = 'card' }: ShareInviteProps) {
   const [copied, setCopied] = useState(false);
 
   const badges = getEarnedBadges(user);
-  const xp = calcXP();
+  const xp = useXP();
 
   // The invitation link is the app's own origin, so it works wherever this is
   // deployed rather than pointing at a hardcoded host.

@@ -4,7 +4,8 @@ import { Search, BookOpen, ChevronRight, Compass, MapPin, Layers, MessageCircle,
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, calcXP, displayName, bookTitle, bookAuthor } from '../lib/utils';
+import { cn, displayName, bookTitle, bookAuthor } from '../lib/utils';
+import { useXP } from '../hooks/useXP';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
@@ -20,6 +21,7 @@ export function Dashboard({ user }: DashboardProps) {
   const navigate = useNavigate();
   const { t, dir, language } = useLanguage();
   const [showShare, setShowShare] = useState(false);
+  const xp = useXP();
 
   const mostRead = MOCK_BOOKS.slice(0, 4);
   const categories: string[] = Array.from(new Set(MOCK_BOOKS.map(b => b.category)));
@@ -116,7 +118,7 @@ export function Dashboard({ user }: DashboardProps) {
                   {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
                 </div>
                 <div className="text-xl font-black text-accent leading-none mt-0.5">
-                  {calcXP()} <span className="text-[10px] font-bold text-white/40">XP</span>
+                  {xp} <span className="text-[10px] font-bold text-white/40">XP</span>
                 </div>
               </div>
             </div>

@@ -9,9 +9,10 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import {
-  cn, getUserLevel, getEarnedBadges, calcXP, getGameXP, getCompletedGameLevels,
+  cn, getUserLevel, getEarnedBadges, getGameXP, getCompletedGameLevels,
   getLoginCount, getSearchCount, getMapVisits, displayName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
+import { useXP } from '../hooks/useXP';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { ShareInvite } from '../components/ShareInvite';
 import { useNotifications } from '../hooks/useNotifications';
@@ -44,7 +45,7 @@ export function Profile({ user }: ProfileProps) {
 
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
 
-  const xp           = calcXP();
+  const xp           = useXP();
   const level        = getUserLevel(xp);
   const xpInLevel    = xp % 100;
   const xpToNext     = 100 - xpInLevel;

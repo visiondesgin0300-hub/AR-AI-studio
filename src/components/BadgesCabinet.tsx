@@ -4,7 +4,8 @@ import { Search, Crown, Compass, Lock, Zap, Trophy, Gamepad2, CheckCircle2, Circ
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
-import { getEarnedBadges, calcXP, getBadgeRequirements, isBadgeUnlocked, getBadgeProgress, BadgeId } from '../lib/utils';
+import { getEarnedBadges, getBadgeRequirements, isBadgeUnlocked, getBadgeProgress, BadgeId } from '../lib/utils';
+import { useXP } from '../hooks/useXP';
 import { useLanguage } from '../hooks/useLanguage';
 
 interface BadgesCabinetProps {
@@ -80,7 +81,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
   const earnedCount  = earnedBadges.length;
   const totalCount   = ALL_BADGES.length;
   const allEarned    = earnedCount === totalCount;
-  const currentXP    = calcXP();
+  const currentXP    = useXP();
 
   const [showCelebration, setShowCelebration] = useState(false);
   const [particles, setParticles]             = useState(false);

@@ -3,7 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Home, BookOpen, Compass, LogOut, User as UserIcon, Award, ShieldCheck, Brain, Bell, Check, Info, AlertTriangle, Languages, Camera, Search, HelpCircle, MessageCircle, X, Sparkles } from 'lucide-react';
 import { RafeeqAvatar } from './RafeeqAvatar';
 import { User } from '../types';
-import { cn, calcXP, displayName } from '../lib/utils';
+import { cn, displayName } from '../lib/utils';
+import { useXP } from '../hooks/useXP';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNotifications } from '../hooks/useNotifications';
 import { useLanguage } from '../hooks/useLanguage';
@@ -18,6 +19,7 @@ interface LayoutProps {
 }
 
 export function Layout({ children, user, onLogout }: LayoutProps) {
+  const xp = useXP();
   const location = useLocation();
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
@@ -505,7 +507,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
                 <div>
                   <div className="text-[8px] font-black text-accent/70 uppercase tracking-wider">{t('experiencePoints')}</div>
                   <div className="text-sm font-black text-accent leading-none mt-0.5">
-                    {calcXP()} <span className="text-[9px] font-bold text-white/60">XP</span>
+                    {xp} <span className="text-[9px] font-bold text-white/60">XP</span>
                   </div>
                 </div>
               </motion.div>

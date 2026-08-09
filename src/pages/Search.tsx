@@ -4,12 +4,14 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn, incrementSearchCount, bookTitle, bookAuthor, bookCategory } from '../lib/utils';
+import { useAchievements } from '../hooks/useAchievements';
 import { useNavigate } from 'react-router-dom';
 import { BookCover } from '../components/BookCover';
 
 export function Search() {
   const { t, dir, language } = useLanguage();
   const navigate = useNavigate();
+  const { completed } = useAchievements();
   
   const searchTracked = useRef(false);
 
@@ -213,7 +215,20 @@ export function Search() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.35, delay: index * 0.04 }}
-                      onClick={() => navigate(`/book/${book.id}`)}
+                      onClick={() => {
+                        // Finding a book through the catalogue is the first
+                        // task; the details name the book so the pop-up says
+                        // what was found, not just that something was.
+                        completed('find-book', [
+                          { icon: '📚', text: bookTitle(book, language) },
+                          ...(book.section && book.shelf
+                            ? [{ icon: '📍', text: language === 'ar'
+                                ? `قسم ${book.section} · رف ${book.shelf}`
+                                : `Section ${book.section} · Shelf ${book.shelf}` }]
+                            : []),
+                        ]);
+                        navigate(`/book/${book.id}`);
+                      }}
                       className="group p-5 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 rounded-3xl hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all duration-300 flex gap-4 cursor-pointer relative overflow-hidden"
                     >
                       {/* Interactive background ripple hover accent */}

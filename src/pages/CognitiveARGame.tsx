@@ -16,6 +16,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { StarOff, Zap, Star, Crown, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, Circle, XCircle, Lightbulb, ArrowRight, ArrowLeft } from 'lucide-react';
 import { cn, GAME_LEVEL_XP, getBadgeRequirements, BadgeId } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
+import { useAchievements } from '../hooks/useAchievements';
 import {
   LiteracyQuestion, LiteracyOption, LiteracyLevel,
   SKILL_LABEL, pickQuestions, shuffleOptions,
@@ -166,6 +167,9 @@ function loadCompleted(): string[] {
 export function CognitiveARGame() {
   const { language, dir } = useLanguage();
   const ar = language === 'ar';
+  // Renamed on import: this component already has a `completed` state holding
+  // the finished levels, and shadowing it here would be a trap.
+  const { completed: reportCompleted } = useAchievements();
   const navigate = useNavigate();
 
   const [completed, setCompleted] = useState<string[]>(loadCompleted);
@@ -254,7 +258,25 @@ export function CognitiveARGame() {
       if (passed && !completed.includes(activeLevel.id)) {
         const next = [...completed, activeLevel.id];
         setCompleted(next);
-        localStorage.setItem(getGameStorageKey(), JSON.stringify(next));
+
+        /*
+          Passing the round is the evaluate-source task, and it is also what
+          awards the badge — so both are reported through one call. Writing
+          the finished level inside the side effect puts the level's own XP
+          inside the measured window, so the pop-up announces the round's
+          full worth (the task plus the level) instead of only the task's
+          share. The badge pop-up follows automatically: completed() checks
+          for newly earned badges after the side effects run, and queues the
+          two so the task is read first.
+        */
+        reportCompleted('evaluate-source', [
+          { icon: '🎯', text: ar ? activeLevel.nameAr : activeLevel.nameEn },
+          { icon: '✅', text: ar
+              ? `${round.correct} من ${round.questions.length} إجابات صحيحة`
+              : `${round.correct} of ${round.questions.length} correct` },
+        ], () => {
+          localStorage.setItem(getGameStorageKey(), JSON.stringify(next));
+        });
       }
       setPhase('result');
       return;

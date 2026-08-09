@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Quote, Copy, Check } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { cn, bookTitle } from '../lib/utils';
+import { useAchievements } from '../hooks/useAchievements';
 import { useLanguage } from '../hooks/useLanguage';
 import { getCitations, CitationStyle } from '../lib/arCatalog';
 import { Book } from '../types';
@@ -14,7 +15,8 @@ interface CitationBoxProps {
 }
 
 export function CitationBox({ book, variant = 'light' }: CitationBoxProps) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const { completed } = useAchievements();
   const citations = useMemo(() => getCitations(book), [book]);
   const [style, setStyle] = useState<CitationStyle>('APA');
   const [copied, setCopied] = useState(false);
@@ -23,6 +25,10 @@ export function CitationBox({ book, variant = 'light' }: CitationBoxProps) {
     try {
       await navigator.clipboard.writeText(citations[style]);
       setCopied(true);
+      // Taking a correctly formatted citation is the citation task. It counts
+      // on the copy, not on opening the box, because copying is the point at
+      // which the student actually has something to put in their paper.
+      completed('cite-source', [{ icon: '🏷', text: `${style} — ${bookTitle(book, language)}` }]);
       setTimeout(() => setCopied(false), 1600);
     } catch {
       /* clipboard is best-effort (blocked contexts) */

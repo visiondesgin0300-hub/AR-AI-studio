@@ -37,6 +37,7 @@ import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
 import { incrementLoginCount, trackArUse, trackScanUse } from './lib/utils';
+import { AchievementsProvider } from './hooks/useAchievements';
 
 // Lazy-loaded: pulls in mind-ar + tensorflow.js + three.js + AR.js, several
 // multi-MB dependencies that should only load once a user actually opens the
@@ -152,6 +153,9 @@ function AppContent() {
   return (
     <div dir={dir} className="min-h-screen bg-[#F5F7FA] font-sans transition-all duration-500">
       <ActivityTracker />
+      {/* Wraps the routes so any page can report a completed task and get the
+          pop-up, the confetti and the XP without wiring its own. */}
+      <AchievementsProvider user={user}>
       <Routes>
         <Route 
           path="/login" 
@@ -286,6 +290,7 @@ function AppContent() {
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </AchievementsProvider>
     </div>
   );
 }
