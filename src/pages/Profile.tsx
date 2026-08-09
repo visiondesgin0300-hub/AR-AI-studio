@@ -13,6 +13,7 @@ import {
   getLoginCount, getSearchCount, getMapVisits, displayName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
+import { ShareInvite } from '../components/ShareInvite';
 import { useNotifications } from '../hooks/useNotifications';
 
 interface ProfileProps { user: User }
@@ -350,6 +351,12 @@ export function Profile({ user }: ProfileProps) {
           )}
         </AnimatePresence>
       </div>
+
+      {/* ── Invite a classmate ───────────────────────────────────────────────
+          Placed straight after the badges: this is the point in the page where
+          the student has just read their own progress, which is exactly what
+          the invitation carries. */}
+      <ShareInvite user={user} />
 
       {/* ── Notifications ───────────────────────────────────────────────────── */}
       <div className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-5">

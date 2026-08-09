@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Crown, Compass, Lock, Zap, Trophy, Gamepad2, CheckCircle2, Sparkles } from 'lucide-react';
+import { Search, Crown, Compass, Lock, Zap, Trophy, Gamepad2, CheckCircle2, Circle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import { cn } from '../lib/utils';
-import { getEarnedBadges, calcXP } from '../lib/utils';
+import { getEarnedBadges, calcXP, getBadgeRequirements, isBadgeUnlocked, getBadgeProgress, BadgeId } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
 interface BadgesCabinetProps {
   user: User;
 }
 
-const ALL_BADGES = [
+// `id` is typed so the badge rules in utils and the cards here cannot drift
+// onto different identifiers.
+const ALL_BADGES: Array<{ id: BadgeId; [k: string]: any }> = [
   {
     id: 'مستكشف',
     gameLevel: 'explorer',
@@ -25,10 +27,7 @@ const ALL_BADGES = [
     pillClass: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400',
     titleAr: 'مستكشف',
     titleEn: 'Explorer',
-    descAr: 'افتح خريطة المكتبة',
-    descEn: 'Open the library map',
     xp: 50,
-    xpRequired: 10,
   },
   {
     id: 'باحث',
@@ -43,10 +42,7 @@ const ALL_BADGES = [
     pillClass: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400',
     titleAr: 'باحث',
     titleEn: 'Researcher',
-    descAr: 'تنقّل بين 3 رفوف',
-    descEn: 'Visit 3 shelves',
     xp: 75,
-    xpRequired: 30,
   },
   {
     id: 'متميز',
@@ -61,10 +57,7 @@ const ALL_BADGES = [
     pillClass: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400',
     titleAr: 'متميز',
     titleEn: 'Distinguished',
-    descAr: 'رحلة عبر جميع أقسام المكتبة',
-    descEn: 'Journey all library sections',
     xp: 100,
-    xpRequired: 60,
   },
 ];
 
@@ -109,10 +102,10 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
     const aE = earnedBadges.includes(a.id);
     const bE = earnedBadges.includes(b.id);
     if (aE !== bE) return aE ? -1 : 1;
-    const aU = currentXP >= a.xpRequired;
-    const bU = currentXP >= b.xpRequired;
+    const aU = isBadgeUnlocked(a.id);
+    const bU = isBadgeUnlocked(b.id);
     if (aU !== bU) return aU ? -1 : 1;
-    return a.xpRequired - b.xpRequired;
+    return getBadgeProgress(b.id) - getBadgeProgress(a.id);
   });
 
   return (
@@ -184,9 +177,11 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {sorted.map((badge, i) => {
           const isEarned   = earnedBadges.includes(badge.id);
-          const isUnlocked = currentXP >= badge.xpRequired;
+          const isUnlocked = isBadgeUnlocked(badge.id);
           const Icon       = badge.icon;
-          const pct        = Math.min((currentXP / badge.xpRequired) * 100, 100);
+          const reqs       = getBadgeRequirements(badge.id);
+          const doneCount  = reqs.filter(r => r.met).length;
+          const pct        = getBadgeProgress(badge.id) * 100;
 
           return (
             <motion.div
@@ -247,9 +242,33 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                   {isAr ? 'مكتسب' : 'Earned'}
                 </span>
               ) : (
-                <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 leading-snug">
-                  {isAr ? badge.descAr : badge.descEn}
-                </p>
+                /*
+                  The requirements themselves, ticked off live, instead of the
+                  single sentence that used to sit here. That sentence was a
+                  paraphrase kept by hand, and it had already gone stale: it
+                  still read "open the library map" after the rule became
+                  "open the app, search the resources, explore the facilities".
+                  Reading them from getBadgeRequirements() means what a student
+                  is told is what the app checks.
+                */
+                <ul className="w-full space-y-1.5 text-start">
+                  {reqs.map(r => (
+                    <li key={r.id} className="flex items-start gap-1.5">
+                      {r.met
+                        ? <CheckCircle2 className="w-3 h-3 mt-[3px] shrink-0 text-emerald-500" />
+                        : <Circle className="w-3 h-3 mt-[3px] shrink-0 text-slate-300 dark:text-slate-600" />}
+                      <span className={cn(
+                        'text-[11px] font-bold leading-snug',
+                        r.met ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500'
+                      )}>
+                        {isAr ? r.labelAr : r.labelEn}
+                        {r.target > 1 && (
+                          <span className="opacity-60 ms-1" dir="ltr">({r.current}/{r.target})</span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               )}
 
               {/* XP reward pill */}
@@ -273,8 +292,9 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                       transition={{ duration: 0.9, ease: 'easeOut', delay: i * 0.1 }}
                     />
                   </div>
-                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500" dir="ltr">
-                    {currentXP} / {badge.xpRequired} XP
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                    <span dir="ltr">{doneCount}/{reqs.length}</span>{' '}
+                    {isAr ? 'من الشروط' : 'requirements'}
                   </p>
                 </div>
               )}
@@ -289,7 +309,7 @@ export function BadgesCabinet({ user }: BadgesCabinetProps) {
                     className="flex items-center gap-1 text-[9px] font-black text-accent"
                   >
                     <Sparkles className="w-2.5 h-2.5" />
-                    {isAr ? 'جاهز للعب!' : 'Ready to play!'}
+                    {isAr ? 'أجب على الأسئلة!' : 'Answer the questions!'}
                   </motion.div>
 
                   {/* Pulsing Play Now button */}

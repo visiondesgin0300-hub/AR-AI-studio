@@ -13,8 +13,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { StarOff, Zap, Star, Crown, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, XCircle, Lightbulb, ArrowRight, ArrowLeft } from 'lucide-react';
-import { cn, GAME_LEVEL_XP } from '../lib/utils';
+import { StarOff, Zap, Star, Crown, Compass, Search, Lock, RotateCcw, Trophy, HelpCircle, Info, X, Target, Timer, Brain, Gamepad2, CheckCircle2, Circle, XCircle, Lightbulb, ArrowRight, ArrowLeft } from 'lucide-react';
+import { cn, GAME_LEVEL_XP, getBadgeRequirements, BadgeId } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import {
   LiteracyQuestion, LiteracyOption, LiteracyLevel,
@@ -38,6 +38,13 @@ function getGameStorageKey(): string {
     return `cognitive_ar_v4_${JSON.parse(stored)?.id || 'anonymous'}`;
   } catch { return 'cognitive_ar_v4_anonymous'; }
 }
+
+/** Which badge each round awards, and therefore whose activity unlocks it. */
+const LEVEL_BADGE: Record<LiteracyLevel, BadgeId> = {
+  explorer: 'مستكشف',
+  researcher: 'باحث',
+  distinguished: 'متميز',
+};
 
 // ── Level definitions ─────────────────────────────────────────────────
 
@@ -487,7 +494,18 @@ export function CognitiveARGame() {
             {LEVELS.map((lvl, i) => {
               const isEarned = completed.includes(lvl.id);
               const Icon = lvl.Icon;
-              const prevEarned = i === 0 || completed.includes(LEVELS[i - 1].id);
+              /*
+                A round opens when its badge's activity is done — walking the
+                library, using the map, using AR, scanning — not when the
+                previous round was passed. Sequence was a stand-in for effort;
+                now the effort is the actual requirement, and the card names
+                whichever part of it is still outstanding instead of the
+                unhelpful "complete previous level".
+              */
+              const badge = LEVEL_BADGE[lvl.id];
+              const reqs = getBadgeRequirements(badge);
+              const unlocked = reqs.every(r => r.met);
+              const nextReq = reqs.find(r => !r.met);
               return (
                 <motion.div
                   key={lvl.id}
@@ -505,7 +523,7 @@ export function CognitiveARGame() {
                     <div className={cn('w-14 h-14 rounded-2xl border-2 flex items-center justify-center shadow-lg', isEarned ? cn(lvl.bg, lvl.border, lvl.shadow) : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700')}>
                       {isEarned
                         ? <Icon className={cn('w-7 h-7', lvl.color)} />
-                        : !prevEarned
+                        : !unlocked
                         ? <Lock className="w-6 h-6 text-slate-300 dark:text-slate-600" />
                         : <Icon className={cn('w-7 h-7', lvl.color)} />}
                     </div>
@@ -525,6 +543,26 @@ export function CognitiveARGame() {
                       {ar ? lvl.hintAr : lvl.hintEn}
                     </p>
                   </div>
+
+                  {/* What has to be done in the library before this round opens. */}
+                  {!isEarned && (
+                    <ul className="space-y-1.5">
+                      {reqs.map(r => (
+                        <li key={r.id} className="flex items-start gap-1.5">
+                          {r.met
+                            ? <CheckCircle2 className="w-3.5 h-3.5 mt-[2px] shrink-0 text-emerald-500" />
+                            : <Circle className="w-3.5 h-3.5 mt-[2px] shrink-0 text-slate-300 dark:text-slate-600" />}
+                          <span className={cn('text-[11px] font-bold leading-snug',
+                            r.met ? 'text-slate-500 dark:text-slate-400' : 'text-slate-400 dark:text-slate-500')}>
+                            {ar ? r.labelAr : r.labelEn}
+                            {r.target > 1 && (
+                              <span className="opacity-60 ms-1" dir="ltr">({r.current}/{r.target})</span>
+                            )}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
 
                   {/* Flow steps */}
                   <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase">
@@ -551,21 +589,21 @@ export function CognitiveARGame() {
                   </div>
 
                   <motion.button
-                    whileHover={{ scale: prevEarned ? 1.02 : 1 }}
-                    whileTap={{ scale: prevEarned ? 0.97 : 1 }}
-                    disabled={!prevEarned}
+                    whileHover={{ scale: unlocked ? 1.02 : 1 }}
+                    whileTap={{ scale: unlocked ? 0.97 : 1 }}
+                    disabled={!unlocked}
                     onClick={() => startLevel(lvl)}
                     className={cn(
                       'mt-auto w-full py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all',
                       isEarned
                         ? cn('border-2', lvl.border, lvl.color, lvl.bg)
-                        : prevEarned
+                        : unlocked
                         ? 'bg-primary dark:bg-white text-white dark:text-primary shadow-xl shadow-primary/20 hover:brightness-110'
                         : 'bg-slate-100 dark:bg-slate-800 text-slate-300 dark:text-slate-600 cursor-not-allowed'
                     )}
                   >
-                    {!prevEarned
-                      ? (ar ? '🔒 أكمل المستوى السابق' : '🔒 Complete previous level')
+                    {!unlocked
+                      ? `🔒 ${ar ? nextReq!.labelAr : nextReq!.labelEn}`
                       : isEarned
                       ? (ar ? '🔄 العب مجدداً' : '🔄 Play Again')
                       : (ar ? '▶ ابدأ الجولة' : '▶ Start Round')}

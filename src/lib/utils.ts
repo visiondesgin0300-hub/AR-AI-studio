@@ -251,6 +251,17 @@ export const BADGE_GAME_LEVEL: Record<BadgeId, string> = {
 
 export const BADGE_ORDER: BadgeId[] = ['مستكشف', 'باحث', 'متميز'];
 
+/** Badge names for display. The IDs are Arabic, so English needs a mapping. */
+const BADGE_NAME_EN: Record<BadgeId, string> = {
+  'مستكشف': 'Explorer',
+  'باحث': 'Researcher',
+  'متميز': 'Distinguished',
+};
+
+export function badgeName(badge: string, language: string): string {
+  return language === 'en' ? (BADGE_NAME_EN[badge as BadgeId] ?? badge) : badge;
+}
+
 export interface BadgeRequirement {
   id: string;
   labelAr: string;

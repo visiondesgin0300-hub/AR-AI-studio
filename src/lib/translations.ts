@@ -137,6 +137,16 @@ export const translations = {
     removeFromFavorites: 'إزالة من المفضلة',
     shareBook: 'مشاركة الكتاب',
     linkCopied: 'تم نسخ الرابط',
+
+    // دعوة الزملاء
+    inviteTitle: 'ادعُ زملاءك للمكتبة',
+    inviteSubtitle: 'شارك تقدّمك مع زميل وشجّعه يجرّب المكتبة المعززة الذكية.',
+    shareViaWhatsApp: 'واتساب',
+    shareViaEmail: 'البريد',
+    shareCopyInvite: 'نسخ الدعوة',
+    shareMore: 'مشاركة عبر تطبيق آخر',
+    inviteCopiedHint: 'تم نسخ الدعوة — الصقها في أي محادثة',
+
     authorLabel: 'للمؤلف',
     exactLocation: 'الموقع الدقيق',
     borrowDuration: 'مدة الاستعارة',
@@ -753,6 +763,16 @@ export const translations = {
     removeFromFavorites: 'Remove from favorites',
     shareBook: 'Share book',
     linkCopied: 'Link copied',
+
+    // Inviting classmates
+    inviteTitle: 'Invite your classmates',
+    inviteSubtitle: 'Share your progress with a classmate and get them to try the Smart AR Library.',
+    shareViaWhatsApp: 'WhatsApp',
+    shareViaEmail: 'Email',
+    shareCopyInvite: 'Copy invite',
+    shareMore: 'Share via another app',
+    inviteCopiedHint: 'Invitation copied — paste it into any chat',
+
     authorLabel: 'By',
     exactLocation: 'Exact Location',
     borrowDuration: 'Borrow duration',
