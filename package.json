@@ -9,10 +9,15 @@
     "preview": "NODE_ENV=production tsx server.ts",
     "start": "NODE_ENV=production tsx server.ts",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "android:sync": "npm run build && cap sync android",
+    "android:open": "cap open android",
+    "android:apk": "cap sync android && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@ar-js-org/ar.js": "^3.4.8",
+    "@capacitor/android": "^7.6.8",
+    "@capacitor/core": "^7.6.8",
     "@google/genai": "^1.29.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
@@ -41,6 +46,7 @@
     "canvas": "npm:empty-npm-package@1.0.0"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.6.8",
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "@types/qrcode": "^1.5.6",
