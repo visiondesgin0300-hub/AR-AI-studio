@@ -212,11 +212,7 @@ export function Dashboard({ user }: DashboardProps) {
               <Layers className="w-5 h-5 relative z-10 text-accent drop-shadow" />
             </div>
             <h3 className="relative text-sm font-black text-primary dark:text-white tracking-tight">
-              {/* Not "simulation". Everything on that page is real except the
-                  camera: the catalogue, the AI insight and the citations are
-                  the live ones. Naming it a simulation told the student their
-                  first impression of the feature was fake. */}
-              {language === 'ar' ? 'تجربة المسح بلا كاميرا' : 'Scanning without a camera'}
+              {language === 'ar' ? 'محاكاة تفاعلية لتجربة مسح الكتب بـAR' : 'Interactive simulation of the AR book scanning experience'}
             </h3>
             <p className="relative text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">
               {language === 'ar'
