@@ -351,7 +351,11 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
 
                 <div className="flex justify-center pt-4">
                     <p className="text-[10px] font-black text-primary/40 dark:text-white/20 uppercase tracking-[0.3em]">
-                      {language === 'ar' ? 'تحليل ذكي • ARLibrary' : 'AI Analysis • ARLibrary'}
+                      {/* Not "AI analysis". This panel prints the description
+                          stored on the record; the only generated text about a
+                          book comes from /api/book-insight in the AR layer. A
+                          signature claiming otherwise misdescribes the feature. */}
+                      {language === 'ar' ? 'نبذة عن الكتاب • ARLibrary' : 'Book overview • ARLibrary'}
                     </p>
                 </div>
               </div>
