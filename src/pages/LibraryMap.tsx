@@ -396,7 +396,7 @@ export function LibraryMap() {
   };
 
   return (
-    <div className={cn("h-full flex flex-col gap-3 sm:gap-8 -mt-6 sm:mt-0 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
+    <div className={cn("h-full flex flex-col gap-3 sm:gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
       {/* Dynamic Header */}
       <div className={cn("flex flex-row items-center justify-between gap-3 sm:gap-8 pb-3 sm:pb-8 border-b border-slate-200 dark:border-white/10", dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row')}>
         <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
@@ -428,7 +428,7 @@ export function LibraryMap() {
 
       <div className={cn("flex flex-col xl:flex-row gap-10 flex-1 min-h-0", dir === 'rtl' ? 'xl:flex-row-reverse' : 'xl:flex-row')}>
         {/* Map Visualization Zone */}
-        <div className="flex-none sm:flex-1 official-card relative overflow-hidden -mx-8 sm:mx-0 rounded-none sm:rounded-2xl h-[calc(100dvh-11rem)] sm:h-auto min-h-0 sm:min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
+        <div className="flex-none sm:flex-1 official-card relative overflow-hidden -mx-8 sm:mx-0 rounded-none sm:rounded-2xl h-[calc(100dvh-5.5rem)] sm:h-auto min-h-0 sm:min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
           {/* Blueprint Grid Overlay */}
           {activeTab === 'map' && (
             <div className="absolute inset-0 z-0 pointer-events-none">

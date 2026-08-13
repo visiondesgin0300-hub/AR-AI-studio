@@ -321,7 +321,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
       <div className="flex-1 flex flex-col min-w-0 relative h-full">
         {/* Top Header - Welcome banner */}
-        <header className="relative h-24 overflow-hidden bg-gradient-to-r from-primary via-[#01354C] to-primary dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-3 sm:px-6 lg:px-10 flex items-center justify-between z-40 sticky top-0 gap-2">
+        <header className={cn(
+          "relative h-24 overflow-hidden bg-gradient-to-r from-primary via-[#01354C] to-primary dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-3 sm:px-6 lg:px-10 items-center justify-between z-40 sticky top-0 gap-2",
+          immersive ? "hidden lg:flex" : "flex"
+        )}>
           <div className={cn("absolute -top-10 w-40 h-40 bg-accent/10 rounded-full blur-3xl pointer-events-none", dir === 'rtl' ? '-right-10' : '-left-10')} />
 
           <div className="flex-1 min-w-0 relative z-10 hidden md:block">
@@ -533,10 +536,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
         {/* Main Content Area */}
         <main className={cn(
-          "flex-1 overflow-y-auto pt-10 px-8 bg-bg-light dark:bg-bg-dark transition-colors duration-300",
-          // The bottom padding exists to clear the floating bar; with the
-          // bar gone the map may have that space too.
-          immersive ? "pb-6 lg:pb-28" : "pb-40 lg:pb-28",
+          "flex-1 overflow-y-auto px-8 bg-bg-light dark:bg-bg-dark transition-colors duration-300",
+          // The padding exists to clear the bars above and below; with both
+          // gone on a phone, the map may have that space too.
+          immersive ? "pt-3 lg:pt-10 pb-6 lg:pb-28" : "pt-10 pb-40 lg:pb-28",
           // Modest extra clearance on whichever side the floating AR button
           // sits on; the button itself now collapses to an icon-only circle
           // at rest on desktop (see the button's own comment), so this only
