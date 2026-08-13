@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, User as UserIcon, Search, Layers, Maximize2, Clock, Home } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, User as UserIcon, Search, Layers, Maximize2, Clock, Home, Languages } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { cn, trackMapVisit, trackMapMode, bookCategory, bookTitle } from '../lib/utils';
 import { useAchievements } from '../hooks/useAchievements';
@@ -47,7 +47,7 @@ function wrapShelfLabel(text: string, maxChars = 13): [string, string] {
 export function LibraryMap() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t, language, dir } = useLanguage();
+  const { t, language, dir, toggleLanguage } = useLanguage();
   const { completed } = useAchievements();
   // When the current walk began, for the elapsed time in the arrival pop-up.
   const navStartedAt = useRef<number | null>(null);
@@ -399,30 +399,45 @@ export function LibraryMap() {
     <div className={cn("h-full flex flex-col gap-3 sm:gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
       {/* Dynamic Header */}
       <div className={cn("flex flex-row items-center justify-between gap-3 sm:gap-8 pb-3 sm:pb-8 border-b border-slate-200 dark:border-white/10", dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row')}>
-        <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
+        <div className={cn("min-w-0", dir === 'rtl' ? 'text-right' : 'text-left')}>
           <div className={cn("hidden sm:flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
             <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center text-accent">
               <MapIcon className="w-6 h-6" />
             </div>
             <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{t('smartNavSystem')}</span>
           </div>
-          <h1 className="text-xl sm:text-4xl font-black text-primary dark:text-white tracking-tight">{t('knowledgeCampusMap')}</h1>
+          <h1 className="text-lg sm:text-4xl font-black text-primary dark:text-white tracking-tight truncate sm:whitespace-normal">{t('knowledgeCampusMap')}</h1>
         </div>
 
-        {/* The shell's floating bar is hidden on this page so the map can have
-            the screen, which would strand a phone without this. */}
-        <button
-          onClick={() => navigate('/')}
-          aria-label={t('backToHome')}
-          title={t('backToHome')}
-          className={cn(
-            "lg:hidden shrink-0 flex items-center justify-center w-11 h-11 rounded-full bg-white dark:bg-slate-900",
-            "border border-slate-200 dark:border-white/10 text-primary dark:text-white",
-            "shadow-sm active:scale-95 transition-all"
-          )}
-        >
-          <Home className="w-4.5 h-4.5" />
-        </button>
+        {/* Both bars are hidden on this page so the map can have the screen.
+            These are the two controls that went with them: the way off the
+            page, and the language toggle the top bar used to carry. */}
+        <div className="lg:hidden shrink-0 flex items-center gap-2">
+          <button
+            onClick={toggleLanguage}
+            aria-label={language === 'ar' ? 'English' : 'عربي'}
+            title={language === 'ar' ? 'English' : 'عربي'}
+            className={cn(
+              "flex items-center justify-center w-11 h-11 rounded-full bg-white dark:bg-slate-900",
+              "border border-slate-200 dark:border-white/10 text-primary dark:text-white",
+              "shadow-sm active:scale-95 transition-all"
+            )}
+          >
+            <Languages className="w-4.5 h-4.5 text-accent" />
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            aria-label={t('backToHome')}
+            title={t('backToHome')}
+            className={cn(
+              "flex items-center justify-center w-11 h-11 rounded-full bg-white dark:bg-slate-900",
+              "border border-slate-200 dark:border-white/10 text-primary dark:text-white",
+              "shadow-sm active:scale-95 transition-all"
+            )}
+          >
+            <Home className="w-4.5 h-4.5" />
+          </button>
+        </div>
 
       </div>
 
