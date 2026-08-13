@@ -450,7 +450,12 @@ export function LibraryMap() {
 
       <div className={cn("flex flex-col xl:flex-row gap-10 flex-1 min-h-0", dir === 'rtl' ? 'xl:flex-row-reverse' : 'xl:flex-row')}>
         {/* Map Visualization Zone */}
-        <div className="flex-none roomy:flex-1 official-card relative overflow-hidden -mx-8 roomy:mx-0 rounded-none roomy:rounded-2xl h-[calc(100dvh-5.5rem)] roomy:h-auto min-h-0 roomy:min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
+        {/* The card carries an explicit height at every size rather than `h-auto`
+            on the desktop step. Left to stretch, it matched the results column
+            beside it — a 5,100px card holding a 5,000px 3D canvas, with the map
+            itself running far below the fold. `roomy:flex-1` still governs the
+            width it takes beside that column. */}
+        <div className="flex-none roomy:flex-1 official-card relative overflow-hidden -mx-8 roomy:mx-0 rounded-none roomy:rounded-2xl h-[calc(100dvh-5.5rem)] roomy:h-[calc(100dvh-12rem)] min-h-0 roomy:min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
           {/* Blueprint Grid Overlay */}
           {activeTab === 'map' && (
             <div className="absolute inset-0 z-0 pointer-events-none">
