@@ -22,6 +22,19 @@ export function bookTitle(book: { title: string; titleEn?: string }, language: s
   return language === 'en' && book.titleEn ? book.titleEn : book.title;
 }
 
+/**
+ * The other title — the one bookTitle() did not pick.
+ *
+ * The book record shows both, the active language in the heading and the other
+ * underneath it, so the pair swaps places when the language does. Empty when
+ * the book carries only one title, which is what keeps the second line from
+ * repeating the first.
+ */
+export function bookTitleAlt(book: { title: string; titleEn?: string }, language: string): string {
+  if (!book.titleEn || book.titleEn === book.title) return '';
+  return language === 'en' ? book.title : book.titleEn;
+}
+
 export function bookAuthor(book: { author: string; authorEn?: string }, language: string): string {
   return language === 'en' && book.authorEn ? book.authorEn : book.author;
 }

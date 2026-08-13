@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, Share2, Heart, BookOpen, Clock, CheckCircle2, AlertCircle, X, Tag } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { User, Book } from '../types';
-import { bookCategory, bookTitle, cn, isFavoriteBook, toggleFavoriteBook } from '../lib/utils';
+import { bookAuthor, bookCategory, bookTitle, bookTitleAlt, cn, isFavoriteBook, toggleFavoriteBook } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { CitationBox } from '../components/CitationBox';
@@ -92,12 +92,16 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
       <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-secondary/10 dark:bg-secondary/20 text-secondary dark:text-secondary rounded-full text-[10px] font-black uppercase tracking-widest border border-secondary/20 dark:border-secondary/30">
         {bookCategory(book.category, language)}
       </div>
-      <h1 className="text-3xl sm:text-4xl font-black text-primary dark:text-white leading-tight tracking-tight">{book.title}</h1>
-      {book.titleEn && (
-        <p className="text-base sm:text-lg text-slate-400 dark:text-slate-500 font-bold tracking-tight" dir="ltr">{book.titleEn}</p>
+      {/* The heading is the title in the language the reader chose; the other
+          title sits under it. They swap places with the language toggle, so an
+          English reader is not met by an Arabic headline. */}
+      <h1 className="text-3xl sm:text-4xl font-black text-primary dark:text-white leading-tight tracking-tight">{bookTitle(book, language)}</h1>
+      {bookTitleAlt(book, language) && (
+        <p className="text-base sm:text-lg text-slate-400 dark:text-slate-500 font-bold tracking-tight"
+           dir={language === 'en' ? 'rtl' : 'ltr'}>{bookTitleAlt(book, language)}</p>
       )}
       <p className={cn("text-lg sm:text-xl text-gray-500 dark:text-gray-400 font-medium", dir === 'rtl' ? 'border-r-4 pr-4 sm:pr-6' : 'border-l-4 pl-4 sm:pl-6')}>
-        {t('authorLabel')}: {book.author}{book.year ? ` · ${book.year}` : ''}
+        {t('authorLabel')}: {bookAuthor(book, language)}{book.year ? ` · ${book.year}` : ''}
       </p>
     </div>
   );
@@ -336,8 +340,8 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
                       <BookOpen className="w-6 h-6" />
                     </div>
                     <div className="min-w-0 text-right ltr:text-left">
-                      <h2 className="text-2xl sm:text-3xl font-black text-primary dark:text-white tracking-tight leading-tight">{book.title}</h2>
-                      <p className="text-xs font-black text-secondary uppercase tracking-[0.2em] mt-1">{book.author}</p>
+                      <h2 className="text-2xl sm:text-3xl font-black text-primary dark:text-white tracking-tight leading-tight">{bookTitle(book, language)}</h2>
+                      <p className="text-xs font-black text-secondary uppercase tracking-[0.2em] mt-1">{bookAuthor(book, language)}</p>
                     </div>
                   </div>
                   <div className={cn("w-16 h-1 bg-accent rounded-full", dir === 'rtl' ? 'mr-0' : 'ml-0')}></div>
