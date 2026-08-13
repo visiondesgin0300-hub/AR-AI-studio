@@ -21,6 +21,11 @@ interface LayoutProps {
 export function Layout({ children, user, onLogout }: LayoutProps) {
   const xp = useXP();
   const location = useLocation();
+  // The library map is shown edge to edge, so the floating bar is taken
+  // away rather than left hovering over the scene. The page puts its own
+  // way back in the header, since this bar is the only navigation a phone
+  // otherwise has.
+  const immersive = location.pathname === '/map';
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -528,7 +533,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
         {/* Main Content Area */}
         <main className={cn(
-          "flex-1 overflow-y-auto pt-10 pb-40 lg:pb-28 px-8 bg-bg-light dark:bg-bg-dark transition-colors duration-300",
+          "flex-1 overflow-y-auto pt-10 px-8 bg-bg-light dark:bg-bg-dark transition-colors duration-300",
+          // The bottom padding exists to clear the floating bar; with the
+          // bar gone the map may have that space too.
+          immersive ? "pb-6 lg:pb-28" : "pb-40 lg:pb-28",
           // Modest extra clearance on whichever side the floating AR button
           // sits on; the button itself now collapses to an icon-only circle
           // at rest on desktop (see the button's own comment), so this only
@@ -555,7 +563,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             to shrink (min-w-0) let the labels wrap instead of overflow. */}
         <nav className={cn(
           "lg:hidden fixed bottom-5 left-5 right-5 z-50 rounded-[2rem] flex justify-between items-start px-1 py-3.5 bg-white/85 dark:bg-slate-950/80 backdrop-blur-3xl border border-white/45 dark:border-white/5 shadow-[0_15px_35px_rgba(0,0,0,0.18)]",
-          fieldFocused && "hidden"
+          (fieldFocused || immersive) && "hidden"
         )}>
           {navItems.map((item) => {
             const isActive = item.path.includes('?')
