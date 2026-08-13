@@ -369,30 +369,35 @@ export function LibraryMap() {
 
   const getPathData = () => {
     if (!destinationShelfId) return "";
-    // Grid layout in SVG coords (viewBox 600×500):
-    // Cols centers: 0→75, 1→225, 2→375, 3→525
-    // Row centers:  1→130, 2→190, 3→340
-    // Horizontal aisles: between rows 1-2 → y=160, zone boundary → y=249, below row3 → y=370
-    // Vertical aisles:   between cols 0-1 → x=150, center → x=300, between cols 2-3 → x=450
-    // Entrance: (300, 450)
+    // Corridors taken from the furniture the plan actually draws, not from
+    // memory. Three of the old ones did not exist: y=160 is a 4-unit crack
+    // between the first and second rows of shelving, y=249 runs through both
+    // circulation counters (y 240–258), and y=370 grazes the bottom row.
+    //
+    // The counters span x 18–267 and 333–585, so the gap between them at x=300
+    // is the only way past them. Every route therefore climbs the centre first
+    // and fans out along a band that is genuinely empty — y=229 between the
+    // second row and the counters, y=285 between the counters and the third —
+    // before turning up its own aisle (x=150, 300 or 450, each 54 wide) and
+    // stepping into the shelf.
     const paths: Record<string, string> = {
-      // Row 1 — go up center through zone aisle, through row1/2 gap, arrive at card
-      'A-1': "M 300,450 L 300,160 L 150,160 L 75,160 L 75,130",
-      'A-2': "M 300,450 L 300,160 L 225,160 L 225,130",
-      'B-1': "M 300,450 L 300,160 L 375,160 L 375,130",
-      'B-2': "M 300,450 L 300,160 L 450,160 L 525,160 L 525,130",
-      // Row 2 — go up center to zone boundary aisle, branch to column, arrive at card
-      'B-3': "M 300,450 L 300,249 L 150,249 L 75,249 L 75,190",
-      'B-4': "M 300,450 L 300,249 L 225,249 L 225,190",
-      'C-1': "M 300,450 L 300,249 L 375,249 L 375,190",
-      'C-2': "M 300,450 L 300,249 L 450,249 L 525,249 L 525,190",
-      // Row 3 — short way up from entrance to below-shelf aisle, branch to column
-      'D-1': "M 300,450 L 300,370 L 150,370 L 75,370 L 75,340",
-      'D-2': "M 300,450 L 300,370 L 225,370 L 225,340",
-      'E-1': "M 300,450 L 300,370 L 375,370 L 375,340",
-      'E-2': "M 300,450 L 300,370 L 450,370 L 525,370 L 525,340",
+      // Row 1 — shelves at y 102–158
+      'A-1': "M 300,450 L 300,229 L 150,229 L 150,130 L 75,130",
+      'A-2': "M 300,450 L 300,229 L 300,130 L 225,130",
+      'B-1': "M 300,450 L 300,229 L 300,130 L 375,130",
+      'B-2': "M 300,450 L 300,229 L 450,229 L 450,130 L 525,130",
+      // Row 2 — shelves at y 162–218
+      'B-3': "M 300,450 L 300,229 L 150,229 L 150,190 L 75,190",
+      'B-4': "M 300,450 L 300,229 L 300,190 L 225,190",
+      'C-1': "M 300,450 L 300,229 L 300,190 L 375,190",
+      'C-2': "M 300,450 L 300,229 L 450,229 L 450,190 L 525,190",
+      // Row 3 — shelves at y 312–368
+      'D-1': "M 300,450 L 300,285 L 150,285 L 150,340 L 75,340",
+      'D-2': "M 300,450 L 300,285 L 300,340 L 225,340",
+      'E-1': "M 300,450 L 300,285 L 300,340 L 375,340",
+      'E-2': "M 300,450 L 300,285 L 450,285 L 450,340 L 525,340",
     };
-    return paths[destinationShelfId] || "M 300,450 L 300,249";
+    return paths[destinationShelfId] || "M 300,450 L 300,285";
   };
 
   return (
