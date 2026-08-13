@@ -21,10 +21,12 @@ interface LayoutProps {
 export function Layout({ children, user, onLogout }: LayoutProps) {
   const xp = useXP();
   const location = useLocation();
-  // The library map is shown edge to edge, so the floating bar is taken
-  // away rather than left hovering over the scene. The page puts its own
-  // way back in the header, since this bar is the only navigation a phone
-  // otherwise has.
+  // The library map is shown edge to edge on phones and tablets, so the
+  // floating bar and the header are taken away rather than left over the
+  // scene. The page puts its own way back and language control in their
+  // place, since the bar is the only navigation a phone otherwise has. The
+  // `roomy` variant decides where "edge to edge" stops, and the map page
+  // keys off the same variant so the two cannot drift apart.
   const immersive = location.pathname === '/map';
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
@@ -323,7 +325,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         {/* Top Header - Welcome banner */}
         <header className={cn(
           "relative h-24 overflow-hidden bg-gradient-to-r from-primary via-[#01354C] to-primary dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 px-3 sm:px-6 lg:px-10 items-center justify-between z-40 sticky top-0 gap-2",
-          immersive ? "hidden lg:flex" : "flex"
+          immersive ? "hidden roomy:flex" : "flex"
         )}>
           <div className={cn("absolute -top-10 w-40 h-40 bg-accent/10 rounded-full blur-3xl pointer-events-none", dir === 'rtl' ? '-right-10' : '-left-10')} />
 
@@ -539,7 +541,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
           "flex-1 overflow-y-auto px-8 bg-bg-light dark:bg-bg-dark transition-colors duration-300",
           // The padding exists to clear the bars above and below; with both
           // gone on a phone, the map may have that space too.
-          immersive ? "pt-3 lg:pt-10 pb-6 lg:pb-28" : "pt-10 pb-40 lg:pb-28",
+          immersive ? "pt-3 roomy:pt-10 pb-6 roomy:pb-28" : "pt-10 pb-40 lg:pb-28",
           // Modest extra clearance on whichever side the floating AR button
           // sits on; the button itself now collapses to an icon-only circle
           // at rest on desktop (see the button's own comment), so this only

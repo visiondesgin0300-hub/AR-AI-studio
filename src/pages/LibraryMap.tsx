@@ -379,45 +379,47 @@ export function LibraryMap() {
     // and fans out along a band that is genuinely empty — y=229 between the
     // second row and the counters, y=285 between the counters and the third —
     // before turning up its own aisle (x=150, 300 or 450, each 54 wide) and
-    // stepping into the shelf.
+    // stopping at the face of the shelf. It stops at the face, not the centre:
+    // a route drawn to the centre lays 48 units of line over the shelf card
+    // itself, which reads as walking through the shelving.
     const paths: Record<string, string> = {
       // Row 1 — shelves at y 102–158
-      'A-1': "M 300,450 L 300,229 L 150,229 L 150,130 L 75,130",
-      'A-2': "M 300,450 L 300,229 L 300,130 L 225,130",
-      'B-1': "M 300,450 L 300,229 L 300,130 L 375,130",
-      'B-2': "M 300,450 L 300,229 L 450,229 L 450,130 L 525,130",
+      'A-1': "M 300,450 L 300,229 L 150,229 L 150,130 L 123,130",
+      'A-2': "M 300,450 L 300,229 L 300,130 L 273,130",
+      'B-1': "M 300,450 L 300,229 L 300,130 L 327,130",
+      'B-2': "M 300,450 L 300,229 L 450,229 L 450,130 L 477,130",
       // Row 2 — shelves at y 162–218
-      'B-3': "M 300,450 L 300,229 L 150,229 L 150,190 L 75,190",
-      'B-4': "M 300,450 L 300,229 L 300,190 L 225,190",
-      'C-1': "M 300,450 L 300,229 L 300,190 L 375,190",
-      'C-2': "M 300,450 L 300,229 L 450,229 L 450,190 L 525,190",
+      'B-3': "M 300,450 L 300,229 L 150,229 L 150,190 L 123,190",
+      'B-4': "M 300,450 L 300,229 L 300,190 L 273,190",
+      'C-1': "M 300,450 L 300,229 L 300,190 L 327,190",
+      'C-2': "M 300,450 L 300,229 L 450,229 L 450,190 L 477,190",
       // Row 3 — shelves at y 312–368
-      'D-1': "M 300,450 L 300,285 L 150,285 L 150,340 L 75,340",
-      'D-2': "M 300,450 L 300,285 L 300,340 L 225,340",
-      'E-1': "M 300,450 L 300,285 L 300,340 L 375,340",
-      'E-2': "M 300,450 L 300,285 L 450,285 L 450,340 L 525,340",
+      'D-1': "M 300,450 L 300,285 L 150,285 L 150,340 L 123,340",
+      'D-2': "M 300,450 L 300,285 L 300,340 L 273,340",
+      'E-1': "M 300,450 L 300,285 L 300,340 L 327,340",
+      'E-2': "M 300,450 L 300,285 L 450,285 L 450,340 L 477,340",
     };
     return paths[destinationShelfId] || "M 300,450 L 300,285";
   };
 
   return (
-    <div className={cn("h-full flex flex-col gap-3 sm:gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
+    <div className={cn("h-full flex flex-col gap-3 roomy:gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
       {/* Dynamic Header */}
-      <div className={cn("flex flex-row items-center justify-between gap-3 sm:gap-8 pb-3 sm:pb-8 border-b border-slate-200 dark:border-white/10", dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row')}>
+      <div className={cn("flex flex-row items-center justify-between gap-3 roomy:gap-8 pb-3 roomy:pb-8 border-b border-slate-200 dark:border-white/10", dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row')}>
         <div className={cn("min-w-0", dir === 'rtl' ? 'text-right' : 'text-left')}>
-          <div className={cn("hidden sm:flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+          <div className={cn("hidden roomy:flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
             <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center text-accent">
               <MapIcon className="w-6 h-6" />
             </div>
             <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{t('smartNavSystem')}</span>
           </div>
-          <h1 className="text-lg sm:text-4xl font-black text-primary dark:text-white tracking-tight truncate sm:whitespace-normal">{t('knowledgeCampusMap')}</h1>
+          <h1 className="text-lg roomy:text-4xl font-black text-primary dark:text-white tracking-tight truncate roomy:whitespace-normal">{t('knowledgeCampusMap')}</h1>
         </div>
 
         {/* Both bars are hidden on this page so the map can have the screen.
             These are the two controls that went with them: the way off the
             page, and the language toggle the top bar used to carry. */}
-        <div className="lg:hidden shrink-0 flex items-center gap-2">
+        <div className="roomy:hidden shrink-0 flex items-center gap-2">
           <button
             onClick={toggleLanguage}
             aria-label={language === 'ar' ? 'English' : 'عربي'}
@@ -448,7 +450,7 @@ export function LibraryMap() {
 
       <div className={cn("flex flex-col xl:flex-row gap-10 flex-1 min-h-0", dir === 'rtl' ? 'xl:flex-row-reverse' : 'xl:flex-row')}>
         {/* Map Visualization Zone */}
-        <div className="flex-none sm:flex-1 official-card relative overflow-hidden -mx-8 sm:mx-0 rounded-none sm:rounded-2xl h-[calc(100dvh-5.5rem)] sm:h-auto min-h-0 sm:min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
+        <div className="flex-none roomy:flex-1 official-card relative overflow-hidden -mx-8 roomy:mx-0 rounded-none roomy:rounded-2xl h-[calc(100dvh-5.5rem)] roomy:h-auto min-h-0 roomy:min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
           {/* Blueprint Grid Overlay */}
           {activeTab === 'map' && (
             <div className="absolute inset-0 z-0 pointer-events-none">
@@ -469,7 +471,7 @@ export function LibraryMap() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="relative z-10 w-full h-full p-0 sm:p-8 lg:p-12 flex flex-col"
+                className="relative z-10 w-full h-full p-0 roomy:p-12 flex flex-col"
               >
                   {/* Rafeeq floating guide — AR-floor view only.
                       The flat map and the Unity view each already draw their
@@ -551,7 +553,7 @@ export function LibraryMap() {
 
                   {/* AR Floor mode */}
                   {mapMode === 'ar-floor' && (
-                    <div className="flex-1 relative overflow-hidden rounded-none sm:rounded-2xl bg-[#0A0E1C] min-h-0 sm:min-h-[520px]">
+                    <div className="flex-1 relative overflow-hidden rounded-none roomy:rounded-2xl bg-[#0A0E1C] min-h-0 roomy:min-h-[520px]">
                       <iframe
                         ref={arInlineIframeRef}
                         src="/library-ar-floor.html"
@@ -994,15 +996,12 @@ export function LibraryMap() {
                             chevrons both render reliably. */}
                         {showPath && destinationShelfId && (() => {
                           const d = getPathData();
-                          const destPt: Record<string, [number, number]> = {
-                            'A-1': [75, 130],  'A-2': [225, 130],
-                            'B-1': [375, 130], 'B-2': [525, 130],
-                            'B-3': [75, 190],  'B-4': [225, 190],
-                            'C-1': [375, 190], 'C-2': [525, 190],
-                            'D-1': [75, 340],  'D-2': [225, 340],
-                            'E-1': [375, 340], 'E-2': [525, 340],
-                          };
-                          const [ex, ey] = destPt[destinationShelfId] ?? [300, 250];
+                          // The arrival marker is read off the end of the route
+                          // rather than kept in a second table, so it always sits
+                          // where the walking actually stops — at the face of the
+                          // shelf. The shelf card itself is highlighted separately.
+                          const stops = d.match(/-?\d+,-?\d+/g) ?? [];
+                          const [ex, ey] = (stops[stops.length - 1] ?? '300,250').split(',').map(Number);
                           return (
                             <g key={destinationShelfId}>
                               {/* Wide glow halo */}
