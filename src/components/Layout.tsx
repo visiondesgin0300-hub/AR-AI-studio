@@ -625,7 +625,7 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
 
       <AnimatePresence>
-        {showLibrarian && <LibrarianChat onClose={() => setShowLibrarian(false)} />}
+        {showLibrarian && <LibrarianChat onClose={() => setShowLibrarian(false)} user={user} />}
       </AnimatePresence>
 
       <AnimatePresence>

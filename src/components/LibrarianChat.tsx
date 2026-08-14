@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Send, MapPin, BookOpen } from 'lucide-react';
 import { cn, bookTitle } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
+import { User } from '../types';
+import { calcXP } from '../lib/utils';
 import { RafeeqAvatar } from './RafeeqAvatar';
 
 interface ChatMessage {
@@ -15,11 +17,13 @@ interface ChatMessage {
 
 interface LibrarianChatProps {
   onClose: () => void;
+  user?: User | null;
 }
 
-export function LibrarianChat({ onClose }: LibrarianChatProps) {
+export function LibrarianChat({ onClose, user }: LibrarianChatProps) {
   const { t, dir, language } = useLanguage();
   const navigate = useNavigate();
+  const location = useLocation();
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: t('librarianGreeting') },
   ]);
@@ -42,7 +46,22 @@ export function LibrarianChat({ onClose }: LibrarianChatProps) {
       const res = await fetch('/api/librarian-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next.map(({ role, content }) => ({ role, content })) }),
+        // Rafeeq answers about the app, not only the catalogue, so it is told
+        // where the reader is and what they hold. Nothing here is secret — it
+        // is all on the reader's own screen already.
+        body: JSON.stringify({
+          messages: next.map(({ role, content }) => ({ role, content })),
+          context: {
+            page: location.pathname,
+            name: user ? user.name : undefined,
+            role: user ? user.role : undefined,
+            xp: calcXP(),
+            borrowed: user
+              ? MOCK_BOOKS.filter(b => user.borrowedBooks.includes(b.id))
+                  .map(b => bookTitle(b, language))
+              : [],
+          },
+        }),
       });
       const data = await res.json();
       setMessages((m) => [...m, { role: 'assistant', content: data.reply || t('librarianError'), suggestedBookIds: data.suggestedBookIds }]);

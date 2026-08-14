@@ -3,7 +3,7 @@ import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
-import { MOCK_BOOKS, MOCK_USERS } from "./src/data/mockData";
+import { MOCK_BOOKS, MOCK_USERS, SHELF_IDS } from "./src/data/mockData";
 import rateLimit from "express-rate-limit";
 import crypto from "crypto";
 
@@ -780,79 +780,132 @@ ${catalogue}
 // Always returns 200 with a helpful reply: Gemini when a key is configured,
 // otherwise a local keyword-matching librarian so the assistant always works.
 // Guided-tour answers for local (no-API-key) mode
-const TOUR_REPLIES: Array<{ keywords: string[]; reply: string }> = [
-  {
-    keywords: ['كيف', 'استخدم', 'استخدام', 'شرح', 'اشرح', 'ميزات', 'وظائف', 'how', 'guide', 'tour', 'feature', 'جولة'],
-    reply: `أنا رفيق، وهذه أبرز ميزات التطبيق:\n\n1️⃣ **البحث الذكي** — ابحث عن أي كتاب بالاسم أو المؤلف أو التصنيف مع تحليل مدعوم بالذكاء الاصطناعي.\n2️⃣ **الخريطة الداخلية** — استعرض أرفف المكتبة واختر أي رف لعرض مسار الوصول إليه خطوة بخطوة.\n3️⃣ **الواقع المعزز AR** — امسح غلاف أي كتاب بالكاميرا للتعرف عليه، ثم اتبع الكاميرا نحو علامة الرف للملاحة الحية.\n4️⃣ **محاكاة الذكاء الاصطناعي** — جرّب التجربة كاملة بدون كاميرا أو كتاب حقيقي.\n5️⃣ **الاستشهادات الأكاديمية** — ولّد استشهادات بصيغ APA وMLA وChicago وBibTeX لأي كتاب.\n6️⃣ **نقاط XP والأوسمة** — اكسب نقاطاً عند البحث والاستعارة والوصول لرفع مستواك.\n\nاسألني عن أي ميزة بالتفصيل!`,
-  },
+// The canned answers used when Gemini is unavailable. Each carries both
+// languages so an offline reply still comes back in the one that was asked.
+const TOUR_REPLIES: Array<{ keywords: string[]; reply: string; replyEn: string }> = [
   {
     keywords: ['بحث', 'search', 'ابحث', 'بحثت', 'تصنيف', 'موضوع'],
     reply: `**البحث الذكي في المصادر** 🔍\n\nمن الصفحة الرئيسية أو شريط البحث العلوي:\n• اكتب اسم الكتاب أو المؤلف أو الموضوع (مثل: فيزياء، ذكاء اصطناعي، أدب).\n• ستظهر النتائج فورياً مع ملخص وتحليل ذكي مدعوم بالذكاء الاصطناعي.\n• انقر على أي كتاب لعرض تفاصيله: الملخص، رقم التصنيف، موقع الرف، والاستشهادات الأكاديمية.`,
+    replyEn: `**Searching the collection**\n\nFrom the home page or the search bar:\n- Type a title, an author or a subject (physics, artificial intelligence, literature).\n- Results appear as you type, with an AI summary.\n- Open any result for the full record: summary, LC call number, shelf, and ready-made citations.`,
   },
   {
     keywords: ['خريطة', 'map', 'رف', 'موقع', 'ملاحة', 'وصول', 'طريق', 'مكان'],
     reply: `**الخريطة الداخلية والملاحة** 🗺️\n\nمن قائمة "الخريطة" في الشريط الجانبي:\n• ترى خريطة تفاعلية لجميع أرفف المكتبة والمرافق.\n• اختر أي رف من الخريطة أو من تفاصيل الكتاب لعرض مسار الوصول إليه خطوة بخطوة.\n• كما يمكنك تفعيل **وضع AR** مباشرة من الخريطة لتوجيه كاميرا هاتفك نحو علامات الأرفف المطبوعة.`,
+    replyEn: `**The floor map and navigation**\n\n- Open "Search library resources", pick a book, and press "Locate".\n- The map opens on the floor plan with the shelf marked.\n- Press "Start navigation" and a beam is drawn from the entrance, going around the shelving and the tables rather than over them.\n- A red pin marks the destination, and the shelf's own plate turns red when you arrive.`,
   },
   {
     keywords: ['ar', 'واقع معزز', 'كاميرا', 'مسح', 'scan', 'augmented', 'علامة', 'marker'],
     reply: `**الواقع المعزز AR** 📷\n\nمن زر AR العائم (الكاميرا) في أسفل الشاشة:\n• **مسح الغلاف**: وجّه الكاميرا نحو غلاف أي كتاب وسيتعرف عليه التطبيق فوراً ويعرض تفاصيله.\n• **الملاحة الحية**: اتبع الكاميرا نحو علامة الرف المطبوعة (QR/AR Marker) وستظهر المسافة ورقم الرف مباشرة على الشاشة.\n• **المحاكاة**: إذا لم تتوفر كاميرا، اختر "محاكاة" ليختار الذكاء الاصطناعي كتاباً ويعرض التجربة كاملة.`,
+    replyEn: `**AR camera**\n\n- Open the camera from the yellow button.\n- Point it at a book cover: the app identifies the book and shows its record.\n- Point it at a shelf to check the order and spot anything shelved in the wrong place.\n- A printed shelf marker turns the camera into live guidance with the real distance.`,
   },
   {
     keywords: ['محاكاة', 'simulation', 'بدون كاميرا', 'تجريبي', 'demo'],
     reply: `**محاكاة الذكاء الاصطناعي** 🤖\n\nمن شاشة AR، اختر "محاكاة" إذا لم تتوفر كاميرا أو كتاب حقيقي:\n• يختار الذكاء الاصطناعي كتاباً مختلفاً في كل مرة من الفهرس.\n• تعرض المحاكاة كامل تجربة AR: التعرف على الغلاف، الملاحة للرف، وعرض التفاصيل — دون الحاجة لأي أجهزة فعلية.`,
+    replyEn: `**Simulation without a camera**\n\nIf you have no camera to hand, the app picks a book for you and plays the whole experience through — identification, record, and the route to the shelf — so you can see how it works before trying it on a real book.`,
   },
   {
     keywords: ['استشهاد', 'citation', 'مرجع', 'apa', 'mla', 'chicago', 'bibtex', 'توثيق', 'اقتباس'],
     reply: `**الاستشهادات الأكاديمية** 📄\n\nمن صفحة تفاصيل أي كتاب:\n• انقر على تبويب "الاستشهادات" لتوليد المرجع تلقائياً بصيغ:\n  - **APA** (الأكثر شيوعاً في العلوم الاجتماعية)\n  - **MLA** (الأدب والإنسانيات)\n  - **Chicago** (التاريخ والعلوم)\n  - **BibTeX** (للاستخدام في LaTeX)\n• انسخ الاستشهاد بنقرة واحدة وأضفه مباشرة لبحثك.`,
+    replyEn: `**Citations**\n\nEvery book page can generate its citation in APA, MLA, Chicago or BibTeX. Open the book, choose the style, and copy it straight into your paper.`,
   },
   {
     keywords: ['xp', 'نقاط', 'وسام', 'badge', 'مستوى', 'مكافأة', 'خبرة', 'points'],
     reply: `**نقاط XP والأوسمة** 🏆\n\nالتطبيق يكافئك على كل نشاط:\n• 🔍 **كل بحث** = نقاط XP\n• 📚 **كل استعارة** = نقاط إضافية\n• 📍 **الوصول للرف** بالخريطة أو AR = نقاط مضاعفة\n\nكلما تراكمت نقاطك ترتفع مستواك وتفتح أوسمة تحفيزية مختلفة. تابع مستواك من ملفك الشخصي.`,
+    replyEn: `**Knowledge points and badges**\n\nSearching, reserving a book and reaching a shelf all earn knowledge points (XP). Points unlock three badges — مستكشف (Explorer), باحث (Researcher) and متميز (Distinguished) — and each badge opens a set of questions on your profile.`,
   },
   {
     keywords: ['فحص', 'audit', 'رفوف', 'مخطئ', 'مرتب', 'ترتيب', 'shelf audit', 'مكتبي'],
     reply: `**فحص الرفوف الذكي** 🔎\n\nمن لوحة AR أو (للمسؤولين) من لوحة الإدارة:\n• وجّه الكاميرا نحو أي رف ليمسح الكتب تلقائياً.\n• يقارن الذكاء الاصطناعي رقم تصنيف كل كتاب مع قسم الرف المتوقع.\n• يظهر الكتب المرتّبة **بشكل صحيح** ✅ والكتب **في غير مكانها** ❌ مع تعليمات إعادة الترتيب.`,
+    replyEn: `**Shelf audit**\n\nPoint the camera along a shelf and the app reads the call numbers in order, flagging anything shelved out of sequence. It is the quickest way to find a book that is "missing" but simply in the wrong place.`,
   },
   {
     keywords: ['ادمن', 'admin', 'مسؤول', 'إدارة', 'لوحة', 'dashboard', 'احصائيات', 'إحصاء'],
     reply: `**لوحة إدارة النظام** ⚙️\n\nمتاحة للمسؤولين فقط عند تسجيل الدخول بحساب مسؤول:\n• إدارة الكتب والمصادر (إضافة، تعديل، حذف).\n• إدارة المستخدمين والأدوار.\n• إدارة أقسام الأرفف والمرافق وتحديث علامات AR.\n• إحصاءات مباشرة: الإعارات، الزيارات، أكثر الكتب طلباً.`,
+    replyEn: `**Admin dashboard**\n\nFor staff only: manage resources, users, sections and facilities, print QR codes for books and shelves, and watch live statistics on what is being borrowed and searched.`,
   },
+  {
+    keywords: ['كيف', 'استخدم', 'استخدام', 'شرح', 'اشرح', 'ميزات', 'وظائف', 'how', 'guide', 'tour', 'feature', 'جولة', 'app', 'تطبيق', 'what is', 'ما هو', 'ماذا', 'about'],
+    reply: `أنا رفيق، وهذه أبرز ميزات التطبيق:\n\n1️⃣ **البحث الذكي** — ابحث عن أي كتاب بالاسم أو المؤلف أو التصنيف مع تحليل مدعوم بالذكاء الاصطناعي.\n2️⃣ **الخريطة الداخلية** — استعرض أرفف المكتبة واختر أي رف لعرض مسار الوصول إليه خطوة بخطوة.\n3️⃣ **الواقع المعزز AR** — امسح غلاف أي كتاب بالكاميرا للتعرف عليه، ثم اتبع الكاميرا نحو علامة الرف للملاحة الحية.\n4️⃣ **محاكاة الذكاء الاصطناعي** — جرّب التجربة كاملة بدون كاميرا أو كتاب حقيقي.\n5️⃣ **الاستشهادات الأكاديمية** — ولّد استشهادات بصيغ APA وMLA وChicago وBibTeX لأي كتاب.\n6️⃣ **نقاط XP والأوسمة** — اكسب نقاطاً عند البحث والاستعارة والوصول لرفع مستواك.\n\nاسألني عن أي ميزة بالتفصيل!`,
+    replyEn: `I am Rafeeq. Here is what the app can do:\n\n1) **Search** — find any book by title, author or subject, with an AI summary of what you get.\n2) **The floor map** — pick a book or a shelf and the map draws a route to it, around the shelving and the tables, with a red pin on the destination.\n3) **AR camera** — point the camera at a cover to identify a book, or at a shelf to check what is out of order.\n4) **Simulation** — try the whole experience without a camera or a real book.\n5) **Citations** — APA, MLA, Chicago and BibTeX for any book in the catalogue.\n6) **Knowledge points and badges** — searching, reserving and arriving all earn points.\n\nAsk me about any of them.`,
+  }
+
 ];
 
+/** Arabic script anywhere in the question means answer in Arabic. */
+function asksInArabic(query: string): boolean {
+  return /[\u0600-\u06FF]/.test(query || '');
+}
+
+// The reply used when Gemini is unavailable. It follows the same language rule
+// as the model does — a fallback that always answered in Arabic made an English
+// reader think the assistant was broken rather than offline.
 function localLibrarianReply(query: string): { reply: string; suggestedBookIds: string[] } {
   const q = (query || '').toLowerCase().trim();
+  const ar = asksInArabic(query);
   if (!q) {
     return {
-      reply: 'مرحباً! أنا رفيق، مساعدك الذكي في المكتبة. يمكنني مساعدتك في: البحث عن الكتب، التنقل بالخريطة والواقع المعزز، شرح ميزات التطبيق، توليد الاستشهادات الأكاديمية، ومتابعة نقاط XP والأوسمة. اسألني أي شيء!',
+      reply: ar
+        ? 'مرحباً! أنا رفيق، مساعدك الذكي في المكتبة. أستطيع مساعدتك في البحث عن الكتب، والتنقل بالخريطة والواقع المعزز، وشرح ميزات التطبيق، وتوليد الاستشهادات، ومتابعة نقاط الخبرة والأوسمة. اسألني أي شيء!'
+        : 'Hello! I am Rafeeq, your library assistant. I can help you find books, navigate with the map and AR, explain what the app does, generate citations, and follow your knowledge points and badges. Ask me anything!',
       suggestedBookIds: [],
     };
   }
 
-  // Check tour/feature questions first
+  // Feature questions before catalogue ones: "how do I use the map" is about
+  // the app, not about a book called "map". The entries are ordered specific
+  // first, general last — the overview matches "how", so trying it first would
+  // swallow every specific question phrased as one.
+  //
+  // Short Latin keywords have to match a whole word. "ar" as a substring is
+  // inside "earn", which sent "how do I earn points?" to the AR camera answer.
+  const words = q.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const hits = (kw: string) =>
+    (kw.length <= 3 && /^[a-z0-9]+$/.test(kw)) ? words.includes(kw) : q.includes(kw);
   for (const entry of TOUR_REPLIES) {
-    if (entry.keywords.some((kw) => q.includes(kw))) {
-      return { reply: entry.reply, suggestedBookIds: [] };
+    if (entry.keywords.some(hits)) {
+      return { reply: ar ? entry.reply : entry.replyEn, suggestedBookIds: [] };
     }
   }
 
-  // Fall back to book search
-  const matches = MOCK_BOOKS.filter((b) =>
-    b.title.toLowerCase().includes(q) ||
-    b.author.toLowerCase().includes(q) ||
-    (b.category ?? '').toLowerCase().includes(q) ||
-    (b.description ?? '').toLowerCase().includes(q)
-  ).slice(0, 3);
+  // Search on the words of the question, not the whole sentence: nobody types
+  // a bare title, and "do you have anything on psychology?" matched no book at
+  // all while "psychology" matches several. Ranked by how many words land.
+  const STOP = new Set([
+    'the', 'a', 'an', 'is', 'are', 'do', 'you', 'have', 'any', 'anything', 'on',
+    'about', 'for', 'me', 'i', 'want', 'need', 'find', 'looking', 'book', 'books',
+    'where', 'can', 'get', 'please', 'in', 'of', 'to', 'and',
+    'هل', 'عن', 'في', 'من', 'على', 'أريد', 'اريد', 'كتاب', 'كتب', 'لديكم', 'عندكم', 'أين', 'اين',
+  ]);
+  const terms = words.filter((w) => w.length >= 3 && !STOP.has(w));
+  const scored = MOCK_BOOKS
+    .map((b) => {
+      const hay = [b.title, b.titleEn ?? '', b.author, b.category ?? '', b.description ?? '']
+        .join(' ').toLowerCase();
+      const score = terms.filter((w) => hay.includes(w)).length;
+      return { b, score };
+    })
+    .filter((x) => x.score > 0)
+    .sort((x, y) => y.score - x.score);
+  const matches = scored.slice(0, 3).map((x) => x.b);
 
   if (matches.length === 0) {
     return {
-      reply: `لم أجد مطابقة مباشرة لـ "${query}". جرّب كلمة أعمّ مثل: فيزياء، هندسة، علم نفس، أو اسألني عن ميزات التطبيق مثل: الخريطة، AR، الاستشهادات، نقاط XP.`,
+      reply: ar
+        ? `لم أجد مطابقة مباشرة لـ "${query}". جرّب كلمة أعمّ مثل: فيزياء، هندسة، علم نفس، أو اسألني عن ميزات التطبيق مثل الخريطة أو الواقع المعزز أو الاستشهادات.`
+        : `I could not find a direct match for "${query}". Try something broader — physics, engineering, psychology — or ask me about the app itself: the map, AR, citations, knowledge points.`,
       suggestedBookIds: [],
     };
   }
 
-  const list = matches.map((b) => `• «${b.title}» للمؤلف ${b.author} — تجده على الرف ${b.shelf}`).join('\n');
+  const list = matches
+    .map((b) => ar
+      ? `• «${b.title}» للمؤلف ${b.author} — تجده على الرف ${b.shelf}`
+      : `• "${b.titleEn || b.title}" by ${b.author} — on shelf ${b.shelf}`)
+    .join('\n');
   return {
-    reply: `بناءً على سؤالك، أنصحك بالمراجع التالية من مقتنيات مكتبتنا:\n${list}\n\nيمكنك فتح تفاصيل أي كتاب أو تحديد موقعه على الخريطة مباشرة.`,
+    reply: ar
+      ? `بناءً على سؤالك، أنصحك بالمراجع التالية من مقتنيات مكتبتنا:\n${list}\n\nيمكنك فتح تفاصيل أي كتاب أو تحديد موقعه على الخريطة مباشرة.`
+      : `Based on your question, these are in our collection:\n${list}\n\nOpen any of them for the full record, or locate it on the map.`,
     suggestedBookIds: matches.map((b) => b.id),
   };
 }
@@ -872,8 +925,23 @@ app.post("/api/librarian-chat", async (req, res) => {
 
   try {
     const catalogue = MOCK_BOOKS
-      .map((b) => `- id:${b.id} | ${b.title} | ${b.author} | ${b.category} | الرف ${b.shelf}`)
+      .map((b) => `- id:${b.id} | ${b.title}${b.titleEn && b.titleEn !== b.title ? ` / ${b.titleEn}` : ''} | ${b.author} | ${b.category} | shelf ${b.shelf}${b.callNumber ? ` | LC ${b.callNumber}` : ''}`)
       .join('\n');
+    // Whatever the app knows about the reader right now, so "where am I" and
+    // "what have I borrowed" are answerable. Optional — the chat works without it.
+    const contextLine = (() => {
+      const c = (req.body || {}).context;
+      if (!c || typeof c !== 'object') return '';
+      const bits: string[] = [];
+      if (c.page) bits.push(`They are on the ${c.page} page.`);
+      if (c.name) bits.push(`Their name is ${c.name}.`);
+      if (c.role) bits.push(`They are signed in as ${c.role}.`);
+      if (typeof c.xp === 'number') bits.push(`They have ${c.xp} knowledge points.`);
+      if (Array.isArray(c.borrowed) && c.borrowed.length) {
+        bits.push(`They currently hold: ${c.borrowed.join('; ')}.`);
+      }
+      return bits.length ? `\nRIGHT NOW\n${bits.join(' ')}` : '';
+    })();
     const conversation = messages.map((m: any) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
@@ -883,25 +951,38 @@ app.post("/api/librarian-chat", async (req, res) => {
       model: "gemini-1.5-flash",
       contents: conversation as any,
       config: {
-        systemInstruction: `أنت "رفيق"، المساعد الذكي لمكتبة جامعية متطورة. أجب بالعربية بإيجاز ووضوح.
+        systemInstruction: `You are "Rafeeq" (رفيق), the AI librarian inside the ARLibrary Rafeeq app. Be brief, concrete and warm.
 
-مهامك الرئيسية:
-1. إرشاد الطلاب إلى الكتب المناسبة من الفهرس مع ذكر موقع الرف ورمز LC.
-2. شرح ميزات التطبيق عند السؤال:
-   - البحث الذكي: ابحث عن أي كتاب بالاسم أو المؤلف أو التصنيف مع نتائج فورية وتحليل مدعوم بالذكاء الاصطناعي.
-   - الخريطة الداخلية والملاحة: استعرض أرفف المكتبة والمرافق، واختر أي رف أو كتاب لعرض مسار الوصول إليه خطوة بخطوة.
-   - الواقع المعزز AR: امسح غلاف أي كتاب بالكاميرا للتعرف عليه فوراً، ثم اتبع الكاميرا نحو علامة الرف المطبوعة للملاحة الحية بالمسافة الحقيقية.
-   - محاكاة الذكاء الاصطناعي بدون كاميرا: يختار الذكاء الاصطناعي كتاباً متنوعاً في كل مرة لعرض التجربة كاملة كمحاكاة دون الحاجة إلى كاميرا أو كتاب حقيقي.
-   - مختبر AR وفحص الرفوف: مسح أغلفة الكتب والتعرف عليها، وفحص الرفوف تلقائياً للكشف عن الكتب المُرتّبة في غير مكانها.
-   - الاستشهادات الأكاديمية: توليد الاستشهادات بصيغ APA وMLA وChicago وBibTeX تلقائياً لأي كتاب في الفهرس.
-   - نقاط XP والأوسمة: كل بحث واستعارة ووصول يكسبك نقاط خبرة (XP) تفتح أوسمة تحفيزية وترفع مستواك.
-   - لوحة الإدارة: للمسؤولين فقط — تحكم كامل في المصادر والمستخدمين والأقسام والمرافق مع إحصاءات مباشرة.
-3. للجولة التعريفية: اشرح الخطوات واحدة تلو الأخرى إذا طلب المستخدم كيفية استخدام التطبيق.
+LANGUAGE — this rule comes first and overrides everything else:
+Reply in the language the reader last wrote in. Arabic question, Arabic answer. English question, English answer. If they switch mid-conversation, switch with them. Never answer an English question in Arabic. Book titles, shelf codes and LC classes keep their own form whatever the language.
 
-الفهرس المتاح:
+WHAT YOU KNOW
+You are part of the app and can answer about any of it, not only the catalogue.
+
+Pages and what each one does:
+- Home (/) — the reader's dashboard: knowledge points, sections to explore, recommendations, and a shortcut into every feature.
+- Search library resources (/search) — search the catalogue by title, author or subject; each result opens a book page.
+- Book page (/book/:id) — cover, author, subject, LC call number, shelf, availability. "Locate" opens the map with a route to its shelf; "Reserve book now" holds it.
+- Shelf resources map (/map) — the 3D floor plan. Pick a book or a shelf, press "Start navigation", and a beam is drawn from the entrance to the shelf, going around the shelving and the tables rather than over them. A red pin marks the destination, and the shelf's own plate turns red on arrival.
+- Search library facilities (/facilities) — study rooms, the silent zone, the computer lab, printing. Pick one, press Locate, and the same map draws a route to it.
+- AR camera (/ar), Smart Lens (/smart-lens), shelf scan (/shelf-scan) — point the camera at a cover to identify a book, or at a shelf to find books shelved out of order.
+- My journey / profile (/profile) and my books (/my-books) — borrowing history, knowledge points, badges.
+- Help (/help) — how the app works, step by step.
+- Admin (/admin) — staff only: resources, users, sections, facilities.
+
+Points and badges: searching, reserving and reaching a shelf all earn knowledge points (XP), which unlock the مستكشف / باحث / متميز badges.
+
+Floor plan: the shelves are ${SHELF_IDS.join(', ')}. Facilities: group study rooms (B-2, second floor), the silent reading zone (D-1, third floor), the computer lab (A-2, first floor, usually busy), printing and copying (C-1, ground floor).
+
+Catalogue — every book the library holds:
 ${catalogue}
 
-إن لم يوجد كتاب مطابق فاقترح الأقرب واذكر القسم.`,
+HOW TO ANSWER
+- A book question: name the book, its shelf and its LC class, and say the map can walk them there.
+- A "how do I..." question: give the steps in order, naming the buttons as they appear on screen.
+- Nothing matching in the catalogue: say so plainly and offer the nearest subject rather than inventing a title.
+- Anything outside the library and this app: answer briefly if you can, then steer back to what the library offers.
+${contextLine}`,
       },
     });
 
