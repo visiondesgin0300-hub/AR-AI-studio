@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Share2, Clock, Home, Languages } from 'lucide-react';
+import { MapPin, Navigation, Compass, X, Box, Users, VolumeX, Monitor, Printer, Search, Share2, Clock, Home, Languages } from 'lucide-react';
 import { cn, trackMapVisit } from '../lib/utils';
 import { ShareSheet } from '../components/ShareSheet';
 import { facilitySharePayload } from '../lib/share';
@@ -44,7 +44,6 @@ export function FacilitiesMap() {
   const [walkProgress, setWalkProgress] = useState(0);
   const arIframeRef = useRef<HTMLIFrameElement>(null);
   const mapPanelRef = useRef<HTMLDivElement>(null);
-  const listPanelRef = useRef<HTMLDivElement>(null);
 
   // Draw the glowing wayfinding beam inside the 3D scene toward the
   // selected facility (the iframe's built-in guide only knew about shelf
@@ -210,42 +209,6 @@ export function FacilitiesMap() {
     'D-1': { top: '57%', right: '4%' },
   };
 
-  // ── AR entry ─────────────────────────────────────────────────────────────
-  // There is one map now, so this is no longer a choice of which to look at.
-  // It used to jump to the camera page, which left the route undrawn: pressing
-  // something called "start AR navigation" should start the navigation. It
-  // draws the beam through the scene toward the chosen facility, and needs a
-  // facility to aim at, so it waits for one.
-  const StartARButton = () => (
-    <div className={cn('absolute top-12 sm:top-3 z-20 pointer-events-auto', dir === 'rtl' ? 'left-3' : 'right-3')}>
-      <button
-        onClick={() => {
-          if (!manualTarget) {
-            listPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            return;
-          }
-          if (typeof navigator.vibrate === 'function') {
-            try { navigator.vibrate(80); } catch { /* best-effort */ }
-          }
-          setShowPath(true);
-        }}
-        disabled={showPath}
-        title={!manualTarget ? t('selectDestinationFirstLabel') : undefined}
-        className={cn(
-          'flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all border',
-          showPath
-            ? 'bg-black/45 text-white/40 border-white/10 backdrop-blur-xl cursor-not-allowed'
-            : manualTarget
-              ? 'bg-primary text-white dark:bg-[#0EA5D6] dark:text-[#050c1a] border-white/10 shadow-lg hover:brightness-110 active:scale-95'
-              : 'bg-black/55 text-white/80 border-white/25 backdrop-blur-xl hover:bg-black/70 active:scale-95'
-        )}
-      >
-        <Camera className="w-3.5 h-3.5 shrink-0" />
-        <span>{showPath ? t('navigationInProgressLabel') : manualTarget ? t('startARNavigation') : t('selectDestinationFirstLabel')}</span>
-      </button>
-    </div>
-  );
-
   return (
     <div
       className={cn(
@@ -340,7 +303,6 @@ export function FacilitiesMap() {
 
                 {/* HUD overlay */}
                 <div className="absolute inset-0 z-10 pointer-events-none flex flex-col">
-                  <StartARButton />
 
                   {/* Facility selected — navigation HUD */}
                   {targetFacility && (
@@ -444,7 +406,7 @@ export function FacilitiesMap() {
         </div>
 
         {/* ── Right sidebar ── */}
-        <div ref={listPanelRef} className="w-full xl:w-[450px] flex flex-col gap-8">
+        <div className="w-full xl:w-[450px] flex flex-col gap-8">
           <AnimatePresence mode="wait">
             {manualTarget && targetFacility ? (
               /* Facility selected: navigation panel */
