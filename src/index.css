@@ -1,12 +1,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Tajawal:wght@400;500;700&family=Baloo+2:wght@500;600;700;800&family=Baloo+Bhaijaan+2:wght@500;600;700;800&display=swap');
 @import "tailwindcss";
 
-/* The map page is shown edge to edge on anything phone- or tablet-sized, and
-   width alone cannot decide that: a landscape tablet is 1024 wide — past `lg` —
-   but only 768 tall, so the desktop treatment puts the map below the fold.
-   `roomy` means wide *and* tall enough to carry the desktop chrome as well as
-   the map. Used only where the map page and the shell must agree about it. */
-@custom-variant roomy (@media (min-width: 1024px) and (min-height: 860px));
+/* Where the map page stops being shown edge to edge. The shell (which header
+   and bar to hide) and the map page (how the card is sized) must agree about
+   this, so they share one named variant instead of each spelling out a
+   breakpoint — they drifted apart once already.
+
+   It is deliberately pinned to the same 1280 as `xl`, where the map page turns
+   into two columns. Below that the card is laid out for a single column and
+   takes `flex-none` so its explicit height survives; in a two-column row
+   `flex-none` sizes the *width* instead and collapses the card to 2px. Tying
+   the thresholds together makes "not roomy" imply "single column", so the two
+   can never contradict each other. A landscape tablet — 1024 wide, past `lg`,
+   but only 768 tall — therefore keeps the full-screen map it needs. */
+@custom-variant roomy (@media (min-width: 1280px));
 
 @theme {
   --font-sans: "Tajawal", "Inter", ui-sans-serif, system-ui, sans-serif;
