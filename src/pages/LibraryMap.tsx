@@ -270,7 +270,7 @@ export function LibraryMap() {
   })();
 
   const rafeeqMessage = (() => {
-    if (hasArrived) return { ar: 'وصلت! أحسنت! 🎉', en: 'You made it! Great job! 🎉' };
+    if (hasArrived) return { ar: 'لقد وصلت', en: 'You have arrived' };
     if (showPath && destinationShelfId) return {
       ar: `أنت على بُعد ${liveDistanceMeters} م — استمر!`,
       en: `${liveDistanceMeters}m to go — keep going!`,
@@ -599,18 +599,12 @@ export function LibraryMap() {
                                   exit={{ opacity: 0 }}
                                   className="flex items-center gap-3"
                                 >
-                                  <motion.div
-                                    animate={{ scale: [1, 1.15, 1] }}
-                                    transition={{ duration: 1.2, repeat: Infinity }}
-                                    className="text-3xl"
-                                  >
-                                    🎉
-                                  </motion.div>
+                                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
                                   <div>
-                                    <p className="text-white font-black text-base">
-                                      {language === 'ar' ? 'وصلت! أحسنت!' : 'You made it!'}
+                                    <p className="text-emerald-400 font-black text-base">
+                                      {t('reachedDestination')}
                                     </p>
-                                    <p className="text-[#D4AF37] text-xs font-bold mt-0.5">
+                                    <p className="text-emerald-400/70 text-xs font-bold mt-0.5">
                                       {destinationShelfId} · {destinationSectionName}
                                     </p>
                                   </div>
@@ -939,8 +933,8 @@ export function LibraryMap() {
                           </div>
                         )}
                         {hasArrived && (
-                          <div className="px-4 py-2 rounded-full bg-accent text-primary text-[11px] font-black">
-                            {language === 'ar' ? '✓ وصلت!' : '✓ Arrived!'}
+                          <div className="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[11px] font-black">
+                            {t('reachedDestination')}
                           </div>
                         )}
                       </div>
