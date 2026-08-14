@@ -21,13 +21,13 @@ interface LayoutProps {
 export function Layout({ children, user, onLogout }: LayoutProps) {
   const xp = useXP();
   const location = useLocation();
-  // The library map is shown edge to edge on phones and tablets, so the
-  // floating bar and the header are taken away rather than left over the
-  // scene. The page puts its own way back and language control in their
-  // place, since the bar is the only navigation a phone otherwise has. The
-  // `roomy` variant decides where "edge to edge" stops, and the map page
-  // keys off the same variant so the two cannot drift apart.
-  const immersive = location.pathname === '/map';
+  // Both maps are shown edge to edge on phones and tablets, so the floating
+  // bar and the header are taken away rather than left over the scene. Each
+  // page puts its own way back and language control in their place, since the
+  // bar is the only navigation a phone otherwise has. The `roomy` variant
+  // decides where "edge to edge" stops, and both pages key off the same
+  // variant so they cannot drift apart from the shell.
+  const immersive = location.pathname === '/map' || location.pathname === '/facilities';
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
   const [showNotifications, setShowNotifications] = useState(false);

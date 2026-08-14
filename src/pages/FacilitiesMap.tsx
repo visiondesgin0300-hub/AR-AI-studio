@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Share2, Clock } from 'lucide-react';
+import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Share2, Clock, Home, Languages } from 'lucide-react';
 import { cn, trackMapVisit } from '../lib/utils';
 import { ShareSheet } from '../components/ShareSheet';
 import { facilitySharePayload } from '../lib/share';
@@ -28,7 +28,7 @@ const FACILITY_3D_TARGETS: Record<string, { x: number; z: number; ar: string; en
 export function FacilitiesMap() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t, language, dir } = useLanguage();
+  const { t, language, dir, toggleLanguage } = useLanguage();
 
   useEffect(() => { trackMapVisit('facilities'); }, []);
 
@@ -205,16 +205,31 @@ export function FacilitiesMap() {
 
   // ── AR entry ─────────────────────────────────────────────────────────────
   // There is one map now, so this is no longer a choice of which to look at.
-  // The facilities page has no full-screen view of its own; its AR navigation
-  // is the camera page, which is where the sidebar's AR button also goes.
+  // It used to jump to the camera page, which left the route undrawn: pressing
+  // something called "start AR navigation" should start the navigation. It
+  // draws the beam through the scene toward the chosen facility, and needs a
+  // facility to aim at, so it waits for one.
   const StartARButton = () => (
     <div className={cn('absolute top-12 sm:top-3 z-20 pointer-events-auto', dir === 'rtl' ? 'left-3' : 'right-3')}>
       <button
-        onClick={() => navigate('/ar')}
-        className="flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all bg-primary text-white dark:bg-[#0EA5D6] dark:text-[#050c1a] shadow-lg hover:brightness-110 active:scale-95 border border-white/10"
+        onClick={() => {
+          if (!manualTarget) return;
+          if (typeof navigator.vibrate === 'function') {
+            try { navigator.vibrate(80); } catch { /* best-effort */ }
+          }
+          setShowPath(true);
+        }}
+        disabled={!manualTarget || showPath}
+        title={!manualTarget ? t('selectDestinationFirstLabel') : undefined}
+        className={cn(
+          'flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all border border-white/10',
+          !manualTarget || showPath
+            ? 'bg-black/45 text-white/40 backdrop-blur-xl cursor-not-allowed'
+            : 'bg-primary text-white dark:bg-[#0EA5D6] dark:text-[#050c1a] shadow-lg hover:brightness-110 active:scale-95'
+        )}
       >
         <Camera className="w-3.5 h-3.5 shrink-0" />
-        <span>{t('startARNavigation')}</span>
+        <span>{showPath ? t('navigationInProgressLabel') : t('startARNavigation')}</span>
       </button>
     </div>
   );
@@ -222,19 +237,19 @@ export function FacilitiesMap() {
   return (
     <div
       className={cn(
-        'h-full flex flex-col gap-8 animate-in duration-500 font-sans',
+        'h-full flex flex-col gap-3 roomy:gap-8 animate-in duration-500 font-sans',
         dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left'
       )}
     >
       {/* Header */}
       <div
         className={cn(
-          'flex flex-col md:flex-row items-center justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10',
+          'flex flex-row items-center justify-between gap-3 roomy:gap-8 pb-3 roomy:pb-8 border-b border-slate-200 dark:border-white/10',
           dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row'
         )}
       >
-        <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
-          <div className={cn('flex items-center gap-3 mb-4', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+        <div className={cn('min-w-0', dir === 'rtl' ? 'text-right' : 'text-left')}>
+          <div className={cn('hidden roomy:flex items-center gap-3 mb-4', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
             <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center text-accent">
               <Compass className="w-6 h-6" />
             </div>
@@ -242,14 +257,35 @@ export function FacilitiesMap() {
               {language === 'ar' ? 'نظام الملاحة الداخلية' : 'INDOOR NAVIGATION'}
             </span>
           </div>
-          <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">
+          <h1 className="text-lg roomy:text-4xl font-black text-primary dark:text-white tracking-tight truncate roomy:whitespace-normal">
             {t('libraryFacilities')}
           </h1>
-          <p className="text-slate-400 dark:text-slate-500 font-bold mt-2 leading-relaxed">
+          <p className="hidden roomy:block text-slate-400 dark:text-slate-500 font-bold mt-2 leading-relaxed">
             {language === 'ar'
               ? 'اعثر على قاعات الدراسة، مختبرات الحاسوب، الطابعات والمرافق الأخرى'
               : 'Find study rooms, computer labs, printers, and other facilities'}
           </p>
+        </div>
+
+        {/* Both bars are hidden on this page so the map can have the screen.
+            These are the two controls that went with them. */}
+        <div className="roomy:hidden shrink-0 flex items-center gap-2">
+          <button
+            onClick={toggleLanguage}
+            aria-label={language === 'ar' ? 'English' : 'عربي'}
+            title={language === 'ar' ? 'English' : 'عربي'}
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-primary dark:text-white shadow-sm active:scale-95 transition-all"
+          >
+            <Languages className="w-4.5 h-4.5 text-accent" />
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            aria-label={t('backToHome')}
+            title={t('backToHome')}
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-primary dark:text-white shadow-sm active:scale-95 transition-all"
+          >
+            <Home className="w-4.5 h-4.5" />
+          </button>
         </div>
       </div>
 
@@ -261,7 +297,7 @@ export function FacilitiesMap() {
         )}
       >
         {/* ── Left: map panel ── */}
-        <div className="flex-1 official-card relative overflow-hidden min-h-[650px] p-0 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
+        <div className="flex-none roomy:flex-1 official-card relative overflow-hidden -mx-8 roomy:mx-0 rounded-none roomy:rounded-2xl h-[calc(100dvh-5.5rem)] roomy:h-[calc(100dvh-12rem)] min-h-0 roomy:min-h-[650px] p-0 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
           <AnimatePresence mode="wait">
 
             {/* ════ 3D view — library-ar-floor iframe ════ */}
@@ -271,7 +307,7 @@ export function FacilitiesMap() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="relative w-full h-full min-h-[650px] flex flex-col"
+                className="relative w-full h-full min-h-0 roomy:min-h-[650px] flex flex-col"
               >
                 <iframe
                   ref={arIframeRef}
