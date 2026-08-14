@@ -60,14 +60,13 @@ export function LibraryMap() {
   const [manualTarget, setManualTarget] = useState<ManualTarget | null>(null);
 
   const [activeTab, setActiveTab] = useState<'map' | 'sections'>('map');
-  const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [rafeeqDismissed, setRafeeqDismissed] = useState(false);
   const [map3D, setMap3D] = useState(false);
-  const [mapMode, setMapMode] = useState<'flat' | 'unity' | 'ar-floor'>('ar-floor');
+  const [mapMode, setMapMode] = useState<'unity' | 'ar-floor'>('ar-floor');
   const [showARFloor, setShowARFloor] = useState(false);
 
   // Which view the student actually used to find resources — the Researcher
-  // badge asks for the 2D or the 3D map, and only this page knows which is on.
+  // badge reads this, and only this page knows which map is on.
   useEffect(() => { trackMapMode(mapMode); }, [mapMode]);
 
   const [sidebarSearch, setSidebarSearch] = useState('');
@@ -125,7 +124,7 @@ export function LibraryMap() {
     'E-2': { ar: 'تسويق دولي واقتصاد',          en: 'Global Marketing & Econ.' },
   };
 
-  // LC class assigned to each shelf — matches the 2D map & AR Floor signs
+  // LC class assigned to each shelf — matches the AR Floor signs
   const SHELF_LC_CLASS: Record<string, string> = {
     'A-1': 'QC',  'A-2': 'QB',
     'B-1': 'Q',   'B-2': 'TK',
@@ -367,41 +366,6 @@ export function LibraryMap() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showARFloor, mapMode, destinationShelfId, bookPositionInShelf, selectedBook]);
 
-  const getPathData = () => {
-    if (!destinationShelfId) return "";
-    // Corridors taken from the furniture the plan actually draws, not from
-    // memory. Three of the old ones did not exist: y=160 is a 4-unit crack
-    // between the first and second rows of shelving, y=249 runs through both
-    // circulation counters (y 240–258), and y=370 grazes the bottom row.
-    //
-    // The counters span x 18–267 and 333–585, so the gap between them at x=300
-    // is the only way past them. Every route therefore climbs the centre first
-    // and fans out along a band that is genuinely empty — y=229 between the
-    // second row and the counters, y=285 between the counters and the third —
-    // before turning up its own aisle (x=150, 300 or 450, each 54 wide) and
-    // stopping at the face of the shelf. It stops at the face, not the centre:
-    // a route drawn to the centre lays 48 units of line over the shelf card
-    // itself, which reads as walking through the shelving.
-    const paths: Record<string, string> = {
-      // Row 1 — shelves at y 102–158
-      'A-1': "M 300,450 L 300,229 L 150,229 L 150,130 L 123,130",
-      'A-2': "M 300,450 L 300,229 L 300,130 L 273,130",
-      'B-1': "M 300,450 L 300,229 L 300,130 L 327,130",
-      'B-2': "M 300,450 L 300,229 L 450,229 L 450,130 L 477,130",
-      // Row 2 — shelves at y 162–218
-      'B-3': "M 300,450 L 300,229 L 150,229 L 150,190 L 123,190",
-      'B-4': "M 300,450 L 300,229 L 300,190 L 273,190",
-      'C-1': "M 300,450 L 300,229 L 300,190 L 327,190",
-      'C-2': "M 300,450 L 300,229 L 450,229 L 450,190 L 477,190",
-      // Row 3 — shelves at y 312–368
-      'D-1': "M 300,450 L 300,285 L 150,285 L 150,340 L 123,340",
-      'D-2': "M 300,450 L 300,285 L 300,340 L 273,340",
-      'E-1': "M 300,450 L 300,285 L 300,340 L 327,340",
-      'E-2': "M 300,450 L 300,285 L 450,285 L 450,340 L 477,340",
-    };
-    return paths[destinationShelfId] || "M 300,450 L 300,285";
-  };
-
   return (
     <div className={cn("h-full flex flex-col gap-3 roomy:gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
       {/* Dynamic Header */}
@@ -566,19 +530,16 @@ export function LibraryMap() {
                         title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
                         allow="camera; microphone; accelerometer; gyroscope"
                       />
-                      {/* 2D / 3D mode toggle */}
-                      <div className="absolute top-12 sm:top-3 right-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-xl rounded-xl p-1 border border-white/10 pointer-events-auto">
+                      {/* There is one map now, so this is no longer a choice of
+                          which to look at — it opens the same floor plan full
+                          screen with the camera behind it. */}
+                      <div className={cn("absolute top-12 sm:top-3 z-20 pointer-events-auto", dir === 'rtl' ? 'left-3' : 'right-3')}>
                         <button
-                          onClick={() => setMapMode('flat')}
-                          className="px-4 py-3 rounded-lg text-[11px] font-black transition-all text-white/60 hover:text-white hover:bg-white/10"
+                          onClick={() => setShowARFloor(true)}
+                          className="flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all bg-[#0EA5D6] text-[#050c1a] shadow-lg hover:brightness-110 active:scale-95 border border-white/10"
                         >
-                          2D
-                        </button>
-                        <button
-                          onClick={() => setMapMode('ar-floor')}
-                          className="px-4 py-3 rounded-lg text-[11px] font-black transition-all bg-[#0EA5D6] text-[#050c1a] shadow"
-                        >
-                          3D
+                          <Camera className="w-3.5 h-3.5 shrink-0" />
+                          <span>{t('startARNavigation')}</span>
                         </button>
                       </div>
 
@@ -648,7 +609,7 @@ export function LibraryMap() {
                                       <span className="text-[#D4AF37] text-[10px] font-black">{displayShelfCode}</span>
                                       <span className="text-white/20">·</span>
                                       <span className="text-white/50 text-[10px]" dir="ltr">
-                                        {liveDistanceMeters}m
+                                        {liveDistanceMeters}{language === 'ar' ? ' م' : 'm'}
                                       </span>
                                       <span className="text-white/20">·</span>
                                       <span className="text-white/70 text-[10px] font-black">
@@ -747,398 +708,6 @@ export function LibraryMap() {
                     </div>
                   )}
 
-                  {/* Flat / 2D mode */}
-
-                  {/* ── Flat mode: floor plan map ── */}
-                  {mapMode === 'flat' && (
-                    <div className="flex-1 relative rounded-2xl overflow-hidden flex flex-col" style={{ background: '#F8FAFC', minHeight: '400px', border: '1px solid #E2E8F0' }}>
-                      {/* 2D / 3D mode toggle */}
-                      <div className="absolute top-3 right-3 z-40 flex items-center gap-1 bg-white/80 backdrop-blur-xl rounded-xl p-1 border border-slate-200 shadow-sm">
-                        <button onClick={() => setMapMode('flat')}
-                          className="px-4 py-3 rounded-lg text-[11px] font-black transition-all bg-slate-800 text-white shadow">
-                          2D
-                        </button>
-                        <button onClick={() => setMapMode('ar-floor')}
-                          className="px-4 py-3 rounded-lg text-[11px] font-black transition-all text-slate-400 hover:text-slate-700 hover:bg-slate-100">
-                          3D
-                        </button>
-                      </div>
-
-                      {/* The plan draws with xMidYMid meet, so in a box that is
-                          not 600:500 it letterboxes itself: on an iPhone SE the
-                          svg box was 275x398 and the drawing only 275x229, with
-                          169px of the map card left blank. Giving the shared box
-                          the plan's own ratio removes the dead band. */}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="relative w-full max-h-full" style={{ aspectRatio: '600 / 500' }}>
-                      <svg viewBox="0 0 600 500" className="absolute inset-0 w-full h-full" style={{ userSelect: 'none' }}>
-                        <defs>
-                          {/* Vertical book-spine stripe patterns per zone */}
-                          <pattern id="stripA" width="7" height="7" patternUnits="userSpaceOnUse">
-                            <line x1="3.5" y1="0" x2="3.5" y2="7" stroke="#93C5FD" strokeWidth="1.3" opacity="0.45"/>
-                          </pattern>
-                          <pattern id="stripB" width="7" height="7" patternUnits="userSpaceOnUse">
-                            <line x1="3.5" y1="0" x2="3.5" y2="7" stroke="#FDBA74" strokeWidth="1.3" opacity="0.45"/>
-                          </pattern>
-                          <pattern id="stripC" width="7" height="7" patternUnits="userSpaceOnUse">
-                            <line x1="3.5" y1="0" x2="3.5" y2="7" stroke="#C4B5FD" strokeWidth="1.3" opacity="0.45"/>
-                          </pattern>
-                          <pattern id="stripD" width="7" height="7" patternUnits="userSpaceOnUse">
-                            <line x1="3.5" y1="0" x2="3.5" y2="7" stroke="#86EFAC" strokeWidth="1.3" opacity="0.45"/>
-                          </pattern>
-                          {/* Facility card drop shadow */}
-                          <filter id="cardShadow" x="-15%" y="-15%" width="130%" height="140%">
-                            <feDropShadow dx="0" dy="2" stdDeviation="3.5" floodColor="#00000018"/>
-                          </filter>
-                          {/* Destination glow */}
-                          <filter id="fmGlow">
-                            <feGaussianBlur stdDeviation="4" result="b"/>
-                            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                          </filter>
-                          <filter id="fmPulse">
-                            <feGaussianBlur stdDeviation="9" result="b"/>
-                            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-                          </filter>
-                          <linearGradient id="fmPath" x1="0%" y1="100%" x2="0%" y2="0%">
-                            <stop offset="0%" stopColor="#D97706" stopOpacity="0.2"/>
-                            <stop offset="100%" stopColor="#D97706" stopOpacity="1"/>
-                          </linearGradient>
-                        </defs>
-
-                        {/* Floor outline (light) */}
-                        <rect x="15" y="15" width="570" height="462" rx="22" fill="white" stroke="#E2E8F0" strokeWidth="1.5"/>
-
-                        {/* ── Zone A: upper-left — Natural Sciences (blue) ── */}
-                        <rect x="18" y="40" width="249" height="200" rx="12" fill="#DBEAFE" fillOpacity="0.45"/>
-                        <rect x="18" y="40" width="249" height="200" rx="12" fill="url(#stripA)"/>
-                        <rect x="18" y="40" width="249" height="200" rx="12" fill="none" stroke="#93C5FD" strokeWidth="1"/>
-                        <text x="142" y="72" textAnchor="middle" fontSize="15" fontWeight="700" fill="#1D4ED8" fontFamily="'IBM Plex Mono',monospace">A · NATURAL SCIENCES</text>
-                        <text x="142" y="91" textAnchor="middle" fontSize="11" fontWeight="600" fill="#60A5FA" fontFamily="sans-serif">العلوم الطبيعية</text>
-
-                        {/* ── Zone B: upper-right — Engineering & Tech (orange) ── */}
-                        <rect x="333" y="40" width="252" height="200" rx="12" fill="#FED7AA" fillOpacity="0.45"/>
-                        <rect x="333" y="40" width="252" height="200" rx="12" fill="url(#stripB)"/>
-                        <rect x="333" y="40" width="252" height="200" rx="12" fill="none" stroke="#FDBA74" strokeWidth="1"/>
-                        <text x="459" y="72" textAnchor="middle" fontSize="15" fontWeight="700" fill="#C2410C" fontFamily="'IBM Plex Mono',monospace">B · ENGINEERING &amp; TECH</text>
-                        <text x="459" y="91" textAnchor="middle" fontSize="11" fontWeight="600" fill="#FB923C" fontFamily="sans-serif">الهندسة والتقنية</text>
-
-                        {/* ── Zone C: lower-left — Arts & Crafts (purple) ── */}
-                        <rect x="18" y="258" width="249" height="200" rx="12" fill="#EDE9FE" fillOpacity="0.45"/>
-                        <rect x="18" y="258" width="249" height="200" rx="12" fill="url(#stripC)"/>
-                        <rect x="18" y="258" width="249" height="200" rx="12" fill="none" stroke="#C4B5FD" strokeWidth="1"/>
-                        <text x="142" y="290" textAnchor="middle" fontSize="15" fontWeight="700" fill="#6D28D9" fontFamily="'IBM Plex Mono',monospace">C · ARTS &amp; CRAFTS</text>
-                        <text x="142" y="309" textAnchor="middle" fontSize="11" fontWeight="600" fill="#A78BFA" fontFamily="sans-serif">الفنون والعلوم الإنسانية</text>
-
-                        {/* ── Zone D: lower-right — Humanities (green) ── */}
-                        <rect x="333" y="258" width="252" height="200" rx="12" fill="#DCFCE7" fillOpacity="0.45"/>
-                        <rect x="333" y="258" width="252" height="200" rx="12" fill="url(#stripD)"/>
-                        <rect x="333" y="258" width="252" height="200" rx="12" fill="none" stroke="#86EFAC" strokeWidth="1"/>
-                        <text x="459" y="290" textAnchor="middle" fontSize="15" fontWeight="700" fill="#15803D" fontFamily="'IBM Plex Mono',monospace">D · HUMANITIES</text>
-                        <text x="459" y="309" textAnchor="middle" fontSize="11" fontWeight="600" fill="#4ADE80" fontFamily="sans-serif">العلوم الإنسانية والاقتصاد</text>
-
-                        {/* Center aisles */}
-                        <rect x="267" y="40" width="66" height="418" fill="#F1F5F9" rx="3"/>
-                        <rect x="18" y="240" width="249" height="18" fill="#F1F5F9" rx="3"/>
-                        <rect x="333" y="240" width="252" height="18" fill="#F1F5F9" rx="3"/>
-                        {/* Dashed center guides */}
-                        <line x1="300" y1="40" x2="300" y2="458" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="5 5"/>
-                        <line x1="18" y1="249" x2="267" y2="249" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="5 5"/>
-                        <line x1="333" y1="249" x2="585" y2="249" stroke="#CBD5E1" strokeWidth="1" strokeDasharray="5 5"/>
-
-                        {/* Shelf blocks — light theme */}
-                        {([
-                          { id: 'A-1', cx: 75,  cy: 130, zStroke: '#93C5FD',  zFill: '#EFF6FF' },
-                          { id: 'A-2', cx: 225, cy: 130, zStroke: '#93C5FD',  zFill: '#EFF6FF' },
-                          { id: 'B-1', cx: 375, cy: 130, zStroke: '#FDBA74',  zFill: '#FFF7ED' },
-                          { id: 'B-2', cx: 525, cy: 130, zStroke: '#FDBA74',  zFill: '#FFF7ED' },
-                          { id: 'B-3', cx: 75,  cy: 190, zStroke: '#93C5FD',  zFill: '#EFF6FF' },
-                          { id: 'B-4', cx: 225, cy: 190, zStroke: '#93C5FD',  zFill: '#EFF6FF' },
-                          { id: 'C-1', cx: 375, cy: 190, zStroke: '#FDBA74',  zFill: '#FFF7ED' },
-                          { id: 'C-2', cx: 525, cy: 190, zStroke: '#FDBA74',  zFill: '#FFF7ED' },
-                          { id: 'D-1', cx: 75,  cy: 340, zStroke: '#C4B5FD',  zFill: '#FAF5FF' },
-                          { id: 'D-2', cx: 225, cy: 340, zStroke: '#C4B5FD',  zFill: '#FAF5FF' },
-                          { id: 'E-1', cx: 375, cy: 340, zStroke: '#86EFAC',  zFill: '#F0FDF4' },
-                          { id: 'E-2', cx: 525, cy: 340, zStroke: '#86EFAC',  zFill: '#F0FDF4' },
-                        ] as {id:string; cx:number; cy:number; zStroke:string; zFill:string}[]).map(({ id, cx, cy, zStroke, zFill }) => {
-                          const isDest = id === destinationShelfId;
-                          const cellLabel = CELL_LABELS[id];
-                          return (
-                            <g key={id}
-                              onClick={() => !bookData && navigateToCell(id)}
-                              onMouseEnter={() => setHoveredCell(id)}
-                              onMouseLeave={() => setHoveredCell(null)}
-                              style={{ cursor: 'pointer' }}
-                            >
-                              {isDest && (
-                                <motion.rect x={cx - 52} y={cy - 32} width="104" height="64" rx="11"
-                                  fill="#D97706" filter="url(#fmPulse)"
-                                  animate={{ opacity: [0.12, 0.35, 0.12] } as never}
-                                  transition={{ duration: 1.6, repeat: Infinity }}
-                                />
-                              )}
-                              {/* Shelf card */}
-                              <rect x={cx - 48} y={cy - 28} width="96" height="56" rx="9"
-                                fill={isDest ? '#FEF3C7' : hoveredCell === id ? zFill : 'white'}
-                                stroke={isDest ? '#D97706' : hoveredCell === id ? zStroke : '#E2E8F0'}
-                                strokeWidth={isDest ? 2 : 1}
-                                filter={isDest ? undefined : 'url(#cardShadow)'}
-                              />
-                              {/* Book spine lines */}
-                              {([0.28, 0.52, 0.76] as number[]).map((f, i) => (
-                                <line key={i}
-                                  x1={cx - 48 + 96 * f} y1={cy - 28}
-                                  x2={cx - 48 + 96 * f} y2={cy + 28}
-                                  stroke={isDest ? '#D97706' : zStroke}
-                                  strokeWidth="0.9" opacity="0.35"
-                                />
-                              ))}
-                              {/* Shelf ID */}
-                              <text x={cx} y={cy - 12} textAnchor="middle"
-                                fontSize="17" fontWeight="900"
-                                fill={isDest ? '#92400E' : '#1E293B'}
-                                fontFamily="'IBM Plex Mono',monospace"
-                                filter={isDest ? 'url(#fmGlow)' : undefined}
-                                style={{ pointerEvents: 'none' }}
-                              >{id}</text>
-                              {/* LC class badge */}
-                              {SHELF_LC_CLASS[id] && (
-                                <text x={cx} y={cy + 3} textAnchor="middle" fontSize="11" fontWeight="700"
-                                  fill={isDest ? '#B45309' : zStroke.replace('4', '7').replace('E', '9')}
-                                  fontFamily="'IBM Plex Mono',monospace" style={{ pointerEvents: 'none' }}
-                                >{SHELF_LC_CLASS[id]}</text>
-                              )}
-                              {/* Subject English */}
-                              {cellLabel && (
-                                <>
-                                  <text x={cx} y={cy + 18} textAnchor="middle" fontSize="10"
-                                    fill={isDest ? '#92400E' : '#334155'}
-                                    fontFamily="'IBM Plex Mono',monospace" style={{ pointerEvents: 'none' }}
-                                  >{(cellLabel.en || '').slice(0, 16)}</text>
-                                  <text x={cx} y={cy + 31} textAnchor="middle" fontSize="9"
-                                    fill={isDest ? '#B45309' : '#94A3B8'}
-                                    fontFamily="sans-serif" style={{ pointerEvents: 'none' }}
-                                  >{cellLabel.ar || ''}</text>
-                                </>
-                              )}
-                            </g>
-                          );
-                        })}
-
-                        {/* Entrance */}
-                        <rect x="242" y="451" width="116" height="24" rx="12" fill="#1E293B"/>
-                        <text x="300" y="461" textAnchor="middle" fontSize="12" fontWeight="700" fill="white" fontFamily="'IBM Plex Mono',monospace">🚪 ENTRANCE</text>
-                        <text x="300" y="474" textAnchor="middle" fontSize="9" fill="#94A3B8" fontFamily="sans-serif">المدخل</text>
-
-                        {/* Compass rose — bottom right */}
-                        <g opacity="0.12" transform="translate(558, 448) scale(0.7)">
-                          <circle cx="0" cy="0" r="22" fill="none" stroke="#475569" strokeWidth="1.5"/>
-                          <polygon points="0,-20 4,-7 0,-2 -4,-7" fill="#475569"/>
-                          <polygon points="0,20 4,7 0,2 -4,7" fill="#94A3B8"/>
-                          <polygon points="-20,0 -7,4 -2,0 -7,-4" fill="#94A3B8"/>
-                          <polygon points="20,0 7,4 2,0 7,-4" fill="#94A3B8"/>
-                          <text x="0" y="-25" textAnchor="middle" fontSize="6" fill="#475569" fontWeight="700" fontFamily="sans-serif">N</text>
-                        </g>
-
-                        {/* ── Facility pod cards — white floating cards on zone corners ── */}
-
-                        {/* Computer Lab — top-left (Zone A) */}
-                        <g filter="url(#cardShadow)">
-                          <rect x="14" y="38" width="94" height="64" rx="12" fill="white" stroke="#E2E8F0" strokeWidth="1"/>
-                          <text x="28" y="62" fontSize="18" fontFamily="sans-serif">💻</text>
-                          <text x="52" y="57" fontSize="8.5" fontWeight="700" fill="#2563EB" fontFamily="sans-serif">Computer Lab</text>
-                          <text x="52" y="67" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">مختبر الحاسوب</text>
-                          <rect x="52" y="72" width="36" height="14" rx="7" fill="#FEE2E2"/>
-                          <text x="70" y="90" textAnchor="middle" fontSize="11" fontWeight="700" fill="#DC2626" fontFamily="sans-serif">Busy</text>
-                          <circle cx="104" cy="42" r="4.5" fill="#EF4444">
-                            <animate attributeName="opacity" values="1;0.3;1" dur="1.4s" repeatCount="indefinite"/>
-                          </circle>
-                        </g>
-
-                        {/* Group Study Rooms — top-right (Zone B) */}
-                        <g filter="url(#cardShadow)">
-                          <rect x="492" y="38" width="94" height="64" rx="12" fill="white" stroke="#E2E8F0" strokeWidth="1"/>
-                          <text x="496" y="62" fontSize="17" fontFamily="sans-serif">👥</text>
-                          <text x="516" y="57" fontSize="8" fontWeight="700" fill="#2563EB" fontFamily="sans-serif">Study Rooms</text>
-                          <text x="516" y="67" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">غرف الدراسة</text>
-                          <rect x="496" y="72" width="44" height="14" rx="7" fill="#DCFCE7"/>
-                          <text x="518" y="90" textAnchor="middle" fontSize="11" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
-                          <circle cx="496" cy="42" r="4.5" fill="#22C55E">
-                            <animate attributeName="opacity" values="1;0.4;1" dur="2s" repeatCount="indefinite"/>
-                          </circle>
-                        </g>
-
-                        {/* Printing & Copying — bottom-left (Zone C) */}
-                        <g filter="url(#cardShadow)">
-                          <rect x="14" y="397" width="94" height="64" rx="12" fill="white" stroke="#E2E8F0" strokeWidth="1"/>
-                          <text x="26" y="422" fontSize="17" fontFamily="sans-serif">🖨️</text>
-                          <text x="48" y="418" fontSize="8" fontWeight="700" fill="#C2410C" fontFamily="sans-serif">Print &amp; Copy</text>
-                          <text x="48" y="428" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">الطباعة والنسخ</text>
-                          <rect x="26" y="433" width="44" height="14" rx="7" fill="#DCFCE7"/>
-                          <text x="48" y="451" textAnchor="middle" fontSize="11" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
-                          <circle cx="104" cy="401" r="4.5" fill="#22C55E">
-                            <animate attributeName="opacity" values="1;0.4;1" dur="1.8s" repeatCount="indefinite"/>
-                          </circle>
-                        </g>
-
-                        {/* Silent Reading Zone — bottom-right (Zone D) */}
-                        <g filter="url(#cardShadow)">
-                          <rect x="492" y="397" width="94" height="64" rx="12" fill="white" stroke="#E2E8F0" strokeWidth="1"/>
-                          <text x="496" y="422" fontSize="17" fontFamily="sans-serif">📖</text>
-                          <text x="516" y="418" fontSize="8" fontWeight="700" fill="#6D28D9" fontFamily="sans-serif">Silent Zone</text>
-                          <text x="516" y="428" fontSize="6" fill="#94A3B8" fontFamily="sans-serif">منطقة هادئة</text>
-                          <rect x="496" y="433" width="44" height="14" rx="7" fill="#DCFCE7"/>
-                          <text x="518" y="451" textAnchor="middle" fontSize="11" fontWeight="700" fill="#16A34A" fontFamily="sans-serif">Available</text>
-                          <circle cx="496" cy="401" r="4.5" fill="#22C55E">
-                            <animate attributeName="opacity" values="1;0.4;1" dur="2.2s" repeatCount="indefinite"/>
-                          </circle>
-                        </g>
-
-                        {/* Navigation path overlay — pure native SVG/SMIL. Using
-                            plain <path>/<animate> (not framer-motion's
-                            pathLength, which also drives strokeDasharray
-                            internally and silently overrides any dash pattern
-                            we set) so the draw-in reveal and the flowing arrow
-                            chevrons both render reliably. */}
-                        {showPath && destinationShelfId && (() => {
-                          const d = getPathData();
-                          // The arrival marker is read off the end of the route
-                          // rather than kept in a second table, so it always sits
-                          // where the walking actually stops — at the face of the
-                          // shelf. The shelf card itself is highlighted separately.
-                          const stops = d.match(/-?\d+,-?\d+/g) ?? [];
-                          const [ex, ey] = (stops[stops.length - 1] ?? '300,250').split(',').map(Number);
-                          return (
-                            <g key={destinationShelfId}>
-                              {/* Wide glow halo */}
-                              <path d={d} stroke="#D97706" strokeWidth="24" fill="none" strokeLinecap="round" opacity="0.08" />
-                              {/* Main solid path — draws in via stroke-dashoffset */}
-                              <path
-                                d={d} stroke="url(#fmPath)" strokeWidth="5" fill="none" strokeLinecap="round"
-                                filter="url(#fmGlow)" strokeDasharray="1400" strokeDashoffset="1400" opacity="0.95"
-                              >
-                                <animate attributeName="stroke-dashoffset" from="1400" to="0" dur="1.1s" fill="freeze" />
-                              </path>
-                              {/* Flowing amber arrow chevrons */}
-                              {[0, 1, 2].map(i => (
-                                <polygon key={i} points="-6,-8 9,0 -6,8" fill="#D97706" opacity="0.9" filter="url(#fmGlow)">
-                                  <animateMotion dur="1.8s" begin={`${i * 0.6}s`} repeatCount="indefinite" rotate="auto" path={d} />
-                                </polygon>
-                              ))}
-                              {/* Destination pulsing ring */}
-                              <circle cx={ex} cy={ey} r="10" fill="#D97706" stroke="white" strokeWidth="2.5" />
-                              <circle cx={ex} cy={ey} r="10" fill="none" stroke="#D97706" strokeWidth="2" opacity="0.7">
-                                <animate attributeName="r" values="10;26;10" dur="1.8s" repeatCount="indefinite" />
-                                <animate attributeName="opacity" values="0.7;0;0.7" dur="1.8s" repeatCount="indefinite" />
-                              </circle>
-                            </g>
-                          );
-                        })()}
-                      </svg>
-                        </div>
-                      </div>
-
-                      {/* Navigation HUD — live distance / ETA / arrival time */}
-                      {showPath && destinationShelfId && (
-                        <div className="absolute top-3 inset-x-0 flex justify-center z-30 pointer-events-none px-4">
-                          <div className="flex items-center gap-2 flex-wrap justify-center">
-                            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 text-white text-[11px] font-black shadow-xl">
-                              <Navigation className="w-3.5 h-3.5 text-accent shrink-0" />
-                              <AnimatePresence mode="wait">
-                                <motion.span key={liveDistanceMeters} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                  className="text-accent font-black"
-                                >{liveDistanceMeters}{language === 'ar' ? ' م' : 'm'}</motion.span>
-                              </AnimatePresence>
-                              <span className="text-white/30">·</span>
-                              <AnimatePresence mode="wait">
-                                <motion.span key={liveEtaMinutes} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                  {liveEtaMinutes > 0 ? `${liveEtaMinutes} ${t('minutesShort')}` : `< 1 ${t('minutesShort')}`}
-                                </motion.span>
-                              </AnimatePresence>
-                            </div>
-                            {!hasArrived ? (
-                              <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 text-white text-[11px] font-black shadow-xl">
-                                <Clock className="w-3 h-3 text-accent shrink-0" />
-                                <span>{language === 'ar' ? 'الوصول' : 'Arrive'}</span>
-                                <span className="text-accent">{arrivalTime}</span>
-                              </div>
-                            ) : (
-                              <div className="px-4 py-2 rounded-full bg-accent text-primary text-[11px] font-black shadow-xl">
-                                ✓ {language === 'ar' ? 'وصلت!' : 'Arrived!'}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Shelf hover info card */}
-                      <AnimatePresence>
-                        {hoveredCell && (() => {
-                          const lbl = CELL_LABELS[hoveredCell];
-                          const lc = SHELF_LC_CLASS[hoveredCell];
-                          return (
-                            <motion.div
-                              key={hoveredCell}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0.9 }}
-                              transition={{ duration: 0.15 }}
-                              className={cn('absolute bottom-16 z-40 pointer-events-none', dir === 'rtl' ? 'left-4' : 'right-4')}
-                            >
-                              <div className="bg-slate-900/95 backdrop-blur-xl border border-accent/40 rounded-2xl px-4 py-3 shadow-2xl">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <span className="text-sm font-black text-accent font-mono">{hoveredCell}</span>
-                                  {lc && <span className="px-1.5 py-0.5 bg-accent/20 text-accent text-[9px] font-black rounded-md font-mono">{lc}</span>}
-                                </div>
-                                {lbl && (
-                                  <>
-                                    <div className="text-[11px] font-black text-white">{language === 'ar' ? lbl.ar : lbl.en}</div>
-                                    <div className="text-[9px] text-white/50 mt-0.5">{language === 'ar' ? lbl.en : lbl.ar}</div>
-                                  </>
-                                )}
-                              </div>
-                            </motion.div>
-                          );
-                        })()}
-                      </AnimatePresence>
-
-                      {/* Start Navigation + AR Guide buttons */}
-                      {destinationShelfId && (
-                        <div className={cn('absolute bottom-4 z-40 flex items-center gap-2', dir === 'rtl' ? 'right-4' : 'left-4')}>
-                          {!showPath ? (
-                            <button
-                              onClick={() => {
-                                if (typeof navigator.vibrate === 'function') {
-                                  try { navigator.vibrate(80); } catch { /* best-effort */ }
-                                }
-                                setShowPath(true);
-                              }}
-                              className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-accent text-primary text-[11px] font-black shadow-xl shadow-accent/30 hover:brightness-110 transition-all active:scale-95"
-                            >
-                              <Navigation className="w-4 h-4" style={{ transform: 'rotate(-45deg)' }} />
-                              <span>{t('startNavigationLabel')}</span>
-                            </button>
-                          ) : !hasArrived ? (
-                            <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-black shadow-xl">
-                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                              <span>{language === 'ar' ? 'جاري الملاحة…' : 'Navigating…'}</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-accent text-primary text-[11px] font-black shadow-xl">
-                              ✓ {language === 'ar' ? 'وصلت!' : 'Arrived!'}
-                            </div>
-                          )}
-                          <button
-                            onClick={() => setActiveTab('sections')}
-                            title="AR Guide"
-                            className="flex items-center gap-1.5 px-4 py-3 rounded-2xl bg-slate-900/90 border border-accent/30 text-accent text-[11px] font-black shadow-xl hover:brightness-110 transition-all active:scale-95"
-                          >
-                            <Camera className="w-4 h-4" />
-                            <span>AR</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  )}
 
               </motion.div>
             ) : (
@@ -1321,7 +890,7 @@ export function LibraryMap() {
                           starts instead of sitting on one static number. */}
                       <div className="flex items-center gap-2">
                         <div className="px-4 py-2 rounded-full bg-accent/15 backdrop-blur-xl border border-accent/30 text-accent text-[11px] font-black flex items-center gap-2.5">
-                          <span className="text-sm font-black">{showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? 'م' : 'm'}</span>
+                          <span className="text-sm font-black">{showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
                           <span className="w-1 h-1 rounded-full bg-accent/50" />
                           <span>{showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
                         </div>
@@ -1454,14 +1023,14 @@ export function LibraryMap() {
                         </span>
                       )}
                     </div>
-                    {/* Subject name from 2D map */}
+                    {/* Subject name from the floor plan */}
                     {CELL_LABELS[bookData.shelf] && (
                       <div className={cn('text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-snug', dir === 'rtl' ? 'text-right' : 'text-left')}>
                         {language === 'ar' ? CELL_LABELS[bookData.shelf].ar : CELL_LABELS[bookData.shelf].en}
                       </div>
                     )}
                     <div className="text-[9px] font-bold text-accent/70 leading-snug">
-                      {language === 'ar' ? '✓ يطابق الخريطة 2D و AR Floor' : '✓ Matches 2D map & AR Floor'}
+                      {language === 'ar' ? '✓ يطابق لوحات الرفوف في الخريطة' : '✓ Matches the shelf signs on the map'}
                     </div>
                   </div>
                   {/* Card 2: Subject area */}

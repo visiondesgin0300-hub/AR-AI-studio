@@ -190,9 +190,11 @@ function trackActivity(tag: string): void {
   } catch {}
 }
 
-/** The library map was viewed in this mode. 'flat' is 2D, the rest are 3D. */
-export function trackMapMode(mode: 'flat' | 'unity' | 'ar-floor'): void {
-  trackActivity(mode === 'flat' ? 'map-2d' : 'map-3d');
+/** The library map was viewed in this mode. The 2D plan is gone; both
+    remaining modes are 3D, and the activity log keeps its existing value so
+    entries recorded before the plan was removed still read the same. */
+export function trackMapMode(_mode: 'unity' | 'ar-floor'): void {
+  trackActivity('map-3d');
 }
 
 /** An augmented-reality feature was opened. Counted once per feature. */
