@@ -148,7 +148,7 @@ export function LibraryMap() {
     trackMapVisit(cellId); // Award XP for each unique shelf explored
     setSelectedBook(null);
     setManualTarget({ id: cellId });
-    setShowPath(true);
+    setShowPath(false);
     setActiveTab('map');
     if (typeof navigator.vibrate === 'function') {
       try { navigator.vibrate(80); } catch { /* best-effort */ }
@@ -159,11 +159,11 @@ export function LibraryMap() {
     if (location.state?.bookId) {
       setManualTarget(null);
       setSelectedBook(location.state.bookId);
-      setShowPath(true);
+      setShowPath(false);
     } else if (location.state?.shelfId) {
       setSelectedBook(null);
       setManualTarget({ id: location.state.shelfId });
-      setShowPath(true);
+      setShowPath(false);
       if (location.state?.openAR) {
         setActiveTab('sections');
       }
@@ -325,9 +325,18 @@ export function LibraryMap() {
     }
   }, [showARFloor, destinationShelfId]);
 
+  // The beam waits for the walk to be started rather than appearing as soon as
+  // a book is located: locating one is choosing where to go, pressing the
+  // button is setting off. Clearing on the way out matters as much as drawing
+  // — the scene keeps whatever it was last told.
   useEffect(() => {
     const isVisible = showARFloor || mapMode === 'ar-floor';
-    if (!isVisible || !destinationShelfId) return;
+    if (!isVisible) return;
+    if (!destinationShelfId || !showPath) {
+      arIframeRef.current?.contentWindow?.postMessage({ type: 'LIBRARY_CLEAR_GUIDE' }, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage({ type: 'LIBRARY_CLEAR_GUIDE' }, '*');
+      return;
+    }
     const floorCode = SHELF_TO_3D_CODE[destinationShelfId] ?? destinationShelfId;
     const msg = {
       type: 'LIBRARY_GUIDE_TO',
@@ -370,7 +379,7 @@ export function LibraryMap() {
     }, 400);
     return () => clearInterval(interval);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showARFloor, mapMode, destinationShelfId, bookPositionInShelf, selectedBook]);
+  }, [showARFloor, mapMode, showPath, destinationShelfId, bookPositionInShelf, selectedBook]);
 
   return (
     <div className={cn("h-full flex flex-col gap-3 roomy:gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>

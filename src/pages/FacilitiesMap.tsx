@@ -55,8 +55,13 @@ export function FacilitiesMap() {
   // before the iframe's listener is registered. Keep resending until the
   // iframe (same-origin, so directly inspectable) confirms it's actually
   // showing this exact target, or give up after ~12s.
+  //
+  // The beam waits for the walk to be started rather than appearing the moment
+  // a facility is picked: picking one is choosing where to go, pressing the
+  // button is setting off. Clearing on the way out matters as much as drawing
+  // — the scene keeps whatever it was last told.
   useEffect(() => {
-    if (!manualTarget) {
+    if (!manualTarget || !showPath) {
       arIframeRef.current?.contentWindow?.postMessage({ type: 'LIBRARY_CLEAR_GUIDE' }, '*');
       return;
     }
@@ -87,7 +92,7 @@ export function FacilitiesMap() {
       send();
     }, 400);
     return () => clearInterval(interval);
-  }, [manualTarget]);
+  }, [manualTarget, showPath]);
 
   const FACILITIES = [
     {
