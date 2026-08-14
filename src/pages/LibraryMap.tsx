@@ -284,6 +284,7 @@ export function LibraryMap() {
 
   const arIframeRef = useRef<HTMLIFrameElement>(null);
   const arInlineIframeRef = useRef<HTMLIFrameElement>(null);
+  const sidePanelRef = useRef<HTMLDivElement>(null);
 
   // Maps our shelf codes → the 3D floor app's physical shelf codes.
   // The 3D app names shelves by LC class position (A-1=Philosophy, B-1=Psychology…)
@@ -551,18 +552,26 @@ export function LibraryMap() {
                           a destination to draw one to, so it waits for one. */}
                       <div className={cn("absolute top-12 sm:top-3 z-20 pointer-events-auto", dir === 'rtl' ? 'left-3' : 'right-3')}>
                         <button
-                          onClick={() => { if (destinationShelfId) setShowARFloor(true); }}
-                          disabled={!destinationShelfId}
+                          onClick={() => {
+                            // With nothing to route to, take the reader to the
+                            // panel where a destination is chosen rather than
+                            // sitting greyed out with the reason off-screen.
+                            if (!destinationShelfId) {
+                              sidePanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              return;
+                            }
+                            setShowARFloor(true);
+                          }}
                           title={!destinationShelfId ? t('selectDestinationFirstLabel') : undefined}
                           className={cn(
-                            "flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all border border-white/10",
+                            "flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all border active:scale-95",
                             destinationShelfId
-                              ? "bg-[#0EA5D6] text-[#050c1a] shadow-lg hover:brightness-110 active:scale-95"
-                              : "bg-black/45 text-white/40 backdrop-blur-xl cursor-not-allowed"
+                              ? "bg-[#0EA5D6] text-[#050c1a] border-white/10 shadow-lg hover:brightness-110"
+                              : "bg-black/55 text-white/80 border-white/25 backdrop-blur-xl hover:bg-black/70"
                           )}
                         >
                           <Camera className="w-3.5 h-3.5 shrink-0" />
-                          <span>{t('startARNavigation')}</span>
+                          <span>{destinationShelfId ? t('startARNavigation') : t('selectDestinationFirstLabel')}</span>
                         </button>
                       </div>
 
@@ -1007,7 +1016,7 @@ export function LibraryMap() {
         </div>
 
         {/* Sidebar Intelligence */}
-        <div className="w-full xl:w-[450px] flex flex-col gap-8">
+        <div ref={sidePanelRef} className="w-full xl:w-[450px] flex flex-col gap-8">
           {bookData ? (
             /* ══ SHELVES TAB: book selected → book navigation ══ */
             <motion.div

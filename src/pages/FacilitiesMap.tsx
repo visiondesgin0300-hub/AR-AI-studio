@@ -43,6 +43,8 @@ export function FacilitiesMap() {
   const [showPath, setShowPath] = useState(false);
   const [walkProgress, setWalkProgress] = useState(0);
   const arIframeRef = useRef<HTMLIFrameElement>(null);
+  const mapPanelRef = useRef<HTMLDivElement>(null);
+  const listPanelRef = useRef<HTMLDivElement>(null);
 
   // Draw the glowing wayfinding beam inside the 3D scene toward the
   // selected facility (the iframe's built-in guide only knew about shelf
@@ -218,23 +220,28 @@ export function FacilitiesMap() {
     <div className={cn('absolute top-12 sm:top-3 z-20 pointer-events-auto', dir === 'rtl' ? 'left-3' : 'right-3')}>
       <button
         onClick={() => {
-          if (!manualTarget) return;
+          if (!manualTarget) {
+            listPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return;
+          }
           if (typeof navigator.vibrate === 'function') {
             try { navigator.vibrate(80); } catch { /* best-effort */ }
           }
           setShowPath(true);
         }}
-        disabled={!manualTarget || showPath}
+        disabled={showPath}
         title={!manualTarget ? t('selectDestinationFirstLabel') : undefined}
         className={cn(
-          'flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all border border-white/10',
-          !manualTarget || showPath
-            ? 'bg-black/45 text-white/40 backdrop-blur-xl cursor-not-allowed'
-            : 'bg-primary text-white dark:bg-[#0EA5D6] dark:text-[#050c1a] shadow-lg hover:brightness-110 active:scale-95'
+          'flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all border',
+          showPath
+            ? 'bg-black/45 text-white/40 border-white/10 backdrop-blur-xl cursor-not-allowed'
+            : manualTarget
+              ? 'bg-primary text-white dark:bg-[#0EA5D6] dark:text-[#050c1a] border-white/10 shadow-lg hover:brightness-110 active:scale-95'
+              : 'bg-black/55 text-white/80 border-white/25 backdrop-blur-xl hover:bg-black/70 active:scale-95'
         )}
       >
         <Camera className="w-3.5 h-3.5 shrink-0" />
-        <span>{showPath ? t('navigationInProgressLabel') : t('startARNavigation')}</span>
+        <span>{showPath ? t('navigationInProgressLabel') : manualTarget ? t('startARNavigation') : t('selectDestinationFirstLabel')}</span>
       </button>
     </div>
   );
@@ -302,7 +309,16 @@ export function FacilitiesMap() {
         )}
       >
         {/* ── Left: map panel ── */}
-        <div className="flex-none roomy:flex-1 official-card relative overflow-hidden -mx-8 roomy:mx-0 rounded-none roomy:rounded-2xl h-[calc(100dvh-5.5rem)] roomy:h-[calc(100dvh-12rem)] min-h-0 roomy:min-h-[650px] p-0 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
+        <div
+          ref={mapPanelRef}
+          className={cn(
+            "flex-none roomy:flex-1 official-card relative overflow-hidden -mx-8 roomy:mx-0 rounded-none roomy:rounded-2xl h-[calc(100dvh-5.5rem)] roomy:h-[calc(100dvh-12rem)] min-h-0 roomy:min-h-[650px] p-0 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20",
+            // On a phone the map fills the screen, so opening on it buries the
+            // list a whole screenful down. Land on the list instead and bring
+            // the map up when there is somewhere to go. A desktop shows both.
+            !manualTarget && "hidden roomy:block"
+          )}
+        >
           <AnimatePresence mode="wait">
 
             {/* ════ 3D view — library-ar-floor iframe ════ */}
@@ -428,7 +444,7 @@ export function FacilitiesMap() {
         </div>
 
         {/* ── Right sidebar ── */}
-        <div className="w-full xl:w-[450px] flex flex-col gap-8">
+        <div ref={listPanelRef} className="w-full xl:w-[450px] flex flex-col gap-8">
           <AnimatePresence mode="wait">
             {manualTarget && targetFacility ? (
               /* Facility selected: navigation panel */
@@ -599,25 +615,31 @@ export function FacilitiesMap() {
                     filtered.map(facility => (
                       <button
                         key={facility.cellId}
-                        onClick={() => { setManualTarget({ id: facility.cellId }); setShowPath(false); }}
+                        onClick={() => {
+                          setManualTarget({ id: facility.cellId });
+                          setShowPath(false);
+                          requestAnimationFrame(() =>
+                            mapPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                        }}
                         className={cn(
-                          'w-full flex items-center gap-4 px-5 py-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group',
-                          dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left'
+                          'w-full flex flex-col gap-3 px-5 py-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group',
+                          dir === 'rtl' ? 'text-right' : 'text-left'
                         )}
                       >
+                        <div className={cn('w-full flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                         <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent group-hover:bg-primary/20 dark:group-hover:bg-accent/20 transition-colors">
                           <facility.icon className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-black text-primary dark:text-white truncate leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                          <p className="text-sm font-black text-primary dark:text-white leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">
                             {facility.name}
                           </p>
-                          <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                          <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 leading-snug">
                             {facility.desc}
                           </p>
                           <div className={cn('flex items-center gap-2 mt-1.5', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                             <MapPin className="w-3 h-3 text-primary/40 dark:text-accent/60 shrink-0" />
-                            <span className="text-[10px] font-bold text-primary/50 dark:text-accent/70 truncate">
+                            <span className="text-[10px] font-bold text-primary/50 dark:text-accent/70">
                               {facility.location}
                             </span>
                             <span className={cn('shrink-0 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider',
@@ -629,7 +651,17 @@ export function FacilitiesMap() {
                             </span>
                           </div>
                         </div>
-                        <Navigation className={cn('w-4 h-4 shrink-0 text-slate-200 dark:text-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-colors', dir === 'rtl' ? 'rotate-180' : '')} />
+                        </div>
+                        {/* Named, not a bare arrow: on a phone there is no hover
+                            to reveal what the row does, and the map opens from
+                            here. On its own line so it cannot squeeze the name. */}
+                        <span className={cn(
+                          'flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-primary/10 dark:bg-accent/15 text-primary dark:text-accent text-[10px] font-black uppercase tracking-wider group-hover:bg-primary group-hover:text-white dark:group-hover:bg-accent dark:group-hover:text-primary transition-colors',
+                          dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'
+                        )}>
+                          <Navigation className={cn('w-3.5 h-3.5 shrink-0', dir === 'rtl' ? 'rotate-180' : '')} />
+                          {t('locate')}
+                        </span>
                       </button>
                     ))
                   )}
