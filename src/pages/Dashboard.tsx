@@ -94,8 +94,14 @@ export function Dashboard({ user }: DashboardProps) {
 
             {/* Brand + tagline */}
             <div className="space-y-2">
+              {/* The assistant's name is part of the brand now, but it is set
+                  quieter than the wordmark so the hero still reads as one
+                  thing rather than two competing titles. */}
               <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none">
                 AR<span className="text-accent">Library</span>
+                <span className="block mt-1 text-xl md:text-2xl font-black text-white/70 tracking-normal">
+                  {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+                </span>
               </h1>
               <p className="text-white/50 font-bold text-sm leading-relaxed max-w-sm">
                 {language === 'ar'

@@ -44,7 +44,7 @@ export function Landing() {
               <Brain className="text-accent w-8 h-8" />
             </div>
             <div className="font-display text-3xl font-bold text-primary dark:text-white tracking-tight leading-tight">
-              {ar ? 'المكتبة المعززة' : 'ARLibrary'}
+              {ar ? 'ARLibrary رفيق' : 'ARLibrary Rafeeq'}
             </div>
             <span className="px-2.5 py-1 rounded-lg bg-accent/15 text-accent text-[9px] font-black uppercase tracking-widest">
               {t('demoVersionBadge')}

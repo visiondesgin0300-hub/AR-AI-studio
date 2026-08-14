@@ -4,7 +4,7 @@ export const translations = {
   ar: {
     // General
     dir: 'rtl',
-    appName: 'المكتبة المعززة الذكية',
+    appName: 'ARLibrary رفيق',
     appSubtitle: 'بوابة المعرفة الذكية',
     search: 'بحث',
     map: 'خريطة',
@@ -622,7 +622,7 @@ export const translations = {
     loginBtn: 'تسجيل الدخول',
     searchTitle: 'بحث',
     mapTitle: 'خريطة',
-    copyright: '© ٢٠٢٦ المكتبة المعززة الذكية',
+    copyright: '© ٢٠٢٦ ARLibrary رفيق',
     backAsGuest: 'الدخول كضيف',
     noAccountPrompt: 'ليس لديك حساب؟',
     createNewAccount: 'إنشاء حساب جديد',
@@ -638,7 +638,7 @@ export const translations = {
   en: {
     // General
     dir: 'ltr',
-    appName: 'ARLibrary',
+    appName: 'ARLibrary Rafeeq',
     appSubtitle: 'Smart Knowledge Portal',
     search: 'Search',
     map: 'Map',
@@ -1256,7 +1256,7 @@ export const translations = {
     loginBtn: 'Log In',
     searchTitle: 'Search',
     mapTitle: 'Map',
-    copyright: '© 2026 ARLibrary',
+    copyright: '© 2026 ARLibrary Rafeeq',
     backAsGuest: 'Back as Guest',
     noAccountPrompt: "Don't have an account?",
     createNewAccount: 'Create New Account',
