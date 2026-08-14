@@ -343,9 +343,14 @@ export function LibraryMap() {
     };
     // A cold iframe load can take several seconds for the embedded 3D scene
     // to finish building (window.__cmp isn't ready until then), so a
-    // single retry at 600ms isn't reliable — keep resending until either
-    // iframe (same-origin, so directly inspectable) confirms it's actually
-    // guiding to this shelf, or give up after ~12s.
+    // single retry at 600ms isn't reliable — keep resending until every
+    // mounted iframe (same-origin, so directly inspectable) confirms it is
+    // actually guiding to this shelf, or give up after ~12s.
+    //
+    // Every, not either. The full-screen view mounts a second, cold iframe on
+    // top of the inline one, which is already guiding — so stopping at the
+    // first confirmation ended the retries immediately and the full-screen
+    // scene never received the message at all: it opened with no route drawn.
     let attempts = 0;
     const MAX_ATTEMPTS = 30;
     send();
@@ -355,7 +360,8 @@ export function LibraryMap() {
         const cmp = (win as (Window & { __cmp?: { _guide?: { visible?: boolean }; _guideItem?: { code?: string } } }) | null | undefined)?.__cmp;
         return !!cmp?._guide?.visible && cmp?._guideItem?.code === floorCode;
       };
-      const showingTarget = isGuidingTo(arIframeRef.current?.contentWindow) || isGuidingTo(arInlineIframeRef.current?.contentWindow);
+      const mounted = [arIframeRef.current, arInlineIframeRef.current].filter(Boolean);
+      const showingTarget = mounted.length > 0 && mounted.every(f => isGuidingTo(f?.contentWindow));
       if (showingTarget || attempts >= MAX_ATTEMPTS) {
         clearInterval(interval);
         return;
@@ -532,11 +538,19 @@ export function LibraryMap() {
                       />
                       {/* There is one map now, so this is no longer a choice of
                           which to look at — it opens the same floor plan full
-                          screen with the camera behind it. */}
+                          screen with the camera behind it, route drawn. It needs
+                          a destination to draw one to, so it waits for one. */}
                       <div className={cn("absolute top-12 sm:top-3 z-20 pointer-events-auto", dir === 'rtl' ? 'left-3' : 'right-3')}>
                         <button
-                          onClick={() => setShowARFloor(true)}
-                          className="flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all bg-[#0EA5D6] text-[#050c1a] shadow-lg hover:brightness-110 active:scale-95 border border-white/10"
+                          onClick={() => { if (destinationShelfId) setShowARFloor(true); }}
+                          disabled={!destinationShelfId}
+                          title={!destinationShelfId ? t('selectDestinationFirstLabel') : undefined}
+                          className={cn(
+                            "flex items-center gap-2 px-4 py-3 rounded-xl text-[11px] font-black transition-all border border-white/10",
+                            destinationShelfId
+                              ? "bg-[#0EA5D6] text-[#050c1a] shadow-lg hover:brightness-110 active:scale-95"
+                              : "bg-black/45 text-white/40 backdrop-blur-xl cursor-not-allowed"
+                          )}
                         >
                           <Camera className="w-3.5 h-3.5 shrink-0" />
                           <span>{t('startARNavigation')}</span>
