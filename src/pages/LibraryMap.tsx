@@ -396,6 +396,26 @@ export function LibraryMap() {
     return () => { clearInterval(t); clearTimeout(stop); };
   }, [language, showARFloor, mapMode]);
 
+  // The scene draws the route; the walk that moves along it is run here, so
+  // the two are kept in step by sending progress over rather than having the
+  // scene guess. Note this is the simulated walk the HUD counts down, not a
+  // tracked position — the app does not follow the reader through the building.
+  useEffect(() => {
+    const post = (msg: Record<string, unknown>) => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    post({ type: 'LIBRARY_WALK_PROGRESS', t: showPath ? walkProgress : 0 });
+  }, [walkProgress, showPath, showARFloor, mapMode]);
+
+  useEffect(() => {
+    const post = (msg: Record<string, unknown>) => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    post({ type: 'LIBRARY_ARRIVED', arrived: hasArrived });
+  }, [hasArrived, showARFloor, mapMode]);
+
   return (
     <div className={cn("h-full flex flex-col gap-3 roomy:gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
       {/* Dynamic Header */}

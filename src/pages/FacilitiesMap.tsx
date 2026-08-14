@@ -185,6 +185,25 @@ export function FacilitiesMap() {
   const liveEtaSeconds = Math.max(0, Math.round(totalWalkSeconds * (1 - walkProgress)));
   const hasArrived = showPath && walkProgress >= 1;
 
+  // The scene draws the route; the walk that moves along it is run here, so
+  // the two are kept in step by sending progress over rather than having the
+  // scene guess. Note this is the simulated walk the HUD counts down, not a
+  // tracked position — the app does not follow the reader through the building.
+  useEffect(() => {
+    const post = (msg: Record<string, unknown>) => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    post({ type: 'LIBRARY_WALK_PROGRESS', t: showPath ? walkProgress : 0 });
+  }, [walkProgress, showPath]);
+
+  useEffect(() => {
+    const post = (msg: Record<string, unknown>) => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    post({ type: 'LIBRARY_ARRIVED', arrived: hasArrived });
+  }, [hasArrived]);
+
+
   // Clock time of arrival, counting down live with the walk. "3 min" tells you
   // how long; this tells you when — the thing you actually compare against the
   // lecture you are heading to. ar-EG, not ar-SA, for the same reason as the

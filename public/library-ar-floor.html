@@ -586,6 +586,8 @@ window.addEventListener('message', function(e) {
       t.geometry = next;
     });
     if (cmp._flow) cmp._flow.repeat.set(Math.max(6, Math.round(L / 2.4)), 1);
+    captureWalk(cmp, curve, tubes);
+    restoreTints();
 
     // The scene's start disc marks where the route used to begin, inside the
     // desk. Move it to where the walking now starts so the two agree.
@@ -654,14 +656,32 @@ window.addEventListener('message', function(e) {
   // time, and it keeps working with them out of sight. Polled because the
   // scene builds them after its own first frame.
   if (/[?&]chrome=off\b/.test(location.search)) {
-    var hideTries = 0;
-    (function hideChrome() {
-      var found = 0;
+    // The page rebuilds its own document after this script first runs — which
+    // is why the toolbar reappears and why a stylesheet appended once is wiped.
+    // Both are therefore re-applied on a poll until they stick.
+    var CSS =
+      '@media (max-width: 700px){' +
+      '.lm-pin > div:first-child{padding:4px 8px !important;border-radius:10px !important;}' +
+      '.lm-pin span{font-size:9px !important;line-height:1.25 !important;}' +
+      '.lm-pin span + span{font-size:7px !important;}' +
+      '}';
+    var chromeTries = 0;
+    (function bare() {
+      // The floating place labels are drawn for a desktop canvas: on a 390px
+      // phone one of them ran 198px wide, half the screen for one caption.
+      // Scoped to this embed and to narrow viewports, so the shelf map and any
+      // desktop keep the labels they were drawn with.
+      if (document.head && !document.getElementById('lm-compact-pins')) {
+        var st = document.createElement('style');
+        st.id = 'lm-compact-pins';
+        st.textContent = CSS;
+        document.head.appendChild(st);
+      }
       ['.lm-toolbar', '.lm-search'].forEach(function (sel) {
         var el = document.querySelector(sel);
-        if (el) { el.style.display = 'none'; found++; }
+        if (el) el.style.display = 'none';
       });
-      if (found < 2 && hideTries++ < 120) setTimeout(hideChrome, 150);
+      if (chromeTries++ < 200) setTimeout(bare, 150);
     })();
   }
 
@@ -719,8 +739,131 @@ window.addEventListener('message', function(e) {
   if (fromUrl) setLang(fromUrl);
 
   window.addEventListener('message', function (e) {
-    if (e && e.data && e.data.type === 'LIBRARY_SET_LANG') setLang(e.data.lang);
+    if (!e || !e.data) return;
+    if (e.data.type === 'LIBRARY_SET_LANG') setLang(e.data.lang);
+    if (e.data.type === 'LIBRARY_WALK_PROGRESS' && window.__cmp) {
+      try { setProgress(window.__cmp, +e.data.t || 0); } catch (err) { /* keep the route */ }
+    }
+    if (e.data.type === 'LIBRARY_ARRIVED' && window.__cmp) {
+      try { markArrived(window.__cmp, e.data.arrived !== false); } catch (err) { /* keep the route */ }
+    }
   });
+
+  // ── Walking it: the ribbon shortens behind you, the plate turns red ───────
+  //
+  // The host owns how far along the walk is — it runs the countdown the HUD
+  // shows — so it sends progress here rather than this guessing at it. What
+  // arrives is a fraction of the route, not a tracked position: the app
+  // simulates the walk, it does not follow the reader through the building.
+  //
+  // The travelled part is cut off the ribbon rather than dimmed, so what is
+  // drawn is always the way still to go. Rebuilding a tube is not free, so it
+  // happens on a step of the progress while the marker glides every frame.
+  var walk = { curve: null, tubes: [], marker: null, built: -1, t: 0 };
+
+  function captureWalk(cmp, curve, tubes) {
+    walk.curve = curve;
+    walk.tubes = tubes;
+    walk.built = -1;
+    walk.t = 0;
+    walk.marker = null;
+  }
+
+  function trimTo(t) {
+    var TH = window.THREE;
+    if (!walk.curve || t <= 0.001) return null;
+    var pts = [];
+    var N = 60;
+    for (var i = 0; i <= N; i++) {
+      var u = t + (1 - t) * (i / N);
+      pts.push(walk.curve.getPointAt(Math.min(1, u)));
+    }
+    return new TH.CatmullRomCurve3(pts, false, 'centripetal', 0.4);
+  }
+
+  function setProgress(cmp, t) {
+    var TH = window.THREE;
+    if (!TH || !walk.curve || !cmp._guide) return;
+    walk.t = Math.max(0, Math.min(1, t));
+
+    // The marker showing where the walk has reached.
+    if (!walk.marker) {
+      var m = new TH.Group();
+      m.name = 'walkMarker';
+      var disc = new TH.Mesh(new TH.RingGeometry(0.45, 0.8, 32),
+        new TH.MeshBasicMaterial({ color: 0x8FF0FF, transparent: true, opacity: 0.95,
+                                   side: TH.DoubleSide, depthWrite: false }));
+      disc.rotation.x = -Math.PI / 2;
+      m.add(disc);
+      var core = new TH.Mesh(new TH.SphereGeometry(0.3, 16, 12),
+        new TH.MeshBasicMaterial({ color: 0xFFFFFF }));
+      core.position.y = 0.35;
+      m.add(core);
+      cmp._guide.add(m);
+      walk.marker = m;
+    }
+    var at = walk.curve.getPointAt(walk.t);
+    walk.marker.position.set(at.x, 0.09, at.z);
+    walk.marker.visible = walk.t < 0.999;
+
+    // Cut the walked part off the ribbon, a step at a time.
+    if (Math.abs(walk.t - walk.built) < 0.02 && walk.built >= 0) return;
+    walk.built = walk.t;
+    var rest = trimTo(walk.t);
+    if (!rest) return;
+    var L = rest.getLength();
+    walk.tubes.forEach(function (tube) {
+      if (!tube.parent) return;
+      var q = tube.geometry.parameters;
+      var next = new TH.TubeGeometry(rest, Math.max(60, Math.round(L * 4)),
+                                     q.radius, q.radialSegments, false);
+      tube.geometry.dispose();
+      tube.geometry = next;
+    });
+    if (cmp._flow) cmp._flow.repeat.set(Math.max(4, Math.round(L / 2.4)), 1);
+  }
+
+  // ── Arrival: the destination's plate lights up ────────────────────────────
+  var tinted = [];   // [sprite, its own colour] so arrival can be undone
+
+  function restoreTints() {
+    tinted.forEach(function (pair) { pair[0].material.color.setHex(pair[1]); });
+    tinted = [];
+  }
+
+  function markArrived(cmp, on) {
+    var RED = 0xEF4444;
+    restoreTints();
+    if (!on) return;
+    var pin = cmp._guide && cmp._guide.children.filter(function (o) {
+      return o.name === 'destinationPin';
+    })[0];
+    if (!pin) return;
+    var at = pin.position;
+
+    // The shelf plate nearest the destination is the one you have arrived at.
+    var group = cmp._signsGroup;
+    if (group) {
+      var best = null, bestD = 1e9;
+      group.children.forEach(function (sp) {
+        if (!sp.material || !sp.material.color) return;
+        var d = Math.hypot(sp.position.x - at.x, sp.position.z - at.z);
+        if (d < bestD) { bestD = d; best = sp; }
+      });
+      // Only if it really is this shelf's plate, not the nearest one anywhere.
+      if (best && bestD < 6) {
+        tinted.push([best, best.material.color.getHex()]);
+        best.material.color.setHex(RED);
+      }
+    }
+    // The guide's own arrival furniture goes red with it.
+    [cmp._guidePad, cmp._guideWp].forEach(function (o) {
+      if (o && o.material && o.material.color) {
+        tinted.push([o, o.material.color.getHex()]);
+        o.material.color.setHex(RED);
+      }
+    });
+  }
 
   // ── Patch the two entry points once the scene exists ──────────────────────
   var tries = 0;
