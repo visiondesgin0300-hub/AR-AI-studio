@@ -275,5 +275,396 @@ window.addEventListener('message', function(e) {
   tryGuide();
 });
 </script>
+<script>
+/*
+ * Walk the gaps, not the furniture.
+ *
+ * The scene draws its guide as a curve straight from the desk to the target,
+ * bowed sideways a little. Nothing in that curve knows where the shelving and
+ * the tables are, so the beam ran over them.
+ *
+ * This lays an occupancy grid across the floor built from the meshes actually
+ * in the scene, finds a way through it, and reshapes the beam the scene just
+ * built — same materials, same flowing texture, same destination furniture,
+ * different path. It also plants a red pin on the chosen place.
+ *
+ * Two tiers, because a library is not a maze. Measured from the scene, its
+ * meshes fall into two clear groups: tops at or under 1m (chairs at 0.5,
+ * tables and desks at 1.0) and tops at or above 1.2m (shelving at 2.0-2.5,
+ * partitions, the circulation desk, the atrium column). You walk between the
+ * first group and around the second, so the tall things block outright while
+ * the low ones merely cost twelve times as much to cross. The route therefore
+ * keeps to open floor and only enters a cluster of tables to arrive at one —
+ * which is the only reason it ever should.
+ *
+ * Both ends are pulled out to the nearest cell you could actually stand in:
+ * the scene starts its route inside the circulation desk, and a destination is
+ * a shelf or a desk cluster, so neither endpoint is standable as given. The
+ * red pin marks the true target the route stops short of.
+ *
+ * It patches guideTo/guideToPoint from outside rather than editing them: the
+ * scene lives in a bundled template string, and reshaping the finished route
+ * is both smaller and works for whichever of the two drew it.
+ */
+(function () {
+  'use strict';
+
+  var CELL = 0.45;      // grid resolution in metres
+  var TALL = 1.2;       // at or above this, furniture is walked around
+  var CLEAR = 0.3;      // margin kept off the tall furniture
+  var SOFT = 12;        // what crossing a table or a chair costs
+  var CORNER = 0.9;     // how much each corner is rounded
+
+  var grid = null;
+
+  // ── The floor, as cells you can and cannot stand in ───────────────────────
+  function buildGrid(cmp) {
+    var hard = [], soft = [];
+    var min = { x: 1e9, z: 1e9 }, max = { x: -1e9, z: -1e9 };
+    cmp.scene.traverse(function (o) {
+      if (!o.isMesh || !o.geometry) return;
+      // The guide's own tubes, rings and pin are not obstacles.
+      for (var n = o; n; n = n.parent) if (n === cmp._guide) return;
+      var g = o.geometry;
+      if (!g.boundingBox) g.computeBoundingBox();
+      if (!g.boundingBox) return;
+      var bb = g.boundingBox.clone();
+      o.updateWorldMatrix(true, false);
+      bb.applyMatrix4(o.matrixWorld);
+      var sx = bb.max.x - bb.min.x, sy = bb.max.y - bb.min.y, sz = bb.max.z - bb.min.z;
+      if (sy < 0.35) return;                  // stepped over, not walked around
+      if (sx > 60 || sz > 60) return;         // the floor slab and the sky
+      if (bb.min.y > 2.6) return;             // signage hanging overhead
+      (bb.max.y >= TALL ? hard : soft).push(bb);
+      if (bb.min.x < min.x) min.x = bb.min.x;
+      if (bb.min.z < min.z) min.z = bb.min.z;
+      if (bb.max.x > max.x) max.x = bb.max.x;
+      if (bb.max.z > max.z) max.z = bb.max.z;
+    });
+    if (!hard.length && !soft.length) return null;
+
+    var pad = 6;
+    var x0 = min.x - pad, z0 = min.z - pad;
+    var w = Math.ceil((max.x - min.x + pad * 2) / CELL);
+    var h = Math.ceil((max.z - min.z + pad * 2) / CELL);
+    var blocked = new Uint8Array(w * h);
+    var cost = new Float32Array(w * h);
+    for (var i = 0; i < cost.length; i++) cost[i] = 1;
+
+    var mark = function (list, margin, fn) {
+      for (var k = 0; k < list.length; k++) {
+        var b = list[k];
+        var ax = Math.max(0, Math.floor((b.min.x - margin - x0) / CELL));
+        var bx = Math.min(w - 1, Math.ceil((b.max.x + margin - x0) / CELL));
+        var az = Math.max(0, Math.floor((b.min.z - margin - z0) / CELL));
+        var bz = Math.min(h - 1, Math.ceil((b.max.z + margin - z0) / CELL));
+        for (var cz = az; cz <= bz; cz++)
+          for (var cx = ax; cx <= bx; cx++) fn(cz * w + cx);
+      }
+    };
+    mark(hard, CLEAR, function (i) { blocked[i] = 1; });
+    mark(soft, 0, function (i) { cost[i] = SOFT; });
+
+    return { x0: x0, z0: z0, w: w, h: h, blocked: blocked, cost: cost };
+  }
+
+  function cellOf(g, p) {
+    return { cx: Math.round((p.x - g.x0) / CELL), cz: Math.round((p.z - g.z0) / CELL) };
+  }
+  function free(g, cx, cz) {
+    return cx >= 0 && cz >= 0 && cx < g.w && cz < g.h && !g.blocked[cz * g.w + cx];
+  }
+  function world(g, cx, cz) { return { x: g.x0 + cx * CELL, z: g.z0 + cz * CELL }; }
+
+  // Neither end is standable as given — the route starts inside the desk and
+  // finishes at a shelf. Step outward to the nearest cell that is.
+  function nearestFree(g, p) {
+    var c = cellOf(g, p);
+    if (free(g, c.cx, c.cz)) return c;
+    for (var r = 1; r < 60; r++) {
+      for (var dz = -r; dz <= r; dz++) for (var dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+        if (free(g, c.cx + dx, c.cz + dz)) return { cx: c.cx + dx, cz: c.cz + dz };
+      }
+    }
+    return null;
+  }
+
+  // ── A* across the free cells ──────────────────────────────────────────────
+  function astar(g, s, e) {
+    var n = g.w * g.h;
+    var came = new Int32Array(n); came.fill(-1);
+    var best = new Float32Array(n); best.fill(Infinity);
+    var seen = new Uint8Array(n);
+    var si = s.cz * g.w + s.cx, ei = e.cz * g.w + e.cx;
+    var h = function (i) {
+      var cx = i % g.w, cz = (i - cx) / g.w;
+      return Math.hypot(cx - e.cx, cz - e.cz);
+    };
+    // Binary heap, because a linear scan over ~29,000 cells is not free.
+    var heap = [], hf = [];
+    var push = function (i, f) {
+      heap.push(i); hf.push(f);
+      var c = heap.length - 1;
+      while (c > 0) {
+        var p = (c - 1) >> 1;
+        if (hf[p] <= hf[c]) break;
+        var t = heap[p]; heap[p] = heap[c]; heap[c] = t;
+        t = hf[p]; hf[p] = hf[c]; hf[c] = t;
+        c = p;
+      }
+    };
+    var pop = function () {
+      var top = heap[0];
+      var li = heap.pop(), lf = hf.pop();
+      if (heap.length) {
+        heap[0] = li; hf[0] = lf;
+        var c = 0;
+        for (;;) {
+          var l = c * 2 + 1, r = l + 1, m = c;
+          if (l < heap.length && hf[l] < hf[m]) m = l;
+          if (r < heap.length && hf[r] < hf[m]) m = r;
+          if (m === c) break;
+          var t = heap[m]; heap[m] = heap[c]; heap[c] = t;
+          t = hf[m]; hf[m] = hf[c]; hf[c] = t;
+          c = m;
+        }
+      }
+      return top;
+    };
+
+    best[si] = 0; push(si, h(si));
+    var guard = 0;
+    while (heap.length && guard++ < 200000) {
+      var cur = pop();
+      if (cur === ei) break;
+      if (seen[cur]) continue;
+      seen[cur] = 1;
+      var cx = cur % g.w, cz = (cur - cx) / g.w;
+      for (var dz = -1; dz <= 1; dz++) for (var dx = -1; dx <= 1; dx++) {
+        if (!dx && !dz) continue;
+        var nx = cx + dx, nz = cz + dz;
+        if (!free(g, nx, nz)) continue;
+        // No slipping diagonally through the corner of a blocked cell.
+        if (dx && dz && (!free(g, cx + dx, cz) || !free(g, cx, cz + dz))) continue;
+        var ni = nz * g.w + nx;
+        var step = best[cur] + (dx && dz ? 1.4142 : 1) * g.cost[ni];
+        if (step < best[ni]) { best[ni] = step; came[ni] = cur; push(ni, step + h(ni)); }
+      }
+    }
+    if (ei !== si && came[ei] === -1) return null;
+    var path = [], at = ei;
+    while (at !== -1 && path.length < 8000) { path.push(at); if (at === si) break; at = came[at]; }
+    path.reverse();
+    return path.map(function (i) {
+      var cx = i % g.w;
+      return world(g, cx, (i - cx) / g.w);
+    });
+  }
+
+  // A straight run between two points, sampled against the grid.
+  function clearLine(g, a, b) {
+    var d = Math.hypot(b.x - a.x, b.z - a.z);
+    var steps = Math.ceil(d / (CELL * 0.5));
+    for (var i = 0; i <= steps; i++) {
+      var t = steps ? i / steps : 0;
+      var c = cellOf(g, { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t });
+      if (!free(g, c.cx, c.cz)) return false;
+      // Straightening must not quietly drive the route back over a table.
+      if (g.cost[c.cz * g.w + c.cx] > 1) return false;
+    }
+    return true;
+  }
+
+  // Drop every point that can be skipped without touching anything.
+  function simplify(g, pts) {
+    if (pts.length < 3) return pts.slice();
+    var out = [pts[0]], i = 0;
+    while (i < pts.length - 1) {
+      var j = pts.length - 1;
+      for (; j > i + 1; j--) if (clearLine(g, pts[i], pts[j])) break;
+      out.push(pts[j]); i = j;
+    }
+    return out;
+  }
+
+  // Round each corner so the beam turns instead of kinking. The offset stays
+  // under the clearance, so a rounded corner is still off the furniture.
+  function round(pts) {
+    if (pts.length < 3) return pts.slice();
+    var out = [pts[0]];
+    for (var i = 1; i < pts.length - 1; i++) {
+      var p = pts[i], a = pts[i - 1], b = pts[i + 1];
+      var la = Math.hypot(p.x - a.x, p.z - a.z), lb = Math.hypot(b.x - p.x, b.z - p.z);
+      if (la < 1e-3 || lb < 1e-3) continue;
+      var ra = Math.min(CORNER, la * 0.45), rb = Math.min(CORNER, lb * 0.45);
+      out.push({ x: p.x + (a.x - p.x) / la * ra, z: p.z + (a.z - p.z) / la * ra });
+      out.push({ x: p.x + (b.x - p.x) / lb * rb, z: p.z + (b.z - p.z) / lb * rb });
+    }
+    out.push(pts[pts.length - 1]);
+    return out;
+  }
+
+  // Everywhere you can get to on foot from a given cell. One shelf sits in a
+  // pocket the clearance closes off, and asking A* for the nearest *free* cell
+  // there fails outright; the nearest *reachable* one always answers, so the
+  // route gets as close as the floor allows and the pin marks the rest.
+  function reachableFrom(g, s) {
+    var seen = new Uint8Array(g.w * g.h);
+    var queue = [s.cz * g.w + s.cx];
+    seen[queue[0]] = 1;
+    for (var qi = 0; qi < queue.length; qi++) {
+      var cur = queue[qi];
+      var cx = cur % g.w, cz = (cur - cx) / g.w;
+      for (var dz = -1; dz <= 1; dz++) for (var dx = -1; dx <= 1; dx++) {
+        if (!dx && !dz) continue;
+        var nx = cx + dx, nz = cz + dz;
+        if (!free(g, nx, nz)) continue;
+        if (dx && dz && (!free(g, cx + dx, cz) || !free(g, cx, cz + dz))) continue;
+        var ni = nz * g.w + nx;
+        if (!seen[ni]) { seen[ni] = 1; queue.push(ni); }
+      }
+    }
+    return seen;
+  }
+
+  function nearestReachable(g, seen, p) {
+    var c = cellOf(g, p);
+    if (free(g, c.cx, c.cz) && seen[c.cz * g.w + c.cx]) return c;
+    for (var r = 1; r < 80; r++) {
+      for (var dz = -r; dz <= r; dz++) for (var dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+        var nx = c.cx + dx, nz = c.cz + dz;
+        if (free(g, nx, nz) && seen[nz * g.w + nx]) return { cx: nx, cz: nz };
+      }
+    }
+    return null;
+  }
+
+  function walkable(cmp, from, to) {
+    if (!grid) grid = buildGrid(cmp);
+    if (!grid) return null;
+    var s = nearestFree(grid, from);
+    if (!s) return null;
+    if (!grid.seenFrom || grid.seenKey !== s.cz * grid.w + s.cx) {
+      grid.seenFrom = reachableFrom(grid, s);
+      grid.seenKey = s.cz * grid.w + s.cx;
+    }
+    var e = nearestReachable(grid, grid.seenFrom, to);
+    if (!e) return null;
+    var cells = astar(grid, s, e);
+    if (!cells || cells.length < 2) return null;
+    return round(simplify(grid, cells));
+  }
+
+  // ── Reshape whatever the scene just drew ──────────────────────────────────
+  function reshape(cmp) {
+    var TH = window.THREE;
+    if (!TH || !cmp || !cmp._guide) return;
+    var tubes = [];
+    cmp._guide.children.forEach(function (o) {
+      if (o.isMesh && o.geometry && o.geometry.type === 'TubeGeometry') tubes.push(o);
+    });
+    if (!tubes.length) return;
+    var src = tubes[0].geometry.parameters && tubes[0].geometry.parameters.path;
+    if (!src) return;
+    var a = src.getPoint(0), b = src.getPoint(1);
+    var pts = walkable(cmp, a, b);
+    if (!pts || pts.length < 2) return;
+
+    var y = a.y;
+    var curve = new TH.CatmullRomCurve3(pts.map(function (p) {
+      return new TH.Vector3(p.x, y, p.z);
+    }), false, 'centripetal', 0.4);
+    var L = curve.getLength();
+
+    tubes.forEach(function (t) {
+      var q = t.geometry.parameters;
+      var next = new TH.TubeGeometry(curve, Math.max(140, Math.round(L * 4)),
+                                     q.radius, q.radialSegments, false);
+      t.geometry.dispose();
+      t.geometry = next;
+    });
+    if (cmp._flow) cmp._flow.repeat.set(Math.max(6, Math.round(L / 2.4)), 1);
+
+    // The scene's start disc marks where the route used to begin, inside the
+    // desk. Move it to where the walking now starts so the two agree.
+    var head = pts[0];
+    cmp._guide.children.forEach(function (o) {
+      if (o.isMesh && o.geometry && o.geometry.type === 'RingGeometry'
+          && o.geometry.parameters.outerRadius < 0.9) {
+        o.position.set(head.x, o.position.y, head.z);
+      }
+    });
+
+    addPin(cmp, b);
+  }
+
+  // ── The red pin on the chosen place ───────────────────────────────────────
+  function addPin(cmp, at) {
+    var TH = window.THREE;
+    var RED = 0xEF4444;
+    var pin = new TH.Group();
+    pin.name = 'destinationPin';
+
+    var head = new TH.Mesh(new TH.SphereGeometry(0.62, 20, 16),
+                           new TH.MeshBasicMaterial({ color: RED }));
+    head.position.y = 3.1;
+    pin.add(head);
+
+    var tip = new TH.Mesh(new TH.ConeGeometry(0.5, 1.3, 20),
+                          new TH.MeshBasicMaterial({ color: RED }));
+    tip.position.y = 2.05;
+    tip.rotation.x = Math.PI;               // point it at the floor
+    pin.add(tip);
+
+    var eye = new TH.Mesh(new TH.SphereGeometry(0.24, 16, 12),
+                          new TH.MeshBasicMaterial({ color: 0xFFF1F1 }));
+    eye.position.set(0, 3.18, 0.44);
+    pin.add(eye);
+
+    var halo = new TH.Mesh(new TH.RingGeometry(0.8, 1.35, 40),
+      new TH.MeshBasicMaterial({ color: RED, transparent: true, opacity: 0.85,
+                                 side: TH.DoubleSide, depthWrite: false }));
+    halo.rotation.x = -Math.PI / 2;
+    halo.position.y = 0.1;
+    pin.add(halo);
+
+    pin.position.set(at.x, 0, at.z);
+    cmp._guide.add(pin);
+
+    // Bob the pin and pulse the halo so it reads as the live destination.
+    var t0 = (window.performance || Date).now();
+    (function tick() {
+      if (!pin.parent) return;              // cleared along with the guide
+      var t = ((window.performance || Date).now() - t0) / 1000;
+      pin.position.y = Math.sin(t * 2) * 0.28;
+      var s = 1 + (Math.sin(t * 2.4) + 1) * 0.28;
+      halo.scale.set(s, s, 1);
+      halo.material.opacity = 0.85 - (s - 1) * 1.1;
+      requestAnimationFrame(tick);
+    })();
+  }
+
+  // ── Patch the two entry points once the scene exists ──────────────────────
+  var tries = 0;
+  (function attach() {
+    var cmp = window.__cmp;
+    if (!cmp || !cmp.guideTo || !window.THREE) {
+      if (tries++ < 100) setTimeout(attach, 200);
+      return;
+    }
+    ['guideTo', 'guideToPoint'].forEach(function (name) {
+      var original = cmp[name].bind(cmp);
+      cmp[name] = function () {
+        original.apply(null, arguments);
+        // A miss here leaves the route the scene drew rather than none at all.
+        try { reshape(cmp); } catch (e) { /* keep the drawn route */ }
+      };
+    });
+    window.__walkableRoutes = true;
+  })();
+})();
+</script>
 </body>
 </html>
