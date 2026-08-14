@@ -95,6 +95,18 @@ export function FacilitiesMap() {
     return () => clearInterval(interval);
   }, [manualTarget, showPath]);
 
+  // The scene writes its own header, in Arabic. Tell it which language the
+  // interface is in — by message rather than by reloading the iframe, so
+  // switching language mid-route does not rebuild the scene and lose the beam.
+  useEffect(() => {
+    const send = () => arIframeRef.current?.contentWindow
+      ?.postMessage({ type: 'LIBRARY_SET_LANG', lang: language }, '*');
+    send();
+    const t = setInterval(send, 600);
+    const stop = setTimeout(() => clearInterval(t), 6000);
+    return () => { clearInterval(t); clearTimeout(stop); };
+  }, [language]);
+
   const FACILITIES = [
     {
       icon: Users,
@@ -295,7 +307,7 @@ export function FacilitiesMap() {
               >
                 <iframe
                   ref={arIframeRef}
-                  src="/library-ar-floor.html"
+                  src={`/library-ar-floor.html?chrome=off&lang=${language}`}
                   title="3D Library Floor"
                   className="absolute inset-0 w-full h-full border-0"
                   allow="accelerometer; gyroscope"
@@ -492,8 +504,9 @@ export function FacilitiesMap() {
                     </ol>
                   </div>
 
-                  {/* Start navigation / in progress */}
-                  {showPath ? (
+                  {/* Navigation is started from the button on the map itself;
+                      this only reports how it is going. */}
+                  {showPath && (
                     <div className={cn(
                       'w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3',
                       hasArrived ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-500' : 'bg-emerald-500/15 border border-emerald-500/25 text-emerald-500'
@@ -501,18 +514,6 @@ export function FacilitiesMap() {
                       <span className={cn('w-2 h-2 rounded-full bg-emerald-500', !hasArrived && 'animate-pulse')} />
                       {hasArrived ? t('reachedDestination') : t('navigationInProgressLabel')}
                     </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        if (typeof navigator.vibrate === 'function') {
-                          try { navigator.vibrate(80); } catch { /* best-effort */ }
-                        }
-                        setShowPath(true);
-                      }}
-                      className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95"
-                    >
-                      {t('startNavigationLabel')}
-                    </button>
                   )}
 
                   <button

@@ -381,6 +381,21 @@ export function LibraryMap() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showARFloor, mapMode, showPath, destinationShelfId, bookPositionInShelf, selectedBook]);
 
+  // The scene writes its own header, in Arabic. Tell it which language the
+  // interface is in — by message rather than by reloading the iframe, so
+  // switching language mid-route does not rebuild the scene and lose the beam.
+  useEffect(() => {
+    const send = () => {
+      const msg = { type: 'LIBRARY_SET_LANG', lang: language };
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    send();
+    const t = setInterval(send, 600);
+    const stop = setTimeout(() => clearInterval(t), 6000);
+    return () => { clearInterval(t); clearTimeout(stop); };
+  }, [language, showARFloor, mapMode]);
+
   return (
     <div className={cn("h-full flex flex-col gap-3 roomy:gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
       {/* Dynamic Header */}
@@ -540,7 +555,7 @@ export function LibraryMap() {
                     <div className="flex-1 relative overflow-hidden rounded-none roomy:rounded-2xl bg-[#0A0E1C] min-h-0 roomy:min-h-[520px]">
                       <iframe
                         ref={arInlineIframeRef}
-                        src="/library-ar-floor.html"
+                        src={`/library-ar-floor.html?lang=${language}`}
                         className="absolute inset-0 w-full h-full border-0"
                         title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
                         allow="camera; microphone; accelerometer; gyroscope"
@@ -1229,7 +1244,7 @@ export function LibraryMap() {
               {/* iframe — explicit z-index so overlays sit on top */}
               <iframe
                 ref={arIframeRef}
-                src="/library-ar-floor.html"
+                src={`/library-ar-floor.html?lang=${language}`}
                 className="absolute inset-0 w-full h-full border-0"
                 style={{ zIndex: 1 }}
                 title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}

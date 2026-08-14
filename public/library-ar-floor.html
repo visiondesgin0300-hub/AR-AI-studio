@@ -646,6 +646,82 @@ window.addEventListener('message', function(e) {
     })();
   }
 
+  // ── A bare scene when the host asks for one ───────────────────────────────
+  // The toolbar of chips and the wayfinding search belong to browsing the
+  // shelves. The facilities page embeds the same scene only to show a route to
+  // a room, so it asks for the floor without them: ?chrome=off. The panels are
+  // hidden rather than deleted — the scene wires listeners to them at build
+  // time, and it keeps working with them out of sight. Polled because the
+  // scene builds them after its own first frame.
+  if (/[?&]chrome=off\b/.test(location.search)) {
+    var hideTries = 0;
+    (function hideChrome() {
+      var found = 0;
+      ['.lm-toolbar', '.lm-search'].forEach(function (sel) {
+        var el = document.querySelector(sel);
+        if (el) { el.style.display = 'none'; found++; }
+      });
+      if (found < 2 && hideTries++ < 120) setTimeout(hideChrome, 150);
+    })();
+  }
+
+  // ── The scene's own header, in the reader's language ──────────────────────
+  // Its title, subtitle and camera hint are written in Arabic in the bundled
+  // template. The host tells us which language the interface is in — by
+  // message so switching does not reload the scene and lose the route, and by
+  // ?lang= on the first load so the English page never flashes Arabic first.
+  var EN = {
+    '.lm-title': 'Academic Library — Ground Floor',
+    '.lm-subtitle': 'R-01 · 1,240 m² · 3D model'
+  };
+  var EN_HINT = 'Point the camera at the floor, then tap to place the library';
+  var AR_HINT = 'وجّه الكاميرا نحو الأرض ثم انقر لوضع المكتبة';
+  var original = null;   // captured before anything is overwritten
+  var wanted = null;
+
+  function applyLang() {
+    if (!wanted) return;
+    if (!original) {
+      original = {};
+      Object.keys(EN).forEach(function (sel) {
+        var el = document.querySelector(sel);
+        if (el) original[sel] = el.textContent;
+      });
+    }
+    Object.keys(EN).forEach(function (sel) {
+      var el = document.querySelector(sel);
+      if (!el) return;
+      var text = wanted === 'en' ? EN[sel] : (original[sel] != null ? original[sel] : el.textContent);
+      if (el.textContent !== text) el.textContent = text;
+    });
+    // The placement hint has no class of its own; find it by what it says.
+    var nodes = document.querySelectorAll('div, p, span');
+    for (var i = 0; i < nodes.length; i++) {
+      var e = nodes[i];
+      if (e.children.length) continue;
+      var t = (e.textContent || '').trim();
+      if (t === AR_HINT && wanted === 'en') e.textContent = EN_HINT;
+      else if (t === EN_HINT && wanted !== 'en') e.textContent = AR_HINT;
+    }
+  }
+
+  function setLang(lang) {
+    wanted = lang === 'en' ? 'en' : 'ar';
+    applyLang();
+    // The header is built after the first frame, and the hint comes and goes
+    // with the AR placement step, so keep re-applying for a while.
+    var n = 0;
+    (function again() { applyLang(); if (n++ < 60) setTimeout(again, 250); })();
+  }
+
+  var fromUrl = /[?&]lang=en\b/.test(location.search) ? 'en'
+              : (/[?&]lang=ar\b/.test(location.search) ? 'ar' : null);
+  if (fromUrl) setLang(fromUrl);
+
+  window.addEventListener('message', function (e) {
+    if (e && e.data && e.data.type === 'LIBRARY_SET_LANG') setLang(e.data.lang);
+  });
+
   // ── Patch the two entry points once the scene exists ──────────────────────
   var tries = 0;
   (function attach() {
