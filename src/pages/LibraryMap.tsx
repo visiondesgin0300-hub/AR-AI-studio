@@ -1046,24 +1046,24 @@ export function LibraryMap() {
                               <AnimatePresence mode="wait">
                                 <motion.span key={liveDistanceMeters} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                                   className="text-accent font-black"
-                                >{liveDistanceMeters}م / {liveDistanceMeters}m</motion.span>
+                                >{liveDistanceMeters}{language === 'ar' ? ' م' : 'm'}</motion.span>
                               </AnimatePresence>
                               <span className="text-white/30">·</span>
                               <AnimatePresence mode="wait">
                                 <motion.span key={liveEtaMinutes} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                  {liveEtaMinutes > 0 ? `${liveEtaMinutes} د / ${liveEtaMinutes} min` : '< 1 د / min'}
+                                  {liveEtaMinutes > 0 ? `${liveEtaMinutes} ${t('minutesShort')}` : `< 1 ${t('minutesShort')}`}
                                 </motion.span>
                               </AnimatePresence>
                             </div>
                             {!hasArrived ? (
                               <div className="flex items-center gap-1.5 px-4 py-2 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 text-white text-[11px] font-black shadow-xl">
                                 <Clock className="w-3 h-3 text-accent shrink-0" />
-                                <span>الوصول / Arrive</span>
+                                <span>{language === 'ar' ? 'الوصول' : 'Arrive'}</span>
                                 <span className="text-accent">{arrivalTime}</span>
                               </div>
                             ) : (
                               <div className="px-4 py-2 rounded-full bg-accent text-primary text-[11px] font-black shadow-xl">
-                                ✓ وصلت! / Arrived!
+                                ✓ {language === 'ar' ? 'وصلت!' : 'Arrived!'}
                               </div>
                             )}
                           </div>
@@ -1115,17 +1115,16 @@ export function LibraryMap() {
                               className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-accent text-primary text-[11px] font-black shadow-xl shadow-accent/30 hover:brightness-110 transition-all active:scale-95"
                             >
                               <Navigation className="w-4 h-4" style={{ transform: 'rotate(-45deg)' }} />
-                              <span>ابدأ الملاحة</span>
-                              <span className="opacity-55 font-bold">/ Start</span>
+                              <span>{t('startNavigationLabel')}</span>
                             </button>
                           ) : !hasArrived ? (
                             <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[11px] font-black shadow-xl">
                               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                              <span>جاري الملاحة / Navigating…</span>
+                              <span>{language === 'ar' ? 'جاري الملاحة…' : 'Navigating…'}</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-accent text-primary text-[11px] font-black shadow-xl">
-                              ✓ وصلت! / Arrived!
+                              ✓ {language === 'ar' ? 'وصلت!' : 'Arrived!'}
                             </div>
                           )}
                           <button
@@ -1181,7 +1180,7 @@ export function LibraryMap() {
                             </span>
                             <span className="text-[10px] font-bold text-white/60">{language === 'ar' ? 'دقيقة' : 'min'}</span>
                             <span className="w-1 h-1 rounded-full bg-white/25 mx-0.5" />
-                            <span className="text-[11px] font-black text-accent" dir="ltr">{liveDistanceMeters}m</span>
+                            <span className="text-[11px] font-black text-accent" dir="ltr">{liveDistanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
                           </div>
                           <div className="text-[10px] font-bold text-white/50 mt-0.5">
                             {language === 'ar' ? 'الوصول' : 'Arrive'} <span dir="ltr">{arrivalTime}</span>
