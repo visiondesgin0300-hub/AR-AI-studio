@@ -497,14 +497,6 @@ export function FacilitiesMap() {
                   )}
 
                   <button
-                    onClick={() => navigate('/ar')}
-                    className="w-full py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-primary dark:text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:border-accent/60 transition-all active:scale-95"
-                  >
-                    <Camera className="w-4 h-4" />
-                    <span>{language === 'ar' ? 'AR كاميرا' : 'AR Camera'}</span>
-                  </button>
-
-                  <button
                     onClick={() => { setManualTarget(null); setShowPath(false); setWalkProgress(0); }}
                     className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2"
                   >
