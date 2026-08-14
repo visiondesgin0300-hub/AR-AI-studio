@@ -33,8 +33,18 @@ interface AchievementsApi {
    *
    * `sideEffects` runs inside the measurement, so anything else the completion
    * earns is included in the XP the pop-up reports.
+   *
+   * `quiet` awards the task without the pop-up, for places that already say so
+   * themselves — arriving at a shelf announces itself on the map, and a
+   * congratulation on top of that is one celebration too many. A badge earned
+   * along the way still announces itself: that is a rarer thing than a task.
    */
-  completed: (id: TaskId, details?: AchievementDetail[], sideEffects?: () => void) => void;
+  completed: (
+    id: TaskId,
+    details?: AchievementDetail[],
+    sideEffects?: () => void,
+    options?: { quiet?: boolean },
+  ) => void;
   /** Run an action and announce any badge it caused. */
   withBadgeWatch: (action: () => void) => void;
 }
@@ -80,7 +90,7 @@ export function AchievementsProvider({ user, children }: ProviderProps) {
     }
   }, [language]);
 
-  const completed = useCallback<AchievementsApi['completed']>((id, details = [], sideEffects) => {
+  const completed = useCallback<AchievementsApi['completed']>((id, details = [], sideEffects, options) => {
     const u = userRef.current;
     if (!u) return;
     const badgesBefore = getEarnedBadges(u);
@@ -91,7 +101,7 @@ export function AchievementsProvider({ user, children }: ProviderProps) {
       watchBadges(badgesBefore);
       return;
     }
-    push(buildTaskAchievement(id, details, gained, u, language));
+    if (!options?.quiet) push(buildTaskAchievement(id, details, gained, u, language));
     watchBadges(badgesBefore);
   }, [language, push, watchBadges]);
 

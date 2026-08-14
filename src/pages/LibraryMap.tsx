@@ -258,7 +258,10 @@ export function LibraryMap() {
       ...(seconds ? [{ icon: '⏱️', text: language === 'ar' ? `${seconds} ثانية` : `${seconds} seconds` }] : []),
       // trackMapVisit is the side effect: the shelf counts toward the Researcher
       // requirement, and running it here folds its XP into the reported delta.
-    ], () => trackMapVisit(destinationShelfId));
+      // Quiet: the map already says "لقد وصلت" in green, and a congratulation
+      // modal on top of it is a second announcement of the same thing. The XP
+      // and the badge check still happen.
+    ], () => trackMapVisit(destinationShelfId), { quiet: true });
   }, [hasArrived, destinationShelfId]);
 
   // Actual clock time of arrival (updates live as walkProgress changes)

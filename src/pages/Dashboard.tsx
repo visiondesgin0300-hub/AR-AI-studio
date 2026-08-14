@@ -347,7 +347,10 @@ export function Dashboard({ user }: DashboardProps) {
            ))}
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pt-4">
+        {/* Two across on a phone. At one column each cover ran 432px tall
+            and the seven cards made this section 4,301px — five screenfuls
+            of scrolling to see one shelf's worth of books. */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 pt-4">
           {filteredBooks.map((book) => (
             <motion.div
               layout
@@ -366,10 +369,10 @@ export function Dashboard({ user }: DashboardProps) {
                     <BookOpen className="w-4 h-4 text-white" />
                   </div>
                 </div>
-                <div className="p-6 space-y-2">
-                  <div className="text-[10px] font-black text-secondary dark:text-accent uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</div>
-                  <h4 className="font-black text-primary dark:text-white group-hover:text-accent transition-colors text-sm leading-tight line-clamp-1">{bookTitle(book, language)}</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">{bookAuthor(book, language)}</p>
+                <div className="p-3 sm:p-6 space-y-1 sm:space-y-2">
+                  <div className="text-[9px] sm:text-[10px] font-black text-secondary dark:text-accent uppercase tracking-widest truncate">{categoryTranslationMap[book.category] || book.category}</div>
+                  <h4 className="font-black text-primary dark:text-white group-hover:text-accent transition-colors text-[12px] sm:text-sm leading-tight line-clamp-2 sm:line-clamp-1">{bookTitle(book, language)}</h4>
+                  <p className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{bookAuthor(book, language)}</p>
                 </div>
               </Link>
             </motion.div>
