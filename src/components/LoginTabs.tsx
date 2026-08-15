@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, ShieldCheck } from 'lucide-react';
+import { User, ShieldCheck } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
 
@@ -22,7 +22,11 @@ export function LoginTabs({ active, variant = 'light' }: {
   const dark = variant === 'dark';
 
   const tabs = [
-    { id: 'student' as const, to: '/login', icon: GraduationCap, label: ar ? 'طالب' : 'Student' },
+    // The id stays 'student' because that is the role the server returns; only
+    // the wording the reader sees changes, since the library serves more than
+    // students. The icon follows the word — a graduation cap would still say
+    // "student" after the label stopped saying it.
+    { id: 'student' as const, to: '/login', icon: User, label: ar ? 'مستخدم' : 'User' },
     { id: 'admin' as const, to: '/admin-login', icon: ShieldCheck, label: ar ? 'الإدارة' : 'Admin' },
   ];
 
