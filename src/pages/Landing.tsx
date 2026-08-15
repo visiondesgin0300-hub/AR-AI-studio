@@ -37,25 +37,32 @@ export function Landing() {
         <div className="absolute inset-0 opacity-[0.035] dark:opacity-[0.05]" style={{ backgroundImage: 'linear-gradient(#004C6D 1px, transparent 1px), linear-gradient(90deg, #004C6D 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
       </div>
 
-      <header className="relative z-10 px-8 py-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className={cn("flex items-center gap-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-            <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center shadow-xl shadow-primary/25 shrink-0">
-              <Brain className="text-accent w-8 h-8" />
+      {/* The brand block was sized for a desktop header and did not fit a phone:
+          at 390px the language button sat at left -55, more than half of it off
+          the screen. The logo, the wordmark and the badge all step down, the
+          badge moves under the name rather than beside it, and the button is
+          the one part that never shrinks — it is the only control here. */}
+      <header className="relative z-10 px-4 sm:px-8 py-5 sm:py-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div className={cn("flex items-center gap-2.5 sm:gap-4 min-w-0", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+            <div className="w-11 h-11 sm:w-16 sm:h-16 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center shadow-xl shadow-primary/25 shrink-0">
+              <Brain className="text-accent w-6 h-6 sm:w-8 sm:h-8" />
             </div>
-            <div className="font-display text-3xl font-bold text-primary dark:text-white tracking-tight leading-tight">
-              {ar ? 'ARLibrary رفيق' : 'ARLibrary Rafeeq'}
+            <div className={cn("min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4", dir === 'rtl' ? 'items-end sm:flex-row-reverse' : 'items-start')}>
+              <div className="font-display text-xl sm:text-3xl font-bold text-primary dark:text-white tracking-tight leading-tight truncate max-w-full">
+                {ar ? 'ARLibrary رفيق' : 'ARLibrary Rafeeq'}
+              </div>
+              <span className="shrink-0 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg bg-accent/15 text-accent text-[9px] font-black uppercase tracking-widest">
+                {t('demoVersionBadge')}
+              </span>
             </div>
-            <span className="px-2.5 py-1 rounded-lg bg-accent/15 text-accent text-[9px] font-black uppercase tracking-widest">
-              {t('demoVersionBadge')}
-            </span>
           </div>
 
           <button
             onClick={toggleLanguage}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/10 rounded-2xl text-xs font-black text-slate-500 dark:text-slate-300 shadow-sm hover:border-accent/40 hover:text-accent transition-all"
+            className="shrink-0 flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-white/10 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs font-black text-slate-500 dark:text-slate-300 shadow-sm hover:border-accent/40 hover:text-accent transition-all"
           >
-            <Globe className="w-3.5 h-3.5" />
+            <Globe className="w-3.5 h-3.5 shrink-0" />
             {ar ? 'English' : 'عربي'}
           </button>
         </div>
