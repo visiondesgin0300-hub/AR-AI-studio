@@ -410,8 +410,10 @@ export function AdminDashboard() {
       {/* Header */}
       <div className={cn('flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 dark:border-white/10 pb-8', dir === 'rtl' ? 'md:flex-row-reverse' : '')}>
         <div className="space-y-1">
-          <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-            <h2 className="text-3xl font-black text-primary dark:text-white tracking-tight">{t('systemManagement')}</h2>
+          {/* flex-wrap, because the chip never breaks: on a phone the heading
+              takes two lines and the chip ran off the right edge of the screen. */}
+          <div className={cn('flex flex-wrap items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+            <h2 className="text-2xl sm:text-3xl font-black text-primary dark:text-white tracking-tight">{t('systemManagement')}</h2>
             <div className="bg-primary/5 dark:bg-accent/10 text-primary dark:text-accent px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/10 dark:border-accent/20 whitespace-nowrap">{t('centralControlPanel')}</div>
           </div>
           <p className="text-slate-400 dark:text-slate-500 font-bold text-sm">{t('fullControlDesc')}</p>
@@ -419,15 +421,18 @@ export function AdminDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+      {/* Two across on a phone. At one column each card ran the height of half
+          the screen to show a single number, so the five of them buried the
+          management tabs under four screenfuls of scrolling. */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-6">
         {stats.map((s, i) => (
           <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-            className={cn('official-card p-8 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5', dir === 'rtl' ? 'text-right' : 'text-left')}>
-            <div className={cn('flex items-start justify-between mb-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-              <div className={cn('p-4 rounded-2xl shadow-inner', s.bg)}><s.icon className={cn('w-6 h-6', s.color)} /></div>
-              <div className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">{t('updatedNow')}</div>
+            className={cn('official-card p-4 sm:p-8 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5', dir === 'rtl' ? 'text-right' : 'text-left')}>
+            <div className={cn('flex items-start justify-between mb-3 sm:mb-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+              <div className={cn('p-2.5 sm:p-4 rounded-2xl shadow-inner', s.bg)}><s.icon className={cn('w-5 h-5 sm:w-6 sm:h-6', s.color)} /></div>
+              <div className="hidden sm:block text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">{t('updatedNow')}</div>
             </div>
-            <div className="text-4xl font-black text-primary dark:text-white tracking-tighter font-mono" dir="ltr">{s.value}</div>
+            <div className="text-3xl sm:text-4xl font-black text-primary dark:text-white tracking-tighter font-mono" dir="ltr">{s.value}</div>
             <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-1">{s.label}</div>
             {'bar' in s && (
               <div className="mt-3 space-y-1.5">
