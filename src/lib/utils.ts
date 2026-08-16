@@ -343,12 +343,14 @@ export function getBadgeRequirements(badge: BadgeId): BadgeRequirement[] {
         req('facilities', 'استكشف مرافق المكتبة',       'Explore the library facilities', visits.includes('facilities') ? 1 : 0, 1),
       ];
 
-    // باحث — زيارة دائمة للبحث بين الرفوف واستخدام الخريطة ثنائية أو ثلاثية الأبعاد
+    // باحث — زيارة دائمة للبحث بين الرفوف واستخدام خريطة المكتبة
     case 'باحث':
       return [
         req('visits',  'زُر المكتبة في ٣ جلسات',                     'Visit the library in 3 sessions',      logins, 3),
         req('shelves', 'ابحث عن المصادر بين ٣ رفوف',                 'Search 3 shelves for resources',       getShelfCount(), 3),
-        req('map-view', 'استخدم الخريطة ثنائية أو ثلاثية الأبعاد',    'Use the 2D or 3D map',
+        // The flat plan and its toggle are gone; the requirement still accepts
+        // either tag, because accounts earned before the change carry 'map-2d'.
+        req('map-view', 'استخدم خريطة المكتبة',                       'Use the library map',
             (tags.includes('map-2d') || tags.includes('map-3d')) ? 1 : 0, 1),
       ];
 
