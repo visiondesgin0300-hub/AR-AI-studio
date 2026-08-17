@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Lock, Flame, Timer, Trophy, BookMarked,
+  Lock, Flame, Trophy,
   TrendingUp, Mail, BookOpen, Gamepad2, MapPin,
   Search as SearchIcon, ChevronRight,
   Bell, AlertTriangle, Info, CheckCircle2, Check,
@@ -14,7 +14,6 @@ import {
 import { useLanguage } from '../hooks/useLanguage';
 import { useXP } from '../hooks/useXP';
 import { BadgesCabinet } from '../components/BadgesCabinet';
-import { ShareInvite } from '../components/ShareInvite';
 import { useNotifications } from '../hooks/useNotifications';
 
 interface ProfileProps { user: User }
@@ -56,32 +55,14 @@ export function Profile({ user }: ProfileProps) {
   const { mapXp, shelvesXp, loginXp, searchXp, placeCount, gameXp, gameLevels } = useXpBreakdown();
 
   // ── Lock conditions ────────────────────────────────────────────────────────
-  const hoursLocked  = bookCount === 0;
   const streakLocked = loginCount < 2;
   const badgesLocked = earnedBadges.length === 0;
   const xpZero       = xp === 0;
 
+  // Borrowed books and reading hours are gone from this page. The first
+  // duplicated the count My Journey already carries, and the second was
+  // derived from it at three hours a book rather than measured.
   const statsData = [
-    {
-      id: 'books',
-      icon: BookMarked,
-      labelAr: 'كتب مستعارة',
-      labelEn: 'Borrowed Books',
-      value: bookCount,
-      locked: false,
-      hintAr: '',
-      hintEn: '',
-    },
-    {
-      id: 'hours',
-      icon: Timer,
-      labelAr: 'ساعات القراءة',
-      labelEn: 'Reading Hours',
-      value: bookCount * 3,
-      locked: hoursLocked,
-      hintAr: 'استعر كتاباً لفتح هذه الإحصائية',
-      hintEn: 'Borrow a book to unlock',
-    },
     {
       id: 'streak',
       icon: Flame,
@@ -354,12 +335,6 @@ export function Profile({ user }: ProfileProps) {
           )}
         </AnimatePresence>
       </div>
-
-      {/* ── Invite a classmate ───────────────────────────────────────────────
-          Placed straight after the badges: this is the point in the page where
-          the student has just read their own progress, which is exactly what
-          the invitation carries. */}
-      <ShareInvite user={user} />
 
       {/* ── Notifications ───────────────────────────────────────────────────── */}
       <div className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-5">
