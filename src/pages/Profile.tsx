@@ -94,7 +94,7 @@ export function Profile({ user }: ProfileProps) {
     { icon: MapPin,       labelAr: 'خريطة المكتبة',  labelEn: 'Library Map',   earned: mapXp,     max: 20,   detail: ar ? 'مرة واحدة'  : 'once'       },
     { icon: BookOpen,     labelAr: 'زيارة الرفوف',   labelEn: 'Shelf Visits',  earned: shelvesXp, max: null,  detail: ar ? `${placeCount} رف` : `${placeCount} shelves` },
     { icon: Flame,        labelAr: 'تسجيل الدخول',  labelEn: 'Login Sessions', earned: loginXp,   max: 50,   detail: ar ? 'بحد أقصى ٥' : 'cap 5'       },
-    { icon: SearchIcon,   labelAr: 'البحث الذكي',    labelEn: 'Smart Search',  earned: searchXp,  max: 50,   detail: ar ? 'بحد أقصى ٥' : 'cap 5'       },
+    { icon: SearchIcon,   labelAr: 'بحث المصادر',    labelEn: 'Resources Search',  earned: searchXp,  max: 50,   detail: ar ? 'بحد أقصى ٥' : 'cap 5'       },
     { icon: Gamepad2,     labelAr: 'تحدي الواقع المعزز', labelEn: 'AR Challenge', earned: gameXp,  max: 225,  detail: levelsLabel(gameLevels, ar) },
   ];
 

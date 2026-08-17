@@ -365,7 +365,7 @@ const STEPS: Step[] = [
   {
     id: 'search',
     icon: Search,
-    titleAr: 'البحث الذكي في المصادر',
+    titleAr: 'البحث في المصادر',
     titleEn: 'Smart Resource Search',
     descAr: 'ابحث عن أي كتاب بالاسم أو المؤلف أو التصنيف. النتائج فورية مع اقتراحات ذكية وتحديد الرف مباشرة.',
     descEn: 'Search any book by title, author, or category. Instant results with smart suggestions and direct shelf location.',

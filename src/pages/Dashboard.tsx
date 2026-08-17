@@ -265,7 +265,7 @@ export function Dashboard({ user }: DashboardProps) {
             </h4>
             <div className="w-12 h-[3px] bg-accent rounded-full mx-auto" />
             <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">
-              {language === 'ar' ? 'اختر الكتاب لبدء البحث الذكي' : 'Choose a book to start smart search'}
+              {language === 'ar' ? 'اختر الكتاب لبدء البحث في المصادر' : 'Choose a book to start a resources search'}
             </p>
           </div>
 
