@@ -544,7 +544,9 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
           "flex-1 overflow-y-auto px-8 bg-bg-light dark:bg-bg-dark transition-colors duration-300",
           // The padding exists to clear the bars above and below; with both
           // gone on a phone, the map may have that space too.
-          immersive ? "pt-3 roomy:pt-10 pb-6 roomy:pb-28" : "pt-10 pb-40 lg:pb-28",
+          // Below roomy the bar now floats over these pages too, so they need
+          // the room under them that every other page already had.
+          immersive ? "pt-3 roomy:pt-10 pb-32 roomy:pb-28" : "pt-10 pb-40 lg:pb-28",
           // Modest extra clearance on whichever side the floating AR button
           // sits on; the button itself now collapses to an icon-only circle
           // at rest on desktop (see the button's own comment), so this only
@@ -571,7 +573,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             to shrink (min-w-0) let the labels wrap instead of overflow. */}
         <nav className={cn(
           "lg:hidden fixed bottom-5 left-5 right-5 z-50 rounded-[2rem] flex justify-between items-start px-1 py-3.5 bg-white/85 dark:bg-slate-950/80 backdrop-blur-3xl border border-white/45 dark:border-white/5 shadow-[0_15px_35px_rgba(0,0,0,0.18)]",
-          (fieldFocused || immersive) && "hidden"
+          // The bar stays on every page now, the two map pages included. It is
+          // the only navigation a phone has, and taking it away there left the
+          // reader with whatever way back that page happened to provide.
+          fieldFocused && "hidden"
         )}>
           {navItems.map((item) => {
             const isActive = item.path.includes('?')
