@@ -253,7 +253,9 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
 
       {/* Smart Lens FAB — direct entry point to the AR camera experience (students only) */}
       {!isAdmin && <div className={cn(
-        'fixed z-40 bottom-28 lg:bottom-10 flex flex-col items-end gap-2',
+        // bottom-32, not bottom-28: the bar is 99px tall and sits 20px off the
+        // bottom, so at 112px the camera button's lower edge crossed into it.
+        'fixed z-40 bottom-32 lg:bottom-10 flex flex-col items-end gap-2',
         dir === 'rtl' ? 'left-5 lg:left-10 items-start' : 'right-5 lg:right-10 items-end'
       )}>
         <AnimatePresence>
@@ -313,7 +315,8 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
         whileTap={{ scale: 0.92 }}
         title={t('askLibrarianLabel')}
         className={cn(
-          "fixed z-40 bottom-44 lg:bottom-28 w-14 h-14 flex items-end justify-center rounded-full bg-primary dark:bg-slate-800 border-2 border-white/20 dark:border-white/10 shadow-[0_15px_40px_rgba(0,76,109,0.45)] overflow-hidden",
+          // Stacked above the camera button, which moved up with the bar.
+          "fixed z-40 bottom-48 lg:bottom-28 w-14 h-14 flex items-end justify-center rounded-full bg-primary dark:bg-slate-800 border-2 border-white/20 dark:border-white/10 shadow-[0_15px_40px_rgba(0,76,109,0.45)] overflow-hidden",
           dir === 'rtl' ? 'left-5 lg:left-10' : 'right-5 lg:right-10'
         )}
       >
