@@ -3,7 +3,7 @@ import { User } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import {
   Award, BookOpen, Clock,
-  TrendingUp, User as UserIcon,
+  User as UserIcon,
   Navigation, Flame, Target, BookMarked, Timer,
   Trophy, ArrowDown, ArrowUp, ChevronRight,
 } from 'lucide-react';
@@ -66,7 +66,7 @@ export function MyBooks({ user }: MyBooksProps) {
     <div dir={dir} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto pb-20">
 
       {/* ── Hero ──────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-[2rem] bg-primary p-8 md:p-10">
+      <div className="relative overflow-hidden rounded-[2rem] bg-primary p-5 sm:p-8 md:p-10">
         {/* decorations */}
         <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
         <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
@@ -81,26 +81,31 @@ export function MyBooks({ user }: MyBooksProps) {
               <div className={cn('flex items-center gap-2 flex-wrap', ar ? 'flex-row-reverse' : '')}>
                 <h1 className="text-2xl font-black text-white">{displayName(user, language)}</h1>
               </div>
-              <p className="text-white/50 text-xs font-bold mt-1">
-                {ar ? 'عضو منذ سبتمبر ٢٠٢٤' : 'Member since September 2024'}
-              </p>
+              {/* The joining date used to be printed here as a fixed string. No
+                  account in the application carries one, so it was the same
+                  sentence for every reader whatever their account. */}
+              <p className="text-white/50 text-xs font-bold mt-1">{user.email}</p>
             </div>
           </div>
 
-          {/* stats pills */}
-          <div className="flex flex-wrap gap-3 md:ms-auto">
+          {/* Stats: two across on a phone. As a wrapping row each pill took a
+              line of its own, so four numbers filled the screen and pushed the
+              points bar out of sight. */}
+          <div className="w-full grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:gap-3 md:ms-auto md:w-auto">
             {[
               { icon: BookMarked, label: t('journeyTotalBooks'),        value: stats.books   },
               { icon: Timer,      label: t('journeyHours'),             value: stats.hours   },
               { icon: Flame,      label: t('journeyStreak'),            value: stats.streak  },
               { icon: Trophy,     label: t('journeyAchievementsCount'), value: stats.badges  },
             ].map(({ icon: Icon, label, value }) => (
-              <div key={label} className="bg-white/8 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3 shrink-0">
+              <div key={label} className="bg-white/8 border border-white/10 rounded-2xl px-3.5 sm:px-5 py-3 flex items-center gap-2.5 sm:gap-3 min-w-0 sm:shrink-0">
                 <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
                   <Icon className="w-4 h-4 text-white/70" />
                 </div>
-                <div>
-                  <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{label}</div>
+                <div className="min-w-0">
+                  {/* Wraps rather than truncates: at two across, "Books in
+                      journey" was cut to "Books in the…". */}
+                  <div className="text-[9px] font-black text-white/50 uppercase tracking-widest leading-tight">{label}</div>
                   <div className="text-lg font-black text-white leading-none mt-0.5">{value}</div>
                 </div>
               </div>
@@ -126,7 +131,7 @@ export function MyBooks({ user }: MyBooksProps) {
       </div>
 
       {/* ── Semester goal ─────────────────────────────────────────────────────── */}
-      <div className="official-card p-6 bg-white dark:bg-slate-900 space-y-4">
+      <div className="official-card p-5 sm:p-6 bg-white dark:bg-slate-900 space-y-4">
         <div className={cn('flex items-center justify-between gap-4 flex-wrap', ar ? 'flex-row-reverse' : '')}>
           <div className={cn('flex items-center gap-3', ar ? 'flex-row-reverse' : '')}>
             <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center">
@@ -176,44 +181,13 @@ export function MyBooks({ user }: MyBooksProps) {
         {activeTab === 'books' && (
           <motion.div key="books" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
 
-            {/* XP card */}
-            <div className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
-                <div>
-                  <div className={cn('flex items-center justify-between mb-6', ar ? 'flex-row-reverse' : '')}>
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('experiencePointsTitle')}</span>
-                    <TrendingUp className="w-4 h-4 text-accent" />
-                  </div>
-                  <div className={cn('flex items-baseline gap-1.5', ar ? 'flex-row-reverse' : '')}>
-                    <span className="text-5xl font-black text-primary dark:text-white">{xp}</span>
-                    <span className="text-slate-300 dark:text-slate-600 font-black text-sm uppercase">XP</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${xpInLevel}%` }}
-                      transition={{ duration: 1.2, ease: 'easeOut' }}
-                      className="h-full bg-accent rounded-full"
-                    />
-                  </div>
-                  <div className="text-[10px] font-black text-slate-400 text-end">
-                    {xpToNext} XP {ar ? 'للنقطة التالية' : 'to go'}
-                  </div>
-                </div>
-
-                <div className={cn('flex flex-wrap gap-2 pt-4 border-t border-slate-100 dark:border-white/5', ar ? 'flex-row-reverse' : '')}>
-                  {[ar ? 'منذ 7 أيام 🔥' : '7 days ago 🔥', ar ? 'فيزياء 📚' : 'Physics 📚', ar ? 'متاح 💎' : 'Active 💎'].map(b => (
-                    <span key={b} className="text-[9px] font-black text-slate-400 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 px-2.5 py-1 rounded-lg whitespace-nowrap">
-                      {b}
-                    </span>
-                  ))}
-                </div>
-            </div>
+            {/* The points card that used to open this tab repeated the hero:
+                the same number, the same bar, the same caption, one screen
+                below it — and under them three fixed chips ("7 days ago",
+                "Physics", "Active") that were the same for every account. */}
 
             {/* ── Borrowed books ─────────────────────────────────────────────── */}
-            <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
+            <section className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
               <div className={cn('flex items-center justify-between gap-4 flex-wrap', ar ? 'flex-row-reverse' : '')}>
                 <div className={ar ? 'text-right' : ''}>
                   <h4 className="text-xl font-black text-primary dark:text-white">{t('currentlyBorrowedSection')}</h4>
@@ -319,7 +293,7 @@ export function MyBooks({ user }: MyBooksProps) {
           <motion.div key="ach" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
 
             {/* Badges cabinet — same component as Dashboard */}
-            <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
+            <section className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
               <div className="text-center space-y-2">
                 <h4 className="text-xl font-black text-primary dark:text-white">{t('badgesEarnedLabel')}</h4>
                 <div className="w-10 h-[3px] bg-accent rounded-full mx-auto" />
@@ -328,7 +302,7 @@ export function MyBooks({ user }: MyBooksProps) {
             </section>
 
             {/* How to earn XP */}
-            <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
+            <section className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
               <div className="text-center space-y-2">
                 <h4 className="text-xl font-black text-primary dark:text-white">
                   {ar ? 'كيف تكسب نقاط XP؟' : 'How to Earn XP'}
