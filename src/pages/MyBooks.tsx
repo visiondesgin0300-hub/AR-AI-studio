@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, getUserLevel, getEarnedBadges, displayName, bookTitle, bookAuthor } from '../lib/utils';
+import { cn, getEarnedBadges, displayName, bookTitle, bookAuthor } from '../lib/utils';
 import { useXP } from '../hooks/useXP';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
@@ -26,7 +26,6 @@ export function MyBooks({ user }: MyBooksProps) {
   const [sortOrder, setSortOrder]         = useState<'newest' | 'oldest'>('newest');
   const earnedBadges = getEarnedBadges(user);
   const xp           = useXP();
-  const xpLevel      = getUserLevel(xp);
   const xpInLevel    = xp % 100;
   const xpToNext     = 100 - xpInLevel;
 
@@ -81,9 +80,6 @@ export function MyBooks({ user }: MyBooksProps) {
             <div>
               <div className={cn('flex items-center gap-2 flex-wrap', ar ? 'flex-row-reverse' : '')}>
                 <h1 className="text-2xl font-black text-white">{displayName(user, language)}</h1>
-                <span className="text-[10px] font-black bg-accent text-primary px-2.5 py-1 rounded-lg uppercase tracking-widest">
-                  {t('level')} {xpLevel}
-                </span>
               </div>
               <p className="text-white/50 text-xs font-bold mt-1">
                 {ar ? 'عضو منذ سبتمبر ٢٠٢٤' : 'Member since September 2024'}
@@ -115,8 +111,8 @@ export function MyBooks({ user }: MyBooksProps) {
         {/* XP progress bar */}
         <div className="relative mt-8 space-y-2">
           <div className={cn('flex items-center justify-between text-[10px] font-black text-white/50 uppercase tracking-widest', ar ? 'flex-row-reverse' : '')}>
-            <span>{t('currentRank')} — {t('eliteReader')}</span>
-            <span>{xpToNext} XP {ar ? 'للمستوى التالي' : 'to next level'}</span>
+            <span>{xp} XP</span>
+            <span>{xpToNext} XP {ar ? 'للنقطة التالية' : 'to go'}</span>
           </div>
           <div className="h-2 rounded-full bg-white/10 border border-white/5 overflow-hidden">
             <motion.div
@@ -125,10 +121,6 @@ export function MyBooks({ user }: MyBooksProps) {
               transition={{ duration: 1.4, ease: 'easeOut' }}
               className="h-full bg-accent rounded-full shadow-[0_0_12px_rgba(217,179,16,0.5)]"
             />
-          </div>
-          <div className={cn('flex items-center justify-between text-[10px] font-black text-white/40', ar ? 'flex-row-reverse' : '')}>
-            <span>{xp} XP</span>
-            <span>{t('level')} {xpLevel}</span>
           </div>
         </div>
       </div>
@@ -198,10 +190,6 @@ export function MyBooks({ user }: MyBooksProps) {
                 </div>
 
                 <div className="space-y-3">
-                  <div className={cn('flex items-center justify-between', ar ? 'flex-row-reverse' : '')}>
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('currentRank')}</div>
-                    <div className="text-sm font-black text-primary dark:text-white">{t('eliteReader')}</div>
-                  </div>
                   <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
@@ -211,7 +199,7 @@ export function MyBooks({ user }: MyBooksProps) {
                     />
                   </div>
                   <div className="text-[10px] font-black text-slate-400 text-end">
-                    {t('pointsToNextRank', { points: xpToNext })}
+                    {xpToNext} XP {ar ? 'للنقطة التالية' : 'to go'}
                   </div>
                 </div>
 

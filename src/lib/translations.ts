@@ -402,6 +402,10 @@ export const translations = {
     augmentedLibraryMapDesc: 'إليك ملخص رحلتك المعرفية وأحدث التوصيات المختارة لك اليوم.',
     libraryResourcesShelves: 'رفوف موارد المكتبة',
     libraryFacilities: 'ابحث في مرافق المكتبة',
+    // Short forms for the navigation bar: the card titles are sentences, and
+    // on a phone they wrapped onto three lines inside a tab.
+    navSearch: 'بحث',
+    navFacilities: 'المرافق',
     facilitiesComingSoon: 'قريباً',
     facilityAvailable: 'متاح',
     facilityBusy: 'مزدحم',
@@ -1036,6 +1040,8 @@ export const translations = {
     augmentedLibraryMapDesc: "Here's a quick look at your reading journey and today's picks for you.",
     libraryResourcesShelves: 'Library Resources Shelves',
     libraryFacilities: 'Search Library Facilities',
+    navSearch: 'Search',
+    navFacilities: 'Facilities',
     facilitiesComingSoon: 'Coming soon',
     facilityAvailable: 'Available',
     facilityBusy: 'Busy',

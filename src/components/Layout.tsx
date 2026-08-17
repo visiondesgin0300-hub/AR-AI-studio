@@ -118,13 +118,13 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
   const navItems = isAdmin
     ? [
         { icon: ShieldCheck, label: t('admin'), path: '/admin' },
-        { icon: Search, label: t('smartSearchCard'), path: '/search' },
-        { icon: Compass, label: t('libraryFacilities'), path: '/facilities' },
+        { icon: Search, label: t('navSearch'), path: '/search' },
+        { icon: Compass, label: t('navFacilities'), path: '/facilities' },
       ]
     : [
         { icon: Home,     label: t('dashboard'),          path: '/'           },
-        { icon: Search,   label: t('smartSearchCard'),    path: '/search'     },
-        { icon: Compass,  label: t('libraryFacilities'),  path: '/facilities' },
+        { icon: Search,   label: t('navSearch'),          path: '/search'     },
+        { icon: Compass,  label: t('navFacilities'),      path: '/facilities' },
         { icon: UserIcon, label: t('profile'),            path: '/profile'    },
       ];
 
