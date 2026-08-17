@@ -9,7 +9,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
 import {
-  cn, getUserLevel, getEarnedBadges, getGameXP, getCompletedGameLevels,
+  cn, getEarnedBadges, getGameXP, getCompletedGameLevels,
   getLoginCount, getSearchCount, getMapVisits, displayName } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 import { useXP } from '../hooks/useXP';
@@ -32,10 +32,12 @@ function useXpBreakdown() {
   return { mapXp, shelvesXp, loginXp, searchXp, placeCount, gameXp, gameLevels };
 }
 
-/** "1 level" / "مستوى واحد" — Arabic has a dual form, so spell all three out. */
+/** "1 round" / "جولة واحدة" — Arabic has a dual form, so spell all three out.
+    The challenge calls them rounds on its own start button, and they are not
+    the user levels that used to be shown elsewhere on this page. */
 function levelsLabel(n: number, ar: boolean): string {
-  if (ar) return n === 0 ? 'لا مستويات' : n === 1 ? 'مستوى واحد' : n === 2 ? 'مستويان' : `${n} مستويات`;
-  return `${n} level${n === 1 ? '' : 's'}`;
+  if (ar) return n === 0 ? 'لا جولات' : n === 1 ? 'جولة واحدة' : n === 2 ? 'جولتان' : `${n} جولات`;
+  return `${n} round${n === 1 ? '' : 's'}`;
 }
 
 export function Profile({ user }: ProfileProps) {
@@ -46,7 +48,6 @@ export function Profile({ user }: ProfileProps) {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
 
   const xp           = useXP();
-  const level        = getUserLevel(xp);
   const xpInLevel    = xp % 100;
   const xpToNext     = 100 - xpInLevel;
   const earnedBadges = getEarnedBadges(user);
@@ -132,9 +133,6 @@ export function Profile({ user }: ProfileProps) {
               <span className="flex items-center gap-1 text-[10px] text-white/50 font-bold truncate max-w-[200px]">
                 <Mail className="w-3 h-3 shrink-0" />{user.email}
               </span>
-              <span className="text-[10px] font-black bg-accent text-primary px-2.5 py-0.5 rounded-lg uppercase tracking-widest shrink-0">
-                {ar ? 'المستوى' : 'Level'} {level}
-              </span>
             </div>
             {/* mini XP bar in hero */}
             <div className="mt-3 space-y-1">
@@ -153,7 +151,8 @@ export function Profile({ user }: ProfileProps) {
               <p className="flex items-center gap-1.5 text-[10px] font-black text-white/40 uppercase tracking-widest">
                 <span dir="ltr">{xp} XP</span>
                 <span>—</span>
-                <span>{ar ? `${xpToNext} للمستوى التالي` : `${xpToNext} to next level`}</span>
+                <span dir="ltr">{xpToNext} XP</span>
+                <span>{ar ? 'للنقطة التالية' : 'to go'}</span>
               </p>
             </div>
           </div>
@@ -175,7 +174,7 @@ export function Profile({ user }: ProfileProps) {
           <TrendingUp className="w-5 h-5 text-accent" />
         </div>
 
-        {/* level progress bar */}
+        {/* points progress bar */}
         <div className="space-y-2">
           <div className="h-3 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
             <motion.div
@@ -186,8 +185,11 @@ export function Profile({ user }: ProfileProps) {
             />
           </div>
           <div className={cn('flex items-center justify-between text-[10px] font-black text-slate-400', ar ? 'flex-row-reverse' : '')}>
-            <span dir="ltr">{xp} / {level * 100} XP</span>
-            <span>{ar ? `${xpToNext} XP للمستوى التالي` : `${xpToNext} XP to next level`}</span>
+            <span dir="ltr">{xp} XP</span>
+            <span className="flex items-center gap-1">
+              <span dir="ltr">{xpToNext} XP</span>
+              <span>{ar ? 'للنقطة التالية' : 'to go'}</span>
+            </span>
           </div>
         </div>
 
