@@ -87,6 +87,27 @@ function loginKey():  string { return `login_count_v1_${getCurrentUserId()}`; }
 function searchKey(): string { return `search_count_v1_${getCurrentUserId()}`; }
 function gameKey():   string { return `cognitive_ar_v4_${getCurrentUserId()}`; }
 function favKey():    string { return `favorite_books_v1_${getCurrentUserId()}`; }
+function resKey():    string { return `reserved_books_v1_${getCurrentUserId()}`; }
+
+/**
+ * Books this account has reserved.
+ *
+ * They are kept here as well as on the user object because the app re-reads
+ * the account from /api/me on every load and adopts whatever the server
+ * returns; the server holds no reservations, so a reservation made in the
+ * browser vanished on the next refresh. This is the copy that survives.
+ */
+export function getReservedBooks(): string[] {
+  try { return JSON.parse(localStorage.getItem(resKey()) || '[]'); } catch { return []; }
+}
+
+/** Records a reservation, and returns the full list including it. */
+export function addReservedBook(bookId: string): string[] {
+  const list = getReservedBooks();
+  if (!list.includes(bookId)) list.push(bookId);
+  try { localStorage.setItem(resKey(), JSON.stringify(list)); } catch { /* full or private */ }
+  return list;
+}
 
 export function getCompletedGameLevels(): string[] {
   try { return JSON.parse(localStorage.getItem(gameKey()) || '[]'); } catch { return []; }

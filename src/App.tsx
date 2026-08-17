@@ -36,7 +36,7 @@ import { WebXRAR } from './pages/WebXRAR';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
-import { incrementLoginCount, trackArUse, trackScanUse } from './lib/utils';
+import { incrementLoginCount, trackArUse, trackScanUse, getReservedBooks } from './lib/utils';
 import { AchievementsProvider } from './hooks/useAchievements';
 
 // Lazy-loaded: pulls in mind-ar + tensorflow.js + three.js + AR.js, several
@@ -114,8 +114,15 @@ function AppContent() {
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
         if (cancelled || !data?.user) return;
-        setUser(data.user);
-        localStorage.setItem('library_user', JSON.stringify(data.user));
+        // The server holds no reservations, so adopting its account wholesale
+        // erased any book reserved in this browser. Union the two.
+        const reserved = getReservedBooks();
+        const merged = {
+          ...data.user,
+          borrowedBooks: [...new Set([...(data.user.borrowedBooks ?? []), ...reserved])],
+        };
+        setUser(merged);
+        localStorage.setItem('library_user', JSON.stringify(merged));
       })
       .catch(() => { /* offline: keep the stored copy */ });
     return () => { cancelled = true; };

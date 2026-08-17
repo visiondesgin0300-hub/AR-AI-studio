@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import {
   Lock, Flame, Trophy,
   TrendingUp, Mail, BookOpen, Gamepad2, MapPin,
-  Search as SearchIcon, ChevronRight,
+  Search as SearchIcon,
   Bell, AlertTriangle, Info, CheckCircle2, Check,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { User } from '../types';
+import { MOCK_BOOKS } from '../data/mockData';
 import {
   cn, getEarnedBadges, getGameXP, getCompletedGameLevels,
-  getLoginCount, getSearchCount, getMapVisits, displayName } from '../lib/utils';
+  getLoginCount, getSearchCount, getMapVisits, displayName,
+  bookTitle, bookAuthor } from '../lib/utils';
+import { BookCover } from '../components/BookCover';
 import { useLanguage } from '../hooks/useLanguage';
 import { useXP } from '../hooks/useXP';
 import { BadgesCabinet } from '../components/BadgesCabinet';
@@ -51,7 +54,9 @@ export function Profile({ user }: ProfileProps) {
   const xpToNext     = 100 - xpInLevel;
   const earnedBadges = getEarnedBadges(user);
   const loginCount   = getLoginCount();
-  const bookCount    = user.borrowedBooks.length;
+  // Reserving a book is what the record's button does, and it is recorded on
+  // the account; these are those books, in catalogue order.
+  const reservedBooks = MOCK_BOOKS.filter(b => user.borrowedBooks.includes(b.id));
   const { mapXp, shelvesXp, loginXp, searchXp, placeCount, gameXp, gameLevels } = useXpBreakdown();
 
   // ── Lock conditions ────────────────────────────────────────────────────────
@@ -283,6 +288,69 @@ export function Profile({ user }: ProfileProps) {
         ))}
       </div>
 
+      {/* ── Reserved books ───────────────────────────────────────────────────────
+          The books themselves, not a count of them: a reader opening this page
+          wants to know which titles they are holding and where each one is. */}
+      <div className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-5">
+        <div className={cn('flex items-center justify-between', ar ? 'flex-row-reverse' : '')}>
+          <div>
+            <h3 className="text-lg font-black text-primary dark:text-white">
+              {ar ? 'الكتب المحجوزة' : 'Reserved Books'}
+            </h3>
+            <div className="w-8 h-[3px] bg-accent rounded-full mt-1.5" />
+          </div>
+          <span className="text-[10px] font-black px-3 py-1 rounded-xl bg-accent/10 text-accent">
+            {reservedBooks.length}
+          </span>
+        </div>
+
+        {reservedBooks.length > 0 ? (
+          <div className="space-y-3">
+            {reservedBooks.map((book, i) => (
+              <motion.button
+                key={book.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.06 }}
+                onClick={() => navigate(`/book/${book.id}`)}
+                className={cn(
+                  'w-full official-card p-3 bg-white dark:bg-slate-900 flex items-center gap-3 hover:border-accent transition-all group',
+                  ar ? 'flex-row-reverse text-right' : 'text-left',
+                )}
+              >
+                <BookCover book={book} className="w-11 h-14 rounded-lg shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-1">
+                    {bookTitle(book, language)}
+                  </p>
+                  <p className="text-[10px] font-bold text-slate-400 truncate">
+                    {bookAuthor(book, language)}
+                  </p>
+                </div>
+                <span className={cn(
+                  'text-[10px] font-black text-primary dark:text-accent bg-slate-50 dark:bg-slate-800 px-2.5 py-1 rounded-lg shrink-0',
+                )}>
+                  {ar ? 'رف' : 'Shelf'} {book.shelf}
+                </span>
+              </motion.button>
+            ))}
+          </div>
+        ) : (
+          <div className="border border-dashed border-slate-200 dark:border-white/8 rounded-2xl p-8 text-center space-y-3">
+            <BookOpen className="w-8 h-8 text-slate-200 dark:text-slate-700 mx-auto" />
+            <p className="text-[11px] font-bold text-slate-400">
+              {ar ? 'لا توجد كتب محجوزة بعد' : 'No reserved books yet'}
+            </p>
+            <button
+              onClick={() => navigate('/search')}
+              className="px-5 py-3 bg-primary dark:bg-accent text-white dark:text-primary rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all"
+            >
+              {ar ? 'ابحث عن كتاب' : 'Find a book'}
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* ── Badges & achievements ────────────────────────────────────────────── */}
       <div className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6 relative overflow-hidden">
         <div className={cn('flex items-center justify-between', ar ? 'flex-row-reverse' : '')}>
@@ -444,28 +512,6 @@ export function Profile({ user }: ProfileProps) {
           </div>
         )}
       </div>
-
-      {/* ── Borrowed books quick-link ────────────────────────────────────────── */}
-      <button
-        onClick={() => navigate('/my-books')}
-        className={cn(
-          'w-full official-card p-5 bg-white dark:bg-slate-900 flex items-center gap-4 hover:border-accent hover:shadow-md transition-all group',
-          ar ? 'flex-row-reverse' : '',
-        )}
-      >
-        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-accent/10 transition-colors">
-          <BookOpen className="w-4 h-4 text-primary dark:text-accent" />
-        </div>
-        <div className={cn('flex-1 text-start', ar ? 'text-right' : '')}>
-          <p className="text-sm font-black text-primary dark:text-white">
-            {ar ? 'الكتب المستعارة' : 'Borrowed Books'}
-          </p>
-          <p className="text-[10px] font-bold text-slate-400">
-            {ar ? `${bookCount} كتاب حالياً` : `${bookCount} books currently`}
-          </p>
-        </div>
-        <ChevronRight className={cn('w-4 h-4 text-slate-300 group-hover:text-primary dark:group-hover:text-accent transition-colors shrink-0', ar ? 'rotate-180' : '')} />
-      </button>
 
     </div>
   );

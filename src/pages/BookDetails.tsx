@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowRight, MapPin, Share2, Heart, BookOpen, Clock, CheckCircle2, AlertCircle, X, Tag } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
 import { User, Book } from '../types';
-import { bookAuthor, bookCategory, bookTitle, bookTitleAlt, cn, isFavoriteBook, toggleFavoriteBook } from '../lib/utils';
+import { bookAuthor, bookCategory, bookTitle, bookTitleAlt, cn, isFavoriteBook, toggleFavoriteBook, addReservedBook } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { CitationBox } from '../components/CitationBox';
@@ -67,6 +67,9 @@ export function BookDetails({ user, onUpdateUser }: BookDetailsProps) {
 
   const handleBorrow = () => {
     if (!isAvailable) return;
+    // Kept alongside the account object so the reservation survives the next
+    // load, when /api/me hands back an account that knows nothing about it.
+    addReservedBook(book.id);
     onUpdateUser((current) => ({
       ...current,
       borrowedBooks: current.borrowedBooks.includes(book.id)
