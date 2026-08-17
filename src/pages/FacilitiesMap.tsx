@@ -1,22 +1,13 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Compass, Camera, X, Box, Users, VolumeX, Monitor, Printer, Search, Map as MapIcon } from 'lucide-react';
-import { cn } from '../lib/utils';
+import { MapPin, Navigation, Compass, X, Box, Users, VolumeX, Monitor, Printer, Search, Share2, Clock, Home, Languages } from 'lucide-react';
+import { cn, trackMapVisit } from '../lib/utils';
+import { ShareSheet } from '../components/ShareSheet';
+import { facilitySharePayload } from '../lib/share';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 
-interface ManualTarget { id: string }
-
 const DARK_NAV_PATH_D = 'M 300,460 C 300,380 190,340 210,260 C 230,180 260,140 285,90';
-const SHELF_SILHOUETTE_ROWS = [0, 100, 200, 300, 400];
-const SHELF_SPINE_WIDTHS = [14, 9, 17, 11, 15, 10, 18, 12, 13, 8];
-const SHELF_SPINE_COLORS = ['#0e7490', '#155e75', '#D9B310', '#0891b2', '#164e63', '#0e7490', '#0c6a7a', '#1a7a6a'];
-const AR_BOOK_TOP_OFFSETS = [12, 22, 5, 18, 3, 16, 8, 26, 4, 20];
-const AR_BOOK_XS = SHELF_SPINE_WIDTHS.reduce<number[]>((acc, w, i) => {
-  acc.push(i === 0 ? 4 : acc[i - 1] + SHELF_SPINE_WIDTHS[i - 1] + 2);
-  return acc;
-}, []);
-const AR_SHELF_PANEL_W = AR_BOOK_XS[AR_BOOK_XS.length - 1] + SHELF_SPINE_WIDTHS[SHELF_SPINE_WIDTHS.length - 1] + 8;
 
 const DISTANCE_BY_CELL: Record<string, number> = {
   'A-2': 38,
@@ -25,19 +16,96 @@ const DISTANCE_BY_CELL: Record<string, number> = {
   'D-1': 75,
 };
 
+// Matches the facility anchors added to library-ar-floor.html's 3D scene
+// (see the zones array / geometry groups keyed on these same x,z coords).
+const FACILITY_3D_TARGETS: Record<string, { x: number; z: number; ar: string; en: string }> = {
+  'A-2': { x: -21, z: 15, ar: 'مختبر الحاسوب', en: 'Computer Lab' },
+  'B-2': { x: 22, z: 12, ar: 'غرف الدراسة الجماعية', en: 'Group Study Rooms' },
+  'C-1': { x: 9, z: 4, ar: 'الطباعة والنسخ', en: 'Printing & Copying' },
+  'D-1': { x: -10, z: 22, ar: 'منطقة القراءة الهادئة', en: 'Silent Reading Zone' },
+};
+
 export function FacilitiesMap() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t, language, dir } = useLanguage();
+  const { t, language, dir, toggleLanguage } = useLanguage();
 
-  const [manualTarget, setManualTarget] = useState<ManualTarget | null>(() => {
+  useEffect(() => { trackMapVisit('facilities'); }, []);
+
+  // The facility whose share dialog is open, if any.
+  const [shareFacility, setShareFacility] = useState<{ name: string; desc: string; location: string; status: string } | null>(null);
+
+  const [manualTarget, setManualTarget] = useState<{ id: string } | null>(() => {
     if (location.state?.facilityCell) return { id: location.state.facilityCell };
     return null;
   });
   const [facilitySearch, setFacilitySearch] = useState('');
-  const [activeView, setActiveView] = useState<'map' | 'ar'>('map');
   const [showPath, setShowPath] = useState(false);
   const [walkProgress, setWalkProgress] = useState(0);
+  const arIframeRef = useRef<HTMLIFrameElement>(null);
+  const mapPanelRef = useRef<HTMLDivElement>(null);
+
+  // Draw the glowing wayfinding beam inside the 3D scene toward the
+  // selected facility (the iframe's built-in guide only knew about shelf
+  // codes; guideToPoint()/LIBRARY_GUIDE_TO_FACILITY were added to
+  // library-ar-floor.html so facility destinations get the same beam).
+  //
+  // On a cold load the embedded Three.js scene can take several seconds to
+  // finish building (window.__cmp isn't assigned until then), so a single
+  // retry isn't enough — the postMessage silently drops if it arrives
+  // before the iframe's listener is registered. Keep resending until the
+  // iframe (same-origin, so directly inspectable) confirms it's actually
+  // showing this exact target, or give up after ~12s.
+  //
+  // The beam waits for the walk to be started rather than appearing the moment
+  // a facility is picked: picking one is choosing where to go, pressing the
+  // button is setting off. Clearing on the way out matters as much as drawing
+  // — the scene keeps whatever it was last told.
+  useEffect(() => {
+    if (!manualTarget || !showPath) {
+      arIframeRef.current?.contentWindow?.postMessage({ type: 'LIBRARY_CLEAR_GUIDE' }, '*');
+      return;
+    }
+    const target = FACILITY_3D_TARGETS[manualTarget.id];
+    if (!target) return;
+    const msg = {
+      type: 'LIBRARY_GUIDE_TO_FACILITY',
+      x: target.x,
+      z: target.z,
+      labelAr: target.ar,
+      labelEn: target.en,
+    };
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30;
+    const send = () => arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    send();
+    const interval = setInterval(() => {
+      attempts += 1;
+      const win = arIframeRef.current?.contentWindow as (Window & {
+        __cmp?: { _guide?: { visible?: boolean }; _guideItem?: { labelEn?: string } };
+      }) | undefined;
+      const cmp = win?.__cmp;
+      const showingThisTarget = !!cmp?._guide?.visible && cmp?._guideItem?.labelEn === target.en;
+      if (showingThisTarget || attempts >= MAX_ATTEMPTS) {
+        clearInterval(interval);
+        return;
+      }
+      send();
+    }, 400);
+    return () => clearInterval(interval);
+  }, [manualTarget, showPath]);
+
+  // The scene writes its own header, in Arabic. Tell it which language the
+  // interface is in — by message rather than by reloading the iframe, so
+  // switching language mid-route does not rebuild the scene and lose the beam.
+  useEffect(() => {
+    const send = () => arIframeRef.current?.contentWindow
+      ?.postMessage({ type: 'LIBRARY_SET_LANG', lang: language }, '*');
+    send();
+    const t = setInterval(send, 600);
+    const stop = setTimeout(() => clearInterval(t), 6000);
+    return () => { clearInterval(t); clearTimeout(stop); };
+  }, [language]);
 
   const FACILITIES = [
     {
@@ -95,7 +163,7 @@ export function FacilitiesMap() {
   const etaMinutes = Math.max(1, Math.round(totalWalkSeconds / 60));
 
   useEffect(() => {
-    if (!showPath || !manualTarget || activeView !== 'ar') {
+    if (!showPath || !manualTarget) {
       setWalkProgress(0);
       return;
     }
@@ -110,11 +178,38 @@ export function FacilitiesMap() {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [showPath, manualTarget, activeView, totalWalkSeconds]);
+  }, [showPath, manualTarget, totalWalkSeconds]);
 
   const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
+  const liveEtaSeconds = Math.max(0, Math.round(totalWalkSeconds * (1 - walkProgress)));
   const hasArrived = showPath && walkProgress >= 1;
+
+  // The scene draws the route; the walk that moves along it is run here, so
+  // the two are kept in step by sending progress over rather than having the
+  // scene guess. Note this is the simulated walk the HUD counts down, not a
+  // tracked position — the app does not follow the reader through the building.
+  useEffect(() => {
+    const post = (msg: Record<string, unknown>) => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    post({ type: 'LIBRARY_WALK_PROGRESS', t: showPath ? walkProgress : 0 });
+  }, [walkProgress, showPath]);
+
+  useEffect(() => {
+    const post = (msg: Record<string, unknown>) => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    post({ type: 'LIBRARY_ARRIVED', arrived: hasArrived });
+  }, [hasArrived]);
+
+
+  // Clock time of arrival, counting down live with the walk. "3 min" tells you
+  // how long; this tells you when — the thing you actually compare against the
+  // lecture you are heading to. ar-EG, not ar-SA, for the same reason as the
+  // dates elsewhere.
+  const arrivalClock = new Date(Date.now() + liveEtaSeconds * 1000)
+    .toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 
   const navigationSteps = targetFacility
     ? [
@@ -148,19 +243,19 @@ export function FacilitiesMap() {
   return (
     <div
       className={cn(
-        'h-full flex flex-col gap-8 animate-in duration-500 font-sans',
+        'h-full flex flex-col gap-3 roomy:gap-8 animate-in duration-500 font-sans',
         dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left'
       )}
     >
       {/* Header */}
       <div
         className={cn(
-          'flex flex-col md:flex-row items-center justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10',
+          'flex flex-row items-center justify-between gap-3 roomy:gap-8 pb-3 roomy:pb-8 border-b border-slate-200 dark:border-white/10',
           dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row'
         )}
       >
-        <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
-          <div className={cn('flex items-center gap-3 mb-4', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+        <div className={cn('min-w-0', dir === 'rtl' ? 'text-right' : 'text-left')}>
+          <div className={cn('hidden roomy:flex items-center gap-3 mb-4', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
             <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center text-accent">
               <Compass className="w-6 h-6" />
             </div>
@@ -168,16 +263,36 @@ export function FacilitiesMap() {
               {language === 'ar' ? 'نظام الملاحة الداخلية' : 'INDOOR NAVIGATION'}
             </span>
           </div>
-          <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">
+          <h1 className="text-lg roomy:text-4xl font-black text-primary dark:text-white tracking-tight truncate roomy:whitespace-normal">
             {t('libraryFacilities')}
           </h1>
-          <p className="text-slate-400 dark:text-slate-500 font-bold mt-2 leading-relaxed">
+          <p className="hidden roomy:block text-slate-400 dark:text-slate-500 font-bold mt-2 leading-relaxed">
             {language === 'ar'
               ? 'اعثر على قاعات الدراسة، مختبرات الحاسوب، الطابعات والمرافق الأخرى'
               : 'Find study rooms, computer labs, printers, and other facilities'}
           </p>
         </div>
 
+        {/* Both bars are hidden on this page so the map can have the screen.
+            These are the two controls that went with them. */}
+        <div className="roomy:hidden shrink-0 flex items-center gap-2">
+          <button
+            onClick={toggleLanguage}
+            aria-label={language === 'ar' ? 'English' : 'عربي'}
+            title={language === 'ar' ? 'English' : 'عربي'}
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-primary dark:text-white shadow-sm active:scale-95 transition-all"
+          >
+            <Languages className="w-4.5 h-4.5 text-accent" />
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            aria-label={t('backToHome')}
+            title={t('backToHome')}
+            className="flex items-center justify-center w-11 h-11 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-primary dark:text-white shadow-sm active:scale-95 transition-all"
+          >
+            <Home className="w-4.5 h-4.5" />
+          </button>
+        </div>
       </div>
 
       {/* Main content */}
@@ -187,382 +302,145 @@ export function FacilitiesMap() {
           dir === 'rtl' ? 'xl:flex-row-reverse' : 'xl:flex-row'
         )}
       >
-        {/* Left: Map or AR view */}
-        <div className="flex-1 official-card relative overflow-hidden min-h-[650px] p-0 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
+        {/* ── Left: map panel ── */}
+        <div
+          ref={mapPanelRef}
+          className={cn(
+            "flex-none roomy:flex-1 official-card relative overflow-hidden -mx-8 roomy:mx-0 rounded-none roomy:rounded-2xl h-[calc(100dvh-5.5rem)] roomy:h-[calc(100dvh-12rem)] min-h-0 roomy:min-h-[650px] p-0 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20",
+            // On a phone the map fills the screen, so opening on it buries the
+            // list a whole screenful down. Land on the list instead and bring
+            // the map up when there is somewhere to go. A desktop shows both.
+            !manualTarget && "hidden roomy:block"
+          )}
+        >
           <AnimatePresence mode="wait">
 
-            {/* ── AR navigation mode ── */}
-            {activeView === 'ar' ? (
+            {/* ════ 3D view — library-ar-floor iframe ════ */}
+            {/* ════ The floor plan — the only view ════ */}
               <motion.div
-                key="ar-view"
+                key="3d-view"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="relative w-full h-full min-h-[650px] flex flex-col bg-[#01354C] dark:bg-[#010f1a]"
+                className="relative w-full h-full min-h-0 roomy:min-h-[650px] flex flex-col"
               >
-                {/* Shelf silhouette background */}
-                <svg className="absolute inset-0 w-full h-full opacity-40 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
-                  {SHELF_SILHOUETTE_ROWS.map((rowY, rowIdx) => (
-                    <g key={rowY}>
-                      {SHELF_SPINE_WIDTHS.map((w, i) => {
-                        const topOff = AR_BOOK_TOP_OFFSETS[(rowIdx * 3 + i) % AR_BOOK_TOP_OFFSETS.length];
-                        return <rect key={`l-${i}`} x={AR_BOOK_XS[i]} y={rowY + topOff} width={w} height={88 - topOff} rx={2} fill={SHELF_SPINE_COLORS[i % SHELF_SPINE_COLORS.length]} />;
-                      })}
-                      <rect x={0} y={rowY + 88} width={AR_SHELF_PANEL_W} height={8} rx={1.5} fill="#6b4423" />
-                      {SHELF_SPINE_WIDTHS.map((_w, i) => {
-                        const ri = SHELF_SPINE_WIDTHS.length - 1 - i;
-                        const topOff = AR_BOOK_TOP_OFFSETS[(rowIdx * 3 + ri) % AR_BOOK_TOP_OFFSETS.length];
-                        return <rect key={`r-${i}`} x={600 - AR_BOOK_XS[ri] - SHELF_SPINE_WIDTHS[ri]} y={rowY + topOff} width={SHELF_SPINE_WIDTHS[ri]} height={88 - topOff} rx={2} fill={SHELF_SPINE_COLORS[(ri + 2) % SHELF_SPINE_COLORS.length]} />;
-                      })}
-                      <rect x={600 - AR_SHELF_PANEL_W} y={rowY + 88} width={AR_SHELF_PANEL_W} height={8} rx={1.5} fill="#6b4423" />
-                    </g>
-                  ))}
-                </svg>
-                <div className="absolute inset-0 opacity-[0.06] pointer-events-none" style={{ backgroundImage: 'radial-gradient(rgba(255,255,255,0.6) 1px, transparent 1px)', backgroundSize: '26px 26px' }} />
+                <iframe
+                  ref={arIframeRef}
+                  src={`/library-ar-floor.html?chrome=off&lang=${language}`}
+                  title="3D Library Floor"
+                  className="absolute inset-0 w-full h-full border-0"
+                  allow="accelerometer; gyroscope"
+                />
 
-                {/* Top controls */}
-                <div className={cn('absolute top-6 z-20 flex items-center gap-3', dir === 'rtl' ? 'right-6' : 'left-6')}>
-                  <button
-                    onClick={() => { setManualTarget(null); setShowPath(false); setWalkProgress(0); }}
-                    className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-xl border border-white/10 transition-all active:scale-95"
-                  >
-                    {t('changeRouteLabel')}
-                  </button>
-                </div>
-                <button
-                  onClick={() => navigate('/ar')}
-                  title={t('enterArMode')}
-                  className={cn('absolute top-6 z-20 p-3 rounded-full bg-accent text-primary shadow-[0_8px_24px_rgba(217,179,16,0.4)] hover:brightness-110 transition-all active:scale-90', dir === 'rtl' ? 'left-6' : 'right-6')}
-                >
-                  <Camera className="w-4 h-4" />
-                </button>
+                {/* HUD overlay */}
+                <div className="absolute inset-0 z-10 pointer-events-none flex flex-col">
 
-                {/* Yellow arrow path + pulsing dot */}
-                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
-                  <defs>
-                    <linearGradient id="darkPathGradientF" x1="0%" y1="100%" x2="0%" y2="0%">
-                      <stop offset="0%" stopColor="#D9B310" stopOpacity="0.2" />
-                      <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
-                    </linearGradient>
-                    <filter id="darkGlowF">
-                      <feGaussianBlur stdDeviation="3.5" result="coloredBlur" />
-                      <feMerge>
-                        <feMergeNode in="coloredBlur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
-                  <motion.path
-                    d={DARK_NAV_PATH_D}
-                    stroke="url(#darkPathGradientF)"
-                    strokeWidth="10"
-                    strokeDasharray="4 16"
-                    strokeLinecap="round"
-                    fill="none"
-                    filter="url(#darkGlowF)"
-                    initial={{ pathLength: 0 }}
-                    animate={{ pathLength: 1 }}
-                    transition={{ duration: 1.5, ease: 'easeInOut' }}
-                  />
-                  {/* Flowing yellow arrows along path */}
-                  {[0, 1, 2].map(i => (
-                    <polygon key={i} points="-7,-9 8,0 -7,9" fill="#D9B310" stroke="#01354C" strokeWidth="1">
-                      <animateMotion dur="2.2s" begin={`${i * 0.75}s`} repeatCount="indefinite" rotate="auto" path={DARK_NAV_PATH_D} />
-                    </polygon>
-                  ))}
-                  {/* Destination marker with pulse */}
-                  <circle cx="285" cy="90" r="13" fill="#D9B310" stroke="white" strokeWidth="3" />
-                  <motion.circle
-                    cx="285" cy="90" r="13"
-                    stroke="#D9B310" strokeWidth="2" fill="none"
-                    animate={{ r: [13, 32, 13], opacity: [0.7, 0, 0.7] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                  />
-                </svg>
-
-                {/* Overlaid labels */}
-                {targetFacility ? (
-                  <>
-                    <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-20 px-10">
-                      <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
-                        <Navigation className={cn('w-4 h-4 text-accent', dir === 'rtl' ? 'rotate-180' : '')} />
-                        {t('headTowardsDestination', { destination: targetFacility.name })}
-                      </div>
-                      <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/70 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                        <Box className="w-3.5 h-3.5 text-accent/80" />
-                        {targetFacility.location}
-                      </div>
-                      <div className="px-5 py-2 rounded-full bg-accent/15 backdrop-blur-xl border border-accent/30 text-accent text-[11px] font-black flex items-center gap-3">
-                        <span>{t('distanceLabel')}: {showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
-                        <span className="w-1 h-1 rounded-full bg-accent/50" />
-                        <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
-                      </div>
-                      {navigationSteps.length > 0 && (
-                        <AnimatePresence mode="wait">
-                          <motion.div
-                            key={hasArrived ? 'arrived' : liveStepIndex}
-                            initial={{ opacity: 0, y: -6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 6 }}
-                            className={cn(
-                              'px-5 py-2 rounded-full backdrop-blur-xl border text-[11px] font-black flex items-center gap-2 max-w-full',
-                              hasArrived
-                                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                                : 'bg-white/10 border-white/10 text-white'
-                            )}
-                          >
-                            <MapPin className="w-3.5 h-3.5 shrink-0" />
-                            <span className="truncate">
-                              {hasArrived ? t('reachedDestination') : navigationSteps[liveStepIndex]}
-                            </span>
-                          </motion.div>
-                        </AnimatePresence>
-                      )}
-                    </div>
-
-                    {/* Bottom info card + start button */}
-                    <div className="relative z-20 mt-auto p-6 space-y-3">
-                      <div className={cn('bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-[2rem] p-5 flex items-center gap-4 shadow-2xl', dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
-                        <div className="w-14 h-14 rounded-2xl bg-accent/20 flex items-center justify-center text-accent shrink-0">
-                          <targetFacility.icon className="w-7 h-7" />
+                  {/* Facility selected — navigation HUD */}
+                  {targetFacility && (
+                    <div className="flex-1 flex flex-col justify-end pointer-events-none">
+                      {/* Direction info */}
+                      <div className="flex flex-col items-center gap-2 mb-4 px-6 pointer-events-none">
+                        <div className="px-5 py-2 rounded-full bg-black/60 backdrop-blur-xl border border-white/15 text-white text-xs font-black flex items-center gap-2">
+                          <Navigation className={cn('w-4 h-4 text-[#0EA5D6]', dir === 'rtl' ? 'rotate-180' : '')} />
+                          {t('headTowardsDestination', { destination: targetFacility.name })}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-black text-primary dark:text-white text-sm truncate">{targetFacility.name}</h4>
-                          <div className={cn('flex items-center gap-4 mt-1 text-[10px] font-bold text-slate-400', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                            <span>{t('distanceLabel')}: {showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
-                            <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                        <div className="px-4 py-1 rounded-full bg-black/50 backdrop-blur-xl border border-white/10 text-white/70 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                          <Box className="w-3 h-3 text-[#0EA5D6]/80" />
+                          {targetFacility.location}
+                        </div>
+                        <div className="px-4 py-1.5 rounded-full bg-[#0EA5D6]/20 backdrop-blur-xl border border-[#0EA5D6]/30 text-[#0EA5D6] text-[11px] font-black flex items-center gap-2.5 flex-wrap justify-center">
+                          <span>{t('distanceLabel')}: {showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
+                          <span className="w-1 h-1 rounded-full bg-[#0EA5D6]/50" />
+                          <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                          <span className="w-1 h-1 rounded-full bg-[#0EA5D6]/50" />
+                          <span className="flex items-center gap-1.5">
+                            <Clock className="w-3 h-3" />
+                            {language === 'ar' ? 'الوصول' : 'Arrive'} <span dir="ltr">{arrivalClock}</span>
+                          </span>
+                        </div>
+                        {navigationSteps.length > 0 && (
+                          <AnimatePresence mode="wait">
+                            <motion.div
+                              key={hasArrived ? 'arrived' : liveStepIndex}
+                              initial={{ opacity: 0, y: -6 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 6 }}
+                              className={cn(
+                                'px-5 py-2 rounded-full backdrop-blur-xl border text-[11px] font-black flex items-center gap-2 max-w-full',
+                                hasArrived
+                                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                                  : 'bg-black/50 border-white/15 text-white'
+                              )}
+                            >
+                              <MapPin className="w-3.5 h-3.5 shrink-0" />
+                              <span className="truncate">
+                                {hasArrived ? t('reachedDestination') : navigationSteps[liveStepIndex]}
+                              </span>
+                            </motion.div>
+                          </AnimatePresence>
+                        )}
+                      </div>
+
+                      {/* Bottom: start navigation button */}
+                      <div className="p-4 pointer-events-auto">
+                        {!hasArrived && (
+                          !showPath ? (
+                            <motion.button
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                              onClick={() => {
+                                if (typeof navigator.vibrate === 'function') {
+                                  try { navigator.vibrate(80); } catch { /* best-effort */ }
+                                }
+                                setShowPath(true);
+                              }}
+                              className="w-full py-3 bg-[#0EA5D6] text-[#050c1a] rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-[#0EA5D6]/30"
+                            >
+                              <Navigation className="w-4 h-4" style={{ transform: 'rotate(-45deg)' }} />
+                              {language === 'ar' ? 'ابدأ الملاحة' : 'Start Navigation'}
+                            </motion.button>
+                          ) : (
+                            <div className="flex items-center justify-center gap-2 py-2.5">
+                              <motion.span
+                                className="inline-block w-2 h-2 rounded-full bg-emerald-400"
+                                animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                                transition={{ duration: 1.2, repeat: Infinity }}
+                              />
+                              <span className="text-emerald-400 text-[10px] font-black tracking-widest uppercase">
+                                {language === 'ar' ? 'جاري الملاحة…' : 'Navigating…'}
+                              </span>
+                            </div>
+                          )
+                        )}
+                        {hasArrived && (
+                          <div className="w-full py-3 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2">
+                            ✓ {language === 'ar' ? 'وصلت!' : 'Arrived!'}
                           </div>
-                        </div>
-                      </div>
-                      {showPath ? (
-                        <div className={cn(
-                          'w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3',
-                          hasArrived
-                            ? 'bg-emerald-500/25 border border-emerald-500/40 text-emerald-400'
-                            : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
-                        )}>
-                          <span className={cn('w-2 h-2 rounded-full bg-emerald-400', !hasArrived && 'animate-pulse')} />
-                          {hasArrived ? t('reachedDestination') : t('navigationInProgressLabel')}
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => {
-                            if (typeof navigator.vibrate === 'function') {
-                              try { navigator.vibrate(80); } catch { /* best-effort */ }
-                            }
-                            setShowPath(true);
-                          }}
-                          className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95"
-                        >
-                          {t('startNavigationLabel')}
-                        </button>
-                      )}
-                    </div>
-                  </>
-                ) : (
-                  /* No facility selected in AR mode */
-                  <div className="flex-1 flex flex-col items-center justify-center text-center gap-6 text-white/40 p-12">
-                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
-                      <Compass className="w-10 h-10" />
-                    </div>
-                    <p className="text-sm font-bold max-w-xs">
-                      {language === 'ar'
-                        ? 'اختر مرفقاً من القائمة لبدء التوجيه'
-                        : 'Select a facility from the list to start guidance'}
-                    </p>
-                    <button
-                      onClick={() => setActiveView('map')}
-                      className="px-6 py-3 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95"
-                    >
-                      {language === 'ar' ? 'اذهب للخريطة' : 'Go to Map'}
-                    </button>
-                  </div>
-                )}
-              </motion.div>
-            ) : (
-              /* ── Floor plan (map mode) ── */
-              <motion.div
-                key="map-view"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="relative w-full h-full min-h-[650px] overflow-hidden bg-slate-50/50 dark:bg-slate-900/50"
-              >
-                <svg
-                  className="absolute inset-0 w-full h-full"
-                  viewBox="0 0 600 520"
-                  preserveAspectRatio="xMidYMid meet"
-                >
-                  <defs>
-                    <pattern id="floorGrid" width="30" height="30" patternUnits="userSpaceOnUse">
-                      <path d="M 30 0 L 0 0 0 30" fill="none" stroke="#e2e8f0" strokeWidth="0.5" />
-                    </pattern>
-                    <filter id="facilityGlow">
-                      <feGaussianBlur stdDeviation="4" result="blur" />
-                      <feMerge>
-                        <feMergeNode in="blur" />
-                        <feMergeNode in="SourceGraphic" />
-                      </feMerge>
-                    </filter>
-                  </defs>
-
-                  <rect x="0" y="0" width="600" height="520" fill="url(#floorGrid)" />
-                  <rect x="18" y="18" width="564" height="464" rx="20" fill="white" stroke="#e2e8f0" strokeWidth="2.5" />
-                  <rect x="255" y="18" width="90" height="464" fill="#f8fafc" />
-                  <rect x="18" y="228" width="564" height="64" fill="#f8fafc" />
-                  <line x1="300" y1="18" x2="300" y2="482" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="6 4" />
-                  <line x1="18" y1="260" x2="582" y2="260" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="6 4" />
-
-                  {/* Section A */}
-                  <rect x="28" y="28" width="217" height="192" rx="12" fill="#eff6ff" stroke="#bfdbfe" strokeWidth="1.5" />
-                  <text x="136" y="110" textAnchor="middle" fontSize="13" fontWeight="900" fill="#1e40af" opacity="0.6">A</text>
-                  <text x="136" y="128" textAnchor="middle" fontSize="9" fontWeight="700" fill="#93c5fd">NATURAL SCIENCES</text>
-                  {[55, 70, 85, 100, 115, 130].map((x, i) => (
-                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#bfdbfe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-                  {[170, 185, 200, 215, 230].map((x, i) => (
-                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#bfdbfe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-
-                  {/* Section B */}
-                  <rect x="355" y="28" width="217" height="192" rx="12" fill="#fff7ed" stroke="#fed7aa" strokeWidth="1.5" />
-                  <text x="463" y="110" textAnchor="middle" fontSize="13" fontWeight="900" fill="#c2410c" opacity="0.6">B</text>
-                  <text x="463" y="128" textAnchor="middle" fontSize="9" fontWeight="700" fill="#fdba74">ENGINEERING &amp; TECH</text>
-                  {[380, 395, 410, 425, 440].map((x, i) => (
-                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-                  {[500, 515, 530, 545, 560].map((x, i) => (
-                    <line key={i} x1={x} y1="48" x2={x} y2="205" stroke="#fed7aa" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-
-                  {/* Section C */}
-                  <rect x="28" y="300" width="217" height="172" rx="12" fill="#faf5ff" stroke="#d8b4fe" strokeWidth="1.5" />
-                  <text x="136" y="378" textAnchor="middle" fontSize="13" fontWeight="900" fill="#7e22ce" opacity="0.6">C</text>
-                  <text x="136" y="396" textAnchor="middle" fontSize="9" fontWeight="700" fill="#c4b5fd">ARTS &amp; CRAFTS</text>
-                  {[55, 70, 85, 100, 115, 130].map((x, i) => (
-                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#d8b4fe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-                  {[170, 185, 200, 215, 230].map((x, i) => (
-                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#d8b4fe" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-
-                  {/* Section D */}
-                  <rect x="355" y="300" width="217" height="172" rx="12" fill="#f0fdf4" stroke="#bbf7d0" strokeWidth="1.5" />
-                  <text x="463" y="378" textAnchor="middle" fontSize="13" fontWeight="900" fill="#15803d" opacity="0.6">D</text>
-                  <text x="463" y="396" textAnchor="middle" fontSize="9" fontWeight="700" fill="#86efac">HUMANITIES</text>
-                  {[380, 395, 410, 425, 440].map((x, i) => (
-                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#bbf7d0" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-                  {[500, 515, 530, 545, 560].map((x, i) => (
-                    <line key={i} x1={x} y1="320" x2={x} y2="460" stroke="#bbf7d0" strokeWidth="6" strokeLinecap="round" opacity="0.5" />
-                  ))}
-
-                  {/* Entrance */}
-                  <rect x="248" y="478" width="104" height="22" rx="8" fill="#004C6D" />
-                  <text x="300" y="493" textAnchor="middle" fontSize="8" fontWeight="800" fill="white" letterSpacing="1">ENTRANCE</text>
-                  <line x1="300" y1="478" x2="300" y2="464" stroke="#004C6D" strokeWidth="2" />
-
-                  {/* Animated nav path */}
-                  <AnimatePresence>
-                    {manualTarget && navPaths[manualTarget.id] && (
-                      <>
-                        <motion.path
-                          key={`path-${manualTarget.id}`}
-                          d={navPaths[manualTarget.id]}
-                          stroke="#D9B310"
-                          strokeWidth="5"
-                          strokeDasharray="12 8"
-                          fill="none"
-                          strokeLinecap="round"
-                          filter="url(#facilityGlow)"
-                          initial={{ pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          exit={{ pathLength: 0 }}
-                          transition={{ duration: 1.2, ease: 'easeInOut' }}
-                        />
-                        <motion.circle key={`dot-${manualTarget.id}`} r="8" fill="#D9B310" stroke="white" strokeWidth="3">
-                          <animateMotion dur="3s" repeatCount="indefinite" path={navPaths[manualTarget.id]} />
-                        </motion.circle>
-                      </>
-                    )}
-                  </AnimatePresence>
-                </svg>
-
-                {/* Facility markers */}
-                {FACILITIES.map(f => {
-                  const pos = markerPositions[f.cellId];
-                  if (!pos) return null;
-                  const isSelected = manualTarget?.id === f.cellId;
-                  return (
-                    <button
-                      key={f.cellId}
-                      onClick={() => {
-                        setManualTarget(isSelected ? null : { id: f.cellId });
-                        setShowPath(false);
-                        setWalkProgress(0);
-                      }}
-                      style={{ top: pos.top, left: pos.left, right: pos.right }}
-                      className={cn(
-                        'absolute flex flex-col items-center gap-1.5 p-3 rounded-2xl border-2 transition-all duration-300 shadow-lg cursor-pointer group z-10 w-28',
-                        isSelected
-                          ? 'bg-accent border-accent/60 shadow-[0_8px_30px_rgba(217,179,16,0.4)] scale-110'
-                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-white/10 hover:border-primary/40 dark:hover:border-accent/40 hover:scale-105'
-                      )}
-                    >
-                      <div
-                        className={cn(
-                          'w-10 h-10 rounded-xl flex items-center justify-center transition-colors',
-                          isSelected
-                            ? 'bg-primary/20 text-primary'
-                            : 'bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent'
                         )}
-                      >
-                        <f.icon className="w-5 h-5" />
                       </div>
-                      <span className={cn('text-[9px] font-black text-center leading-tight', isSelected ? 'text-primary' : 'text-primary dark:text-white')}>
-                        {f.name}
-                      </span>
-                      <span
-                        className={cn(
-                          'text-[8px] font-bold px-2 py-0.5 rounded-full',
-                          f.status === 'available'
-                            ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
-                            : 'bg-amber-100 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
-                        )}
-                      >
-                        {f.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
-                      </span>
-                    </button>
-                  );
-                })}
+                    </div>
+                  )}
 
-                {/* "Switch to AR" nudge when a facility is selected */}
-                {manualTarget && (
-                  <button
-                    onClick={() => setActiveView('ar')}
-                    className={cn(
-                      'absolute bottom-6 z-10 flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-accent text-xs font-black shadow-xl shadow-primary/30 hover:brightness-110 transition-all active:scale-95',
-                      dir === 'rtl' ? 'right-6' : 'left-6'
-                    )}
-                  >
-                    <Camera className="w-4 h-4" />
-                    {language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}
-                  </button>
-                )}
-
-                <div className={cn('absolute bottom-6 opacity-10 text-primary dark:text-white pointer-events-none', dir === 'rtl' ? 'left-6' : 'right-6')}>
-                  <Compass className="w-16 h-16" />
+                  {/* No facility selected in 3D mode */}
+                  {!targetFacility && (
+                    <div className="flex-1 flex items-end justify-center pb-8 pointer-events-none">
+                      <div className="px-5 py-3 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/15 text-white/70 text-xs font-black text-center">
+                        {language === 'ar' ? 'اختر مرفقاً من القائمة لبدء التوجيه' : 'Select a facility from the list to start guidance'}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </motion.div>
-            )}
+
           </AnimatePresence>
         </div>
 
-        {/* Right sidebar */}
+        {/* ── Right sidebar ── */}
         <div className="w-full xl:w-[450px] flex flex-col gap-8">
           <AnimatePresence mode="wait">
             {manualTarget && targetFacility ? (
-              /* ── Facility selected: navigation panel ── */
+              /* Facility selected: navigation panel */
               <motion.div
                 key="facility-nav"
                 initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
@@ -587,16 +465,38 @@ export function FacilitiesMap() {
                     <p className="text-slate-400 dark:text-slate-500 font-bold text-[11px] tracking-widest">
                       {targetFacility.location}
                     </p>
-                    <span
-                      className={cn(
-                        'inline-block text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-wider',
-                        targetFacility.status === 'available'
-                          ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
-                          : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
-                      )}
-                    >
+                    <span className={cn(
+                      'inline-block text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider',
+                      targetFacility.status === 'available'
+                        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
+                        : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
+                    )}>
                       {targetFacility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
                     </span>
+
+                    {/* Telling a classmate where to meet is the most ordinary
+                        thing to do with a facility, so the share sits with the
+                        facility's own details rather than in a page toolbar. */}
+                    <div className="flex justify-center pt-1">
+                      <button
+                        onClick={() => setShareFacility(targetFacility)}
+                        className="min-h-11 flex items-center gap-2 px-4 rounded-2xl bg-slate-100 dark:bg-slate-800 text-primary dark:text-white text-[11px] font-black hover:bg-secondary/10 hover:text-secondary active:scale-95 transition-all"
+                      >
+                        <Share2 className="w-3.5 h-3.5" />
+                        {t('shareFacility')}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Distance + ETA chips */}
+                  <div className={cn('flex items-center justify-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                    <div className="px-4 py-2 rounded-full bg-accent/10 dark:bg-accent/15 border border-accent/20 text-primary dark:text-accent text-[11px] font-black">
+                      {showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}
+                    </div>
+                    <span className="text-slate-300 dark:text-slate-700">·</span>
+                    <div className="px-4 py-2 rounded-full bg-accent/10 dark:bg-accent/15 border border-accent/20 text-primary dark:text-accent text-[11px] font-black">
+                      {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -623,21 +523,17 @@ export function FacilitiesMap() {
                     </ol>
                   </div>
 
-                  {/* AR mode button */}
-                  <button
-                    onClick={() => setActiveView('ar')}
-                    className="w-full py-4 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95"
-                  >
-                    <span>{language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveView('map')}
-                    className="w-full py-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 text-primary dark:text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:border-accent/60 transition-all active:scale-95"
-                  >
-                    <MapIcon className="w-4 h-4" />
-                    <span>{language === 'ar' ? 'الخريطة' : 'Map'}</span>
-                  </button>
+                  {/* Navigation is started from the button on the map itself;
+                      this only reports how it is going. */}
+                  {showPath && (
+                    <div className={cn(
+                      'w-full py-4 rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-3',
+                      hasArrived ? 'bg-emerald-500/20 border border-emerald-500/30 text-emerald-500' : 'bg-emerald-500/15 border border-emerald-500/25 text-emerald-500'
+                    )}>
+                      <span className={cn('w-2 h-2 rounded-full bg-emerald-500', !hasArrived && 'animate-pulse')} />
+                      {hasArrived ? t('reachedDestination') : t('navigationInProgressLabel')}
+                    </div>
+                  )}
 
                   <button
                     onClick={() => { setManualTarget(null); setShowPath(false); setWalkProgress(0); }}
@@ -649,7 +545,7 @@ export function FacilitiesMap() {
                 </div>
               </motion.div>
             ) : (
-              /* ── No selection: facility search panel ── */
+              /* No selection: facility search panel */
               <motion.div
                 key="facility-search"
                 initial={{ opacity: 0, x: dir === 'rtl' ? -20 : 20 }}
@@ -667,29 +563,23 @@ export function FacilitiesMap() {
                     </h3>
                   </div>
                   <div className="relative">
-                    <Search
-                      className={cn(
-                        'absolute top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none',
-                        dir === 'rtl' ? 'right-4' : 'left-4'
-                      )}
-                    />
+                    <Search className={cn('absolute top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none', dir === 'rtl' ? 'right-4' : 'left-4')} />
                     <input
                       type="text"
                       value={facilitySearch}
                       onChange={e => setFacilitySearch(e.target.value)}
                       placeholder={language === 'ar' ? 'اسم المرفق أو الموقع...' : 'Facility name or location...'}
                       className={cn(
-                        'w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors',
+                        // text-base below sm: iOS zooms the whole page in when a
+                        // focused field is under 16px, and this one was 14px.
+                        'w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-base sm:text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors',
                         dir === 'rtl' ? 'pr-11 pl-4 text-right' : 'pl-11 pr-4 text-left'
                       )}
                     />
                     {facilitySearch && (
                       <button
                         onClick={() => setFacilitySearch('')}
-                        className={cn(
-                          'absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors',
-                          dir === 'rtl' ? 'left-4' : 'right-4'
-                        )}
+                        className={cn('absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors', dir === 'rtl' ? 'left-4' : 'right-4')}
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -707,50 +597,53 @@ export function FacilitiesMap() {
                     filtered.map(facility => (
                       <button
                         key={facility.cellId}
-                        onClick={() => { setManualTarget({ id: facility.cellId }); setShowPath(false); }}
+                        onClick={() => {
+                          setManualTarget({ id: facility.cellId });
+                          setShowPath(false);
+                          requestAnimationFrame(() =>
+                            mapPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+                        }}
                         className={cn(
-                          'w-full flex items-center gap-4 px-5 py-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group',
-                          dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left'
+                          'w-full flex flex-col gap-3 px-5 py-5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group',
+                          dir === 'rtl' ? 'text-right' : 'text-left'
                         )}
                       >
+                        <div className={cn('w-full flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                         <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent group-hover:bg-primary/20 dark:group-hover:bg-accent/20 transition-colors">
                           <facility.icon className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-black text-primary dark:text-white truncate leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">
+                          <p className="text-sm font-black text-primary dark:text-white leading-tight group-hover:text-primary dark:group-hover:text-accent transition-colors">
                             {facility.name}
                           </p>
-                          <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                          <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 mt-0.5 leading-snug">
                             {facility.desc}
                           </p>
-                          <div
-                            className={cn(
-                              'flex items-center gap-2 mt-1.5',
-                              dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'
-                            )}
-                          >
+                          <div className={cn('flex items-center gap-2 mt-1.5', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                             <MapPin className="w-3 h-3 text-primary/40 dark:text-accent/60 shrink-0" />
-                            <span className="text-[10px] font-bold text-primary/50 dark:text-accent/70 truncate">
+                            <span className="text-[10px] font-bold text-primary/50 dark:text-accent/70">
                               {facility.location}
                             </span>
-                            <span
-                              className={cn(
-                                'shrink-0 text-[9px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider',
-                                facility.status === 'available'
-                                  ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
-                                  : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
-                              )}
-                            >
+                            <span className={cn('shrink-0 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase tracking-wider',
+                              facility.status === 'available'
+                                ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
+                                : 'bg-amber-50 text-amber-600 dark:bg-amber-950/30 dark:text-amber-400'
+                            )}>
                               {facility.status === 'available' ? t('facilityAvailable') : t('facilityBusy')}
                             </span>
                           </div>
                         </div>
-                        <Navigation
-                          className={cn(
-                            'w-4 h-4 shrink-0 text-slate-200 dark:text-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-colors',
-                            dir === 'rtl' ? 'rotate-180' : ''
-                          )}
-                        />
+                        </div>
+                        {/* Named, not a bare arrow: on a phone there is no hover
+                            to reveal what the row does, and the map opens from
+                            here. On its own line so it cannot squeeze the name. */}
+                        <span className={cn(
+                          'flex items-center justify-center gap-1.5 w-full py-2.5 rounded-xl bg-primary/10 dark:bg-accent/15 text-primary dark:text-accent text-[10px] font-black uppercase tracking-wider group-hover:bg-primary group-hover:text-white dark:group-hover:bg-accent dark:group-hover:text-primary transition-colors',
+                          dir === 'rtl' ? 'flex-row-reverse' : 'flex-row'
+                        )}>
+                          <Navigation className={cn('w-3.5 h-3.5 shrink-0', dir === 'rtl' ? 'rotate-180' : '')} />
+                          {t('locate')}
+                        </span>
                       </button>
                     ))
                   )}
@@ -768,6 +661,15 @@ export function FacilitiesMap() {
           </AnimatePresence>
         </div>
       </div>
+
+      {shareFacility && (
+        <ShareSheet
+          open
+          onClose={() => setShareFacility(null)}
+          title={shareFacility.name}
+          payload={facilitySharePayload(shareFacility, language)}
+        />
+      )}
     </div>
   );
 }

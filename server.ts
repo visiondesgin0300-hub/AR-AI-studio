@@ -3,14 +3,161 @@ import path from "path";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI, Type } from "@google/genai";
-import { MOCK_BOOKS } from "./src/data/mockData";
+import { MOCK_BOOKS, MOCK_USERS, SHELF_IDS } from "./src/data/mockData";
+import rateLimit from "express-rate-limit";
+import crypto from "crypto";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 
-app.use(express.json());
+// Limit body size — prevents oversized payloads on all routes
+app.use(express.json({ limit: "2mb" }));
+
+// Rate limiting — AI routes are expensive; cap each IP to 30 req/min
+const aiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Please wait a minute and try again." },
+});
+app.use("/api/", aiLimiter);
+
+// ── Authentication ───────────────────────────────────────────────────
+// The login form used to decide everything client-side: an unknown email
+// combined with the "Admin" toggle fabricated a user with role 'admin' and
+// routed it straight to /admin. Credentials are now checked here, and the
+// role comes from this table rather than from anything the browser sends.
+//
+// Demo accounts share one password so the project can be handed to a marker
+// without distributing secrets; the admin account is deliberately different.
+// ADMIN_PASSWORD has no default — if it is not set in the environment, admin
+// login is refused outright rather than falling back to something guessable.
+const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "library2024";
+
+// The admin password falls back to a built-in value so a fresh deployment
+// works with no configuration. That fallback lives in this file, which means
+// it is readable by anyone with the source: on a public deployment it is a
+// published credential, not a secret. Set ADMIN_PASSWORD in the environment to
+// replace it, or set it to an empty string to switch admin sign-in off
+// entirely. Anything beyond a demo should do one of those two things.
+const DEFAULT_ADMIN_PASSWORD = "ARLibrary@Admin2026";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD !== undefined
+  ? process.env.ADMIN_PASSWORD
+  : DEFAULT_ADMIN_PASSWORD;
+
+// Constant-time compare so a wrong password cannot be narrowed by timing.
+function passwordMatches(supplied: string, expected: string): boolean {
+  if (!expected) return false;
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+// token -> the account it was issued for. In memory: sessions end when the
+// process restarts, which is the right lifetime for a demo server.
+const sessions = new Map<string, { email: string; role: string }>();
+
+function sessionFor(req: express.Request): { email: string; role: string } | null {
+  const header = req.header("authorization") || "";
+  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  return token ? sessions.get(token) ?? null : null;
+}
+
+function requireAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
+  const session = sessionFor(req);
+  if (!session || session.role !== "admin") {
+    return res.status(403).json({ error: "admin session required" });
+  }
+  return next();
+}
+
+// Five *failed* attempts a minute per IP — enough for a fumbled password, not
+// enough to work through a password list. Successful logins are not counted,
+// so a shared address (a lab, a lecture theatre) doesn't lock legitimate
+// students out just because several sign in at once.
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 5,
+  skipSuccessfulRequests: true,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many login attempts. Please wait a minute." },
+});
+
+app.post("/api/login", loginLimiter, (req, res) => {
+  const email = String(req.body?.email || "").trim().toLowerCase();
+  const password = String(req.body?.password || "");
+  if (!email || !password) {
+    return res.status(400).json({ error: "email and password required" });
+  }
+
+  const account = MOCK_USERS.find((u) => u.email.toLowerCase() === email);
+
+  // An unconfigured deployment refuses every admin login, and reporting that
+  // as "wrong password" sends the operator hunting for a credential that was
+  // never going to work. Say what is actually wrong — it grants nothing, since
+  // there is still no password that would get in.
+  if (account?.role === "admin" && !ADMIN_PASSWORD) {
+    return res.status(503).json({ error: "admin sign-in not configured" });
+  }
+
+  // Same response whether the address is unknown or the password is wrong, so
+  // the form cannot be used to enumerate who has an account.
+  const expected = account?.role === "admin" ? ADMIN_PASSWORD : DEMO_PASSWORD;
+  if (!account || !passwordMatches(password, expected)) {
+    return res.status(401).json({ error: "invalid credentials" });
+  }
+
+  const token = crypto.randomBytes(24).toString("hex");
+  sessions.set(token, { email, role: account.role });
+  return res.json({ user: account, token });
+});
+
+// Returns the account behind a session token. The client stores a full copy of
+// the user at login and would otherwise keep showing that snapshot forever —
+// a renamed account, a changed role or a revoked session all went unnoticed
+// until the next manual sign-out.
+app.get("/api/me", (req, res) => {
+  const session = sessionFor(req);
+  if (!session) return res.status(401).json({ error: "no session" });
+  const account = MOCK_USERS.find((u) => u.email.toLowerCase() === session.email);
+  if (!account) return res.status(401).json({ error: "unknown account" });
+  return res.json({ user: account });
+});
+
+app.post("/api/logout", (req, res) => {
+  const header = req.header("authorization") || "";
+  if (header.startsWith("Bearer ")) sessions.delete(header.slice(7));
+  return res.json({ ok: true });
+});
+
+// Strip characters that could escape prompt string boundaries or inject instructions
+function sanitizeInput(raw: unknown, maxLen = 300): string {
+  if (typeof raw !== "string") return "";
+  return raw.replace(/["""'''`\\]/g, "").replace(/\n{3,}/g, "\n\n").trim().slice(0, maxLen);
+}
+
+// In-memory feedback store — resets on server restart (acceptable for a dissertation demo)
+interface FeedbackEntry {
+  id: string;
+  // 'rating' = a mood submitted from the feedback widget; 'inquiry' = a
+  // support message from the help centre. They share a store but are not the
+  // same thing, and the admin panel must not present an inquiry as a rating.
+  kind: 'rating' | 'inquiry';
+  mood: string;
+  moodLabel: string;
+  categories: string[];
+  text: string;
+  user: string;
+  email: string;
+  time: string;
+  timestamp: number;
+}
+const feedbackStore: FeedbackEntry[] = [];
 
 // Initialize Gemini client lazily
 let ai: GoogleGenAI | null = null;
@@ -31,14 +178,63 @@ function getGeminiClient(): GoogleGenAI | null {
   return ai;
 }
 
-// REST api route: check API connection health
-app.get("/api/health", (req, res) => {
-  const hasKey = !!process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY !== "MY_GEMINI_API_KEY";
-  res.json({
-    status: "ok",
-    hasApiKey: hasKey,
-    time: new Date().toISOString()
-  });
+// Retry Gemini calls up to 3 times on 429 with exponential backoff
+async function withGeminiRetry<T>(fn: () => Promise<T>, retries = 3): Promise<T> {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: unknown) {
+      const status = (err as { status?: number })?.status ?? (err as { code?: number })?.code;
+      const isQuota = status === 429 || String(err).includes('RESOURCE_EXHAUSTED');
+      if (isQuota && attempt < retries - 1) {
+        await new Promise(r => setTimeout(r, 1500 * 2 ** attempt));
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error('Gemini retry limit reached');
+}
+
+// REST api route: basic liveness check — no internal config exposed
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", time: new Date().toISOString() });
+});
+
+// User feedback submission — stored in-memory for admin review.
+// Two kinds share this endpoint: mood ratings from the feedback widget, and
+// support inquiries from the help centre (which carry a reply-to address and
+// no mood).
+app.post("/api/feedback", (req, res) => {
+  const { kind, mood, moodLabel, categories, text, user, email } = req.body || {};
+  const entryKind: FeedbackEntry['kind'] = kind === 'inquiry' ? 'inquiry' : 'rating';
+  if (entryKind === 'rating' && !mood) return res.status(400).json({ error: "mood required" });
+  if (entryKind === 'inquiry' && !String(text || '').trim()) {
+    return res.status(400).json({ error: "text required" });
+  }
+  const entry: FeedbackEntry = {
+    id: Math.random().toString(36).substr(2, 9),
+    kind: entryKind,
+    mood: String(mood || '').slice(0, 4),
+    moodLabel: String(moodLabel || '').slice(0, 20),
+    categories: Array.isArray(categories) ? categories.map((c: unknown) => String(c).slice(0, 30)) : [],
+    text: String(text || '').slice(0, 280),
+    user: String(user || 'Anonymous').slice(0, 50),
+    email: String(email || '').slice(0, 120),
+    time: new Date().toISOString(),
+    timestamp: Date.now(),
+  };
+  feedbackStore.unshift(entry);
+  if (feedbackStore.length > 100) feedbackStore.pop();
+  return res.json({ ok: true, id: entry.id });
+});
+
+// Admin retrieves all submitted feedback. This is the one endpoint that hands
+// back other people's messages — including the reply addresses on help-centre
+// inquiries — so it needs a real admin session, not just a client-side route
+// guard that anyone can walk around by editing localStorage.
+app.get("/api/feedback", requireAdmin, (_req, res) => {
+  return res.json({ entries: feedbackStore, count: feedbackStore.length });
 });
 
 // AI-picked book for the camera-free AR simulation demo, so each run lands
@@ -70,7 +266,7 @@ ${catalogue}
 - reason: جملة قصيرة جداً (أقل من 15 كلمة) بالعربية تشرح سبب اقتراح هذا الكتاب للطالب.`;
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "أنت مساعد يختار كتباً متنوعة لمحاكاة تجريبية داخل تطبيق مكتبة ذكية.",
@@ -225,7 +421,7 @@ app.post("/api/chat", async (req, res) => {
     }));
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: conversation as any,
       config: {
         systemInstruction: sysInstruction,
@@ -306,7 +502,7 @@ app.post("/api/search-insights", async (req, res) => {
     `;
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "أنت بروفيسور أكاديمي ومحلل معلومات بمكتبة جامعية متطورة تقدم توجيهات بحثية بالغة الدقة."
@@ -351,7 +547,7 @@ app.post("/api/summarize-chapter", async (req, res) => {
     `;
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         systemInstruction: "You are an elite academic tutor helping students study smartly."
@@ -369,6 +565,18 @@ app.post("/api/summarize-chapter", async (req, res) => {
 
 // Local, category-based key themes so the academic profile always has themes
 // to show even without an API key.
+// Category names are stored in Arabic on every book (same map as the client's
+// bookCategory helper) — needed so an English profile does not name the field
+// in Arabic.
+const CATEGORY_EN: Record<string, string> = {
+  'فيزياء': 'Physics',
+  'هندسة': 'Engineering',
+  'عام': 'General',
+  'علم نفس': 'Psychology',
+  'طب': 'Medicine',
+  'أدب': 'Literature',
+};
+
 const THEMES_BY_CATEGORY: Record<string, string[]> = {
   'فيزياء': ['قوانين الحركة والطاقة', 'النظريات الفيزيائية الحديثة', 'التطبيقات التجريبية'],
   'هندسة': ['مبادئ التصميم الهندسي', 'الأنظمة والتقنيات', 'التطبيقات العملية والصناعية'],
@@ -376,16 +584,37 @@ const THEMES_BY_CATEGORY: Record<string, string[]> = {
   'عام': ['المعرفة العامة', 'الفكر والثقافة', 'العلوم الإنسانية'],
 };
 
-function localInsight(book: { title?: string; author?: string; category?: string; description?: string }) {
+const THEMES_BY_CATEGORY_EN: Record<string, string[]> = {
+  'فيزياء': ['Laws of motion and energy', 'Modern physical theory', 'Experimental applications'],
+  'هندسة': ['Engineering design principles', 'Systems and technologies', 'Practical and industrial applications'],
+  'علم نفس': ['Human behaviour and motivation', 'Cognitive processes', 'Psychological analysis and practice'],
+  'عام': ['General knowledge', 'Thought and culture', 'The humanities'],
+};
+
+// Both this and the Gemini prompt below were written Arabic-only, so an
+// English reader looking at the AR info layer got an Arabic profile no matter
+// what the client asked for. The request already carried `language`; it just
+// was not read.
+function localInsight(
+  book: { title?: string; author?: string; category?: string; description?: string },
+  language = 'ar',
+) {
   const category = book.category ?? 'عام';
+  const en = language === 'en';
+  const categoryLabel = en ? (CATEGORY_EN[category] ?? category) : category;
   const summary = book.description
-    ? `${book.description} يُصنّف هذا المرجع ضمن مجال ${category}، ويُعد من المصادر الأكاديمية الموصى بها للطلاب والباحثين المهتمين بهذا التخصص.`
-    : `مرجع أكاديمي متخصص في مجال ${category} للمؤلف ${book.author ?? 'غير محدد'}، متاح ضمن مقتنيات المكتبة الرقمية.`;
-  const keyThemes = THEMES_BY_CATEGORY[category] ?? THEMES_BY_CATEGORY['عام'];
+    ? en
+      ? `${book.description} This reference sits within ${categoryLabel} and is among the academic sources recommended to students and researchers working in the field.`
+      : `${book.description} يُصنّف هذا المرجع ضمن مجال ${category}، ويُعد من المصادر الأكاديمية الموصى بها للطلاب والباحثين المهتمين بهذا التخصص.`
+    : en
+      ? `An academic reference in ${categoryLabel} by ${book.author ?? 'an unlisted author'}, held in the library's digital collection.`
+      : `مرجع أكاديمي متخصص في مجال ${category} للمؤلف ${book.author ?? 'غير محدد'}، متاح ضمن مقتنيات المكتبة الرقمية.`;
+  const themes = en ? THEMES_BY_CATEGORY_EN : THEMES_BY_CATEGORY;
+  const keyThemes = themes[category] ?? themes['عام'];
   const recommendedReading = MOCK_BOOKS
     .filter((b) => b.category === book.category && b.title !== book.title)
     .slice(0, 3)
-    .map((b) => b.title);
+    .map((b) => (en && b.titleEn ? b.titleEn : b.title));
   return { summary, keyThemes, recommendedReading };
 }
 
@@ -394,12 +623,17 @@ function localInsight(book: { title?: string; author?: string; category?: string
 // when a key is configured, otherwise a composed local one) so the demo never
 // shows a broken card.
 app.post("/api/book-insight", async (req, res) => {
-  const { title, author, category, description } = req.body || {};
+  const raw = req.body || {};
+  const title       = sanitizeInput(raw.title, 150);
+  const author      = sanitizeInput(raw.author, 100);
+  const category    = sanitizeInput(raw.category, 60);
+  const description = sanitizeInput(raw.description, 500);
   if (!title) {
     return res.status(400).json({ error: "Missing title" });
   }
 
-  const fallback = localInsight({ title, author, category, description });
+  const language = raw.language === 'en' ? 'en' : 'ar';
+  const fallback = localInsight({ title, author, category, description }, language);
 
   const client = getGeminiClient();
   if (!client) {
@@ -407,7 +641,18 @@ app.post("/api/book-insight", async (req, res) => {
   }
 
   try {
-    const prompt = `أنشئ ملفاً أكاديمياً موجزاً باللغة العربية عن الكتاب التالي لعرضه في نافذة معلومات معزّزة داخل المكتبة:
+    const prompt = language === 'en'
+      ? `Write a short academic profile in English for the following book, to be shown in an augmented-reality info panel inside a library:
+    Title: ${title}
+    Author: ${author ?? 'unlisted'}
+    Category: ${category ?? 'General'}
+    Description: ${description ?? ''}
+
+    Return a JSON object containing:
+    - summary: a brief academic summary (two to three lines) that encourages a student to read it.
+    - keyThemes: an array of 3 main themes the book covers.
+    - recommendedReading: an array of 2 to 3 titles or topics worth reading before or after it.`
+      : `أنشئ ملفاً أكاديمياً موجزاً باللغة العربية عن الكتاب التالي لعرضه في نافذة معلومات معزّزة داخل المكتبة:
     العنوان: ${title}
     المؤلف: ${author ?? 'غير محدد'}
     التصنيف: ${category ?? 'عام'}
@@ -418,11 +663,13 @@ app.post("/api/book-insight", async (req, res) => {
     - keyThemes: مصفوفة من 3 مواضيع رئيسية يغطيها الكتاب.
     - recommendedReading: مصفوفة من 2 إلى 3 عناوين أو مواضيع مقترحة للقراءة قبله أو بعده.`;
 
-    const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+    const response = await withGeminiRetry(() => client.models.generateContent({
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
-        systemInstruction: "أنت أمين مكتبة أكاديمي يكتب ملفات معرفية موجزة ودقيقة للكتب.",
+        systemInstruction: language === 'en'
+          ? "You are an academic librarian writing brief, accurate knowledge profiles for books."
+          : "أنت أمين مكتبة أكاديمي يكتب ملفات معرفية موجزة ودقيقة للكتب.",
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -434,7 +681,7 @@ app.post("/api/book-insight", async (req, res) => {
           required: ["summary"],
         },
       },
-    });
+    }));
 
     const parsed = JSON.parse(response.text || "{}");
     return res.json({
@@ -443,7 +690,8 @@ app.post("/api/book-insight", async (req, res) => {
       recommendedReading: parsed.recommendedReading?.length ? parsed.recommendedReading : fallback.recommendedReading,
     });
   } catch (error: any) {
-    console.error("Gemini Book Insight Error: ", error);
+    const isQuota = String(error).includes('RESOURCE_EXHAUSTED') || error?.status === 429;
+    if (!isQuota) console.error("Gemini Book Insight Error: ", error);
     return res.json(fallback);
   }
 });
@@ -475,7 +723,7 @@ app.post("/api/vision-scan", async (req, res) => {
       .join('\n');
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [
         {
           role: "user",
@@ -532,79 +780,132 @@ ${catalogue}
 // Always returns 200 with a helpful reply: Gemini when a key is configured,
 // otherwise a local keyword-matching librarian so the assistant always works.
 // Guided-tour answers for local (no-API-key) mode
-const TOUR_REPLIES: Array<{ keywords: string[]; reply: string }> = [
-  {
-    keywords: ['كيف', 'استخدم', 'استخدام', 'شرح', 'اشرح', 'ميزات', 'وظائف', 'how', 'guide', 'tour', 'feature', 'جولة'],
-    reply: `أنا رفيق، وهذه أبرز ميزات التطبيق:\n\n1️⃣ **البحث الذكي** — ابحث عن أي كتاب بالاسم أو المؤلف أو التصنيف مع تحليل مدعوم بالذكاء الاصطناعي.\n2️⃣ **الخريطة الداخلية** — استعرض أرفف المكتبة واختر أي رف لعرض مسار الوصول إليه خطوة بخطوة.\n3️⃣ **الواقع المعزز AR** — امسح غلاف أي كتاب بالكاميرا للتعرف عليه، ثم اتبع الكاميرا نحو علامة الرف للملاحة الحية.\n4️⃣ **محاكاة الذكاء الاصطناعي** — جرّب التجربة كاملة بدون كاميرا أو كتاب حقيقي.\n5️⃣ **الاستشهادات الأكاديمية** — ولّد استشهادات بصيغ APA وMLA وChicago وBibTeX لأي كتاب.\n6️⃣ **نقاط XP والأوسمة** — اكسب نقاطاً عند البحث والاستعارة والوصول لرفع مستواك.\n\nاسألني عن أي ميزة بالتفصيل!`,
-  },
+// The canned answers used when Gemini is unavailable. Each carries both
+// languages so an offline reply still comes back in the one that was asked.
+const TOUR_REPLIES: Array<{ keywords: string[]; reply: string; replyEn: string }> = [
   {
     keywords: ['بحث', 'search', 'ابحث', 'بحثت', 'تصنيف', 'موضوع'],
     reply: `**البحث الذكي في المصادر** 🔍\n\nمن الصفحة الرئيسية أو شريط البحث العلوي:\n• اكتب اسم الكتاب أو المؤلف أو الموضوع (مثل: فيزياء، ذكاء اصطناعي، أدب).\n• ستظهر النتائج فورياً مع ملخص وتحليل ذكي مدعوم بالذكاء الاصطناعي.\n• انقر على أي كتاب لعرض تفاصيله: الملخص، رقم التصنيف، موقع الرف، والاستشهادات الأكاديمية.`,
+    replyEn: `**Searching the collection**\n\nFrom the home page or the search bar:\n- Type a title, an author or a subject (physics, artificial intelligence, literature).\n- Results appear as you type, with an AI summary.\n- Open any result for the full record: summary, LC call number, shelf, and ready-made citations.`,
   },
   {
     keywords: ['خريطة', 'map', 'رف', 'موقع', 'ملاحة', 'وصول', 'طريق', 'مكان'],
     reply: `**الخريطة الداخلية والملاحة** 🗺️\n\nمن قائمة "الخريطة" في الشريط الجانبي:\n• ترى خريطة تفاعلية لجميع أرفف المكتبة والمرافق.\n• اختر أي رف من الخريطة أو من تفاصيل الكتاب لعرض مسار الوصول إليه خطوة بخطوة.\n• كما يمكنك تفعيل **وضع AR** مباشرة من الخريطة لتوجيه كاميرا هاتفك نحو علامات الأرفف المطبوعة.`,
+    replyEn: `**The floor map and navigation**\n\n- Open "Search library resources", pick a book, and press "Locate".\n- The map opens on the floor plan with the shelf marked.\n- Press "Start navigation" and a beam is drawn from the entrance, going around the shelving and the tables rather than over them.\n- A red pin marks the destination, and the shelf's own plate turns red when you arrive.`,
   },
   {
     keywords: ['ar', 'واقع معزز', 'كاميرا', 'مسح', 'scan', 'augmented', 'علامة', 'marker'],
     reply: `**الواقع المعزز AR** 📷\n\nمن زر AR العائم (الكاميرا) في أسفل الشاشة:\n• **مسح الغلاف**: وجّه الكاميرا نحو غلاف أي كتاب وسيتعرف عليه التطبيق فوراً ويعرض تفاصيله.\n• **الملاحة الحية**: اتبع الكاميرا نحو علامة الرف المطبوعة (QR/AR Marker) وستظهر المسافة ورقم الرف مباشرة على الشاشة.\n• **المحاكاة**: إذا لم تتوفر كاميرا، اختر "محاكاة" ليختار الذكاء الاصطناعي كتاباً ويعرض التجربة كاملة.`,
+    replyEn: `**AR camera**\n\n- Open the camera from the yellow button.\n- Point it at a book cover: the app identifies the book and shows its record.\n- Point it at a shelf to check the order and spot anything shelved in the wrong place.\n- A printed shelf marker turns the camera into live guidance with the real distance.`,
   },
   {
     keywords: ['محاكاة', 'simulation', 'بدون كاميرا', 'تجريبي', 'demo'],
     reply: `**محاكاة الذكاء الاصطناعي** 🤖\n\nمن شاشة AR، اختر "محاكاة" إذا لم تتوفر كاميرا أو كتاب حقيقي:\n• يختار الذكاء الاصطناعي كتاباً مختلفاً في كل مرة من الفهرس.\n• تعرض المحاكاة كامل تجربة AR: التعرف على الغلاف، الملاحة للرف، وعرض التفاصيل — دون الحاجة لأي أجهزة فعلية.`,
+    replyEn: `**Simulation without a camera**\n\nIf you have no camera to hand, the app picks a book for you and plays the whole experience through — identification, record, and the route to the shelf — so you can see how it works before trying it on a real book.`,
   },
   {
     keywords: ['استشهاد', 'citation', 'مرجع', 'apa', 'mla', 'chicago', 'bibtex', 'توثيق', 'اقتباس'],
     reply: `**الاستشهادات الأكاديمية** 📄\n\nمن صفحة تفاصيل أي كتاب:\n• انقر على تبويب "الاستشهادات" لتوليد المرجع تلقائياً بصيغ:\n  - **APA** (الأكثر شيوعاً في العلوم الاجتماعية)\n  - **MLA** (الأدب والإنسانيات)\n  - **Chicago** (التاريخ والعلوم)\n  - **BibTeX** (للاستخدام في LaTeX)\n• انسخ الاستشهاد بنقرة واحدة وأضفه مباشرة لبحثك.`,
+    replyEn: `**Citations**\n\nEvery book page can generate its citation in APA, MLA, Chicago or BibTeX. Open the book, choose the style, and copy it straight into your paper.`,
   },
   {
     keywords: ['xp', 'نقاط', 'وسام', 'badge', 'مستوى', 'مكافأة', 'خبرة', 'points'],
     reply: `**نقاط XP والأوسمة** 🏆\n\nالتطبيق يكافئك على كل نشاط:\n• 🔍 **كل بحث** = نقاط XP\n• 📚 **كل استعارة** = نقاط إضافية\n• 📍 **الوصول للرف** بالخريطة أو AR = نقاط مضاعفة\n\nكلما تراكمت نقاطك ترتفع مستواك وتفتح أوسمة تحفيزية مختلفة. تابع مستواك من ملفك الشخصي.`,
+    replyEn: `**Knowledge points and badges**\n\nSearching, reserving a book and reaching a shelf all earn knowledge points (XP). Points unlock three badges — مستكشف (Explorer), باحث (Researcher) and متميز (Distinguished) — and each badge opens a set of questions on your profile.`,
   },
   {
     keywords: ['فحص', 'audit', 'رفوف', 'مخطئ', 'مرتب', 'ترتيب', 'shelf audit', 'مكتبي'],
     reply: `**فحص الرفوف الذكي** 🔎\n\nمن لوحة AR أو (للمسؤولين) من لوحة الإدارة:\n• وجّه الكاميرا نحو أي رف ليمسح الكتب تلقائياً.\n• يقارن الذكاء الاصطناعي رقم تصنيف كل كتاب مع قسم الرف المتوقع.\n• يظهر الكتب المرتّبة **بشكل صحيح** ✅ والكتب **في غير مكانها** ❌ مع تعليمات إعادة الترتيب.`,
+    replyEn: `**Shelf audit**\n\nPoint the camera along a shelf and the app reads the call numbers in order, flagging anything shelved out of sequence. It is the quickest way to find a book that is "missing" but simply in the wrong place.`,
   },
   {
     keywords: ['ادمن', 'admin', 'مسؤول', 'إدارة', 'لوحة', 'dashboard', 'احصائيات', 'إحصاء'],
     reply: `**لوحة إدارة النظام** ⚙️\n\nمتاحة للمسؤولين فقط عند تسجيل الدخول بحساب مسؤول:\n• إدارة الكتب والمصادر (إضافة، تعديل، حذف).\n• إدارة المستخدمين والأدوار.\n• إدارة أقسام الأرفف والمرافق وتحديث علامات AR.\n• إحصاءات مباشرة: الإعارات، الزيارات، أكثر الكتب طلباً.`,
+    replyEn: `**Admin dashboard**\n\nFor staff only: manage resources, users, sections and facilities, print QR codes for books and shelves, and watch live statistics on what is being borrowed and searched.`,
   },
+  {
+    keywords: ['كيف', 'استخدم', 'استخدام', 'شرح', 'اشرح', 'ميزات', 'وظائف', 'how', 'guide', 'tour', 'feature', 'جولة', 'app', 'تطبيق', 'what is', 'ما هو', 'ماذا', 'about'],
+    reply: `أنا رفيق، وهذه أبرز ميزات التطبيق:\n\n1️⃣ **البحث الذكي** — ابحث عن أي كتاب بالاسم أو المؤلف أو التصنيف مع تحليل مدعوم بالذكاء الاصطناعي.\n2️⃣ **الخريطة الداخلية** — استعرض أرفف المكتبة واختر أي رف لعرض مسار الوصول إليه خطوة بخطوة.\n3️⃣ **الواقع المعزز AR** — امسح غلاف أي كتاب بالكاميرا للتعرف عليه، ثم اتبع الكاميرا نحو علامة الرف للملاحة الحية.\n4️⃣ **محاكاة الذكاء الاصطناعي** — جرّب التجربة كاملة بدون كاميرا أو كتاب حقيقي.\n5️⃣ **الاستشهادات الأكاديمية** — ولّد استشهادات بصيغ APA وMLA وChicago وBibTeX لأي كتاب.\n6️⃣ **نقاط XP والأوسمة** — اكسب نقاطاً عند البحث والاستعارة والوصول لرفع مستواك.\n\nاسألني عن أي ميزة بالتفصيل!`,
+    replyEn: `I am Rafeeq. Here is what the app can do:\n\n1) **Search** — find any book by title, author or subject, with an AI summary of what you get.\n2) **The floor map** — pick a book or a shelf and the map draws a route to it, around the shelving and the tables, with a red pin on the destination.\n3) **AR camera** — point the camera at a cover to identify a book, or at a shelf to check what is out of order.\n4) **Simulation** — try the whole experience without a camera or a real book.\n5) **Citations** — APA, MLA, Chicago and BibTeX for any book in the catalogue.\n6) **Knowledge points and badges** — searching, reserving and arriving all earn points.\n\nAsk me about any of them.`,
+  }
+
 ];
 
+/** Arabic script anywhere in the question means answer in Arabic. */
+function asksInArabic(query: string): boolean {
+  return /[\u0600-\u06FF]/.test(query || '');
+}
+
+// The reply used when Gemini is unavailable. It follows the same language rule
+// as the model does — a fallback that always answered in Arabic made an English
+// reader think the assistant was broken rather than offline.
 function localLibrarianReply(query: string): { reply: string; suggestedBookIds: string[] } {
   const q = (query || '').toLowerCase().trim();
+  const ar = asksInArabic(query);
   if (!q) {
     return {
-      reply: 'مرحباً! أنا رفيق، مساعدك الذكي في المكتبة. يمكنني مساعدتك في: البحث عن الكتب، التنقل بالخريطة والواقع المعزز، شرح ميزات التطبيق، توليد الاستشهادات الأكاديمية، ومتابعة نقاط XP والأوسمة. اسألني أي شيء!',
+      reply: ar
+        ? 'مرحباً! أنا رفيق، مساعدك الذكي في المكتبة. أستطيع مساعدتك في البحث عن الكتب، والتنقل بالخريطة والواقع المعزز، وشرح ميزات التطبيق، وتوليد الاستشهادات، ومتابعة نقاط الخبرة والأوسمة. اسألني أي شيء!'
+        : 'Hello! I am Rafeeq, your library assistant. I can help you find books, navigate with the map and AR, explain what the app does, generate citations, and follow your knowledge points and badges. Ask me anything!',
       suggestedBookIds: [],
     };
   }
 
-  // Check tour/feature questions first
+  // Feature questions before catalogue ones: "how do I use the map" is about
+  // the app, not about a book called "map". The entries are ordered specific
+  // first, general last — the overview matches "how", so trying it first would
+  // swallow every specific question phrased as one.
+  //
+  // Short Latin keywords have to match a whole word. "ar" as a substring is
+  // inside "earn", which sent "how do I earn points?" to the AR camera answer.
+  const words = q.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  const hits = (kw: string) =>
+    (kw.length <= 3 && /^[a-z0-9]+$/.test(kw)) ? words.includes(kw) : q.includes(kw);
   for (const entry of TOUR_REPLIES) {
-    if (entry.keywords.some((kw) => q.includes(kw))) {
-      return { reply: entry.reply, suggestedBookIds: [] };
+    if (entry.keywords.some(hits)) {
+      return { reply: ar ? entry.reply : entry.replyEn, suggestedBookIds: [] };
     }
   }
 
-  // Fall back to book search
-  const matches = MOCK_BOOKS.filter((b) =>
-    b.title.toLowerCase().includes(q) ||
-    b.author.toLowerCase().includes(q) ||
-    (b.category ?? '').toLowerCase().includes(q) ||
-    (b.description ?? '').toLowerCase().includes(q)
-  ).slice(0, 3);
+  // Search on the words of the question, not the whole sentence: nobody types
+  // a bare title, and "do you have anything on psychology?" matched no book at
+  // all while "psychology" matches several. Ranked by how many words land.
+  const STOP = new Set([
+    'the', 'a', 'an', 'is', 'are', 'do', 'you', 'have', 'any', 'anything', 'on',
+    'about', 'for', 'me', 'i', 'want', 'need', 'find', 'looking', 'book', 'books',
+    'where', 'can', 'get', 'please', 'in', 'of', 'to', 'and',
+    'هل', 'عن', 'في', 'من', 'على', 'أريد', 'اريد', 'كتاب', 'كتب', 'لديكم', 'عندكم', 'أين', 'اين',
+  ]);
+  const terms = words.filter((w) => w.length >= 3 && !STOP.has(w));
+  const scored = MOCK_BOOKS
+    .map((b) => {
+      const hay = [b.title, b.titleEn ?? '', b.author, b.category ?? '', b.description ?? '']
+        .join(' ').toLowerCase();
+      const score = terms.filter((w) => hay.includes(w)).length;
+      return { b, score };
+    })
+    .filter((x) => x.score > 0)
+    .sort((x, y) => y.score - x.score);
+  const matches = scored.slice(0, 3).map((x) => x.b);
 
   if (matches.length === 0) {
     return {
-      reply: `لم أجد مطابقة مباشرة لـ "${query}". جرّب كلمة أعمّ مثل: فيزياء، هندسة، علم نفس، أو اسألني عن ميزات التطبيق مثل: الخريطة، AR، الاستشهادات، نقاط XP.`,
+      reply: ar
+        ? `لم أجد مطابقة مباشرة لـ "${query}". جرّب كلمة أعمّ مثل: فيزياء، هندسة، علم نفس، أو اسألني عن ميزات التطبيق مثل الخريطة أو الواقع المعزز أو الاستشهادات.`
+        : `I could not find a direct match for "${query}". Try something broader — physics, engineering, psychology — or ask me about the app itself: the map, AR, citations, knowledge points.`,
       suggestedBookIds: [],
     };
   }
 
-  const list = matches.map((b) => `• «${b.title}» للمؤلف ${b.author} — تجده على الرف ${b.shelf}`).join('\n');
+  const list = matches
+    .map((b) => ar
+      ? `• «${b.title}» للمؤلف ${b.author} — تجده على الرف ${b.shelf}`
+      : `• "${b.titleEn || b.title}" by ${b.author} — on shelf ${b.shelf}`)
+    .join('\n');
   return {
-    reply: `بناءً على سؤالك، أنصحك بالمراجع التالية من مقتنيات مكتبتنا:\n${list}\n\nيمكنك فتح تفاصيل أي كتاب أو تحديد موقعه على الخريطة مباشرة.`,
+    reply: ar
+      ? `بناءً على سؤالك، أنصحك بالمراجع التالية من مقتنيات مكتبتنا:\n${list}\n\nيمكنك فتح تفاصيل أي كتاب أو تحديد موقعه على الخريطة مباشرة.`
+      : `Based on your question, these are in our collection:\n${list}\n\nOpen any of them for the full record, or locate it on the map.`,
     suggestedBookIds: matches.map((b) => b.id),
   };
 }
@@ -624,36 +925,64 @@ app.post("/api/librarian-chat", async (req, res) => {
 
   try {
     const catalogue = MOCK_BOOKS
-      .map((b) => `- id:${b.id} | ${b.title} | ${b.author} | ${b.category} | الرف ${b.shelf}`)
+      .map((b) => `- id:${b.id} | ${b.title}${b.titleEn && b.titleEn !== b.title ? ` / ${b.titleEn}` : ''} | ${b.author} | ${b.category} | shelf ${b.shelf}${b.callNumber ? ` | LC ${b.callNumber}` : ''}`)
       .join('\n');
+    // Whatever the app knows about the reader right now, so "where am I" and
+    // "what have I borrowed" are answerable. Optional — the chat works without it.
+    const contextLine = (() => {
+      const c = (req.body || {}).context;
+      if (!c || typeof c !== 'object') return '';
+      const bits: string[] = [];
+      if (c.page) bits.push(`They are on the ${c.page} page.`);
+      if (c.name) bits.push(`Their name is ${c.name}.`);
+      if (c.role) bits.push(`They are signed in as ${c.role}.`);
+      if (typeof c.xp === 'number') bits.push(`They have ${c.xp} knowledge points.`);
+      if (Array.isArray(c.borrowed) && c.borrowed.length) {
+        bits.push(`They currently hold: ${c.borrowed.join('; ')}.`);
+      }
+      return bits.length ? `\nRIGHT NOW\n${bits.join(' ')}` : '';
+    })();
     const conversation = messages.map((m: any) => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }],
     }));
 
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: conversation as any,
       config: {
-        systemInstruction: `أنت "رفيق"، المساعد الذكي لمكتبة جامعية متطورة. أجب بالعربية بإيجاز ووضوح.
+        systemInstruction: `You are "Rafeeq" (رفيق), the AI librarian inside the ARLibrary Rafeeq app. Be brief, concrete and warm.
 
-مهامك الرئيسية:
-1. إرشاد الطلاب إلى الكتب المناسبة من الفهرس مع ذكر موقع الرف ورمز LC.
-2. شرح ميزات التطبيق عند السؤال:
-   - البحث الذكي: ابحث عن أي كتاب بالاسم أو المؤلف أو التصنيف مع نتائج فورية وتحليل مدعوم بالذكاء الاصطناعي.
-   - الخريطة الداخلية والملاحة: استعرض أرفف المكتبة والمرافق، واختر أي رف أو كتاب لعرض مسار الوصول إليه خطوة بخطوة.
-   - الواقع المعزز AR: امسح غلاف أي كتاب بالكاميرا للتعرف عليه فوراً، ثم اتبع الكاميرا نحو علامة الرف المطبوعة للملاحة الحية بالمسافة الحقيقية.
-   - محاكاة الذكاء الاصطناعي بدون كاميرا: يختار الذكاء الاصطناعي كتاباً متنوعاً في كل مرة لعرض التجربة كاملة كمحاكاة دون الحاجة إلى كاميرا أو كتاب حقيقي.
-   - مختبر AR وفحص الرفوف: مسح أغلفة الكتب والتعرف عليها، وفحص الرفوف تلقائياً للكشف عن الكتب المُرتّبة في غير مكانها.
-   - الاستشهادات الأكاديمية: توليد الاستشهادات بصيغ APA وMLA وChicago وBibTeX تلقائياً لأي كتاب في الفهرس.
-   - نقاط XP والأوسمة: كل بحث واستعارة ووصول يكسبك نقاط خبرة (XP) تفتح أوسمة تحفيزية وترفع مستواك.
-   - لوحة الإدارة: للمسؤولين فقط — تحكم كامل في المصادر والمستخدمين والأقسام والمرافق مع إحصاءات مباشرة.
-3. للجولة التعريفية: اشرح الخطوات واحدة تلو الأخرى إذا طلب المستخدم كيفية استخدام التطبيق.
+LANGUAGE — this rule comes first and overrides everything else:
+Reply in the language the reader last wrote in. Arabic question, Arabic answer. English question, English answer. If they switch mid-conversation, switch with them. Never answer an English question in Arabic. Book titles, shelf codes and LC classes keep their own form whatever the language.
 
-الفهرس المتاح:
+WHAT YOU KNOW
+You are part of the app and can answer about any of it, not only the catalogue.
+
+Pages and what each one does:
+- Home (/) — the reader's dashboard: knowledge points, sections to explore, recommendations, and a shortcut into every feature.
+- Search library resources (/search) — search the catalogue by title, author or subject; each result opens a book page.
+- Book page (/book/:id) — cover, author, subject, LC call number, shelf, availability. "Locate" opens the map with a route to its shelf; "Reserve book now" holds it.
+- Shelf resources map (/map) — the 3D floor plan. Pick a book or a shelf, press "Start navigation", and a beam is drawn from the entrance to the shelf, going around the shelving and the tables rather than over them. A red pin marks the destination, and the shelf's own plate turns red on arrival.
+- Search library facilities (/facilities) — study rooms, the silent zone, the computer lab, printing. Pick one, press Locate, and the same map draws a route to it.
+- AR camera (/ar), Smart Lens (/smart-lens), shelf scan (/shelf-scan) — point the camera at a cover to identify a book, or at a shelf to find books shelved out of order.
+- My journey / profile (/profile) and my books (/my-books) — borrowing history, knowledge points, badges.
+- Help (/help) — how the app works, step by step.
+- Admin (/admin) — staff only: resources, users, sections, facilities.
+
+Points and badges: searching, reserving and reaching a shelf all earn knowledge points (XP), which unlock the مستكشف / باحث / متميز badges.
+
+Floor plan: the shelves are ${SHELF_IDS.join(', ')}. Facilities: group study rooms (B-2, second floor), the silent reading zone (D-1, third floor), the computer lab (A-2, first floor, usually busy), printing and copying (C-1, ground floor).
+
+Catalogue — every book the library holds:
 ${catalogue}
 
-إن لم يوجد كتاب مطابق فاقترح الأقرب واذكر القسم.`,
+HOW TO ANSWER
+- A book question: name the book, its shelf and its LC class, and say the map can walk them there.
+- A "how do I..." question: give the steps in order, naming the buttons as they appear on screen.
+- Nothing matching in the catalogue: say so plainly and offer the nearest subject rather than inventing a title.
+- Anything outside the library and this app: answer briefly if you can, then steer back to what the library offers.
+${contextLine}`,
       },
     });
 
@@ -678,7 +1007,7 @@ app.post("/api/translate-book", async (req, res) => {
   const isToAr = targetLang === 'ar';
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{
@@ -719,7 +1048,12 @@ app.post("/api/translate-book", async (req, res) => {
 
 // ── Feature: The Speaking Book — AR speech bubbles from the book's POV ───────
 app.post("/api/book-speaks", async (req, res) => {
-  const { title, author, description, category, year } = req.body || {};
+  const raw = req.body || {};
+  const title       = sanitizeInput(raw.title, 150);
+  const author      = sanitizeInput(raw.author, 100);
+  const description = sanitizeInput(raw.description, 400);
+  const category    = sanitizeInput(raw.category, 60);
+  const year        = sanitizeInput(String(raw.year ?? ""), 10);
   if (!title) return res.status(400).json({ error: "title required" });
 
   const fallback = {
@@ -736,7 +1070,7 @@ app.post("/api/book-speaks", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{
@@ -814,7 +1148,7 @@ app.post("/api/knowledge-relations", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{ text: `أنت مساعد مكتبة أكاديمية متخصص في الربط المعرفي بين الكتب.
@@ -862,7 +1196,7 @@ app.post("/api/hidden-bridges", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{ text: `أنت باحث متخصص في "المعرفة العامة غير المكتشفة" (Swanson 1986).
@@ -897,7 +1231,8 @@ app.post("/api/hidden-bridges", async (req, res) => {
 });
 
 app.post("/api/bridge-question", async (req, res) => {
-  const { question, books, leftIds, rightIds } = req.body || {};
+  const { books, leftIds, rightIds } = req.body || {};
+  const question = sanitizeInput(req.body?.question, 300);
   if (!question) return res.status(400).json({ error: "question required" });
 
   const bookById = (id: string) => Array.isArray(books) ? books.find((b: any) => b.id === id) : null;
@@ -914,7 +1249,7 @@ app.post("/api/bridge-question", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{ text: `أنت باحث في نظرية "المعرفة العامة غير المكتشفة" (Swanson 1986).
@@ -1075,8 +1410,9 @@ function buildEvidenceFallback(topic: string, papers: ScholarPaper[]) {
 }
 
 app.post("/api/gap-scan", async (req, res) => {
-  const { topic, books } = req.body || {};
-  if (!topic) return res.status(400).json({ error: "topic required" });
+  const { topic: rawTopic, books } = req.body || {};
+  if (!rawTopic) return res.status(400).json({ error: "topic required" });
+  const topic = sanitizeInput(rawTopic, 200);
 
   const bookList = (Array.isArray(books) ? books : MOCK_BOOKS)
     .map((b: any) => `ID:${b.id} "${b.title}" by ${b.author}`)
@@ -1097,7 +1433,7 @@ app.post("/api/gap-scan", async (req, res) => {
 
   try {
     const response = await client.models.generateContent({
-      model: "gemini-2.0-flash-lite",
+      model: "gemini-1.5-flash",
       contents: [{
         role: "user",
         parts: [{ text: `You are a research methodology expert helping a PhD student identify literature gaps.
@@ -1170,6 +1506,489 @@ Respond in JSON only:
   }
 });
 
+// ── Research Mirror: analyzes library coverage for a dissertation topic ────────
+app.post("/api/research-mirror", async (req, res) => {
+  const { topic: rawTopic, abstract: rawAbstract } = req.body || {};
+  if (!rawTopic) return res.status(400).json({ error: "topic required" });
+  const topic    = sanitizeInput(rawTopic, 200);
+  const abstract = sanitizeInput(rawAbstract ?? '', 500);
+
+  const catalogue = MOCK_BOOKS.map(b =>
+    `ID:${b.id} | "${b.title}" | ${b.author} | ${b.category} | ${(b as any).description ?? ''}`
+  ).join('\n');
+
+  const fallback = {
+    coverageScore: 58,
+    criticalBooks: MOCK_BOOKS.slice(0, 5).map((b, i) => ({
+      id: b.id, title: b.title, author: b.author,
+      reason: `مرجع أساسي في مجال ${b.category}`, priority: i + 1,
+    })),
+    missingTopics: [
+      'الدراسات التجريبية في البيئة العربية',
+      'تقييم جودة واجهات AR في المكتبات',
+      'أثر الواقع المعزز على اكتساب المعلومات',
+    ],
+    disciplines: [
+      { name: 'علم المكتبات', nameEn: 'Library Science', coverage: 'medium' },
+      { name: 'الواقع المعزز', nameEn: 'Augmented Reality', coverage: 'low' },
+      { name: 'تجربة المستخدم', nameEn: 'UX', coverage: 'low' },
+      { name: 'الذكاء الاصطناعي', nameEn: 'Artificial Intelligence', coverage: 'medium' },
+      { name: 'المنهجية البحثية', nameEn: 'Research Methods', coverage: 'high' },
+    ],
+    summary: `المكتبة تُغطي حوالي 58% من الأدبيات الأساسية لموضوع "${topic}". توجد فجوات واضحة في الدراسات الميدانية العربية وتطبيقات AR في بيئات المكتبات.`,
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [{ role: "user", parts: [{ text:
+        `أنت مستشار بحثي متخصص في علم المكتبات.
+موضوع رسالة الطالب: "${topic}"${abstract ? `\nملخص: "${abstract}"` : ''}
+
+فهرس المكتبة:
+${catalogue}
+
+حلّل مدى تغطية هذه المكتبة لمتطلبات الأدبيات الأكاديمية لهذه الرسالة. أجب بـ JSON:
+{
+  "coverageScore": رقم 0-100,
+  "criticalBooks": [{ "id":"...", "title":"...", "author":"...", "reason":"جملة واحدة", "priority":1 }] (أهم 5 مرتبة),
+  "missingTopics": ["موضوع 1"] (3-5 مواضيع أساسية غير مغطاة),
+  "disciplines": [{ "name":"عربي", "nameEn":"English", "coverage":"high|medium|low" }] (4-6),
+  "summary": "جملتان تلخصان حالة التغطية"
+}` }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            coverageScore: { type: Type.INTEGER },
+            criticalBooks: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, title: { type: Type.STRING }, author: { type: Type.STRING }, reason: { type: Type.STRING }, priority: { type: Type.INTEGER } }, required: ["id","title","author","reason","priority"] } },
+            missingTopics: { type: Type.ARRAY, items: { type: Type.STRING } },
+            disciplines: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, nameEn: { type: Type.STRING }, coverage: { type: Type.STRING } }, required: ["name","coverage"] } },
+            summary: { type: Type.STRING },
+          },
+          required: ["coverageScore","criticalBooks","missingTopics","disciplines","summary"],
+        },
+      },
+    });
+    const p = JSON.parse(response.text || "{}");
+    return res.json({
+      coverageScore: p.coverageScore ?? fallback.coverageScore,
+      criticalBooks: p.criticalBooks?.length ? p.criticalBooks : fallback.criticalBooks,
+      missingTopics: p.missingTopics?.length ? p.missingTopics : fallback.missingTopics,
+      disciplines:   p.disciplines?.length   ? p.disciplines   : fallback.disciplines,
+      summary:       p.summary               || fallback.summary,
+    });
+  } catch (err: any) {
+    console.error("[research-mirror]", err);
+    return res.json(fallback);
+  }
+});
+
+// ── Research DNA: personalised knowledge-profile from books read ───────────────
+app.post("/api/research-dna", async (req, res) => {
+  const { readBooks, topic: rawTopic } = req.body || {};
+  if (!Array.isArray(readBooks) || readBooks.length === 0)
+    return res.status(400).json({ error: "readBooks required" });
+
+  const topic    = sanitizeInput(rawTopic ?? '', 200);
+  const bookList = readBooks.slice(0, 20).map((b: any) => `- "${b.title}" (${b.category})`).join('\n');
+  const unread   = MOCK_BOOKS.filter(b => !readBooks.find((r: any) => r.id === b.id));
+  const catalogue = unread.map(b => `ID:${b.id} | "${b.title}" | ${b.author} | ${b.category}`).join('\n');
+
+  const fallback = {
+    disciplines: [
+      { name: 'علم المكتبات', score: 40 },
+      { name: 'الواقع المعزز', score: 20 },
+      { name: 'تجربة المستخدم', score: 15 },
+      { name: 'الذكاء الاصطناعي', score: 55 },
+      { name: 'المنهجية', score: 35 },
+    ],
+    blindSpot: 'أنت تُركّز على الجانب التقني وتفتقر للعمق في الدراسات الميدانية وتجربة المستخدم',
+    nextBook: { id: unread[0]?.id ?? '', title: unread[0]?.title ?? '', reason: 'يُغطي الجانب الأكثر غياباً في قراءاتك' },
+    readinessScore: 42,
+    pattern: 'تقني-نظري',
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [{ role: "user", parts: [{ text:
+        `أنت مرشد بحثي. حلّل نمط قراءة الطالب:
+الكتب التي قرأها:\n${bookList}
+${topic ? `موضوع اهتمامه: "${topic}"` : ''}
+الكتب المتبقية (للتوصية):\n${catalogue}
+
+أجب بـ JSON:
+{
+  "disciplines": [{ "name":"عربي قصير", "score":0-100 }] (5 تخصصات),
+  "blindSpot": "جملة واحدة: أهم نقطة ضعف في نمط قراءته",
+  "nextBook": { "id":"من المتبقية", "title":"...", "reason":"جملة واحدة" },
+  "readinessScore": 0-100,
+  "pattern": "وصف النمط بكلمتين"
+}` }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            disciplines: { type: Type.ARRAY, items: { type: Type.OBJECT, properties: { name: { type: Type.STRING }, score: { type: Type.INTEGER } }, required: ["name","score"] } },
+            blindSpot: { type: Type.STRING },
+            nextBook: { type: Type.OBJECT, properties: { id: { type: Type.STRING }, title: { type: Type.STRING }, reason: { type: Type.STRING } }, required: ["id","title","reason"] },
+            readinessScore: { type: Type.INTEGER },
+            pattern: { type: Type.STRING },
+          },
+          required: ["disciplines","blindSpot","nextBook","readinessScore"],
+        },
+      },
+    });
+    const p = JSON.parse(response.text || "{}");
+    return res.json({
+      disciplines:   p.disciplines?.length ? p.disciplines : fallback.disciplines,
+      blindSpot:     p.blindSpot           || fallback.blindSpot,
+      nextBook:      p.nextBook            || fallback.nextBook,
+      readinessScore:p.readinessScore      ?? fallback.readinessScore,
+      pattern:       p.pattern             || fallback.pattern,
+    });
+  } catch (err: any) {
+    console.error("[research-dna]", err);
+    return res.json(fallback);
+  }
+});
+
+// ── Book Duel: AI head-to-head comparison of two books ────────────────────────
+app.post("/api/book-duel", async (req, res) => {
+  const { bookA, bookB } = req.body || {};
+  if (!bookA || !bookB) return res.status(400).json({ error: "bookA and bookB required" });
+
+  const fallback = {
+    readFirst: 'A',
+    readFirstReason: `ابدأ بـ "${sanitizeInput(bookA.title, 80)}" لأنه يُرسّخ الأساس النظري الذي يبني عليه الكتاب الثاني`,
+    similarities: ['كلاهما يتناول نفس المجال الأكاديمي', 'يشتركان في المنهجية التحليلية'],
+    differences: ['أحدهما نظري والآخر تطبيقي', 'يختلفان في المستوى المطلوب من القارئ'],
+    complementary: `معاً يُكوّنان صورة متكاملة — الأول يُجيب على "لماذا؟" والثاني على "كيف؟"`,
+    synergy: 82,
+  };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [{ role: "user", parts: [{ text:
+        `قارن بين هذين الكتابين للطالب:
+(A) "${sanitizeInput(bookA.title,100)}" — ${sanitizeInput(bookA.author,80)} — ${sanitizeInput(bookA.category,60)}
+    ${sanitizeInput(bookA.description ?? '',300)}
+(B) "${sanitizeInput(bookB.title,100)}" — ${sanitizeInput(bookB.author,80)} — ${sanitizeInput(bookB.category,60)}
+    ${sanitizeInput(bookB.description ?? '',300)}
+
+أجب بـ JSON:
+{
+  "readFirst": "A" أو "B",
+  "readFirstReason": "جملة واحدة بالعربية",
+  "similarities": ["وجه 1","وجه 2"] (2-3),
+  "differences": ["فارق 1","فارق 2"] (2-3),
+  "complementary": "جملة واحدة: كيف يُكملان بعضهما",
+  "synergy": 0-100
+}` }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            readFirst:      { type: Type.STRING },
+            readFirstReason:{ type: Type.STRING },
+            similarities:   { type: Type.ARRAY, items: { type: Type.STRING } },
+            differences:    { type: Type.ARRAY, items: { type: Type.STRING } },
+            complementary:  { type: Type.STRING },
+            synergy:        { type: Type.INTEGER },
+          },
+          required: ["readFirst","readFirstReason","similarities","differences","complementary","synergy"],
+        },
+      },
+    });
+    const p = JSON.parse(response.text || "{}");
+    return res.json({
+      readFirst:       p.readFirst                           || fallback.readFirst,
+      readFirstReason: p.readFirstReason                    || fallback.readFirstReason,
+      similarities:    p.similarities?.length ? p.similarities : fallback.similarities,
+      differences:     p.differences?.length  ? p.differences  : fallback.differences,
+      complementary:   p.complementary                      || fallback.complementary,
+      synergy:         p.synergy                            ?? fallback.synergy,
+    });
+  } catch (err: any) {
+    console.error("[book-duel]", err);
+    return res.json(fallback);
+  }
+});
+
+// ── Reading Roadmap: 3-stage sequential reading plan from the library catalog ──
+app.post("/api/reading-roadmap", async (req, res) => {
+  const { topic } = req.body || {};
+  if (!topic) return res.status(400).json({ error: "topic required" });
+
+  const cleanTopic = sanitizeInput(topic, 120);
+
+  const catalogSample = MOCK_BOOKS.slice(0, 30).map(b =>
+    `"${b.title}" — ${b.author} [${b.category}]`
+  ).join('\n');
+
+  const fallback = {
+    stages: [
+      {
+        label: ar_label('مبتدئ', 'Beginner'),
+        icon: '🌱',
+        books: [
+          { title: `مقدمة في ${cleanTopic}`, author: '', reason: ar_label('أساسيات المجال', 'Foundational overview'), estimatedHours: 6, difficulty: 'beginner' },
+        ],
+      },
+      {
+        label: ar_label('متوسط', 'Intermediate'),
+        icon: '🔬',
+        books: [
+          { title: `تعمق في ${cleanTopic}`, author: '', reason: ar_label('بناء الفهم التحليلي', 'Build analytical depth'), estimatedHours: 8, difficulty: 'intermediate' },
+        ],
+      },
+      {
+        label: ar_label('متقدم', 'Advanced'),
+        icon: '🏆',
+        books: [
+          { title: `إتقان ${cleanTopic}`, author: '', reason: ar_label('إتقان المجال', 'Master the field'), estimatedHours: 10, difficulty: 'advanced' },
+        ],
+      },
+    ],
+    totalHours: 24,
+    overview: ar_label(
+      `مسار قراءة متدرج في موضوع "${cleanTopic}" — من الأساسيات إلى الإتقان`,
+      `A progressive reading path on "${cleanTopic}" — from foundations to mastery`
+    ),
+  };
+
+  function ar_label(arabic: string, english: string) { return arabic; }
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [{ role: "user", parts: [{ text:
+        `أنت مكتبي ذكي. الطالب يريد خطة قراءة متدرجة في موضوع: "${cleanTopic}".
+
+فيما يلي كتب المكتبة المتاحة:
+${catalogSample}
+
+ابنِ خطة قراءة من 3 مراحل (مبتدئ → متوسط → متقدم). لكل مرحلة اختر 2-3 كتب من الكتالوج أعلاه إذا وجدت ما يناسب، وإلا اقترح كتباً مناسبة.
+أجب بـ JSON فقط.` }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            overview:   { type: Type.STRING },
+            totalHours: { type: Type.INTEGER },
+            stages: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  label: { type: Type.STRING },
+                  icon:  { type: Type.STRING },
+                  books: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        title:          { type: Type.STRING },
+                        author:         { type: Type.STRING },
+                        reason:         { type: Type.STRING },
+                        estimatedHours: { type: Type.INTEGER },
+                        difficulty:     { type: Type.STRING },
+                      },
+                      required: ["title", "reason", "estimatedHours", "difficulty"],
+                    },
+                  },
+                },
+                required: ["label", "icon", "books"],
+              },
+            },
+          },
+          required: ["stages", "totalHours", "overview"],
+        },
+      },
+    });
+    const p = JSON.parse(response.text || "{}");
+    return res.json({
+      stages:     Array.isArray(p.stages) && p.stages.length ? p.stages : fallback.stages,
+      totalHours: p.totalHours ?? fallback.totalHours,
+      overview:   p.overview   || fallback.overview,
+    });
+  } catch (err: any) {
+    console.error("[reading-roadmap]", err);
+    return res.json(fallback);
+  }
+});
+
+// ── Feature: Oman Corner AR — Heritage Station AI Guide ──────────────────────
+// Returns an AI narrative for the selected heritage station from عارف (Arif),
+// the AR guide character. Always 200 — Gemini when a key is present, local otherwise.
+app.post("/api/oman-corner", async (req, res) => {
+  const stationId  = sanitizeInput(req.body?.stationId, 40);
+  const contextAr  = sanitizeInput(req.body?.contextAr, 200);
+
+  const FALLBACKS: Record<string, string> = {
+    architecture: 'العمارة العُمانية لم تكن مجرد بناء — كانت علماً في خدمة الحياة. أفلاج الري وحدها أروت آلاف القرى لثلاثة آلاف عام بدون مضخة واحدة. تخيّل الهندسة التي تطلّبها ذلك!',
+    literature:   'الأدب العُماني بحر لا قاع له. تقاليد الشعر الشفهي (النبطي) هي ذكاء اصطناعي قديم: شفرة حفظت ثقافة كاملة في صدور البشر قبل آلاف السنين، قبل أي خوارزمية.',
+    geography:    'في عُمان وحدها يمكنك أن تسبح في البحر وتتجوّل في ثلوج الجبال في يوم واحد. هذا التنوع الجغرافي النادر هو سرّ تكيّف العُمانيين الفريد عبر التاريخ.',
+    arts:         'الرزحة ليست رقصة للمتفرجين، بل ذاكرة المجتمع تُعاد كتابتها جسداً بجسد عبر الأجيال. والخنجر؟ ليس سلاحاً بل لغة يقرأها كل عُماني بلحظة واحدة.',
+  };
+
+  const fallback = { guideNarrative: FALLBACKS[stationId] ?? 'تراث عُمان يعكس حضارة راسخة عمرها آلاف السنين.' };
+
+  const client = getGeminiClient();
+  if (!client) return res.json(fallback);
+
+  try {
+    const response = await client.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: `أنت "عارف" — مرشد ثقافي ذكي في ركن عُمان بالمكتبة الجامعية. تتحدث بأسلوب حماسي وعلمي موجز.
+الموضوع: ${contextAr || stationId}
+اكتب 2-3 جمل بالعربية تُدهش الطالب بمعلومة غير متوقعة وتربطها بالفكر العلمي أو الحداثي.
+لا تبدأ بـ "أنا عارف" أو تُعرّف بنفسك.`,
+      config: {
+        systemInstruction: 'أجب بجملتين إلى ثلاث جمل فقط — موجز، مدهش، علمي.',
+      },
+    });
+    return res.json({ guideNarrative: response.text?.trim() || fallback.guideNarrative });
+  } catch (err: any) {
+    console.error('[oman-corner]', err);
+    return res.json(fallback);
+  }
+});
+
+// ── Quiz Questions (Gemini-generated for CognitiveARGame) ────────────────
+app.post("/api/quiz-questions", async (req, res) => {
+  const { levelId, levelNameAr, levelNameEn, count } = req.body || {};
+  const wanted = Math.min(Math.max(Number(count) || 6, 3), 8);
+
+  const difficultyMap: Record<string, string> = {
+    explorer:      'سهل — من أين تأتي المعرفة الموثوقة: المصدر والمؤلف والتاريخ والنسبة',
+    researcher:    'متوسط — بناء البحث وتوثيقه: المعاملات المنطقية، المكنز، التحكيم، الاقتباس، الـDOI',
+    distinguished: 'متقدم — أحكام صعبة: المجلات المفترسة، الـpreprint، تضارب المصالح، انتقاء الأدلة، المراجع التي يولّدها الذكاء الاصطناعي، القراءة الجانبية',
+  };
+  const difficulty = difficultyMap[levelId] || 'متوسط';
+
+  const fallbackQuestions = [
+    {
+      qAr: 'ما المصدر الأكثر موثوقية للبحث العلمي؟',
+      qEn: 'Which is the most reliable source for scientific research?',
+      options: [
+        { ar: 'مقال محكّم في مجلة علمية', en: 'Peer-reviewed scientific article', correct: true },
+        { ar: 'منشور في التواصل الاجتماعي', en: 'Social media post', correct: false },
+        { ar: 'مدونة شخصية', en: 'Personal blog', correct: false },
+      ],
+      whyAr: 'التحكيم فحص مسبق من باحثين مختصين — ليس ضماناً مطلقاً لكنه فرق حقيقي عن نص لم يراجعه أحد.',
+      whyEn: 'Peer review is a prior check by specialists — not a guarantee, but a real difference from an unreviewed text.',
+    },
+    {
+      qAr: 'لماذا يجب التحقق من مصدر المعلومة؟',
+      qEn: 'Why should you verify the source of information?',
+      options: [
+        { ar: 'لضمان دقتها وموثوقيتها', en: 'To ensure its accuracy and reliability', correct: true },
+        { ar: 'لأن كل المعلومات خاطئة', en: 'Because all information is wrong', correct: false },
+        { ar: 'لا داعي للتحقق أبداً', en: 'Verification is never necessary', correct: false },
+      ],
+      whyAr: 'المعلومة تُستعمل في بناء نتيجة؛ فإن كان أساسها غير موثوق انهارت النتيجة معه.',
+      whyEn: 'Information is the foundation of a conclusion; if the foundation is unreliable the conclusion falls with it.',
+    },
+    {
+      qAr: 'أي من هذه يُعدّ مصدراً أولياً؟',
+      qEn: 'Which of these is a primary source?',
+      options: [
+        { ar: 'ورقة بحثية أكاديمية محكّمة', en: 'Peer-reviewed academic paper', correct: true },
+        { ar: 'خبر منقول بلا مرجع', en: 'Unattributed news story', correct: false },
+        { ar: 'تعليق في منتدى', en: 'Forum comment', correct: false },
+      ],
+      whyAr: 'المصدر الأولي يقدّم البيانات أو الشهادة مباشرة، بخلاف ما ينقل عن غيره.',
+      whyEn: 'A primary source presents the data or testimony directly, unlike one relaying someone else.',
+    },
+  ];
+
+  const client = getGeminiClient();
+  if (!client) return res.json({ questions: fallbackQuestions });
+
+  try {
+    const prompt = `أنت خبير في الوعي المعلوماتي وتدريب الباحثين. أنشئ ${wanted} أسئلة اختيار من متعدد تنمّي وعي الطالب المعلوماتي في البحث العلمي.
+
+مستوى الصعوبة: ${difficulty}
+اسم المستوى: ${levelNameAr} (${levelNameEn})
+
+شروط لازمة:
+- صغ كل سؤال كموقف عملي يواجهه باحث، لا كتعريف يُستظهر.
+- 3 خيارات لكل سؤال، خيار واحد فقط صحيح، والخيارات الخاطئة معقولة لا سخيفة.
+- لكل سؤال شرح موجز (whyAr / whyEn) يوضّح لماذا الإجابة صحيحة — هذا الشرح هو الفائدة التعليمية وليس اختيارياً.
+- وزّع الأسئلة على المهارات: تقييم المصادر، استراتيجية البحث، التوثيق والأمانة، قراءة الأدلة.
+- النص بالعربية والإنجليزية معاً، بلغة سليمة ومختصرة.`;
+
+    const response = await withGeminiRetry(() => client.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: prompt,
+      config: {
+        systemInstruction: "أنت خبير تربوي في محو الأمية المعلوماتية. أجب بـ JSON فقط.",
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            questions: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  qAr:     { type: Type.STRING },
+                  qEn:     { type: Type.STRING },
+                  whyAr:   { type: Type.STRING },
+                  whyEn:   { type: Type.STRING },
+                  skill:   { type: Type.STRING },
+                  options: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        ar:      { type: Type.STRING },
+                        en:      { type: Type.STRING },
+                        correct: { type: Type.BOOLEAN },
+                      },
+                      required: ["ar", "en", "correct"],
+                    },
+                  },
+                },
+                required: ["qAr", "qEn", "whyAr", "whyEn", "options"],
+              },
+            },
+          },
+          required: ["questions"],
+        },
+      },
+    }));
+
+    const parsed = JSON.parse(response.text || "{}");
+    const questions = parsed.questions?.slice(0, wanted);
+    if (!questions || questions.length < 3) return res.json({ questions: fallbackQuestions });
+    return res.json({ questions });
+  } catch (err: any) {
+    const isQuota = String(err).includes('RESOURCE_EXHAUSTED') || (err as any)?.status === 429;
+    if (!isQuota) console.error('[quiz-questions]', err);
+    return res.json({ questions: fallbackQuestions });
+  }
+});
+
 // Setup dev server or static static assets
 async function startServer() {
   if (process.env.NODE_ENV !== "production") {
@@ -1188,6 +2007,17 @@ async function startServer() {
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Smart Library Server running on http://localhost:${PORT}`);
+    // Loud on purpose: running on the built-in admin password means anyone who
+    // can read the source can sign in as an administrator.
+    if (ADMIN_PASSWORD === DEFAULT_ADMIN_PASSWORD) {
+      console.warn(
+        "\n  WARNING  Admin sign-in is using the built-in password from server.ts.\n" +
+        "           It is public to anyone with the source. Set ADMIN_PASSWORD to\n" +
+        "           replace it, or ADMIN_PASSWORD=\"\" to disable admin sign-in.\n"
+      );
+    } else if (!ADMIN_PASSWORD) {
+      console.log("  Admin sign-in is disabled (ADMIN_PASSWORD is empty).");
+    }
   });
 }
 

@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, Suspense, lazy } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login';
+import { AdminLogin } from './pages/AdminLogin';
 import { Dashboard } from './pages/Dashboard';
 import { BookDetails } from './pages/BookDetails';
 import { LibraryMap } from './pages/LibraryMap';
@@ -16,20 +17,27 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { Search } from './pages/Search';
 import { Landing } from './pages/Landing';
 import { HelpCenter } from './pages/HelpCenter';
-import { ArLab } from './pages/ArLab';
 import { QRScanner } from './pages/QRScanner';
 import { ARShowcase } from './pages/ARShowcase';
-import { ShelfQRPrint } from './pages/ShelfQRPrint';
-import { ARSimulation } from './pages/ARSimulation';
-import { CameraARSim } from './pages/CameraARSim';
-import { LibraryLens } from './pages/LibraryLens';
 import { KnowledgeStars } from './pages/KnowledgeStars';
 import { HiddenBridges } from './pages/HiddenBridges';
-import { GapScanner } from './pages/GapScanner';
-import { BookQRPrint } from './pages/BookQRPrint';
+import { SmartLens } from './pages/SmartLens';
+import { ResearchDNA } from './pages/ResearchDNA';
+import { BookDuel } from './pages/BookDuel';
+import { ReadingRoadmap } from './pages/ReadingRoadmap';
+import { LibraryQuest } from './pages/LibraryQuest';
+import { OmanCornerAR } from './pages/OmanCornerAR';
+import { CognitiveARGame } from './pages/CognitiveARGame';
+import { Profile } from './pages/Profile';
+import { VirtualTour } from './pages/VirtualTour';
+import { ShelfARScan } from './pages/ShelfARScan';
+import { CompassAR } from './pages/CompassAR';
+import { WebXRAR } from './pages/WebXRAR';
 import { MOCK_USER } from './data/mockData';
 import { User } from './types';
 import { LanguageProvider, useLanguage } from './hooks/useLanguage';
+import { incrementLoginCount, trackArUse, trackScanUse, getReservedBooks } from './lib/utils';
+import { AchievementsProvider } from './hooks/useAchievements';
 
 // Lazy-loaded: pulls in mind-ar + tensorflow.js + three.js + AR.js, several
 // multi-MB dependencies that should only load once a user actually opens the
@@ -56,18 +64,88 @@ function loadStoredUser(): User | null {
   }
 }
 
+/**
+ * Records which AR tools and scanning cameras the student has actually used.
+ *
+ * These signals live here rather than inside each AR page on purpose: the
+ * badge requirements need to know about nine separate routes, and nine
+ * separate tracking calls is nine places to forget one when a route is added
+ * or renamed. One table, watched from one effect.
+ */
+const AR_ROUTES: Record<string, string> = {
+  '/ar': 'hub',
+  '/ar-showcase': 'showcase',
+  '/smart-lens': 'smart-lens',
+  '/shelf-scan': 'shelf-scan',
+  '/webxr': 'webxr',
+  '/compass': 'compass',
+  '/oman-corner': 'oman-corner',
+  '/knowledge-stars': 'knowledge-stars',
+  '/hidden-bridges': 'hidden-bridges',
+};
+
+// Routes that open a camera to read a shelf marker or a book cover.
+const SCAN_ROUTES = ['/scan', '/shelf-scan'];
+
+function ActivityTracker() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    const feature = AR_ROUTES[pathname];
+    if (feature) trackArUse(feature);
+    if (SCAN_ROUTES.includes(pathname)) trackScanUse();
+  }, [pathname]);
+  return null;
+}
+
 function AppContent() {
   const [user, setUser] = useState<User | null>(loadStoredUser);
   const { dir } = useLanguage();
 
+  // The stored user is a snapshot taken at login. Without this it never
+  // changes, so a renamed account keeps showing its old name — and a session
+  // revoked on the server still looks signed in. Re-read the account on load
+  // and adopt whatever the server says.
+  useEffect(() => {
+    let token: string | null = null;
+    try { token = sessionStorage.getItem('library_token'); } catch { /* private mode */ }
+    if (!token) return;
+    let cancelled = false;
+    fetch('/api/me', { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled || !data?.user) return;
+        // The server holds no reservations, so adopting its account wholesale
+        // erased any book reserved in this browser. Union the two.
+        const reserved = getReservedBooks();
+        const merged = {
+          ...data.user,
+          borrowedBooks: [...new Set([...(data.user.borrowedBooks ?? []), ...reserved])],
+        };
+        setUser(merged);
+        localStorage.setItem('library_user', JSON.stringify(merged));
+      })
+      .catch(() => { /* offline: keep the stored copy */ });
+    return () => { cancelled = true; };
+  }, []);
+
   const handleLogin = (userData: User) => {
     setUser(userData);
     localStorage.setItem('library_user', JSON.stringify(userData));
+    incrementLoginCount();
   };
 
   const handleLogout = () => {
     setUser(null);
     localStorage.removeItem('library_user');
+    // Invalidate the session server-side too, so the token cannot be replayed.
+    try {
+      const token = sessionStorage.getItem('library_token');
+      if (token) {
+        fetch('/api/logout', { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+          .catch(() => { /* best effort — the local session is gone either way */ });
+      }
+      sessionStorage.removeItem('library_token');
+    } catch { /* private mode */ }
   };
 
   const handleUpdateUser = (updater: (current: User) => User) => {
@@ -81,10 +159,19 @@ function AppContent() {
 
   return (
     <div dir={dir} className="min-h-screen bg-[#F5F7FA] font-sans transition-all duration-500">
+      <ActivityTracker />
+      {/* Wraps the routes so any page can report a completed task and get the
+          pop-up, the confetti and the XP without wiring its own. */}
+      <AchievementsProvider user={user}>
       <Routes>
         <Route 
           path="/login" 
           element={user ? <Navigate to="/" /> : <Login onLogin={handleLogin} />} 
+        />
+        {/* Staff entrance. Deliberately not linked from anywhere in the app. */}
+        <Route
+          path="/admin-login"
+          element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/'} replace /> : <AdminLogin onLogin={handleLogin} />}
         />
         <Route 
           path="/" 
@@ -101,10 +188,6 @@ function AppContent() {
               <Landing />
             )
           } 
-        />
-        <Route 
-          path="/landing" 
-          element={<Landing />} 
         />
         <Route
           path="/book/:id"
@@ -131,12 +214,18 @@ function AppContent() {
           }
         />
         <Route
-          path="/my-books" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><MyBooks user={user} /></Layout> : <Navigate to="/login" />} 
+          path="/my-books"
+          element={user ? <Layout user={user} onLogout={handleLogout}><MyBooks user={user} /></Layout> : <Navigate to="/login" />}
         />
-        <Route 
-          path="/admin" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><AdminDashboard /></Layout> : <Navigate to="/login" />} 
+        <Route
+          path="/profile"
+          element={user ? <Layout user={user} onLogout={handleLogout}><Profile user={user} /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/admin"
+          // Signed out on /admin means someone is heading for the panel, so
+          // send them to the staff door rather than the student one.
+          element={user ? (user.role === 'admin' ? <Layout user={user} onLogout={handleLogout}><AdminDashboard /></Layout> : <Navigate to="/" replace />) : <Navigate to="/admin-login" replace />}
         />
         <Route
           path="/search"
@@ -144,11 +233,7 @@ function AppContent() {
         />
         <Route
           path="/help"
-          element={user ? <Layout user={user} onLogout={handleLogout}><HelpCenter /></Layout> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/ar-lab"
-          element={user ? <Layout user={user} onLogout={handleLogout}><ArLab /></Layout> : <Navigate to="/login" />}
+          element={user ? <Layout user={user} onLogout={handleLogout}><HelpCenter user={user} /></Layout> : <Navigate to="/login" />}
         />
         <Route
           path="/ar-showcase"
@@ -159,20 +244,16 @@ function AppContent() {
           element={user ? <QRScanner /> : <Navigate to="/login" />}
         />
         <Route
-          path="/qr-print"
-          element={user ? <Layout user={user} onLogout={handleLogout}><ShelfQRPrint /></Layout> : <Navigate to="/login" />}
+          path="/shelf-scan"
+          element={user ? <ShelfARScan /> : <Navigate to="/login" />}
         />
         <Route
-          path="/ar-sim"
-          element={user ? <Layout user={user} onLogout={handleLogout}><ARSimulation /></Layout> : <Navigate to="/login" />}
+          path="/compass"
+          element={user ? <CompassAR /> : <Navigate to="/login" />}
         />
         <Route
-          path="/ar-camera"
-          element={user ? <Layout user={user} onLogout={handleLogout}><CameraARSim /></Layout> : <Navigate to="/login" />}
-        />
-        <Route
-          path="/lens-ar"
-          element={user ? <LibraryLens /> : <Navigate to="/login" />}
+          path="/webxr"
+          element={user ? <WebXRAR /> : <Navigate to="/login" />}
         />
         <Route
           path="/knowledge-stars"
@@ -183,15 +264,40 @@ function AppContent() {
           element={user ? <HiddenBridges /> : <Navigate to="/login" />}
         />
         <Route
-          path="/gap-scanner"
-          element={user ? <GapScanner /> : <Navigate to="/login" />}
+          path="/smart-lens"
+          element={user ? <SmartLens /> : <Navigate to="/login" />}
         />
         <Route
-          path="/book-codes"
-          element={user ? <Layout user={user} onLogout={handleLogout}><BookQRPrint /></Layout> : <Navigate to="/login" />}
+          path="/research-dna"
+          element={user ? <Layout user={user} onLogout={handleLogout}><ResearchDNA /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/book-duel"
+          element={user ? <Layout user={user} onLogout={handleLogout}><BookDuel /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/reading-roadmap"
+          element={user ? <Layout user={user} onLogout={handleLogout}><ReadingRoadmap /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/library-quest"
+          element={user ? <Layout user={user} onLogout={handleLogout}><LibraryQuest /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/oman-corner"
+          element={user ? <Layout user={user} onLogout={handleLogout}><OmanCornerAR /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/cognitive-ar"
+          element={user ? <Layout user={user} onLogout={handleLogout}><CognitiveARGame /></Layout> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/tour"
+          element={user ? <VirtualTour /> : <Navigate to="/login" />}
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      </AchievementsProvider>
     </div>
   );
 }

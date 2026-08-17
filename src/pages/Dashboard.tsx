@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Search, BookOpen, Clock, ChevronRight, Sparkles, Compass, MapPin, Layers, MessageCircle } from 'lucide-react';
+import { Search, BookOpen, ChevronRight, Compass, MapPin, Layers, MessageCircle, Share2 } from 'lucide-react';
 import { User, Book } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
-import { motion } from 'motion/react';
-import { cn } from '../lib/utils';
+import { motion, AnimatePresence } from 'motion/react';
+import { cn, displayName, bookTitle, bookAuthor } from '../lib/utils';
+import { useXP } from '../hooks/useXP';
 import { useLanguage } from '../hooks/useLanguage';
 import { BadgesCabinet } from '../components/BadgesCabinet';
 import { BookCover } from '../components/BookCover';
 import { RafeeqAvatar } from '../components/RafeeqAvatar';
+import { ShareSheet } from '../components/ShareSheet';
+import { appSharePayload } from '../lib/share';
 
 interface DashboardProps {
   user: User;
@@ -17,11 +20,12 @@ interface DashboardProps {
 export function Dashboard({ user }: DashboardProps) {
   const navigate = useNavigate();
   const { t, dir, language } = useLanguage();
+  const [showShare, setShowShare] = useState(false);
+  const xp = useXP();
 
   const mostRead = MOCK_BOOKS.slice(0, 4);
   const categories: string[] = Array.from(new Set(MOCK_BOOKS.map(b => b.category)));
   const [selectedCategory, setSelectedCategory] = React.useState(categories[0]);
-  const [searchQuery, setSearchQuery] = React.useState('');
 
   const categoryTranslationMap: Record<string, string> = {
     'فيزياء': t('physics'),
@@ -31,20 +35,9 @@ export function Dashboard({ user }: DashboardProps) {
   };
 
   const filteredBooks = React.useMemo(() => {
-    let books = MOCK_BOOKS;
-    if (selectedCategory) {
-      books = books.filter(b => b.category === selectedCategory);
-    }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      books = books.filter(b => 
-        b.title.toLowerCase().includes(q) || 
-        b.author.toLowerCase().includes(q) || 
-        b.description.toLowerCase().includes(q)
-      );
-    }
-    return books;
-  }, [selectedCategory, searchQuery]);
+    if (!selectedCategory) return MOCK_BOOKS;
+    return MOCK_BOOKS.filter(b => b.category === selectedCategory);
+  }, [selectedCategory]);
 
   // Smart Recommendations Logic
   const recommendationCategories = Array.from(new Set(
@@ -64,24 +57,51 @@ export function Dashboard({ user }: DashboardProps) {
     <div className="space-y-16 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-6xl mx-auto pb-20">
       {/* Hero banner */}
       <div className="space-y-10">
-        <div className="relative overflow-hidden rounded-[2rem] bg-primary p-8 md:p-10 flex flex-col md:flex-row gap-8 items-end">
+        {/*
+          items-stretch below md is load-bearing: in a column flex container
+          `items-end` sizes each child to its max-content width instead of the
+          container's, so on a phone the text block (336px of headline) spilled
+          past the 247px content box and `overflow-hidden` sliced the date and
+          the "AR" off "ARLibrary". Only align to the end once the row layout
+          kicks in at md.
+        */}
+        <div className="relative overflow-hidden rounded-[2rem] bg-primary p-6 sm:p-8 md:p-10 flex flex-col md:flex-row gap-8 items-stretch md:items-end">
           {/* Background decoration */}
           <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
           <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
 
           {/* Left: text + stats */}
           <div className="relative flex-1 flex flex-col gap-6">
-            {/* Date row */}
-            <div>
+            {/* Date row, and the share icon.
+                Sharing the app belongs on the page a student lands on, next to
+                the brand — that is where they are when they think to tell
+                someone about it, not buried on the profile. */}
+            <div className="flex items-center justify-between gap-3">
               <span className="text-[11px] font-black text-white/50 uppercase tracking-widest">
-                {new Date().toLocaleDateString(language === 'ar' ? 'ar-SA' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
+                {/* ar-EG, not ar-SA: ar-SA resolves to the Umm al-Qura calendar
+                    in browsers, so today read "الثلاثاء، ٢١ صفر" instead of ٤ أغسطس. */}
+                {new Date().toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', day: 'numeric', month: 'long' })}
               </span>
+              <button
+                onClick={() => setShowShare(true)}
+                title={t('shareApp')}
+                aria-label={t('shareApp')}
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-2xl bg-white/10 border border-white/10 text-white/70 hover:text-accent hover:bg-white/15 active:scale-90 transition-all"
+              >
+                <Share2 className="w-4 h-4" />
+              </button>
             </div>
 
             {/* Brand + tagline */}
             <div className="space-y-2">
+              {/* The assistant's name is part of the brand now, but it is set
+                  quieter than the wordmark so the hero still reads as one
+                  thing rather than two competing titles. */}
               <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none">
                 AR<span className="text-accent">Library</span>
+                <span className="block mt-1 text-xl md:text-2xl font-black text-white/70 tracking-normal">
+                  {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+                </span>
               </h1>
               <p className="text-white/50 font-bold text-sm leading-relaxed max-w-sm">
                 {language === 'ar'
@@ -90,30 +110,21 @@ export function Dashboard({ user }: DashboardProps) {
               </p>
             </div>
 
-            {/* Stats row */}
-            <div className="flex gap-4">
-              <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
-                  <Clock className="w-5 h-5 text-white/70" />
-                </div>
-                <div>
-                  <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">{t('totalLearningTime')}</div>
-                  <div className="text-xl font-black text-white leading-none mt-0.5">
-                    {language === 'ar' ? '١٤٢' : '142'} <span className="text-[10px] font-bold text-white/40">{t('hoursShort')}</span>
-                  </div>
-                </div>
+            {/* Stats row — Knowledge Points is the only stat here now. The
+                estimated-hours card was removed: two of its three inputs
+                (totalReadCount, borrowedBooks) are constants baked into the
+                seed data that /api/me returns unchanged, so it read 0 for
+                every account no matter what the reader did. */}
+            <div className="w-full sm:w-fit bg-white/8 border border-white/10 rounded-2xl px-4 sm:px-5 py-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
+                <span className="text-xl">💡</span>
               </div>
-              <div className="flex-1 bg-white/8 border border-white/10 rounded-2xl px-5 py-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center shrink-0">
-                  <span className="text-xl">💡</span>
+              <div className="min-w-0">
+                <div className="text-[10px] font-black text-white/50 uppercase tracking-widest">
+                  {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
                 </div>
-                <div>
-                  <div className="text-[9px] font-black text-white/50 uppercase tracking-widest">
-                    {language === 'ar' ? 'نقاط المعرفة' : 'Knowledge Points'}
-                  </div>
-                  <div className="text-xl font-black text-accent leading-none mt-0.5">
-                    {user.points || 450} <span className="text-[10px] font-bold text-white/40">KP</span>
-                  </div>
+                <div className="text-xl font-black text-accent leading-none mt-0.5">
+                  {xp} <span className="text-[10px] font-bold text-white/40">XP</span>
                 </div>
               </div>
             </div>
@@ -128,8 +139,8 @@ export function Dashboard({ user }: DashboardProps) {
               className="relative bg-white/15 backdrop-blur-sm border border-white/25 rounded-2xl rounded-b-sm px-4 py-3 text-white text-[12px] font-bold text-center leading-snug max-w-[160px]"
             >
               {language === 'ar'
-                ? `مرحباً ${user.name.split(' ')[0]}! 👋\nكيف أساعدك اليوم؟`
-                : `Hi ${user.name.split(' ')[0]}! 👋\nHow can I help you?`}
+                ? `مرحباً ${displayName(user, language).split(' ')[0]}! 👋\nأنا رفيق. كيف أساعدك اليوم؟`
+                : `Hi ${displayName(user, language).split(' ')[0]}! 👋\nI am Rafeeq. How can I help you?`}
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-2 overflow-hidden">
                 <div className="w-3 h-3 bg-white/15 border-r border-b border-white/25 rotate-45 -translate-y-1.5 mx-auto" />
               </div>
@@ -150,7 +161,7 @@ export function Dashboard({ user }: DashboardProps) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 }}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent text-primary text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 shadow-lg"
+              className="flex items-center gap-2 px-5 py-3.5 rounded-xl bg-accent text-primary text-[10px] font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 shadow-lg"
             >
               <MessageCircle className="w-3.5 h-3.5" />
               {language === 'ar' ? 'تحدث مع رفيق' : 'Chat with Rafeeq'}
@@ -220,18 +231,19 @@ export function Dashboard({ user }: DashboardProps) {
             </span>
           </button>
         </div>
+
       </div>
 
       {/* ── Cognitive Badges ── */}
-      <section className="official-card p-8 md:p-10 bg-white dark:bg-slate-900 space-y-8">
-        <div className="text-center space-y-2 max-w-xl mx-auto">
-          <span className="inline-block px-4 py-1.5 bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent rounded-full text-[9px] font-black uppercase tracking-widest">
-            {t('earnedBadgesEyebrow')}
-          </span>
-          <h4 className="text-xl font-black text-primary dark:text-white tracking-tight">
+      <section className="official-card p-5 sm:p-8 md:p-10 bg-white dark:bg-slate-900 space-y-8">
+        <div className="text-center space-y-3 max-w-xl mx-auto">
+          <h4 className="text-2xl font-black text-primary dark:text-white">
             {language === 'ar' ? 'الأوسمة المعرفية' : 'Cognitive Badges'}
           </h4>
-          <p className="text-slate-400 dark:text-slate-500 font-bold text-xs leading-relaxed">{t('informationCognitiveBadgesChestDesc')}</p>
+          <div className="w-12 h-[3px] bg-accent rounded-full mx-auto" />
+          <p className="text-slate-400 dark:text-slate-500 text-sm font-medium leading-relaxed">
+            {t('informationCognitiveBadgesChestDesc')}
+          </p>
         </div>
         <BadgesCabinet user={user} />
       </section>
@@ -246,11 +258,16 @@ export function Dashboard({ user }: DashboardProps) {
       </div>
 
       {recommendations.length > 0 && (
-        <section className="official-card p-8 bg-white dark:bg-slate-900 space-y-6">
-          <h4 className="text-sm font-black text-primary dark:text-white tracking-tight flex items-center justify-center gap-2">
-            <Sparkles className="w-4 h-4 text-accent" />
-            {t('recommendedFeaturedSources')}
-          </h4>
+        <section className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
+          <div className="text-center space-y-3">
+            <h4 className="text-2xl font-black text-primary dark:text-white">
+              {language === 'ar' ? 'الكتب المقترحة' : 'Recommended Books'}
+            </h4>
+            <div className="w-12 h-[3px] bg-accent rounded-full mx-auto" />
+            <p className="text-slate-400 dark:text-slate-500 text-sm font-medium">
+              {language === 'ar' ? 'اختر الكتاب لبدء البحث الذكي' : 'Choose a book to start smart search'}
+            </p>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left rtl:text-right">
             {recommendations.map((book, idx) => (
@@ -260,15 +277,15 @@ export function Dashboard({ user }: DashboardProps) {
                 className="official-card p-5 space-y-4 cursor-pointer bg-white dark:bg-slate-900 hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all"
               >
                 <div className={cn("flex items-center justify-between", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                  <span className="text-[9px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-1 rounded-lg uppercase tracking-widest">
+                  <span className="text-[10px] font-black text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 px-2 py-1 rounded-lg uppercase tracking-widest">
                     {MATCH_SCORES[idx] ?? 90}% {t('matchLabel')}
                   </span>
                 </div>
                 <div className={cn("flex gap-4", dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}>
                   <BookCover book={book} className="w-16 h-20 rounded-xl shrink-0" />
                   <div className="min-w-0 space-y-1">
-                    <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2">{book.title}</h5>
-                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{book.author}</p>
+                    <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2">{bookTitle(book, language)}</h5>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{bookAuthor(book, language)}</p>
                   </div>
                 </div>
                 <div className={cn("flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
@@ -330,7 +347,10 @@ export function Dashboard({ user }: DashboardProps) {
            ))}
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 pt-4">
+        {/* Two across on a phone. At one column each cover ran 432px tall
+            and the seven cards made this section 4,301px — five screenfuls
+            of scrolling to see one shelf's worth of books. */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8 pt-4">
           {filteredBooks.map((book) => (
             <motion.div
               layout
@@ -349,10 +369,10 @@ export function Dashboard({ user }: DashboardProps) {
                     <BookOpen className="w-4 h-4 text-white" />
                   </div>
                 </div>
-                <div className="p-6 space-y-2">
-                  <div className="text-[10px] font-black text-secondary dark:text-accent uppercase tracking-widest">{categoryTranslationMap[book.category] || book.category}</div>
-                  <h4 className="font-black text-primary dark:text-white group-hover:text-accent transition-colors text-sm leading-tight line-clamp-1">{book.title}</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase">{book.author}</p>
+                <div className="p-3 sm:p-6 space-y-1 sm:space-y-2">
+                  <div className="text-[9px] sm:text-[10px] font-black text-secondary dark:text-accent uppercase tracking-widest truncate">{categoryTranslationMap[book.category] || book.category}</div>
+                  <h4 className="font-black text-primary dark:text-white group-hover:text-accent transition-colors text-[12px] sm:text-sm leading-tight line-clamp-2 sm:line-clamp-1">{bookTitle(book, language)}</h4>
+                  <p className="text-[9px] sm:text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase truncate">{bookAuthor(book, language)}</p>
                 </div>
               </Link>
             </motion.div>
@@ -367,7 +387,12 @@ export function Dashboard({ user }: DashboardProps) {
                 <h3 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('bestInCatalog')}</h3>
                 <div className="w-12 h-1.5 bg-accent rounded-full"></div>
              </div>
-             <button className="text-secondary dark:text-accent/80 text-xs font-black uppercase tracking-widest hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-2">
+             {/* This used to be an inert button — it looked like a link and did
+                 nothing when tapped. It now goes where a reader expects. */}
+             <button
+                onClick={() => navigate('/search')}
+                className="text-secondary dark:text-accent/80 text-xs font-black uppercase tracking-widest hover:text-primary dark:hover:text-accent transition-colors flex items-center gap-2 px-2 py-3.5 shrink-0"
+             >
                 {t('viewMore')} <ChevronRight className="w-4 h-4 rtl-flip" />
              </button>
           </div>
@@ -383,14 +408,21 @@ export function Dashboard({ user }: DashboardProps) {
                   <BookCover book={book} className="w-full h-full" imgClassName="group-hover:scale-110 transition-transform" />
                 </div>
                 <div className="p-4 flex flex-col justify-center gap-1">
-                  <div className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t('shelfItem')} {book.shelf}</div>
-                  <h4 className="font-black text-primary dark:text-white text-xs leading-tight line-clamp-2 uppercase">{book.title}</h4>
-                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">{book.author}</p>
+                  <div className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest">{t('shelfItem')} {book.shelf}</div>
+                  <h4 className="font-black text-primary dark:text-white text-xs leading-tight line-clamp-2 uppercase">{bookTitle(book, language)}</h4>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">{bookAuthor(book, language)}</p>
                 </div>
               </Link>
             ))}
           </div>
       </div>
+
+      <ShareSheet
+        open={showShare}
+        onClose={() => setShowShare(false)}
+        title={t('shareApp')}
+        payload={appSharePayload(language)}
+      />
     </div>
   );
 }

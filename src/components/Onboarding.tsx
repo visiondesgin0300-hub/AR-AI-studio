@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, QrCode, Map, ChevronRight, ChevronLeft, X } from 'lucide-react';
+import { Search, QrCode, Map, ChevronRight, ChevronLeft, X, FlaskConical } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../hooks/useLanguage';
 
@@ -32,6 +32,15 @@ const slides = [
     titleEn: 'Library Map',
     descAr: 'تصفح الطابق التفاعلي وتتبع الكتب المستعارة وانتقل مباشرة إلى أي قسم.',
     descEn: 'Browse the interactive floor plan, track borrowed books, and navigate to any section.',
+  },
+  {
+    icon: FlaskConical,
+    color: 'bg-[#0d2b1e]',
+    titleAr: 'ماسح الفجوات البحثية',
+    titleEn: 'Research Gap Scanner',
+    descAr: 'وجّه الكاميرا نحو رف المكتبة — يرصد الذكاء الاصطناعي الفجوات البحثية وتظهر فوق الأرفف الحقيقية بتقنية الواقع المعزز.',
+    descEn: 'Point at a library shelf — AI reveals research gaps anchored directly onto the real physical shelf using augmented reality.',
+    accent: true,
   },
 ];
 
@@ -76,8 +85,9 @@ export function Onboarding({ onDone }: OnboardingProps) {
             transition={{ duration: 0.28, ease: 'easeOut' }}
             className="px-8 pt-12 pb-8 flex flex-col items-center gap-6 text-center"
           >
-            <div className={cn('w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-xl', slide.color)}>
-              <Icon className={cn('w-12 h-12', slide.color === 'bg-accent' ? 'text-primary' : 'text-white')} />
+            <div className={cn('w-24 h-24 rounded-[2rem] flex items-center justify-center shadow-xl relative overflow-hidden', slide.color)}>
+              {(slide as any).accent && <div className="absolute inset-0 bg-[#34D399]/10 animate-pulse" />}
+              <Icon className={cn('w-12 h-12 relative z-10', slide.color === 'bg-accent' ? 'text-primary' : (slide as any).accent ? 'text-[#34D399]' : 'text-white')} />
             </div>
 
             <div className="space-y-2">

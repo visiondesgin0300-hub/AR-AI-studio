@@ -10,7 +10,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'ستيفن هوكينج',
     authorEn: 'Stephen Hawking',
     category: 'فيزياء',
-    shelf: 'A-1',
+    shelf: 'A-2',
     section: 'A',
     year: 1988,
     publisher: 'Bantam Books',
@@ -120,7 +120,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'فرانك فيلتشيك',
     authorEn: 'Frank Wilczek',
     category: 'فيزياء',
-    shelf: 'A-2',
+    shelf: 'A-1',
     section: 'A',
     year: 2021,
     publisher: 'Penguin Press',
@@ -158,7 +158,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'راسل هيبيلر',
     authorEn: 'R. C. Hibbeler',
     category: 'هندسة',
-    shelf: 'B-1',
+    shelf: 'B-4',
     section: 'B',
     year: 2022,
     publisher: 'Pearson',
@@ -176,7 +176,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'مونسون وأوكيجي وهيوبش',
     authorEn: 'Munson, Okiishi & Huebsch',
     category: 'هندسة',
-    shelf: 'B-1',
+    shelf: 'B-4',
     section: 'B',
     year: 2020,
     publisher: 'Wiley',
@@ -194,7 +194,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'ستيفن تشابمان',
     authorEn: 'Stephen J. Chapman',
     category: 'هندسة',
-    shelf: 'B-1',
+    shelf: 'B-4',
     section: 'B',
     year: 2011,
     publisher: 'McGraw-Hill',
@@ -285,9 +285,9 @@ export const MOCK_BOOKS: Book[] = [
     titleEn: "Chip War: The Fight for the World's Most Critical Technology",
     author: 'كريس ميلر',
     authorEn: 'Chris Miller',
-    category: 'هندسة',
-    shelf: 'B-2',
-    section: 'B',
+    category: 'عام',
+    shelf: 'E-2',
+    section: 'E',
     year: 2022,
     publisher: 'Scribner',
     callNumber: 'HD9696.S43 M55 2022',
@@ -304,7 +304,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'مصطفى سليمان',
     authorEn: 'Mustafa Suleyman',
     category: 'هندسة',
-    shelf: 'B-2',
+    shelf: 'B-1',
     section: 'B',
     year: 2023,
     publisher: 'Crown',
@@ -618,7 +618,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'باولو كويلو',
     authorEn: 'Paulo Coelho',
     category: 'عام',
-    shelf: 'D-1',
+    shelf: 'D-2',
     section: 'D',
     year: 1988,
     publisher: 'HarperOne',
@@ -630,7 +630,7 @@ export const MOCK_BOOKS: Book[] = [
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9780062315007-L.jpg',
   },
   {
-    id: '30',
+    id: '38',
     title: 'نيكسوس: تاريخ موجز لشبكات المعلومات',
     titleEn: 'Nexus: A Brief History of Information Networks from the Stone Age to AI',
     author: 'يوفال نوح هراري',
@@ -674,8 +674,8 @@ export const MOCK_BOOKS: Book[] = [
     author: 'روبرت كيوساكي',
     authorEn: 'Robert T. Kiyosaki',
     category: 'عام',
-    shelf: 'D-2',
-    section: 'D',
+    shelf: 'E-2',
+    section: 'E',
     year: 1997,
     publisher: 'Plata Publishing',
     callNumber: 'HG179 .K55 2017',
@@ -704,13 +704,13 @@ export const MOCK_BOOKS: Book[] = [
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9781590302255-L.jpg',
   },
   {
-    id: '31',
+    id: '39',
     title: 'كيف يعمل العالم حقًا',
     titleEn: 'How the World Really Works',
     author: 'فاتسلاف سميل',
     authorEn: 'Vaclav Smil',
     category: 'عام',
-    shelf: 'D-2',
+    shelf: 'D-1',
     section: 'D',
     year: 2022,
     publisher: 'Viking',
@@ -819,7 +819,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'كوين وماكيتشن وفولان وغاردنر ودرامي',
     authorEn: 'Quinn, McEachen, Fullan, Gardner & Drummy',
     category: 'هندسة',
-    shelf: 'B-4',
+    shelf: 'B-1',
     section: 'B',
     year: 2019,
     publisher: 'Corwin Press',
@@ -830,7 +830,7 @@ export const MOCK_BOOKS: Book[] = [
     genre: 'Deep Learning',
     genreArabic: 'التعلم العميق',
     status: 'available',
-    location: { floor: 2, aisle: 'B', shelf: 4, section: 'Artificial Intelligence & Robotics' },
+    location: { floor: 2, aisle: 'B', shelf: 1, section: 'Artificial Intelligence & Robotics' },
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9781544361796-L.jpg',
   },
   {
@@ -841,7 +841,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'ستيوارت راسل وبيتر نورفيغ',
     authorEn: 'Stuart Russell & Peter Norvig',
     category: 'هندسة',
-    shelf: 'B-4',
+    shelf: 'B-1',
     section: 'B',
     year: 2017,
     publisher: 'Pearson Education (Global Edition)',
@@ -852,7 +852,7 @@ export const MOCK_BOOKS: Book[] = [
     genre: 'Artificial Intelligence',
     genreArabic: 'ذكاء اصطناعي',
     status: 'available',
-    location: { floor: 2, aisle: 'B', shelf: 4, section: 'Artificial Intelligence & Robotics' },
+    location: { floor: 2, aisle: 'B', shelf: 1, section: 'Artificial Intelligence & Robotics' },
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9781292153964-L.jpg',
   },
 
@@ -909,7 +909,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'كيس وفير وأوستر',
     authorEn: 'Karl E. Case, Ray C. Fair & Sharon E. Oster',
     category: 'عام',
-    shelf: 'E-2',
+    shelf: 'E-1',
     section: 'E',
     year: 2014,
     publisher: 'Pearson Education Limited',
@@ -920,7 +920,7 @@ export const MOCK_BOOKS: Book[] = [
     genre: 'Economics',
     genreArabic: 'الاقتصاد',
     status: 'available',
-    location: { floor: 2, aisle: 'E', shelf: 2, section: 'Economics & Finance' },
+    location: { floor: 2, aisle: 'E', shelf: 1, section: 'Economics & Finance' },
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9781292020402-L.jpg',
   },
   {
@@ -931,7 +931,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'كيس وفير وأوستر',
     authorEn: 'Karl E. Case, Ray C. Fair & Sharon E. Oster',
     category: 'عام',
-    shelf: 'E-2',
+    shelf: 'E-1',
     section: 'E',
     year: 2014,
     publisher: 'Pearson Education Limited',
@@ -942,7 +942,7 @@ export const MOCK_BOOKS: Book[] = [
     genre: 'Economics',
     genreArabic: 'الاقتصاد',
     status: 'available',
-    location: { floor: 2, aisle: 'E', shelf: 2, section: 'Economics & Finance' },
+    location: { floor: 2, aisle: 'E', shelf: 1, section: 'Economics & Finance' },
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9781292020402-L.jpg',
   },
   {
@@ -953,7 +953,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'كيس وفير وأوستر',
     authorEn: 'Karl E. Case, Ray C. Fair & Sharon E. Oster',
     category: 'عام',
-    shelf: 'E-2',
+    shelf: 'E-1',
     section: 'E',
     year: 2014,
     publisher: 'Pearson Education Limited',
@@ -964,7 +964,7 @@ export const MOCK_BOOKS: Book[] = [
     genre: 'Economics',
     genreArabic: 'الاقتصاد',
     status: 'available',
-    location: { floor: 2, aisle: 'E', shelf: 2, section: 'Economics & Finance' },
+    location: { floor: 2, aisle: 'E', shelf: 1, section: 'Economics & Finance' },
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9781292020402-L.jpg',
   },
   {
@@ -975,7 +975,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'كيس وفير وأوستر',
     authorEn: 'Karl E. Case, Ray C. Fair & Sharon E. Oster',
     category: 'عام',
-    shelf: 'E-2',
+    shelf: 'E-1',
     section: 'E',
     year: 2014,
     publisher: 'Pearson Education Limited',
@@ -986,7 +986,7 @@ export const MOCK_BOOKS: Book[] = [
     genre: 'Economics',
     genreArabic: 'الاقتصاد',
     status: 'available',
-    location: { floor: 2, aisle: 'E', shelf: 2, section: 'Economics & Finance' },
+    location: { floor: 2, aisle: 'E', shelf: 1, section: 'Economics & Finance' },
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9781292020402-L.jpg',
   },
   {
@@ -997,7 +997,7 @@ export const MOCK_BOOKS: Book[] = [
     author: 'كيس وفير وأوستر',
     authorEn: 'Karl E. Case, Ray C. Fair & Sharon E. Oster',
     category: 'عام',
-    shelf: 'E-2',
+    shelf: 'E-1',
     section: 'E',
     year: 2014,
     publisher: 'Pearson Education Limited',
@@ -1008,7 +1008,7 @@ export const MOCK_BOOKS: Book[] = [
     genre: 'Economics',
     genreArabic: 'الاقتصاد',
     status: 'available',
-    location: { floor: 2, aisle: 'E', shelf: 2, section: 'Economics & Finance' },
+    location: { floor: 2, aisle: 'E', shelf: 1, section: 'Economics & Finance' },
     coverUrl: 'https://covers.openlibrary.org/b/isbn/9781292020402-L.jpg',
   },
 
@@ -1038,6 +1038,19 @@ export const MOCK_BOOKS: Book[] = [
   },
 ];
 
+/**
+ * Canonical list of every shelf in the library, matching the map layout and
+ * the `shelf` field on MOCK_BOOKS. Single source of truth: two pages had each
+ * grown their own copy that stopped at D-2, quietly dropping B-3/B-4/E-1/E-2.
+ */
+export const SHELF_IDS = [
+  'A-1', 'A-2',
+  'B-1', 'B-2', 'B-3', 'B-4',
+  'C-1', 'C-2',
+  'D-1', 'D-2',
+  'E-1', 'E-2',
+] as const;
+
 export const MOCK_USER: User = {
   id: 'u1',
   name: 'فاطمة المعمري',
@@ -1049,8 +1062,34 @@ export const MOCK_USER: User = {
   badges: ['باحث', 'متميز']
 };
 
+/**
+ * Fixed roster of twenty numbered test accounts, so the app can be handed to
+ * testers with real credentials instead of accepting any address typed into
+ * the form. They carry no personal names — just an account number — and hold
+ * no privileges beyond a student's own data.
+ *
+ * All twenty share the server's DEMO_PASSWORD. The single admin account is
+ * MOCK_USER below; its password comes from ADMIN_PASSWORD in the environment
+ * and is deliberately not in this file or anywhere else in the bundle.
+ */
+export const TEST_ACCOUNTS: User[] = Array.from({ length: 20 }, (_, i) => {
+  const n = String(i + 1).padStart(2, '0');
+  return {
+    id: `t${n}`,
+    name: `حساب تجريبي ${n}`,
+    nameEn: `Test user ${n}`,
+    email: `user${n}@arlibrary.test`,
+    role: 'student' as const,
+    borrowedBooks: [],
+    totalReadCount: 0,
+    points: 0,
+    badges: [],
+  };
+});
+
 export const MOCK_USERS: User[] = [
   MOCK_USER,
+  ...TEST_ACCOUNTS,
   {
     id: 'u2',
     name: 'سارة أحمد',
@@ -1058,8 +1097,8 @@ export const MOCK_USERS: User[] = [
     role: 'student',
     borrowedBooks: ['7'],
     totalReadCount: 5,
-    points: 200,
-    badges: ['باحث']
+    points: 85,
+    badges: []
   },
   {
     id: 'u3',

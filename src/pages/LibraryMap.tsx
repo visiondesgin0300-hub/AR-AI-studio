@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, Box, User as UserIcon, Search, Layers } from 'lucide-react';
+import { MapPin, Navigation, Map as MapIcon, Compass, Camera, X, User as UserIcon, Search, Layers, Maximize2, Clock, Home, Languages } from 'lucide-react';
 import { MOCK_BOOKS } from '../data/mockData';
-import { cn } from '../lib/utils';
+import { cn, trackMapVisit, trackMapMode, bookCategory, bookTitle } from '../lib/utils';
+import { useAchievements } from '../hooks/useAchievements';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { ShelfIdentityPanel } from '../components/ShelfIdentityPanel';
@@ -26,30 +27,59 @@ const AR_BOOK_XS = SHELF_SPINE_WIDTHS.reduce<number[]>((acc, w, i) => {
 }, []);
 const AR_SHELF_PANEL_W = AR_BOOK_XS[AR_BOOK_XS.length - 1] + SHELF_SPINE_WIDTHS[SHELF_SPINE_WIDTHS.length - 1] + 8;
 
+/** Split a shelf subject label at a word boundary for SVG 2-line display. */
+function wrapShelfLabel(text: string, maxChars = 13): [string, string] {
+  if (!text || text.length <= maxChars) return [text || '', ''];
+  const words = text.split(' ');
+  let line1 = '';
+  for (let i = 0; i < words.length; i++) {
+    const candidate = line1 ? `${line1} ${words[i]}` : words[i];
+    if (candidate.length <= maxChars) {
+      line1 = candidate;
+    } else {
+      const line2 = words.slice(i).join(' ');
+      return [line1 || words[i], line2.slice(0, 18)];
+    }
+  }
+  return [line1, ''];
+}
+
 export function LibraryMap() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { t, language, dir } = useLanguage();
+  const { t, language, dir, toggleLanguage } = useLanguage();
+  const { completed } = useAchievements();
+  // When the current walk began, for the elapsed time in the arrival pop-up.
+  const navStartedAt = useRef<number | null>(null);
+
+  // Award XP for opening the map
+  useEffect(() => { trackMapVisit('map'); }, []);
+
   const [selectedBook, setSelectedBook] = useState<string | null>(null);
   const [showPath, setShowPath] = useState(false);
   const [manualTarget, setManualTarget] = useState<ManualTarget | null>(null);
 
   const [activeTab, setActiveTab] = useState<'map' | 'sections'>('map');
-  const [hoveredCell, setHoveredCell] = useState<string | null>(null);
   const [rafeeqDismissed, setRafeeqDismissed] = useState(false);
   const [map3D, setMap3D] = useState(false);
-  const [mapMode, setMapMode] = useState<'flat' | 'unity'>('flat');
+  const [mapMode, setMapMode] = useState<'unity' | 'ar-floor'>('ar-floor');
+  const [showARFloor, setShowARFloor] = useState(false);
+
+  // Which view the student actually used to find resources — the Researcher
+  // badge reads this, and only this page knows which map is on.
+  useEffect(() => { trackMapMode(mapMode); }, [mapMode]);
 
   const [sidebarSearch, setSidebarSearch] = useState('');
 
   const sidebarSearchResults = useMemo(() => {
     const q = sidebarSearch.trim().toLowerCase();
-    if (!q) return MOCK_BOOKS.slice(0, 6);
+    if (!q) return MOCK_BOOKS;
     return MOCK_BOOKS.filter(b =>
       b.title.toLowerCase().includes(q) ||
       b.author.toLowerCase().includes(q) ||
-      (b.category ?? '').toLowerCase().includes(q)
-    ).slice(0, 8);
+      (b.category ?? '').toLowerCase().includes(q) ||
+      (b.shelf ?? '').toLowerCase().includes(q)
+    );
   }, [sidebarSearch]);
 
   // Simulated real-time occupancy data
@@ -59,32 +89,66 @@ export function LibraryMap() {
       'A-2': Math.floor(Math.random() * 100),
       'B-1': Math.floor(Math.random() * 100),
       'B-2': Math.floor(Math.random() * 100),
+      'B-3': Math.floor(Math.random() * 100),
+      'B-4': Math.floor(Math.random() * 100),
       'C-1': Math.floor(Math.random() * 100),
       'C-2': Math.floor(Math.random() * 100),
       'D-1': Math.floor(Math.random() * 100),
       'D-2': Math.floor(Math.random() * 100),
+      'E-1': Math.floor(Math.random() * 100),
+      'E-2': Math.floor(Math.random() * 100),
     };
   }, []);
 
   const sections = [
-    { id: 'A', name: t('naturalSciences'), icon: '🧪', subjects: [t('physics'), t('chemistry'), t('biology')], color: 'bg-blue-500', occupancy: t('quiet') },
+    { id: 'A', name: t('naturalSciences'), icon: '🔭', subjects: [t('physics'), t('chemistry'), t('biology')], color: 'bg-blue-500', occupancy: t('quiet') },
     { id: 'B', name: t('engineeringAndTech'), icon: '⚙️', subjects: [t('mechEngineering'), t('ai'), t('software')], color: 'bg-orange-500', occupancy: t('activeOccupancy') },
-    { id: 'C', name: t('artsAndCrafts'), icon: '🎨', subjects: [t('arabicLit'), t('graphicDesign'), t('philosophy')], color: 'bg-purple-500', occupancy: t('mediumOccupancy') },
-    { id: 'D', name: t('humanities'), icon: '📚', subjects: [t('history'), t('sociology'), t('geography')], color: 'bg-green-500', occupancy: t('quiet') },
-    { id: 'E', name: t('mechanicalAutomotiveEngineering'), icon: '🚗', subjects: [t('mechEngineering')], color: 'bg-red-500', occupancy: t('quiet') }
+    { id: 'C', name: t('psychologyAndBehavior'), icon: '🧠', subjects: [t('psychology'), t('philosophy'), t('sociology')], color: 'bg-purple-500', occupancy: t('mediumOccupancy') },
+    { id: 'D', name: t('humanities'), icon: '📚', subjects: [t('history'), t('general'), t('philosophy')], color: 'bg-green-500', occupancy: t('quiet') },
+    { id: 'E', name: t('economicsAndMarketing'), icon: '📊', subjects: [t('economics'), t('marketing')], color: 'bg-yellow-500', occupancy: t('quiet') },
   ];
 
+  // Per-shelf content labels derived from actual book data in the system
+  const CELL_LABELS: Record<string, { ar: string; en: string }> = {
+    'A-1': { ar: 'فيزياء كمية وكونية',        en: 'Quantum & Cosmic Physics' },
+    'A-2': { ar: 'فيزياء فلكية وجزيئية',       en: 'Astrophysics & Molecular' },
+    'B-1': { ar: 'ذكاء اصطناعي وهندسة',        en: 'AI & Engineering' },
+    'B-2': { ar: 'برمجيات وشبكات وتقنية',       en: 'Software, Networks & Tech' },
+    'B-3': { ar: 'هندسة مدنية وإنشائية',        en: 'Civil & Structural Eng.' },
+    'B-4': { ar: 'هندسة ميكانيكية ورياضيات',    en: 'Mechanical Eng. & Math' },
+    'C-1': { ar: 'علم نفس معرفي وسلوكي',        en: 'Cognitive & Behavioral Psych.' },
+    'C-2': { ar: 'علم نفس وتطوير ذاتي',         en: 'Psychology & Self-Dev.' },
+    'D-1': { ar: 'تاريخ وحضارة',                en: 'History & Civilization' },
+    'D-2': { ar: 'روايات وفكر وفلسفة',          en: 'Novels, Thought & Philosophy' },
+    'E-1': { ar: 'اقتصاد كلي',                  en: 'Macroeconomics' },
+    'E-2': { ar: 'تسويق دولي واقتصاد',          en: 'Global Marketing & Econ.' },
+  };
+
+  // LC class assigned to each shelf — matches the AR Floor signs
+  const SHELF_LC_CLASS: Record<string, string> = {
+    'A-1': 'QC',  'A-2': 'QB',
+    'B-1': 'Q',   'B-2': 'TK',
+    'B-3': 'TA',  'B-4': 'QA',
+    'C-1': 'BF',  'C-2': 'BF',
+    'D-1': 'D',   'D-2': 'P',
+    'E-1': 'HB',  'E-2': 'HF',
+  };
+
   const cells = [
-    { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' }, { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' },
-    { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' }, { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' }
+    { id: 'A-1', section: 'A' }, { id: 'A-2', section: 'A' },
+    { id: 'B-1', section: 'B' }, { id: 'B-2', section: 'B' }, { id: 'B-3', section: 'B' }, { id: 'B-4', section: 'B' },
+    { id: 'C-1', section: 'C' }, { id: 'C-2', section: 'C' },
+    { id: 'D-1', section: 'D' }, { id: 'D-2', section: 'D' },
+    { id: 'E-1', section: 'E' }, { id: 'E-2', section: 'E' },
   ];
 
   const bookData = MOCK_BOOKS.find(b => b.id === selectedBook);
 
   const navigateToCell = (cellId: string) => {
+    trackMapVisit(cellId); // Award XP for each unique shelf explored
     setSelectedBook(null);
     setManualTarget({ id: cellId });
-    setShowPath(true);
+    setShowPath(false);
     setActiveTab('map');
     if (typeof navigator.vibrate === 'function') {
       try { navigator.vibrate(80); } catch { /* best-effort */ }
@@ -95,11 +159,11 @@ export function LibraryMap() {
     if (location.state?.bookId) {
       setManualTarget(null);
       setSelectedBook(location.state.bookId);
-      setShowPath(true);
+      setShowPath(false);
     } else if (location.state?.shelfId) {
       setSelectedBook(null);
       setManualTarget({ id: location.state.shelfId });
-      setShowPath(true);
+      setShowPath(false);
       if (location.state?.openAR) {
         setActiveTab('sections');
       }
@@ -127,25 +191,15 @@ export function LibraryMap() {
   // aisle order A -> D) get a larger base distance, with a small offset for
   // the second shelf in each aisle, so different destinations don't all show
   // the exact same numbers.
-  const DISTANCE_BY_SECTION: Record<string, number> = { A: 30, B: 45, C: 60, D: 75 };
+  const DISTANCE_BY_SECTION: Record<string, number> = { A: 30, B: 45, C: 60, D: 75, E: 55 };
   const distanceMeters = destinationShelfId
-    ? (DISTANCE_BY_SECTION[destinationShelfId.split('-')[0]] ?? 45) + (destinationShelfId.endsWith('-2') ? 8 : 0)
+    ? (DISTANCE_BY_SECTION[destinationShelfId.split('-')[0]] ?? 45) + (parseInt(destinationShelfId.split('-')[1] ?? '1') - 1) * 8
     : 0;
 
-  // Floor guidance reuses the same ground/1st/2nd/3rd floor labels already
-  // used for facility locations, so a shelf destination also tells the
-  // student which floor to head to, not just which aisle. The numeric level
-  // also feeds the walking-time estimate below - reaching a higher floor
-  // takes longer than a same-floor stroll, not just a longer flat distance.
-  const FLOOR_LABEL_KEY_BY_SECTION: Record<string, string> = {
-    A: 'facilityLocationPrinting',
-    B: 'facilityLocationComputerLab',
-    C: 'facilityLocationGroupStudy',
-    D: 'facilityLocationSilentZone',
-    E: 'facilityLocationPrinting',
-  };
+  // The floor a section sits on. The chip that displayed this to the reader is
+  // gone; the level is kept because the walking-time estimate below still uses
+  // it — reaching a higher floor takes longer than a same-floor stroll.
   const FLOOR_LEVEL_BY_SECTION: Record<string, number> = { A: 0, B: 1, C: 2, D: 3, E: 0 };
-  const destinationFloorLabel = destinationSectionId ? t(FLOOR_LABEL_KEY_BY_SECTION[destinationSectionId] ?? 'facilityLocationPrinting') : '';
   const destinationFloorLevel = destinationSectionId ? (FLOOR_LEVEL_BY_SECTION[destinationSectionId] ?? 0) : 0;
 
   // Walking time: a same-floor walk of ~30-83m realistically takes about a
@@ -157,17 +211,11 @@ export function LibraryMap() {
     : 0;
   const etaMinutes = Math.max(1, Math.round(totalWalkSeconds / 60));
 
-  // Live "walking" simulation: once navigation is active, distance/time and
-  // the current turn-by-turn step count down/advance over the estimated walk
-  // duration instead of sitting on a single static number the whole time.
-  // Gated on activeTab (not just showPath) because showPath is often already
-  // true before the student ever switches to this tab - e.g. selecting a
-  // shelf on the grid sets it while staying on the "map" tab - so timing the
-  // walk from showPath alone meant it could finish in the background before
-  // this screen was even visible, leaving distance/time stuck at 0 on arrival.
+  // Live "walking" demo: as soon as navigation is active (showPath + destination)
+  // the distance/time count down in real time on any tab or view.
   const [walkProgress, setWalkProgress] = useState(0);
   useEffect(() => {
-    if (!showPath || !destinationShelfId || activeTab !== 'sections') {
+    if (!showPath || !destinationShelfId) {
       setWalkProgress(0);
       return;
     }
@@ -182,14 +230,50 @@ export function LibraryMap() {
     };
     rafId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafId);
-  }, [showPath, destinationShelfId, activeTab, totalWalkSeconds]);
+  }, [showPath, destinationShelfId, totalWalkSeconds]);
 
   const liveDistanceMeters = Math.round(distanceMeters * (1 - walkProgress));
+  const liveEtaSeconds = Math.max(0, Math.round(totalWalkSeconds * (1 - walkProgress)));
   const liveEtaMinutes = Math.max(0, Math.round(etaMinutes * (1 - walkProgress)));
   const hasArrived = showPath && walkProgress >= 1;
 
+  /*
+    Arrival is the locate-book task. It fires from an effect on hasArrived
+    rather than from the click that started the walk, because the student has
+    not located anything until the route actually finishes — and the elapsed
+    time in the pop-up is only real if it is measured across the walk.
+  */
+  useEffect(() => {
+    if (showPath) navStartedAt.current = Date.now();
+  }, [showPath]);
+
+  useEffect(() => {
+    if (!hasArrived || !destinationShelfId) return;
+    const seconds = navStartedAt.current
+      ? Math.max(1, Math.round((Date.now() - navStartedAt.current) / 1000))
+      : null;
+    completed('locate-book', [
+      ...(bookData ? [{ icon: '📚', text: bookTitle(bookData, language) }] : []),
+      { icon: '📍', text: (language === 'ar' ? 'الرف ' : 'Shelf ') + destinationShelfId },
+      ...(seconds ? [{ icon: '⏱️', text: language === 'ar' ? `${seconds} ثانية` : `${seconds} seconds` }] : []),
+      // trackMapVisit is the side effect: the shelf counts toward the Researcher
+      // requirement, and running it here folds its XP into the reported delta.
+      // Quiet: the map already says "لقد وصلت" in green, and a congratulation
+      // modal on top of it is a second announcement of the same thing. The XP
+      // and the badge check still happen.
+    ], () => trackMapVisit(destinationShelfId), { quiet: true });
+  }, [hasArrived, destinationShelfId]);
+
+  // Actual clock time of arrival (updates live as walkProgress changes)
+  const arrivalTime = (() => {
+    const arrival = new Date(Date.now() + liveEtaSeconds * 1000);
+    return arrival.toLocaleTimeString(language === 'ar' ? 'ar-EG' : 'en-US', {
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+  })();
+
   const rafeeqMessage = (() => {
-    if (hasArrived) return { ar: 'وصلت! أحسنت! 🎉', en: 'You made it! Great job! 🎉' };
+    if (hasArrived) return { ar: 'لقد وصلت', en: 'You have arrived' };
     if (showPath && destinationShelfId) return {
       ar: `أنت على بُعد ${liveDistanceMeters} م — استمر!`,
       en: `${liveDistanceMeters}m to go — keep going!`,
@@ -201,40 +285,194 @@ export function LibraryMap() {
     ? Math.min(navigationSteps.length - 1, Math.floor(walkProgress * navigationSteps.length))
     : 0;
 
-  const getPathData = () => {
-    if (!destinationShelfId) return "";
-    const paths: Record<string, string> = {
-      'A-1': "M 300,450 L 300,350 L 100,350 L 100,100",
-      'A-2': "M 300,450 L 300,350 L 250,350 L 250,100",
-      'B-1': "M 300,450 L 300,350 L 400,350 L 400,100",
-      'B-2': "M 300,450 L 300,350 L 550,350 L 550,100",
-      'C-1': "M 300,450 L 300,350 L 100,350 L 100,250",
-      'C-2': "M 300,450 L 300,350 L 250,350 L 250,250",
-      'D-1': "M 300,450 L 300,350 L 550,350 L 550,250",
-      'D-2': "M 300,450 L 300,350 L 400,350 L 400,250",
-    };
-    return paths[destinationShelfId] || "M 300,450 L 300,200";
+  const arIframeRef = useRef<HTMLIFrameElement>(null);
+  const arInlineIframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Maps our shelf codes → the 3D floor app's physical shelf codes.
+  // The 3D app names shelves by LC class position (A-1=Philosophy, B-1=Psychology…)
+  // which is completely different from our content-based codes (A-1=Physics, B-1=AI…).
+  const SHELF_TO_3D_CODE: Record<string, string> = {
+    'A-1': 'H-2',  // QC Physics
+    'A-2': 'H-2',  // QB Astrophysics → same physical arc as QC
+    'B-1': 'F-2',  // Q = General Science / AI
+    'B-2': 'L-2',  // TA Technology & Engineering
+    'B-3': 'L-2',  // TA Engineering (civil)
+    'B-4': 'L-2',  // TA Engineering / QA Math
+    'C-1': 'B-1',  // BF Psychology
+    'C-2': 'B-1',  // BF Psychology
+    'D-1': 'E-1',  // D = History & Civilization
+    'D-2': 'E-2',  // P = Language & Literature
+    'E-1': 'I-1',  // HB Economics
+    'E-2': 'J-1',  // HF Commerce & Marketing
   };
 
+  const displayShelfCode = destinationShelfId ? (SHELF_TO_3D_CODE[destinationShelfId] ?? destinationShelfId) : null;
+
+  // Compute a 0-1 position for the selected book within its shelf,
+  // ordered by call number. Used to pinpoint the exact location in the 3D app.
+  const bookPositionInShelf = useMemo(() => {
+    if (!bookData?.shelf || !bookData.callNumber) return 0.5;
+    const shelfBooks = MOCK_BOOKS
+      .filter(b => b.shelf === bookData.shelf && b.callNumber)
+      .sort((a, b) => (a.callNumber ?? '').localeCompare(b.callNumber ?? ''));
+    const idx = shelfBooks.findIndex(b => b.id === bookData.id);
+    if (idx < 0 || shelfBooks.length <= 1) return 0.5;
+    return idx / (shelfBooks.length - 1);
+  }, [bookData]);
+
+  // Auto-start the walk simulation only in the fullscreen AR overlay (showARFloor).
+  // In the inline ar-floor tab the user taps "ابدأ الملاحة" to start explicitly.
+  useEffect(() => {
+    if (showARFloor && destinationShelfId) {
+      setShowPath(true);
+    }
+  }, [showARFloor, destinationShelfId]);
+
+  // The beam waits for the walk to be started rather than appearing as soon as
+  // a book is located: locating one is choosing where to go, pressing the
+  // button is setting off. Clearing on the way out matters as much as drawing
+  // — the scene keeps whatever it was last told.
+  useEffect(() => {
+    const isVisible = showARFloor || mapMode === 'ar-floor';
+    if (!isVisible) return;
+    if (!destinationShelfId || !showPath) {
+      arIframeRef.current?.contentWindow?.postMessage({ type: 'LIBRARY_CLEAR_GUIDE' }, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage({ type: 'LIBRARY_CLEAR_GUIDE' }, '*');
+      return;
+    }
+    const floorCode = SHELF_TO_3D_CODE[destinationShelfId] ?? destinationShelfId;
+    const msg = {
+      type: 'LIBRARY_GUIDE_TO',
+      shelf: floorCode,
+      reactShelf: floorCode,
+      bookPosition: bookPositionInShelf,
+      bookTitle: bookData?.title ?? '',
+      callNumber: bookData?.callNumber ?? '',
+    };
+    const send = () => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    // A cold iframe load can take several seconds for the embedded 3D scene
+    // to finish building (window.__cmp isn't ready until then), so a
+    // single retry at 600ms isn't reliable — keep resending until every
+    // mounted iframe (same-origin, so directly inspectable) confirms it is
+    // actually guiding to this shelf, or give up after ~12s.
+    //
+    // Every, not either. The full-screen view mounts a second, cold iframe on
+    // top of the inline one, which is already guiding — so stopping at the
+    // first confirmation ended the retries immediately and the full-screen
+    // scene never received the message at all: it opened with no route drawn.
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30;
+    send();
+    const interval = setInterval(() => {
+      attempts += 1;
+      const isGuidingTo = (win: Window | null | undefined) => {
+        const cmp = (win as (Window & { __cmp?: { _guide?: { visible?: boolean }; _guideItem?: { code?: string } } }) | null | undefined)?.__cmp;
+        return !!cmp?._guide?.visible && cmp?._guideItem?.code === floorCode;
+      };
+      const mounted = [arIframeRef.current, arInlineIframeRef.current].filter(Boolean);
+      const showingTarget = mounted.length > 0 && mounted.every(f => isGuidingTo(f?.contentWindow));
+      if (showingTarget || attempts >= MAX_ATTEMPTS) {
+        clearInterval(interval);
+        return;
+      }
+      send();
+    }, 400);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showARFloor, mapMode, showPath, destinationShelfId, bookPositionInShelf, selectedBook]);
+
+  // The scene writes its own header, in Arabic. Tell it which language the
+  // interface is in — by message rather than by reloading the iframe, so
+  // switching language mid-route does not rebuild the scene and lose the beam.
+  useEffect(() => {
+    const send = () => {
+      const msg = { type: 'LIBRARY_SET_LANG', lang: language };
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    send();
+    const t = setInterval(send, 600);
+    const stop = setTimeout(() => clearInterval(t), 6000);
+    return () => { clearInterval(t); clearTimeout(stop); };
+  }, [language, showARFloor, mapMode]);
+
+  // The scene draws the route; the walk that moves along it is run here, so
+  // the two are kept in step by sending progress over rather than having the
+  // scene guess. Note this is the simulated walk the HUD counts down, not a
+  // tracked position — the app does not follow the reader through the building.
+  useEffect(() => {
+    const post = (msg: Record<string, unknown>) => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    post({ type: 'LIBRARY_WALK_PROGRESS', t: showPath ? walkProgress : 0 });
+  }, [walkProgress, showPath, showARFloor, mapMode]);
+
+  useEffect(() => {
+    const post = (msg: Record<string, unknown>) => {
+      arIframeRef.current?.contentWindow?.postMessage(msg, '*');
+      arInlineIframeRef.current?.contentWindow?.postMessage(msg, '*');
+    };
+    post({ type: 'LIBRARY_ARRIVED', arrived: hasArrived });
+  }, [hasArrived, showARFloor, mapMode]);
+
   return (
-    <div className={cn("h-full flex flex-col gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
+    <div className={cn("h-full flex flex-col gap-3 roomy:gap-8 animate-in duration-500 font-sans", dir === 'rtl' ? 'slide-in-from-left-4 text-right' : 'slide-in-from-right-4 text-left')}>
       {/* Dynamic Header */}
-      <div className={cn("flex flex-col md:flex-row items-center justify-between gap-8 pb-8 border-b border-slate-200 dark:border-white/10", dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row')}>
-        <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
-          <div className={cn("flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+      <div className={cn("flex flex-row items-center justify-between gap-3 roomy:gap-8 pb-3 roomy:pb-8 border-b border-slate-200 dark:border-white/10", dir === 'rtl' ? 'md:flex-row-reverse' : 'md:flex-row')}>
+        <div className={cn("min-w-0", dir === 'rtl' ? 'text-right' : 'text-left')}>
+          <div className={cn("hidden roomy:flex items-center gap-3 mb-4", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
             <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center text-accent">
               <MapIcon className="w-6 h-6" />
             </div>
             <span className="text-[10px] font-black text-accent uppercase tracking-[0.2em]">{t('smartNavSystem')}</span>
           </div>
-          <h1 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('knowledgeCampusMap')}</h1>
+          <h1 className="text-lg roomy:text-4xl font-black text-primary dark:text-white tracking-tight truncate roomy:whitespace-normal">{t('knowledgeCampusMap')}</h1>
+        </div>
+
+        {/* Both bars are hidden on this page so the map can have the screen.
+            These are the two controls that went with them: the way off the
+            page, and the language toggle the top bar used to carry. */}
+        <div className="roomy:hidden shrink-0 flex items-center gap-2">
+          <button
+            onClick={toggleLanguage}
+            aria-label={language === 'ar' ? 'English' : 'عربي'}
+            title={language === 'ar' ? 'English' : 'عربي'}
+            className={cn(
+              "flex items-center justify-center w-11 h-11 rounded-full bg-white dark:bg-slate-900",
+              "border border-slate-200 dark:border-white/10 text-primary dark:text-white",
+              "shadow-sm active:scale-95 transition-all"
+            )}
+          >
+            <Languages className="w-4.5 h-4.5 text-accent" />
+          </button>
+          <button
+            onClick={() => navigate('/')}
+            aria-label={t('backToHome')}
+            title={t('backToHome')}
+            className={cn(
+              "flex items-center justify-center w-11 h-11 rounded-full bg-white dark:bg-slate-900",
+              "border border-slate-200 dark:border-white/10 text-primary dark:text-white",
+              "shadow-sm active:scale-95 transition-all"
+            )}
+          >
+            <Home className="w-4.5 h-4.5" />
+          </button>
         </div>
 
       </div>
 
       <div className={cn("flex flex-col xl:flex-row gap-10 flex-1 min-h-0", dir === 'rtl' ? 'xl:flex-row-reverse' : 'xl:flex-row')}>
         {/* Map Visualization Zone */}
-        <div className="flex-1 official-card relative overflow-hidden min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
+        {/* The card carries an explicit height at every size rather than `h-auto`
+            on the desktop step. Left to stretch, it matched the results column
+            beside it — a 5,100px card holding a 5,000px 3D canvas, with the map
+            itself running far below the fold. `roomy:flex-1` still governs the
+            width it takes beside that column. */}
+        <div className="flex-none roomy:flex-1 official-card relative overflow-hidden -mx-8 roomy:mx-0 rounded-none roomy:rounded-2xl h-[calc(100dvh-5.5rem)] roomy:h-[calc(100dvh-12rem)] min-h-0 roomy:min-h-[650px] p-0 transition-all duration-500 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5 dark:shadow-black/20">
           {/* Blueprint Grid Overlay */}
           {activeTab === 'map' && (
             <div className="absolute inset-0 z-0 pointer-events-none">
@@ -255,39 +493,14 @@ export function LibraryMap() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="relative z-10 w-full h-full p-12 flex flex-col"
+                className="relative z-10 w-full h-full p-0 roomy:p-12 flex flex-col"
               >
-                  {/* Map mode toggle */}
-                  <div className={cn("absolute top-5 z-40 flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1", dir === 'rtl' ? 'left-5' : 'right-5')}>
-                    <button
-                      onClick={() => setMapMode('flat')}
-                      className={cn(
-                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                        mapMode === 'flat'
-                          ? "bg-primary text-white shadow-sm"
-                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                      )}
-                    >
-                      <Layers className="w-3 h-3" />
-                      2D
-                    </button>
-                    <button
-                      onClick={() => setMapMode('unity')}
-                      className={cn(
-                        "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
-                        mapMode === 'unity'
-                          ? "bg-primary text-accent shadow-sm"
-                          : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                      )}
-                    >
-                      <Box className="w-3 h-3" />
-                      Unity 3D
-                    </button>
-                  </div>
-
-                  {/* Rafeeq floating guide */}
+                  {/* Rafeeq floating guide — AR-floor view only.
+                      The flat map and the Unity view each already draw their
+                      own Rafeeq, so rendering this one in every mode put two
+                      of him in one corner; the AR-floor view had none. */}
                   <AnimatePresence>
-                    {!rafeeqDismissed && (
+                    {mapMode !== 'unity' && !rafeeqDismissed && (
                       <motion.div
                         initial={{ opacity: 0, scale: 0.8, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -309,9 +522,12 @@ export function LibraryMap() {
                             <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-4 h-4 bg-white dark:bg-slate-800 border-b border-r border-slate-200/60 dark:border-white/10 rotate-45" />
                             <button
                               onClick={() => setRafeeqDismissed(true)}
-                              className="absolute -top-2 -right-2 w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-400 hover:text-red-400 transition-colors"
+                              aria-label={language === 'ar' ? 'إخفاء رفيق' : 'Dismiss Rafeeq'}
+                              className="absolute -top-5 -right-5 w-11 h-11 flex items-center justify-center text-slate-400 hover:text-red-400 transition-colors"
                             >
-                              <X className="w-3 h-3" />
+                              <span className="w-5 h-5 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center">
+                                <X className="w-3 h-3" />
+                              </span>
                             </button>
                           </motion.div>
                         </AnimatePresence>
@@ -323,7 +539,7 @@ export function LibraryMap() {
                         >
                           <RafeeqAvatar className="w-20 h-20 drop-shadow-xl" />
                         </motion.div>
-                        <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                           {language === 'ar' ? 'رفيق' : 'Rafeeq'}
                         </span>
                       </motion.div>
@@ -331,7 +547,7 @@ export function LibraryMap() {
                   </AnimatePresence>
 
                   {/* Restore Rafeeq button when dismissed */}
-                  {rafeeqDismissed && (
+                  {mapMode !== 'unity' && rafeeqDismissed && (
                     <button
                       onClick={() => setRafeeqDismissed(false)}
                       className={cn("absolute bottom-24 z-40 w-10 h-10 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 shadow-lg flex items-center justify-center hover:scale-110 transition-all", dir === 'rtl' ? 'right-6' : 'left-6')}
@@ -348,166 +564,185 @@ export function LibraryMap() {
                         destinationShelfId={destinationShelfId}
                         onSelectShelf={navigateToCell}
                         language={language}
+                        dir={dir}
+                        bookData={bookData}
+                        distanceMeters={showPath ? liveDistanceMeters : distanceMeters}
+                        etaMinutes={showPath ? liveEtaMinutes : etaMinutes}
+                        navigationSteps={navigationSteps}
                       />
                     </div>
                   )}
 
-                  {/* Flat / 2D mode */}
-                  {mapMode === 'flat' && (
-                  <div className="flex-1">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8 h-full">
-                    {cells.map((cell) => {
-                      const section = sections.find(s => s.id === cell.section);
-                      const isDestination = destinationShelfId === cell.id;
-                      const occupancy = occupancyData[cell.id as keyof typeof occupancyData];
-                      const isHovered = hoveredCell === cell.id;
+                  {/* AR Floor mode */}
+                  {mapMode === 'ar-floor' && (
+                    <div className="flex-1 relative overflow-hidden rounded-none roomy:rounded-2xl bg-[#0A0E1C] min-h-0 roomy:min-h-[520px]">
+                      <iframe
+                        ref={arInlineIframeRef}
+                        src={`/library-ar-floor.html?lang=${language}`}
+                        className="absolute inset-0 w-full h-full border-0"
+                        title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
+                        allow="camera; microphone; accelerometer; gyroscope"
+                      />
+                      {/* Navigation HUD — always visible above the 3D iframe */}
+                      <motion.div
+                        initial={{ opacity: 0, y: 24 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ type: 'spring', stiffness: 400, damping: 30, delay: 0.3 }}
+                        className="absolute bottom-4 left-4 right-4 z-10 pointer-events-none"
+                      >
+                        <div className="bg-[#050c1a]/90 backdrop-blur-xl rounded-2xl border border-cyan-500/20 shadow-2xl shadow-black/50 overflow-hidden">
+                          <div className="h-0.5 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent" />
+                          <div className="p-4">
+                            <AnimatePresence mode="wait">
+                              {hasArrived ? (
+                                <motion.div
+                                  key="arrived"
+                                  initial={{ opacity: 0, scale: 0.9 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  className="flex items-center gap-3"
+                                >
+                                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
+                                  <div>
+                                    <p className="text-emerald-400 font-black text-base">
+                                      {t('reachedDestination')}
+                                    </p>
+                                    <p className="text-emerald-400/70 text-xs font-bold mt-0.5">
+                                      {destinationShelfId} · {destinationSectionName}
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              ) : destinationShelfId ? (
+                                <motion.div
+                                  key="navigating"
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  className="flex items-center gap-3"
+                                >
+                                  {/* Animated directional arrow */}
+                                  <motion.div
+                                    animate={{ y: [-4, 0, -4] }}
+                                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                                    className="w-12 h-12 rounded-xl bg-[#0EA5D6]/20 border border-[#0EA5D6]/40 flex items-center justify-center flex-shrink-0"
+                                  >
+                                    <Navigation className="w-6 h-6 text-[#0EA5D6]" style={{ transform: 'rotate(-45deg)' }} />
+                                  </motion.div>
+                                  {/* Step + destination */}
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] text-white/40 uppercase tracking-widest font-black">
+                                      {language === 'ar' ? 'اتجاه' : 'Direction'}
+                                    </p>
+                                    <p className="text-white font-black text-sm leading-tight mt-0.5 truncate">
+                                      {navigationSteps[liveStepIndex] || (language === 'ar' ? `توجه إلى رف ${displayShelfCode}` : `Head to Shelf ${displayShelfCode}`)}
+                                    </p>
+                                    {/* The clock used to sit here bare — "36m left · 01:12 PM" —
+                                        with nothing saying what the time was, and no
+                                        remaining minutes at all. Both are named now. */}
+                                    <div className={cn("flex items-center gap-2 mt-1 flex-wrap", dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                                      <span className="text-[#D4AF37] text-[10px] font-black">{displayShelfCode}</span>
+                                      <span className="text-white/20">·</span>
+                                      <span className="text-white/50 text-[10px]" dir="ltr">
+                                        {liveDistanceMeters}{language === 'ar' ? ' م' : 'm'}
+                                      </span>
+                                      <span className="text-white/20">·</span>
+                                      <span className="text-white/70 text-[10px] font-black">
+                                        {liveEtaMinutes > 0 ? liveEtaMinutes : '< 1'} {language === 'ar' ? 'دقيقة' : 'min'}
+                                      </span>
+                                      <span className="text-white/20">·</span>
+                                      <span className={cn('text-white/50 text-[10px] flex items-center gap-1', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                                        <Clock className="w-2.5 h-2.5 shrink-0" />
+                                        {language === 'ar' ? 'الوصول' : 'Arrive'} <span dir="ltr">{arrivalTime}</span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {/* Progress ring */}
+                                  <div className="relative w-10 h-10 flex-shrink-0">
+                                    <svg width="40" height="40" viewBox="0 0 40 40">
+                                      <circle cx="20" cy="20" r="15" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="3"/>
+                                      <circle
+                                        cx="20" cy="20" r="15"
+                                        fill="none"
+                                        stroke="#0EA5D6"
+                                        strokeWidth="3"
+                                        strokeDasharray={`${walkProgress * 94.25} 94.25`}
+                                        strokeLinecap="round"
+                                        transform="rotate(-90 20 20)"
+                                      />
+                                    </svg>
+                                    <span className="absolute inset-0 flex items-center justify-center text-[9px] font-black text-white">
+                                      {Math.round(walkProgress * 100)}%
+                                    </span>
+                                  </div>
+                                </motion.div>
+                              ) : (
+                                <motion.div
+                                  key="idle"
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  className="flex items-center gap-3"
+                                >
+                                  {/* Pulsing idle arrow */}
+                                  <motion.div
+                                    animate={{ y: [-3, 0, -3], opacity: [0.5, 1, 0.5] }}
+                                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                    className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0"
+                                  >
+                                    <Navigation className="w-6 h-6 text-white/30" style={{ transform: 'rotate(-45deg)' }} />
+                                  </motion.div>
+                                  <div>
+                                    <p className="text-white/70 font-black text-sm">
+                                      {language === 'ar' ? 'اختر كتاباً لبدء التنقل' : 'Select a book to navigate'}
+                                    </p>
+                                    <p className="text-white/30 text-[10px] mt-0.5">
+                                      {language === 'ar' ? 'أو ابحث في لوحة WAYFINDING' : 'or search in the WAYFINDING panel'}
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
 
-                      return (
-                        <motion.div
-                          key={cell.id}
-                          onHoverStart={() => setHoveredCell(cell.id)}
-                          onHoverEnd={() => setHoveredCell(null)}
-                          onClick={() => !bookData && navigateToCell(cell.id)}
-                          className={cn(
-                            "relative flex flex-col items-center justify-center rounded-[3rem] border-2 transition-all duration-500 cursor-pointer group",
-                            isDestination 
-                              ? "bg-accent/5 dark:bg-accent/10 border-accent shadow-[0_30px_70px_rgba(217,179,16,0.2)] z-20 scale-105" 
-                              : "bg-slate-50/50 dark:bg-slate-800/30 border-slate-100 dark:border-white/5 hover:bg-white dark:hover:bg-slate-800 hover:border-primary/20 dark:hover:border-accent/20",
-                            isHovered && !isDestination && "shadow-2xl shadow-black/5 dark:shadow-black/20 scale-[1.02]"
-                          )}
-                        >
-                          {/* Live Occupancy Badge */}
-                          <div className={cn("absolute top-6 flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-full shadow-sm border border-slate-100 dark:border-white/5", dir === 'rtl' ? 'left-8' : 'right-8')}>
-                             <div className={cn("w-1.5 h-1.5 rounded-full", occupancy > 70 ? "bg-red-500" : occupancy > 40 ? "bg-amber-500" : "bg-emerald-500")}></div>
-                             <span className="text-[9px] font-black text-slate-500 dark:text-slate-400">{occupancy}%</span>
-                          </div>
-
-                          <div className="relative z-10 flex flex-col items-center gap-6 p-8 text-center">
-                            <div className={cn(
-                              "w-16 h-16 rounded-[2rem] flex items-center justify-center text-2xl transition-all duration-500 shadow-lg",
-                              isDestination ? "bg-accent text-primary scale-110" : "bg-white dark:bg-slate-700 text-slate-300 dark:text-slate-400"
-                            )}>
-                               {section?.icon}
-                            </div>
-                            
-                            <div className="space-y-1">
-                               <div className="text-[10px] font-black text-primary/40 dark:text-white/30 uppercase tracking-[0.2em]">{section?.name}</div>
-                               <div className="text-xl font-black text-primary dark:text-white">{t('shelfId', { id: cell.id })}</div>
-                            </div>
-
-                            {isDestination && (
-                              <motion.div 
-                                initial={{ y: 10, opacity: 0 }}
-                                animate={{ y: 0, opacity: 1 }}
-                                className={cn("bg-primary text-accent px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}
-                              >
-                                <Navigation className={cn("w-3 h-3", dir === 'rtl' ? 'rotate-180' : '')} />
-                                {t('currentDestination')}
-                              </motion.div>
+                            {/* ابدأ الملاحة — explicit start button shown when a destination is set */}
+                            {destinationShelfId && !hasArrived && (
+                              <div className="mt-3 pointer-events-auto">
+                                {!showPath ? (
+                                  <motion.button
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 28 }}
+                                    onClick={() => {
+                                      if (typeof navigator.vibrate === 'function') {
+                                        try { navigator.vibrate(80); } catch { /* best-effort */ }
+                                      }
+                                      setShowPath(true);
+                                    }}
+                                    className="w-full py-3 bg-[#0EA5D6] text-[#050c1a] rounded-xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all active:scale-95 flex items-center justify-center gap-2 shadow-lg shadow-[#0EA5D6]/30"
+                                  >
+                                    <Navigation className="w-4 h-4" style={{ transform: 'rotate(-45deg)' }} />
+                                    {language === 'ar' ? 'ابدأ الملاحة' : 'Start Navigation'}
+                                  </motion.button>
+                                ) : (
+                                  <div className="flex items-center justify-center gap-2 py-1.5">
+                                    <motion.span
+                                      className="inline-block w-2 h-2 rounded-full bg-emerald-400"
+                                      animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                                      transition={{ duration: 1.2, repeat: Infinity }}
+                                    />
+                                    <span className="text-emerald-400 text-[10px] font-black tracking-widest uppercase">
+                                      {language === 'ar' ? 'جاري الملاحة…' : 'Navigating…'}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             )}
                           </div>
-
-                          {/* Decorative Section Color Tab */}
-                          <div className={cn("absolute bottom-0 inset-x-12 h-1.5 rounded-t-full transition-all group-hover:h-3", section?.color, isDestination && "opacity-100", !isDestination && "opacity-20")} />
-                        </motion.div>
-                      );
-                    })}
-                  </div>
-                  </div>
-                  )} {/* end flat mode */}
-
-                  {/* Enhanced Entrance Visual (flat mode only) */}
-                  {mapMode === 'flat' && (<div><div>
-                  <div className="mt-16 relative flex justify-center">
-                     <div className="absolute bottom-full mb-8 h-20 w-px bg-gradient-to-t from-slate-200 dark:from-white/10 to-transparent" />
-                     <div className="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-white/5 px-12 py-4 rounded-full text-slate-400 dark:text-slate-500 font-black text-[10px] uppercase tracking-[0.4em] shadow-inner text-center">
-                        {t('mainGatePhaseOne')}
-                     </div>
-                  </div>
-
-                  {/* Path Visualization SVG — Unity-style */}
-                  {showPath && destinationShelfId && (
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none z-30" viewBox="0 0 600 500">
-                      <defs>
-                        <linearGradient id="pathGradient" x1="0%" y1="100%" x2="0%" y2="0%">
-                          <stop offset="0%" stopColor="#004C6D" stopOpacity="0.1" />
-                          <stop offset="60%" stopColor="#D9B310" stopOpacity="0.7" />
-                          <stop offset="100%" stopColor="#D9B310" stopOpacity="1" />
-                        </linearGradient>
-                        <filter id="glow">
-                          <feGaussianBlur stdDeviation="4" result="coloredBlur"/>
-                          <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                          </feMerge>
-                        </filter>
-                        <filter id="glowStrong">
-                          <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
-                          <feMerge>
-                            <feMergeNode in="coloredBlur"/>
-                            <feMergeNode in="SourceGraphic"/>
-                          </feMerge>
-                        </filter>
-                      </defs>
-                      {/* Glow base */}
-                      <motion.path
-                        d={getPathData()}
-                        stroke="#D9B310"
-                        strokeWidth="20"
-                        strokeDasharray="1"
-                        fill="none"
-                        strokeLinecap="round"
-                        opacity="0.08"
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.2, ease: "easeInOut" }}
-                      />
-                      <motion.path
-                        d={getPathData()}
-                        stroke="url(#pathGradient)"
-                        strokeWidth="8"
-                        strokeDasharray="18 12"
-                        fill="none"
-                        strokeLinecap="round"
-                        filter="url(#glow)"
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.2, ease: "easeInOut" }}
-                      />
-                      {/* Moving arrows along path */}
-                      {[0, 1, 2].map((i) => (
-                        <polygon key={i} points="-6,-9 8,0 -6,9" fill="#D9B310" stroke="white" strokeWidth="1.5" filter="url(#glow)">
-                          <animateMotion dur="2s" begin={`${i * 0.67}s`} repeatCount="indefinite" rotate="auto" path={getPathData()} />
-                        </polygon>
-                      ))}
-                      {/* Destination pulse */}
-                      <motion.circle
-                        r="18" fill="#D9B310" opacity="0.15" filter="url(#glowStrong)"
-                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
-                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
-                        animate={{ r: [14, 26, 14], opacity: [0.2, 0, 0.2] }}
-                        transition={{ duration: 1.8, repeat: Infinity }}
-                      />
-                      <circle
-                        cx={parseInt(getPathData().split(' ').at(-1)?.split(',')[0] ?? '285')}
-                        cy={parseInt(getPathData().split(' ').at(-1)?.split(',')[1] ?? '90')}
-                        r="10" fill="#D9B310" stroke="white" strokeWidth="3" filter="url(#glow)"
-                      />
-                    </svg>
+                        </div>
+                      </motion.div>
+                    </div>
                   )}
-                  {/* "View AR Guide" nudge when a destination is set */}
-                  {destinationShelfId && (
-                    <button
-                      onClick={() => setActiveTab('sections')}
-                      className={cn(
-                        'absolute bottom-6 z-40 flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary text-accent text-xs font-black shadow-xl shadow-primary/30 hover:brightness-110 transition-all active:scale-95',
-                        dir === 'rtl' ? 'right-6' : 'left-6'
-                      )}
-                    >
-                      {language === 'ar' ? 'عرض AR توجيه' : 'View AR Guide'}
-                    </button>
-                  )}
-                  </div></div>)} {/* end flat entrance + path wrapper */}
+
+
               </motion.div>
             ) : (
               <motion.div
@@ -528,46 +763,111 @@ export function LibraryMap() {
                       />
                     </div>
 
-                    <div className={cn("absolute top-6 z-20 flex items-center gap-3", dir === 'rtl' ? 'right-6' : 'left-6')}>
-                      <button
-                        onClick={() => { setManualTarget(null); setSelectedBook(null); setShowPath(false); }}
-                        className="px-4 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-[10px] font-black uppercase tracking-widest backdrop-blur-xl border border-white/10 transition-all active:scale-95"
+                    {/* Walking readout, pinned to the top of the 3D view where
+                        it stays glanceable. The distance, remaining minutes and
+                        arrival clock were only inside Rafeeq's 150px bubble at
+                        the bottom, at 9-10px — too small to read while walking,
+                        and the clock time is the part you compare against the
+                        lecture you are heading to. */}
+                    {showPath && destinationShelfId && !hasArrived && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={cn('absolute top-6 z-30 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-black/50 backdrop-blur-xl border border-white/15 shadow-xl', dir === 'rtl' ? 'right-6 flex-row-reverse' : 'left-6')}
                       >
-                        {t('changeRouteLabel')}
-                      </button>
-                    </div>
+                        <Clock className="w-4 h-4 text-accent shrink-0" />
+                        <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
+                          <div className="flex items-baseline gap-1.5 text-white">
+                            <span className="text-lg font-black leading-none">
+                              {liveEtaMinutes > 0 ? liveEtaMinutes : '<1'}
+                            </span>
+                            <span className="text-[10px] font-bold text-white/60">{language === 'ar' ? 'دقيقة' : 'min'}</span>
+                            <span className="w-1 h-1 rounded-full bg-white/25 mx-0.5" />
+                            <span className="text-[11px] font-black text-accent" dir="ltr">{liveDistanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
+                          </div>
+                          <div className="text-[10px] font-bold text-white/50 mt-0.5">
+                            {language === 'ar' ? 'الوصول' : 'Arrive'} <span dir="ltr">{arrivalTime}</span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
 
-                    {/* Rafeeq mini guide in AR dark view */}
+                    {/* Rafeeq mini guide in AR dark view — live demo countdown */}
                     <motion.div
                       className={cn("absolute bottom-44 z-30 flex flex-col items-center gap-1", dir === 'rtl' ? 'left-4' : 'right-4')}
                       initial={{ opacity: 0, scale: 0.8 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.5 }}
                     >
-                      <div className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-3 py-2 max-w-[140px] text-center mb-1 shadow-xl">
-                        <p className="text-[10px] font-black text-white leading-snug">
-                          {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
-                        </p>
-                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/10 border-b border-r border-white/20 rotate-45" />
-                      </div>
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={hasArrived ? 'arrived' : liveDistanceMeters}
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 4 }}
+                          className="relative bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-3 py-2 max-w-[150px] text-center mb-1 shadow-xl"
+                        >
+                          <p className="text-[10px] font-black text-white leading-snug">
+                            {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
+                          </p>
+                          {showPath && destinationShelfId && (
+                            <div className="mt-1.5 h-1 rounded-full bg-white/15 overflow-hidden">
+                              <motion.div
+                                className="h-full rounded-full bg-accent"
+                                animate={{ width: `${Math.round(walkProgress * 100)}%` }}
+                                transition={{ duration: 0.5, ease: 'linear' }}
+                              />
+                            </div>
+                          )}
+                          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3 h-3 bg-white/10 border-b border-r border-white/20 rotate-45" />
+                        </motion.div>
+                      </AnimatePresence>
                       <motion.div
                         animate={{ y: [0, -4, 0] }}
                         transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
                       >
                         <RafeeqAvatar className="w-14 h-14 drop-shadow-2xl" />
                       </motion.div>
+                      <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">
+                        {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+                      </span>
                     </motion.div>
 
                     {/* Hands off to the real camera-based AR guidance; the
                         dark path here is a simulated preview of that same
                         route. */}
                     <button
-                      onClick={() => navigate('/ar', bookData ? { state: { book: bookData } } : undefined)}
-                      title={t('enterArMode')}
+                      onClick={() => setShowARFloor(true)}
+                      title={language === 'ar' ? 'AR الرفوف' : 'AR Floor'}
                       className={cn("absolute top-6 z-20 p-3 rounded-full bg-accent text-primary shadow-[0_8px_24px_rgba(217,179,16,0.4)] hover:brightness-110 transition-all active:scale-90", dir === 'rtl' ? 'left-6' : 'right-6')}
                     >
                       <Camera className="w-4 h-4" />
                     </button>
+
+                    {/* 3D Perspective Corridor — sits between shelf (z-10) and SVG path (z-20) */}
+                    <div
+                      className="absolute inset-0 z-[18] pointer-events-none overflow-hidden flex items-end justify-center"
+                      style={{ paddingBottom: '160px' }}
+                    >
+                      <div
+                        style={{
+                          width: '280px',
+                          height: '500px',
+                          flexShrink: 0,
+                          transform: 'perspective(220px) rotateX(54deg)',
+                          transformOrigin: 'bottom center',
+                          maskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.75) 35%, transparent 62%)',
+                          WebkitMaskImage: 'linear-gradient(to top, black 0%, rgba(0,0,0,0.75) 35%, transparent 62%)',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {/* Corridor walls / rails */}
+                        <div style={{ position: 'absolute', inset: 0, background: 'rgba(217,179,16,0.04)', borderLeft: '2.5px solid rgba(217,179,16,0.45)', borderRight: '2.5px solid rgba(217,179,16,0.45)' }} />
+                        {/* Animated lane dashes flowing toward viewer */}
+                        <div style={{ position: 'absolute', inset: 0, backgroundImage: 'repeating-linear-gradient(180deg, rgba(217,179,16,0.9) 0px, rgba(217,179,16,0.9) 12px, transparent 12px, transparent 36px)', animation: 'roadFlow 0.65s linear infinite' }} />
+                      </div>
+                    </div>
+                    <style>{`@keyframes roadFlow { from { background-position: 0 0; } to { background-position: 0 36px; } }`}</style>
 
                     <svg className="absolute inset-0 w-full h-full z-20 pointer-events-none" viewBox="0 0 600 500" preserveAspectRatio="xMidYMid slice">
                       <defs>
@@ -616,23 +916,30 @@ export function LibraryMap() {
                     <div className="absolute top-24 inset-x-0 flex flex-col items-center gap-2.5 z-30 px-10">
                       <div className="px-5 py-2.5 rounded-full bg-white/10 backdrop-blur-xl border border-white/10 text-white text-xs font-black flex items-center gap-2">
                         <Navigation className={cn("w-4 h-4 text-accent", dir === 'rtl' ? 'rotate-180' : '')} />
-                        {t('headTowardsShelf', { shelf: destinationShelfId })}
-                      </div>
-                      {/* Floor guidance, right under the heading, so the user
-                          knows which floor to head to as well. Facilities carry
-                          their own real floor label; shelves derive it. */}
-                      <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-white/70 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-                        <Box className="w-3.5 h-3.5 text-accent/80" />
-                        {destinationFloorLabel}
+                        {t('headTowardsShelf', { shelf: displayShelfCode })}
                       </div>
                       {/* Distance/ETA surfaced right under the heading so it's
                           visible without scrolling the tall aisle view on a
                           phone screen, and count down live once navigation
                           starts instead of sitting on one static number. */}
-                      <div className="px-5 py-2 rounded-full bg-accent/15 backdrop-blur-xl border border-accent/30 text-accent text-[11px] font-black flex items-center gap-3">
-                        <span>{t('distanceLabel')}: {showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
-                        <span className="w-1 h-1 rounded-full bg-accent/50" />
-                        <span>{t('etaLabel')}: {showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="px-4 py-2 rounded-full bg-accent/15 backdrop-blur-xl border border-accent/30 text-accent text-[11px] font-black flex items-center gap-2.5">
+                          <span className="text-sm font-black">{showPath ? liveDistanceMeters : distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
+                          <span className="w-1 h-1 rounded-full bg-accent/50" />
+                          <span>{showPath ? liveEtaMinutes : etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                        </div>
+                        {showPath && destinationShelfId && !hasArrived && (
+                          <div className="px-4 py-2 rounded-full bg-white/10 backdrop-blur-xl border border-white/20 text-white text-[11px] font-black flex items-center gap-1.5">
+                            <Clock className="w-3 h-3 text-accent shrink-0" />
+                            <span>{language === 'ar' ? 'الوصول' : 'Arrive'}</span>
+                            <span className="text-accent font-black">{arrivalTime}</span>
+                          </div>
+                        )}
+                        {hasArrived && (
+                          <div className="px-4 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[11px] font-black">
+                            {t('reachedDestination')}
+                          </div>
+                        )}
                       </div>
                       {/* Live turn-by-turn instruction — shown immediately so the
                           student knows what to do right away, and cycles
@@ -735,41 +1042,99 @@ export function LibraryMap() {
                     <UserIcon className="w-4 h-4" />{bookData.author}
                   </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
-                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{t('digitalView')} ({t('shelfShort')})</div>
-                    <div className="text-3xl font-black text-primary dark:text-white">{bookData.shelf}</div>
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Card 1: Shelf code + LC class */}
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-5 rounded-3xl flex flex-col gap-3">
+                    <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      {language === 'ar' ? 'الرف · الخريطة' : 'SHELF · MAP'}
+                    </div>
+                    {/* Shelf code row */}
+                    <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                      <span className="text-4xl font-black text-primary dark:text-white font-mono tracking-tight leading-none">{SHELF_TO_3D_CODE[bookData.shelf] ?? bookData.shelf}</span>
+                      {SHELF_LC_CLASS[bookData.shelf] && (
+                        <span className="bg-primary text-white dark:bg-accent dark:text-primary px-2.5 py-1 rounded-lg text-sm font-black font-mono shadow-sm tracking-wider">
+                          {SHELF_LC_CLASS[bookData.shelf]}
+                        </span>
+                      )}
+                    </div>
+                    {/* Subject name from the floor plan */}
+                    {CELL_LABELS[bookData.shelf] && (
+                      <div className={cn('text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-snug', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                        {language === 'ar' ? CELL_LABELS[bookData.shelf].ar : CELL_LABELS[bookData.shelf].en}
+                      </div>
+                    )}
+                    <div className="text-[9px] font-bold text-accent/70 leading-snug">
+                      {language === 'ar' ? '✓ يطابق لوحات الرفوف في الخريطة' : '✓ Matches the shelf signs on the map'}
+                    </div>
                   </div>
-                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-6 rounded-3xl text-center">
-                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{t('bookHall', { section: '' })}</div>
-                    <div className="text-3xl font-black text-primary dark:text-white">{bookData.section}</div>
+                  {/* Card 2: Subject area */}
+                  <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-5 rounded-3xl flex flex-col gap-2">
+                    <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      {language === 'ar' ? 'التخصص الموضوعي' : 'SUBJECT AREA'}
+                    </div>
+                    {CELL_LABELS[bookData.shelf] ? (
+                      <>
+                        <div className={cn('text-sm font-black text-primary dark:text-white leading-snug', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                          {language === 'ar' ? CELL_LABELS[bookData.shelf].ar : CELL_LABELS[bookData.shelf].en}
+                        </div>
+                        <div className={cn('text-[10px] text-slate-400 dark:text-slate-500 leading-snug mt-1', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                          {language === 'ar' ? CELL_LABELS[bookData.shelf].en : CELL_LABELS[bookData.shelf].ar}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-2xl font-black text-primary dark:text-white">{bookData.section}</div>
+                    )}
                   </div>
                 </div>
-                {navigationSteps.length > 0 && (
-                  <div className="space-y-3 pt-2">
-                    <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
-                    <ol className="space-y-2">
-                      {navigationSteps.map((step, idx) => (
-                        <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                          <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
-                          <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                )}
-                <div className="space-y-4 pt-4">
-                  <button onClick={() => { setShowPath(true); setActiveTab('map'); }} className="w-full py-5 bg-accent text-primary rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
-                    <span>{language === 'ar' ? 'الخريطة' : 'Map'}</span>
-                  </button>
-                  <button onClick={() => setActiveTab('sections')} className="w-full py-4 bg-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95">
-                    <Camera className="w-4 h-4" />
-                    <span>{language === 'ar' ? 'AR توجيه' : 'AR Guide'}</span>
-                  </button>
-                  <button onClick={() => { setSelectedBook(null); setShowPath(false); }} className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
-                    <X className="w-4 h-4" />{t('cancelActiveNavigation')}
-                  </button>
-                </div>
+                {/* Call number + position within shelf */}
+                {bookData.callNumber && (() => {
+                  const shelfBooks = MOCK_BOOKS
+                    .filter(b => b.shelf === bookData.shelf && b.callNumber)
+                    .sort((a, b) => (a.callNumber ?? '').localeCompare(b.callNumber ?? ''));
+                  const pos = shelfBooks.findIndex(b => b.id === bookData.id);
+                  const total = shelfBooks.length;
+                  const posLabel = pos < total / 3
+                    ? (language === 'ar' ? 'بداية الرف' : 'Start of shelf')
+                    : pos < (2 * total) / 3
+                    ? (language === 'ar' ? 'منتصف الرف' : 'Middle of shelf')
+                    : (language === 'ar' ? 'نهاية الرف' : 'End of shelf');
+                  return (
+                    <div className="space-y-3">
+                      <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-5 rounded-3xl">
+                        <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">
+                          {language === 'ar' ? 'رقم التصنيف (الكوندرس)' : 'LC Call Number'}
+                        </div>
+                        <div className="font-mono text-sm font-black text-primary dark:text-white tracking-wide">{bookData.callNumber}</div>
+                      </div>
+                      <div className="bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 p-5 rounded-3xl">
+                        <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">
+                          {language === 'ar' ? 'موضع الكتاب على الرف' : 'Position on Shelf'}
+                        </div>
+                        {/* Visual spine row */}
+                        <div className="flex gap-0.5 mb-3">
+                          {shelfBooks.map((b, i) => (
+                            <div
+                              key={b.id}
+                              className={cn(
+                                "flex-1 rounded-sm transition-all",
+                                b.id === bookData.id
+                                  ? "h-9 bg-accent shadow-lg shadow-accent/30"
+                                  : "h-6 bg-slate-200 dark:bg-slate-700"
+                              )}
+                              title={b.callNumber}
+                            />
+                          ))}
+                        </div>
+                        <div className={cn("flex items-center justify-between text-[10px] font-black", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                          <span className="text-accent">{posLabel}</span>
+                          <span className="text-slate-400 dark:text-slate-500" dir="ltr">
+                            {pos + 1} / {total}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </motion.div>
           ) : manualTarget ? (
@@ -789,17 +1154,6 @@ export function LibraryMap() {
                   <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em]">{t('navigationOn')}</div>
                   <h2 className="text-2xl font-black leading-tight tracking-tight text-primary dark:text-white">{destinationLabel}</h2>
                   <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[11px] tracking-widest">{destinationSectionName}</p>
-                </div>
-                <div className="space-y-3">
-                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('navigationStepsTitle')}</div>
-                  <ol className="space-y-2">
-                    {navigationSteps.map((step, idx) => (
-                      <li key={idx} className={cn("flex items-center gap-3 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl p-3", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                        <span className="shrink-0 w-6 h-6 rounded-full bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black flex items-center justify-center">{idx + 1}</span>
-                        <span className="text-[12px] font-bold text-slate-600 dark:text-slate-300 leading-relaxed">{step}</span>
-                      </li>
-                    ))}
-                  </ol>
                 </div>
                 <button onClick={() => { setManualTarget(null); setShowPath(false); }} className="w-full py-4 text-slate-400 dark:text-slate-500 hover:text-red-500 font-black text-[11px] uppercase tracking-widest transition-colors flex items-center justify-center gap-2">
                   <X className="w-4 h-4" />{t('cancelActiveNavigation')}
@@ -824,13 +1178,13 @@ export function LibraryMap() {
                     onChange={e => setSidebarSearch(e.target.value)}
                     placeholder={language === 'ar' ? 'اسم الكتاب، المؤلف، التصنيف...' : 'Title, author, category...'}
                     className={cn(
-                      "w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors",
+                      "w-full py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-white/10 rounded-2xl text-base sm:text-sm font-bold text-primary dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:outline-none focus:border-primary dark:focus:border-accent transition-colors",
                       dir === 'rtl' ? 'pr-11 pl-4 text-right' : 'pl-11 pr-4 text-left'
                     )}
                   />
                   {sidebarSearch && (
-                    <button onClick={() => setSidebarSearch('')} className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors", dir === 'rtl' ? 'left-4' : 'right-4')}>
-                      <X className="w-3.5 h-3.5" />
+                    <button onClick={() => setSidebarSearch('')} aria-label={language === 'ar' ? 'مسح البحث' : 'Clear search'} className={cn("absolute top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors", dir === 'rtl' ? 'left-2' : 'right-2')}>
+                      <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -863,7 +1217,7 @@ export function LibraryMap() {
                         <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 truncate mt-0.5">{book.author}</p>
                         <div className={cn("flex items-center gap-2 mt-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
                           <span className="text-[9px] font-black text-primary/60 dark:text-accent/80 bg-primary/5 dark:bg-accent/10 px-2 py-0.5 rounded-lg uppercase tracking-wider">{book.shelf}</span>
-                          <span className="text-[9px] font-bold text-slate-300 dark:text-slate-600 truncate">{book.category}</span>
+                          <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600 truncate">{bookCategory(book.category, language)}</span>
                         </div>
                       </div>
                       <Navigation className={cn("w-4 h-4 shrink-0 text-slate-200 dark:text-slate-700 group-hover:text-primary dark:group-hover:text-accent transition-colors", dir === 'rtl' ? 'rotate-180' : '')} />
@@ -888,6 +1242,152 @@ export function LibraryMap() {
           )}
         </div>
       </div>
+      {/* AR Floor full-screen overlay */}
+      <AnimatePresence>
+        {showARFloor && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[9999] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="relative w-full max-w-4xl h-[90vh] rounded-3xl overflow-hidden bg-[#0A0E1C] shadow-2xl shadow-black/60 border border-white/10"
+              style={{ isolation: 'isolate' }}
+            >
+              {/* iframe — explicit z-index so overlays sit on top */}
+              <iframe
+                ref={arIframeRef}
+                src={`/library-ar-floor.html?lang=${language}`}
+                className="absolute inset-0 w-full h-full border-0"
+                style={{ zIndex: 1 }}
+                title={language === 'ar' ? 'خريطة الرفوف AR' : 'AR Floor Map'}
+                allow="camera; microphone; accelerometer; gyroscope"
+              />
+
+              {/* ── All overlays sit above the iframe (z ≥ 10) ── */}
+
+              {/* Top info strip — shelf + distance/time */}
+              {destinationShelfId && (
+                <div className="absolute top-16 inset-x-4 flex flex-col items-center gap-2 pointer-events-none" style={{ zIndex: 20 }}>
+                  <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.4 }}
+                    className="px-5 py-2.5 rounded-full bg-black/65 backdrop-blur-xl border border-white/20 text-white text-xs font-black flex items-center gap-2 shadow-xl">
+                    <Navigation className="w-3.5 h-3.5 text-accent shrink-0" />
+                    {language === 'ar' ? `التوجه نحو رف ${displayShelfCode}` : `Head to shelf ${displayShelfCode}`}
+                  </motion.div>
+                  <motion.div initial={{ y: -6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.55 }}
+                    className="px-4 py-1.5 rounded-full bg-accent/25 border border-accent/50 text-accent text-[10px] font-black flex items-center gap-2">
+                    <span>{language === 'ar' ? 'المسافة' : 'Distance'}: {distanceMeters}{language === 'ar' ? ' م' : 'm'}</span>
+                    <span className="w-1 h-1 rounded-full bg-accent/60" />
+                    <span>{language === 'ar' ? 'الوقت' : 'ETA'}: {etaMinutes}{language === 'ar' ? ' د' : ' min'}</span>
+                  </motion.div>
+                </div>
+              )}
+
+              {/* Rafeeq avatar + speech bubble — live demo countdown */}
+              <motion.div
+                className={cn("absolute bottom-40 flex flex-col items-center gap-1 pointer-events-none", dir === 'rtl' ? 'left-4' : 'right-4')}
+                initial={{ opacity: 0, scale: 0.8, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                style={{ zIndex: 20 }}
+              >
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={hasArrived ? 'arrived' : liveDistanceMeters}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 4 }}
+                    className="relative bg-white/15 backdrop-blur-xl border border-white/25 rounded-2xl px-3 py-2 max-w-[160px] text-center mb-1 shadow-xl"
+                  >
+                    {showPath && destinationShelfId && !hasArrived && (
+                      <div className="flex flex-col items-center gap-1 mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-accent font-black text-base leading-none">{liveDistanceMeters}م</span>
+                          <span className="text-white/40 text-[9px]">·</span>
+                          <span className="text-white/70 font-bold text-[11px]">{liveEtaMinutes > 0 ? `${liveEtaMinutes} دقيقة` : 'أقل من دقيقة'}</span>
+                        </div>
+                        <div className="flex items-center gap-1 text-[9px] text-white/50 font-bold">
+                          <Clock className="w-2.5 h-2.5" />
+                          <span>{language === 'ar' ? 'الوصول' : 'Arrive'} {arrivalTime}</span>
+                        </div>
+                      </div>
+                    )}
+                    <p className="text-[10px] font-black text-white leading-snug">
+                      {language === 'ar' ? rafeeqMessage.ar : rafeeqMessage.en}
+                    </p>
+                    {showPath && destinationShelfId && (
+                      <div className="mt-1.5 h-1.5 rounded-full bg-white/15 overflow-hidden">
+                        <motion.div
+                          className="h-full rounded-full bg-accent"
+                          animate={{ width: `${Math.round(walkProgress * 100)}%` }}
+                          transition={{ duration: 0.5, ease: 'linear' }}
+                        />
+                      </div>
+                    )}
+                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-3.5 h-3.5 bg-white/15 border-b border-r border-white/25 rotate-45" />
+                  </motion.div>
+                </AnimatePresence>
+                <motion.div animate={{ y: [0, -5, 0] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}>
+                  <RafeeqAvatar className="w-16 h-16 drop-shadow-2xl" />
+                </motion.div>
+                <span className="text-[8px] font-black text-white/50 uppercase tracking-widest">
+                  {language === 'ar' ? 'رفيق' : 'Rafeeq'}
+                </span>
+              </motion.div>
+
+              {/* Bottom book / shelf card */}
+              {(bookData || destinationShelfId) && (
+                <motion.div className="absolute bottom-5 inset-x-4 pointer-events-none" style={{ zIndex: 20 }}
+                  initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.3 }}>
+                  <div className={cn("bg-white/95 backdrop-blur-xl rounded-2xl px-4 py-3 flex items-center gap-3 shadow-2xl shadow-black/50 border border-white/20", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                    {bookData && <BookCover book={bookData} className="w-11 h-16 rounded-xl shrink-0 shadow-lg" />}
+                    <div className={cn("flex-1 min-w-0", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                      <p className="text-xs font-black text-primary truncate leading-snug">
+                        {bookData ? bookData.title : (language === 'ar' ? `رف ${displayShelfCode}` : `Shelf ${displayShelfCode}`)}
+                      </p>
+                      {bookData && <p className="text-[10px] font-bold text-slate-400 truncate mt-0.5">{bookData.author}</p>}
+                      <div className={cn("flex items-center gap-1.5 mt-1.5 flex-wrap", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                        <span className="text-[8px] font-black text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                          {language === 'ar' ? `رف ${displayShelfCode}` : `Shelf ${displayShelfCode}`}
+                        </span>
+                        <span className="text-[8px] text-slate-400 truncate">{destinationSectionName}</span>
+                      </div>
+                    </div>
+                    {navigationSteps.length > 0 && (
+                      <div className="flex flex-col gap-1 shrink-0">
+                        {navigationSteps.slice(0, 2).map((s, i) => (
+                          <div key={i} className={cn("flex items-center gap-1.5", dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
+                            <span className="w-4 h-4 rounded-full bg-accent/20 text-accent flex items-center justify-center text-[8px] font-black shrink-0">{i + 1}</span>
+                            <span className="text-[9px] text-primary/80 truncate max-w-[110px]">{s}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Close button */}
+              <button onClick={() => setShowARFloor(false)}
+                className="absolute top-4 end-4 w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur border border-white/20 flex items-center justify-center text-white transition-all"
+                style={{ zIndex: 30 }}>
+                <X className="w-4 h-4" />
+              </button>
+
+              {/* AR label */}
+              <div className="absolute top-4 start-4 px-3 py-1.5 rounded-full bg-accent/20 border border-accent/40 text-accent text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5"
+                style={{ zIndex: 30 }}>
+                <Camera className="w-3 h-3" />
+                {language === 'ar' ? 'AR الرفوف' : 'AR Floor'}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

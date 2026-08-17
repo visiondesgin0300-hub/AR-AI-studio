@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Scan, MapPin, CheckCircle2, Smartphone, AlertTriangle, ChevronRight, Navigation } from 'lucide-react';
-import { MOCK_BOOKS } from '../data/mockData';
+import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
 
@@ -23,7 +23,8 @@ interface PlacedLabel {
   visible: boolean;
 }
 
-const SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
+// Was a local copy that stopped at D-2, hiding four shelves from the picker.
+const SHELVES: readonly string[] = SHELF_IDS;
 
 // Column-major 4×4 matrix multiply: mat * vec4(x,y,z,1)
 function mulMat4Vec3(m: Float32Array, x: number, y: number, z: number) {

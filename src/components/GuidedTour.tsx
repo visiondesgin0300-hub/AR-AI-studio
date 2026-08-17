@@ -75,7 +75,7 @@ export function GuidedTour({ user, onClose }: GuidedTourProps) {
             {steps.map((_, i) => (
               <div
                 key={i}
-                className={cn('h-1.5 rounded-full transition-all', i === index ? 'w-8 bg-accent' : 'w-1.5 bg-slate-150 dark:bg-slate-700')}
+                className={cn('h-1.5 rounded-full transition-all', i === index ? 'w-8 bg-accent' : 'w-1.5 bg-slate-200 dark:bg-slate-700')}
               />
             ))}
           </div>

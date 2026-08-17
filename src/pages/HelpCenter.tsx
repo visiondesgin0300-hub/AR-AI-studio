@@ -5,37 +5,22 @@ import {
   HelpCircle,
   Search as SearchIcon,
   Mail,
-  MessageSquare,
   MapPin,
   Award,
   BookOpen,
   ChevronDown,
   Send,
   CheckCircle2,
-  Clock,
-  ScanLine,
-  Navigation,
-  Sparkles,
-  QrCode,
-  Cpu,
+  AlertTriangle,
+  Inbox,
+  ShieldCheck,
+  ArrowLeft,
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
+import { User } from '../types';
 
-type HelpTab = 'faqs' | 'contact' | 'requests' | 'tech';
-
-interface TechStage {
-  icon: React.ComponentType<{ className?: string }>;
-  titleKey: string;
-  descKey: string;
-}
-
-const TECH_STAGES: TechStage[] = [
-  { icon: ScanLine, titleKey: 'techStage1Title', descKey: 'techStage1Desc' },
-  { icon: Navigation, titleKey: 'techStage2Title', descKey: 'techStage2Desc' },
-  { icon: Sparkles, titleKey: 'techStage3Title', descKey: 'techStage3Desc' },
-  { icon: QrCode, titleKey: 'techStage4Title', descKey: 'techStage4Desc' },
-];
+type HelpTab = 'faqs' | 'contact' | 'inbox';
 
 interface FaqItem {
   icon: React.ComponentType<{ className?: string }>;
@@ -51,29 +36,56 @@ const FAQ_ITEMS: FaqItem[] = [
   { icon: HelpCircle, qKey: 'faqGroupRooms', aKey: 'faqGroupRoomsAnswer' },
 ];
 
-const MOCK_REQUESTS = [
-  { id: 'r1', status: 'pending' as const },
-];
+interface HelpCenterProps {
+  /** Optional so the page still renders if mounted without one. */
+  user?: User;
+}
 
-export function HelpCenter() {
-  const { t, dir } = useLanguage();
+export function HelpCenter({ user }: HelpCenterProps) {
+  const { t, dir, language } = useLanguage();
+  const ar = language === 'ar';
+  const isAdmin = user?.role === 'admin';
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<HelpTab>('faqs');
   const [query, setQuery] = useState('');
-  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+  // Keyed by question, not by list index — the index refers to the *filtered*
+  // list, so typing a query used to leave a different question expanded than
+  // the one the reader actually opened.
+  const [openFaqKey, setOpenFaqKey] = useState<string | null>(null);
 
   const [contactName, setContactName] = useState('');
   const [contactEmail, setContactEmail] = useState('');
   const [contactMessage, setContactMessage] = useState('');
-  const [contactSent, setContactSent] = useState(false);
+  const [contactState, setContactState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
 
+  const needle = query.trim().toLowerCase();
   const filteredFaqs = FAQ_ITEMS.filter((item) =>
-    t(item.qKey).toLowerCase().includes(query.toLowerCase())
+    t(item.qKey).toLowerCase().includes(needle) || t(item.aKey).toLowerCase().includes(needle)
   );
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setContactSent(true);
+    setContactState('sending');
+    try {
+      // Same endpoint the feedback widget uses, so the message genuinely
+      // lands in the admin "user requests" tab instead of being discarded.
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'inquiry',
+          categories: [language === 'ar' ? 'مركز المساعدة' : 'Help Center'],
+          text: contactMessage,
+          user: contactName,
+          email: contactEmail,
+        }),
+      });
+      if (!res.ok) throw new Error(String(res.status));
+      setContactState('sent');
+    } catch (err) {
+      console.error('Help Center contact submit failed', err);
+      setContactState('error');
+    }
   };
 
   return (
@@ -87,18 +99,31 @@ export function HelpCenter() {
             <span className="text-[10px] font-black uppercase tracking-[0.2em]">{t('helpCenterBadge')}</span>
           </div>
           <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">{t('howCanWeHelp')}</h1>
-          <p className="text-white/70 dark:text-white/60 font-medium leading-relaxed">{t('helpCenterDesc')}</p>
+          <p className="text-white/70 dark:text-white/60 font-medium leading-relaxed">
+            {isAdmin
+              ? (ar
+                  ? 'تصفّح الأسئلة الشائعة وشرح التقنية، وراجع الرسائل التي يرسلها المستخدمون من نموذج التواصل.'
+                  : 'Browse the FAQs and the technology guide, and review the messages users send through the contact form.')
+              : t('helpCenterDesc')}
+          </p>
         </div>
       </section>
 
       {/* Tabs */}
       <div className="flex flex-wrap justify-center gap-3 -mt-4 relative z-10">
-        {([
-          { id: 'faqs', label: t('faqsGuideTab'), icon: HelpCircle, badge: 0 },
-          { id: 'tech', label: t('aboutTechTab'), icon: Cpu, badge: 0 },
-          { id: 'contact', label: t('contactUsTab'), icon: Mail, badge: 0 },
-          { id: 'requests', label: t('myRequestsTab'), icon: MessageSquare, badge: MOCK_REQUESTS.length },
-        ] as const).map((tab) => (
+        {/* An admin has nowhere to send an inquiry — these messages land in
+            their own dashboard — so they get a route to that inbox instead of
+            a contact form and a personal request list. */}
+        {(isAdmin
+          ? [
+              { id: 'faqs' as const, label: t('faqsGuideTab'), icon: HelpCircle, badge: 0 },
+              { id: 'inbox' as const, label: ar ? 'رسائل المستخدمين' : 'User messages', icon: Inbox, badge: 0 },
+            ]
+          : [
+              { id: 'faqs' as const, label: t('faqsGuideTab'), icon: HelpCircle, badge: 0 },
+              { id: 'contact' as const, label: t('contactUsTab'), icon: Mail, badge: 0 },
+            ]
+        ).map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -130,37 +155,10 @@ export function HelpCenter() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('searchForAnswer')}
               className={cn(
-                'w-full py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent',
+                'w-full py-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-base sm:text-sm font-bold shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-accent',
                 dir === 'rtl' ? 'pr-14 pl-5 text-right' : 'pl-14 pr-5 text-left'
               )}
             />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <button
-              onClick={() => navigate('/map')}
-              className="official-card p-6 flex items-center gap-4 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all text-start"
-            >
-              <div className="w-12 h-12 shrink-0 rounded-2xl bg-accent/10 flex items-center justify-center text-accent">
-                <MapPin className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-primary dark:text-white tracking-tight mb-1">{t('smartNavigationCard')}</h3>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('smartNavigationCardDesc')}</p>
-              </div>
-            </button>
-            <button
-              onClick={() => navigate('/my-books?tab=badges')}
-              className="official-card p-6 flex items-center gap-4 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-accent dark:hover:border-accent transition-all text-start"
-            >
-              <div className="w-12 h-12 shrink-0 rounded-2xl bg-primary/10 dark:bg-white/10 flex items-center justify-center text-primary dark:text-white">
-                <Award className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-sm font-black text-primary dark:text-white tracking-tight mb-1">{t('pointsBadgesCard')}</h3>
-                <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed">{t('pointsBadgesCardDesc')}</p>
-              </div>
-            </button>
           </div>
 
           <div className="space-y-4">
@@ -172,8 +170,8 @@ export function HelpCenter() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredFaqs.map((item, idx) => {
-                  const isOpen = openFaqIndex === idx;
+                {filteredFaqs.map((item) => {
+                  const isOpen = openFaqKey === item.qKey;
                   const Icon = item.icon;
                   return (
                     <div
@@ -181,7 +179,8 @@ export function HelpCenter() {
                       className="official-card overflow-hidden bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm"
                     >
                       <button
-                        onClick={() => setOpenFaqIndex(isOpen ? null : idx)}
+                        onClick={() => setOpenFaqKey(isOpen ? null : item.qKey)}
+                        aria-expanded={isOpen}
                         className={cn('w-full p-5 flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}
                       >
                         <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
@@ -213,127 +212,115 @@ export function HelpCenter() {
         </div>
       )}
 
-      {activeTab === 'tech' && (
-        <div className="space-y-10 max-w-3xl mx-auto">
-          <div className="text-center space-y-3">
-            <h2 className="text-2xl font-black text-primary dark:text-white tracking-tight">{t('aboutTechHeroTitle')}</h2>
-            <p className="text-slate-400 dark:text-slate-500 font-bold leading-relaxed max-w-xl mx-auto">{t('aboutTechHeroDesc')}</p>
-          </div>
-
-          <div className="space-y-4">
-            {TECH_STAGES.map((stage, idx) => {
-              const Icon = stage.icon;
-              return (
-                <div
-                  key={stage.titleKey}
-                  className={cn('official-card p-6 flex items-start gap-5 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm', dir === 'rtl' ? 'flex-row-reverse text-right' : 'flex-row text-left')}
-                >
-                  <div className="relative shrink-0">
-                    <div className="w-14 h-14 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
-                      <Icon className="w-6 h-6" />
-                    </div>
-                    <span className="absolute -top-2 -end-2 w-6 h-6 rounded-full bg-accent text-primary text-[10px] font-black flex items-center justify-center border-2 border-white dark:border-slate-900">
-                      {idx + 1}
-                    </span>
-                  </div>
-                  <div className="space-y-1.5">
-                    <h3 className="text-sm font-black text-primary dark:text-white tracking-tight">{t(stage.titleKey)}</h3>
-                    <p className="text-[12px] text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">{t(stage.descKey)}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="official-card p-6 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm space-y-4">
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.3em]">{t('poweredByLabel')}</span>
-            <div className="flex flex-wrap gap-2.5">
-              {['MindAR', 'AR.js', 'Three.js', 'Google Gemini', 'QR Code'].map((tech) => (
-                <span key={tech} className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 text-[11px] font-black text-slate-600 dark:text-slate-300">
-                  {tech}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={() => navigate('/ar')}
-            className="w-full py-5 bg-accent text-primary rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 hover:brightness-110 shadow-sm transition-all active:scale-95"
-          >
-            <ScanLine className="w-4 h-4" />
-            {t('startScanningLabel')}
-          </button>
-        </div>
-      )}
 
       {activeTab === 'contact' && (
         <div className="official-card p-8 md:p-10 max-w-xl mx-auto bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm space-y-6">
           <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">{t('contactUsDesc')}</p>
 
-          {contactSent ? (
+          {contactState === 'sent' ? (
             <div className="p-6 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 rounded-2xl flex items-center gap-3">
               <CheckCircle2 className="w-6 h-6 text-emerald-500 shrink-0" />
               <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{t('messageSentSuccess')}</p>
             </div>
           ) : (
             <form onSubmit={handleContactSubmit} className="space-y-4">
-              <input
-                type="text"
-                required
-                value={contactName}
-                onChange={(e) => setContactName(e.target.value)}
-                placeholder={t('yourName')}
-                className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-              <input
-                type="email"
-                required
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder={t('yourEmail')}
-                className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-              <textarea
-                required
-                rows={4}
-                value={contactMessage}
-                onChange={(e) => setContactMessage(e.target.value)}
-                placeholder={t('yourMessage')}
-                className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent resize-none"
-              />
+              <div className="space-y-1.5">
+                <label htmlFor="contact-name" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">{t('yourName')}</label>
+                <input
+                  id="contact-name"
+                  type="text"
+                  required
+                  autoComplete="name"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder={t('yourName')}
+                  className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-base sm:text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="contact-email" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">{t('yourEmail')}</label>
+                <input
+                  id="contact-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  dir="ltr"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder={t('yourEmail')}
+                  className={cn('w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-base sm:text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent', dir === 'rtl' ? 'text-right' : 'text-left')}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="contact-message" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest px-1">{t('yourMessage')}</label>
+                <textarea
+                  id="contact-message"
+                  required
+                  rows={4}
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  placeholder={t('yourMessage')}
+                  className="w-full py-4 px-5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-2xl text-base sm:text-sm font-bold transition-all focus:outline-none focus:ring-2 focus:ring-accent resize-none"
+                />
+              </div>
+
+              {contactState === 'error' && (
+                <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/40 rounded-2xl flex items-center gap-3" role="alert">
+                  <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+                  <p className="text-xs font-bold text-red-700 dark:text-red-300">{t('messageSendFailed')}</p>
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95"
+                disabled={contactState === 'sending'}
+                className="w-full py-4 bg-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Send className="w-4 h-4" />
-                {t('sendMessage')}
+                <Send className={cn('w-4 h-4', contactState === 'sending' && 'animate-pulse')} />
+                {contactState === 'sending' ? t('sendingMessage') : t('sendMessage')}
               </button>
             </form>
           )}
         </div>
       )}
 
-      {activeTab === 'requests' && (
+      {activeTab === 'inbox' && (
         <div className="official-card p-8 md:p-10 max-w-xl mx-auto bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm space-y-6">
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">{t('myRequestsDesc')}</p>
-          <div className="space-y-3">
-            {MOCK_REQUESTS.map((req) => (
-              <div key={req.id} className={cn('flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-white/5', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : 'flex-row')}>
-                  <div className="w-9 h-9 rounded-xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
-                    <Mail className="w-4 h-4" />
-                  </div>
-                  <span className="text-sm font-bold text-primary dark:text-white">#{req.id.toUpperCase()}</span>
-                </div>
-                <span className="flex items-center gap-1.5 text-[10px] font-black text-amber-600 bg-amber-50 dark:bg-amber-950/30 dark:text-amber-400 px-3 py-1.5 rounded-lg uppercase tracking-widest">
-                  <Clock className="w-3 h-3" />
-                  {t('requestStatusPending')}
-                </span>
-              </div>
-            ))}
+          <div className={cn('flex items-start gap-4', dir === 'rtl' ? 'flex-row-reverse text-right' : '')}>
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent shrink-0">
+              <ShieldCheck className="w-6 h-6" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-base font-black text-primary dark:text-white leading-snug">
+                {ar ? 'أنت تدير هذه الرسائل، لا ترسلها' : 'You handle these messages, you don’t send them'}
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 font-semibold leading-relaxed">
+                {ar
+                  ? 'نموذج «تواصل معنا» مخصص للطلاب، وما يُرسل منه يصل إلى تبويب الملاحظات في لوحة التحكم — وهو نفسه صندوق واردك.'
+                  : 'The contact form belongs to students, and what they send lands in the feedback tab of the dashboard — which is your inbox.'}
+              </p>
+            </div>
           </div>
+
+          <button
+            onClick={() => navigate('/admin?tab=feedback')}
+            className={cn(
+              'w-full py-4 bg-primary dark:bg-accent text-white dark:text-primary rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:brightness-110 transition-all active:scale-95',
+            )}
+          >
+            <Inbox className="w-4 h-4" />
+            {ar ? 'افتح رسائل المستخدمين' : 'Open user messages'}
+            <ArrowLeft className={cn('w-4 h-4', ar ? '' : 'rotate-180')} />
+          </button>
+
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 font-bold leading-relaxed text-center">
+            {ar
+              ? 'للأعطال التقنية في النظام نفسه، راجع تبويب «عن التقنية» أعلاه أو تواصل مع مزوّد النظام.'
+              : 'For faults in the system itself, see the “About the technology” tab above or contact the system provider.'}
+          </p>
         </div>
       )}
+
     </div>
   );
 }

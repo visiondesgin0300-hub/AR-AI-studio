@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   ArrowLeft,
-  Search as SearchIcon,
-  Map as MapIcon,
   BookOpen,
   GraduationCap,
   ShieldAlert,
@@ -12,17 +10,15 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Sparkles,
-  UserCheck,
   Globe,
   User as UserIcon,
   UserPlus
 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { MOCK_USERS } from '../data/mockData';
 import { User } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
+import { LoginTabs } from '../components/LoginTabs';
 
 interface LoginProps {
   onLogin: (user: User) => void;
@@ -30,48 +26,49 @@ interface LoginProps {
 
 export function Login({ onLogin }: LoginProps) {
   const { t, dir, language, toggleLanguage } = useLanguage();
-  const [role, setRole] = useState<'student' | 'admin'>('student');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showCreateAccountNotice, setShowCreateAccountNotice] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [newName, setNewName]       = useState('');
+  const [newEmail, setNewEmail]     = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [createError, setCreateError] = useState('');
 
   const navigate = useNavigate();
 
-  // Get matching mock users for quick access based on selected role
-  const quickAccessProfiles = MOCK_USERS.filter(u => u.role === role);
-
-  const handleGuestAccess = () => {
-    const guestUser: User = {
-      id: `guest_${Date.now()}`,
-      name: language === 'ar' ? 'ضيف' : 'Guest',
-      email: 'guest@arlibrary.demo',
+  const handleCreateAccount = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreateError('');
+    if (!newName.trim()) {
+      setCreateError(language === 'ar' ? 'الرجاء إدخال الاسم' : 'Please enter your name');
+      return;
+    }
+    if (!newEmail.trim()) {
+      setCreateError(language === 'ar' ? 'الرجاء إدخال البريد الإلكتروني' : 'Please enter your email');
+      return;
+    }
+    if (!newPassword) {
+      setCreateError(language === 'ar' ? 'الرجاء إدخال كلمة المرور' : 'Please enter a password');
+      return;
+    }
+    const newUser: User = {
+      id: `user_${Date.now()}`,
+      name: newName.trim(),
+      email: newEmail.trim(),
       role: 'student',
       borrowedBooks: [],
       totalReadCount: 0,
       points: 0,
       badges: [],
     };
-    onLogin(guestUser);
+    onLogin(newUser);
     navigate('/');
   };
 
-  const handleProfileClick = (profile: User) => {
-    setEmail(profile.email);
-    setPassword('••••••••');
-    setError('');
-    
-    setIsLoading(true);
-    setTimeout(() => {
-      onLogin(profile);
-      setIsLoading(false);
-      navigate(profile.role === 'admin' ? '/admin' : '/');
-    }, 800);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -85,58 +82,52 @@ export function Login({ onLogin }: LoginProps) {
     }
 
     setIsLoading(true);
+    try {
+      // The server decides whether the credentials are valid and what role the
+      // account has. Nothing here invents a user, and the role selector above
+      // no longer grants anything — picking "Admin" cannot make you one.
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
 
-    setTimeout(() => {
-      const foundUser = MOCK_USERS.find(
-        u => u.email.toLowerCase() === email.toLowerCase() && u.role === role
-      );
-
-      if (foundUser) {
-        onLogin(foundUser);
-        setIsLoading(false);
-        navigate(foundUser.role === 'admin' ? '/admin' : '/');
-      } else {
-        const userWithWrongRole = MOCK_USERS.find(
-          u => u.email.toLowerCase() === email.toLowerCase()
-        );
-
-        if (userWithWrongRole) {
-          setError(
-            language === 'ar' 
-              ? `هذا الحساب مسجل كـ ${userWithWrongRole.role === 'admin' ? 'مسؤول' : 'مستخدم'}. يرجى تغيير نوع الحساب المختار فوق.` 
-              : `This account is registered as ${userWithWrongRole.role === 'admin' ? 'Admin' : 'User'}. Please change the account type above.`
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        const dynamicUser: User = {
-          id: `dynamic_${Date.now()}`,
-          name: email.split('@')[0].split('.')[0].replace(/^\w/, c => c.toUpperCase()) || (role === 'admin' ? 'Specialist' : 'User'),
-          email: email,
-          role: role,
-          borrowedBooks: [],
-          totalReadCount: 0,
-          points: 100,
-          badges: role === 'admin' ? ['مشرف جديد'] : ['قارئ جديد']
-        };
-
-        onLogin(dynamicUser);
-        setIsLoading(false);
-        navigate(dynamicUser.role === 'admin' ? '/admin' : '/');
+      if (res.status === 429) {
+        setError(language === 'ar'
+          ? 'محاولات كثيرة. انتظر دقيقة ثم حاول مرة أخرى.'
+          : 'Too many attempts. Please wait a minute and try again.');
+        return;
       }
-    }, 600);
+      if (!res.ok) {
+        setError(language === 'ar'
+          ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+          : 'Incorrect email or password.');
+        return;
+      }
+
+      const { user, token } = await res.json();
+      try { sessionStorage.setItem('library_token', token); } catch { /* private mode */ }
+      onLogin(user);
+      navigate(user.role === 'admin' ? '/admin' : '/');
+    } catch (err) {
+      console.error('Login request failed', err);
+      setError(language === 'ar'
+        ? 'تعذّر الاتصال بالخادم. تحقق من اتصالك وحاول مجدداً.'
+        : 'Could not reach the server. Check your connection and try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className={cn("min-h-screen flex items-center justify-center p-4 md:p-8 bg-bg-light dark:bg-slate-950 relative overflow-hidden font-sans", dir === 'rtl' ? 'text-right' : 'text-left')}>
+    <div className={cn("min-h-screen flex items-center justify-center px-4 pt-24 pb-8 md:p-8 bg-bg-light dark:bg-slate-950 relative overflow-hidden font-sans", dir === 'rtl' ? 'text-right' : 'text-left')}>
 
       {/* LANGUAGE SWITCHER */}
       <div className={cn("absolute top-6 z-20", dir === 'rtl' ? 'left-6' : 'right-6')}>
         <button
           type="button"
           onClick={toggleLanguage}
-          className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-750 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
         >
           <Globe className="w-3.5 h-3.5 text-[#D7C826] animate-spin-slow" />
           <span>{language === 'ar' ? 'English' : 'العربية'}</span>
@@ -148,7 +139,7 @@ export function Login({ onLogin }: LoginProps) {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex items-center gap-2 px-4 py-2 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-750 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
+          className="flex items-center gap-2 px-4 py-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-widest hover:bg-[#004C6D]/10 hover:text-[#004C6D] dark:hover:text-[#D7C826] shadow-lg shadow-black/[0.04] border border-white/20 dark:border-white/5 transition-all cursor-pointer active:scale-95"
         >
           {dir === 'rtl' ? <ArrowRight className="w-3.5 h-3.5" /> : <ArrowLeft className="w-3.5 h-3.5" />}
           <span>{language === 'ar' ? 'رجوع' : 'Back'}</span>
@@ -178,46 +169,16 @@ export function Login({ onLogin }: LoginProps) {
             <h2 className="text-3xl font-black text-[#004C6D] dark:text-white tracking-tight leading-relaxed">{t('smartLibraryTitle')}</h2>
             <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.25em] leading-relaxed">{t('smartKnowledgePortal')}</div>
           </div>
-          <p className="text-xs text-slate-550 dark:text-slate-400 mt-3 font-medium max-w-sm mx-auto leading-relaxed">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-3 font-medium max-w-sm mx-auto leading-relaxed">
             {t('loginDescription')}
           </p>
           <div className="w-12 h-1 bg-[#D7C826] mx-auto rounded-full mt-4"></div>
         </div>
 
-        {/* Role Selection Tabs (Deep Teal and Gold highlight) */}
-        <div className="mb-6">
-          <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 text-center">
-            {t('selectRole')}
-          </label>
-          <div className="grid grid-cols-2 gap-2.5 p-1 bg-slate-100 dark:bg-slate-800/60 rounded-2xl">
-            <button
-              type="button"
-              onClick={() => { setRole('student'); setError(''); }}
-              className={cn(
-                "py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer border border-transparent",
-                role === 'student' 
-                  ? "bg-white dark:bg-slate-900 text-[#004C6D] dark:text-[#D7C826] shadow-md shadow-black/[0.04] ring-2 ring-[#99d6ea] border-[#99d6ea]" 
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-              )}
-            >
-              <UserIcon className={cn("w-4.5 h-4.5 transition-all duration-300", role === 'student' ? "text-[#99d6ea] scale-110 drop-shadow-[0_0_5px_rgba(153,214,234,0.8)]" : "text-slate-400")} />
-              <span>{t('studentRole')}</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => { setRole('admin'); setError(''); }}
-              className={cn(
-                "py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer border border-transparent",
-                role === 'admin' 
-                  ? "bg-white dark:bg-slate-900 text-[#004C6D] dark:text-[#D7C826] shadow-md shadow-black/[0.04] ring-2 ring-[#99d6ea] border-[#99d6ea]" 
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
-              )}
-            >
-              <UserCheck className={cn("w-4.5 h-4.5 transition-all duration-300", role === 'admin' ? "text-[#99d6ea] scale-110 drop-shadow-[0_0_5px_rgba(153,214,234,0.8)]" : "text-slate-400")} />
-              <span>{t('adminRole')}</span>
-            </button>
-          </div>
-        </div>
+        {/* Two doors, clearly labelled. Note this only navigates between the
+            two sign-in pages — unlike the role picker that used to sit here,
+            it has no say in what role the server hands back. */}
+        <LoginTabs active="student" />
 
         {/* Form Fields */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -234,7 +195,7 @@ export function Login({ onLogin }: LoginProps) {
 
           {/* Email */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+            <label htmlFor="login-email" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
               {t('emailAddress')}
             </label>
             <div className="relative">
@@ -242,12 +203,14 @@ export function Login({ onLogin }: LoginProps) {
                 <Mail className="w-4.5 h-4.5" />
               </div>
               <input
+                id="login-email"
                 type="email"
-                placeholder={role === 'admin' ? "fatima@example.com" : "sarah@example.com"}
+                autoComplete="email"
+                placeholder="user01@arlibrary.test"
                 value={email}
                 onChange={(e) => { setEmail(e.target.value); setError(''); }}
                 className={cn(
-                  "w-full bg-[#E5E1E6]/40 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl py-4 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all duration-300",
+                  "w-full bg-[#E5E1E6]/40 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl py-4 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all duration-300",
                   dir === 'rtl' ? "pr-12 pl-4 text-right" : "pl-12 pr-4 text-left"
                 )}
               />
@@ -256,7 +219,7 @@ export function Login({ onLogin }: LoginProps) {
 
           {/* Password */}
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
+            <label htmlFor="login-password" className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest block">
               {t('passwordLabel')}
             </label>
             <div className="relative">
@@ -264,18 +227,22 @@ export function Login({ onLogin }: LoginProps) {
                 <Lock className="w-4.5 h-4.5" />
               </div>
               <input
+                id="login-password"
                 type={showPassword ? "text" : "password"}
+                autoComplete="current-password"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => { setPassword(e.target.value); setError(''); }}
                 className={cn(
-                  "w-full bg-[#E5E1E6]/40 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl py-4 text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all duration-300",
+                  "w-full bg-[#E5E1E6]/40 dark:bg-slate-950 text-slate-800 dark:text-white rounded-2xl py-4 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all duration-300",
                   dir === 'rtl' ? "pr-12 pl-12 text-right" : "pl-12 pr-12 text-left"
                 )}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? t('hidePassword') : t('showPassword')}
+                aria-pressed={showPassword}
                 className={cn("absolute inset-y-0 flex items-center px-4 text-slate-400 hover:text-[#004C6D] dark:hover:text-[#D7C826] cursor-pointer", dir === 'rtl' ? 'left-0' : 'right-0')}
               >
                 {showPassword ? <EyeOff className="w-4.5 h-4.5" /> : <Eye className="w-4.5 h-4.5" />}
@@ -293,7 +260,9 @@ export function Login({ onLogin }: LoginProps) {
               <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
             ) : (
               <>
-                <span>{t('loginBtn')} ({role === 'admin' ? t('adminRole') : t('studentRole')})</span>
+                {/* No role in the label — the account's role comes from the
+                    server, so promising to sign in "as Admin" would be a lie. */}
+                <span>{t('loginBtn')}</span>
                 {dir === 'rtl' ? <ArrowLeft className="w-4 h-4 text-[#D7C826] dark:text-[#004C6D]" /> : <ArrowRight className="w-4 h-4 text-[#D7C826] dark:text-[#004C6D]" />}
               </>
             )}
@@ -302,96 +271,97 @@ export function Login({ onLogin }: LoginProps) {
 
         {/* Create account / guest access links */}
         <div className="mt-6 space-y-3 text-center">
-          <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-            <span>{t('noAccountPrompt')} </span>
-            <button
-              type="button"
-              onClick={() => setShowCreateAccountNotice(true)}
-              className="inline-flex items-center gap-1.5 text-[#004C6D] dark:text-[#D7C826] font-black hover:underline cursor-pointer"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              {t('createNewAccount')}
-            </button>
-          </div>
-          {showCreateAccountNotice && (
-            <motion.p
-              initial={{ opacity: 0, y: -4 }}
+          {(
+            <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <span>{t('noAccountPrompt')} </span>
+              <button
+                type="button"
+                onClick={() => { setShowCreateForm(!showCreateForm); setCreateError(''); }}
+                className="inline-flex items-center gap-1.5 py-3 px-1 text-[#004C6D] dark:text-[#D7C826] font-black hover:underline cursor-pointer"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                {t('createNewAccount')}
+              </button>
+            </div>
+          )}
+
+          {showCreateForm && (
+            <motion.form
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-[10px] font-bold text-slate-400 dark:text-slate-500"
+              onSubmit={handleCreateAccount}
+              className="space-y-3 p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200/60 dark:border-white/5"
             >
-              {t('createAccountComingSoon')}
-            </motion.p>
+              {createError && (
+                <p className={cn("text-[10px] font-bold text-red-600 dark:text-red-400", dir === 'rtl' ? 'text-right' : 'text-left')}>
+                  {createError}
+                </p>
+              )}
+              <div className="relative">
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-[#004C6D] dark:text-slate-500", dir === 'rtl' ? 'right-3' : 'left-3')}>
+                  <UserIcon className="w-4 h-4" />
+                </div>
+                <input
+                  type="text"
+                  autoComplete="name"
+                  aria-label={language === 'ar' ? 'الاسم الكامل' : 'Full name'}
+                  placeholder={language === 'ar' ? 'الاسم الكامل' : 'Full name'}
+                  value={newName}
+                  onChange={(e) => { setNewName(e.target.value); setCreateError(''); }}
+                  className={cn(
+                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
+                    dir === 'rtl' ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
+                  )}
+                />
+              </div>
+              <div className="relative">
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-[#004C6D] dark:text-slate-500", dir === 'rtl' ? 'right-3' : 'left-3')}>
+                  <Mail className="w-4 h-4" />
+                </div>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  aria-label={language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+                  placeholder={language === 'ar' ? 'البريد الإلكتروني' : 'Email'}
+                  value={newEmail}
+                  onChange={(e) => { setNewEmail(e.target.value); setCreateError(''); }}
+                  className={cn(
+                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
+                    dir === 'rtl' ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
+                  )}
+                />
+              </div>
+              <div className="relative">
+                <div className={cn("absolute inset-y-0 flex items-center pointer-events-none text-[#004C6D] dark:text-slate-500", dir === 'rtl' ? 'right-3' : 'left-3')}>
+                  <Lock className="w-4 h-4" />
+                </div>
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  aria-label={language === 'ar' ? 'كلمة المرور' : 'Password'}
+                  placeholder="••••••••"
+                  value={newPassword}
+                  onChange={(e) => { setNewPassword(e.target.value); setCreateError(''); }}
+                  className={cn(
+                    "w-full bg-white dark:bg-slate-900 text-slate-800 dark:text-white rounded-xl py-3 text-base sm:text-xs font-semibold border border-slate-200 dark:border-white/5 focus:outline-none focus:ring-2 focus:ring-[#004C6D]/20 focus:border-[#004C6D] transition-all",
+                    dir === 'rtl' ? "pr-10 pl-3 text-right" : "pl-10 pr-3 text-left"
+                  )}
+                />
+              </div>
+              <button
+                type="submit"
+                className="w-full bg-[#D7C826] text-[#004C6D] py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer"
+              >
+                {language === 'ar' ? 'إنشاء الحساب' : 'Create Account'}
+              </button>
+            </motion.form>
           )}
         </div>
 
-        {/* Quick Demo Access Options */}
-        <div className="mt-8 pt-6 border-t border-slate-150/60 dark:border-white/5">
-          <div className="flex items-center justify-between mb-4">
-             <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center gap-1.5 font-bold">
-               <Sparkles className="w-3.5 h-3.5 text-[#D7C826] animate-pulse" />
-               {t('quickAccessDemo')}
-             </span>
-             <span className="text-[9px] font-bold text-[#004C6D] dark:text-[#D7C826] bg-[#004C6D]/5 dark:bg-[#D7C826]/10 px-2 py-0.5 rounded-lg border border-[#004C6D]/10 dark:border-[#D7C826]/20">
-               Demo accounts
-             </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {quickAccessProfiles.map((profile) => (
-              <button
-                key={profile.id}
-                type="button"
-                onClick={() => handleProfileClick(profile)}
-                disabled={isLoading}
-                className="group flex items-center justify-between p-3.5 bg-slate-50/70 dark:bg-slate-950/60 hover:bg-slate-100 dark:hover:bg-slate-800/40 rounded-2xl text-left border border-slate-150/50 dark:border-white/5 transition-all text-sm font-semibold hover:scale-[1.02] active:scale-95 disabled:pointer-events-none cursor-pointer"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-[#004C6D] group-hover:bg-[#D7C826] text-white group-hover:text-[#004C6D] flex items-center justify-center text-xs font-black shadow-sm transition-colors duration-300">
-                    {profile.name.charAt(0)}
-                  </div>
-                  <div className="overflow-hidden">
-                    <h4 className="text-xs font-black text-slate-800 dark:text-slate-200 leading-tight group-hover:text-[#004C6D] dark:group-hover:text-[#D7C826] transition-colors">
-                      {profile.name}
-                    </h4>
-                    <span className="text-[9px] text-slate-400 dark:text-slate-500 truncate block max-w-[130px]">
-                      {profile.email}
-                    </span>
-                  </div>
-                </div>
-                {dir === 'rtl' ? (
-                  <ArrowLeft className="w-4 h-4 text-slate-400 group-hover:-translate-x-1 transition-transform group-hover:text-[#004C6D] dark:group-hover:text-[#D7C826]" />
-                ) : (
-                  <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform group-hover:text-[#004C6D] dark:group-hover:text-[#D7C826]" />
-                )}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Access Technology features panel */}
-        <div className="flex flex-col gap-3 pt-6 mt-6 border-t border-slate-150/60 dark:border-white/5 max-w-sm mx-auto">
-          <div className="text-center">
-             <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('accessTech')}</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-             <div className="official-card py-2.5 px-1.5 flex flex-col items-center gap-1.5 bg-slate-50/50 dark:bg-slate-800/30 border-none transition-transform hover:scale-105">
-               <SearchIcon className="w-3.5 h-3.5 text-[#004C6D] dark:text-white" />
-               <span className="text-[8px] font-black text-slate-600 dark:text-white uppercase truncate max-w-full">{t('searchTitle')}</span>
-             </div>
-             <div className="official-card py-2.5 px-1.5 flex flex-col items-center gap-1.5 bg-slate-50/50 dark:bg-slate-800/30 border-none transition-transform hover:scale-105">
-               <MapIcon className="w-3.5 h-3.5 text-[#004C6D] dark:text-white" />
-               <span className="text-[8px] font-black text-slate-600 dark:text-white uppercase truncate max-w-full">{t('mapTitle')}</span>
-             </div>
-             <div className="official-card py-2.5 px-1.5 flex flex-col items-center gap-1.5 bg-slate-50/50 dark:bg-slate-800/30 border-none transition-transform hover:scale-105">
-               <BookOpen className="w-3.5 h-3.5 text-[#004C6D] dark:text-white" />
-               <span className="text-[8px] font-black text-slate-600 dark:text-white uppercase truncate max-w-full">{t('myBooksTitle')}</span>
-             </div>
-          </div>
-        </div>
 
         {/* Footer info/copyright */}
         <div className="mt-8 text-center">
-           <p className="text-[9px] text-slate-350 dark:text-slate-600 font-bold uppercase tracking-widest">{t('copyright')}</p>
+           <p className="text-[9px] text-slate-300 dark:text-slate-600 font-bold uppercase tracking-widest">{t('copyright')}</p>
         </div>
       </motion.div>
     </div>

@@ -1,613 +1,342 @@
 import React, { useState, useMemo } from 'react';
-import { User, Book } from '../types';
+import { User } from '../types';
 import { MOCK_BOOKS } from '../data/mockData';
 import {
-  Award, BookOpen, Clock, ChevronLeft, MapPin, Calendar, Heart,
-  Map as MapIcon, ArrowDown, ArrowUp, Zap,
-  TrendingUp, BarChart3, PieChart, Activity, User as UserIcon,
-  Navigation, Flame, Target, BookMarked, Timer, Lock, CheckCircle2,
-  Search, Star, Compass, GraduationCap, Trophy
+  Award, BookOpen, Clock,
+  User as UserIcon,
+  Navigation, Flame, Target, BookMarked, Timer,
+  Trophy, ArrowDown, ArrowUp, ChevronRight,
 } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn, getUserLevel, getEarnedBadges } from '../lib/utils';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Cell, AreaChart, Area
-} from 'recharts';
+import { cn, getEarnedBadges, displayName, bookTitle, bookAuthor } from '../lib/utils';
+import { useXP } from '../hooks/useXP';
 import { useLanguage } from '../hooks/useLanguage';
 import { BookCover } from '../components/BookCover';
+import { BadgesCabinet } from '../components/BadgesCabinet';
 
-interface MyBooksProps {
-  user: User;
-}
-
-const BADGE_COLOR_MAP: Record<string, string> = {
-  emerald: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400',
-  amber:   'bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400',
-  blue:    'bg-blue-50 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-400',
-  purple:  'bg-purple-50 dark:bg-purple-950/40 border-purple-200 dark:border-purple-800 text-purple-700 dark:text-purple-400',
-  cyan:    'bg-cyan-50 dark:bg-cyan-950/40 border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-400',
-  rose:    'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-400',
-};
-
-const BADGE_ICON_COLOR: Record<string, string> = {
-  emerald: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  amber:   'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  blue:    'bg-blue-500/10 text-blue-600 dark:text-blue-400',
-  purple:  'bg-purple-500/10 text-purple-600 dark:text-purple-400',
-  cyan:    'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
-  rose:    'bg-rose-500/10 text-rose-600 dark:text-rose-400',
-};
+interface MyBooksProps { user: User }
 
 export function MyBooks({ user }: MyBooksProps) {
   const navigate = useNavigate();
-  const location = useLocation();
-  const searchParams = new URLSearchParams(location.search);
-  const tabParam = searchParams.get('tab');
-
-  const [activeTab, setActiveTab] = useState<'books' | 'achievements'>(
-    tabParam === 'badges' ? 'achievements' : 'books'
-  );
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
-  const [activeStatTab, setActiveStatTab] = useState<'weekly' | 'categories'>('weekly');
   const { t, language, dir } = useLanguage();
+  const ar = language === 'ar';
 
-  const dayMap: Record<string, string> = {
-    'السبت': t('saturday'),
-    'الأحد': t('sunday'),
-    'الاثنين': t('monday'),
-    'الثلاثاء': t('tuesday'),
-    'الأربعاء': t('wednesday'),
-    'الخميس': t('thursday'),
-    'الجمعة': t('friday'),
+  const [activeTab, setActiveTab]         = useState<'books' | 'achievements'>('books');
+  const [sortOrder, setSortOrder]         = useState<'newest' | 'oldest'>('newest');
+  const earnedBadges = getEarnedBadges(user);
+  const xp           = useXP();
+  const xpInLevel    = xp % 100;
+  const xpToNext     = 100 - xpInLevel;
+
+  const catLabel: Record<string, string> = {
+    'فيزياء': t('physics'), 'هندسة': t('engineering'),
+    'علم نفس': t('psychology'), 'عام': t('general'),
   };
 
-  const READING_ACTIVITY = useMemo(() => [
-    { day: dayMap['السبت'], pages: 45, duration: 1.2 },
-    { day: dayMap['الأحد'], pages: 52, duration: 1.5 },
-    { day: dayMap['الاثنين'], pages: 38, duration: 0.8 },
-    { day: dayMap['الثلاثاء'], pages: 65, duration: 2.1 },
-    { day: dayMap['الأربعاء'], pages: 48, duration: 1.4 },
-    { day: dayMap['الخميس'], pages: 70, duration: 2.5 },
-    { day: dayMap['الجمعة'], pages: 95, duration: 3.2 },
-  ], [t, language]);
-
-  const categoryTranslationMap: Record<string, string> = {
-    'فيزياء': t('physics'),
-    'هندسة': t('engineering'),
-    'علم نفس': t('psychology'),
-    'عام': t('general')
-  };
-
-  const badgeTranslationMap: Record<string, { title: string; desc: string; icon: React.FC<{ className?: string }>; color: string }> = {
-    'باحث':   { title: t('badgeResearcher'),   desc: t('badgeResearcherDesc'),   icon: Search,         color: 'emerald' },
-    'متميز':  { title: t('badgeDistinguished'), desc: t('badgeDistinguishedDesc'), icon: Star,           color: 'amber'   },
-    'مستكشف': { title: t('badgeExplorer'),      desc: t('badgeExplorerDesc'),      icon: Compass,        color: 'blue'    },
-  };
-
-  const lockedBadges: { key: string; title: string; desc: string; icon: React.FC<{ className?: string }>; color: string }[] = [
-    { key: 'قارئ',   title: t('badgeAvid'),      desc: t('badgeAvidDesc'),      icon: BookOpen,      color: 'purple' },
-    { key: 'ملاح',   title: t('badgeNavigator'),  desc: t('badgeNavigatorDesc'),  icon: Navigation,    color: 'cyan'   },
-    { key: 'أكاديمي', title: t('badgeScholar'),   desc: t('badgeScholarDesc'),   icon: GraduationCap, color: 'rose'   },
-  ];
-
+  // ─── borrowed books ───────────────────────────────────────────────────────────
   const borrowedBooks = useMemo(() => {
-    const baseBooks = MOCK_BOOKS.filter(b => user.borrowedBooks.includes(b.id));
-    const withDates = baseBooks.map(book => {
-      const borrowDate = new Date(2024, 3, parseInt(book.id) * 5);
-      const returnDate = new Date(borrowDate.getTime() + 14 * 24 * 60 * 60 * 1000);
-      const now = new Date(2024, 3, 22);
-      const totalPeriod = returnDate.getTime() - borrowDate.getTime();
-      const elapsed = now.getTime() - borrowDate.getTime();
-      const timeLeftPercent = Math.max(0, Math.min(100, 100 - (elapsed / totalPeriod) * 100));
-      const daysLeft = Math.ceil((returnDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
-      const locale = language === 'ar' ? 'ar-EG' : 'en-US';
-      const localizedDateOptions: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
-      return {
-        ...book,
-        borrowDate: borrowDate.toLocaleDateString(locale, localizedDateOptions),
-        returnDate: returnDate.toLocaleDateString(locale, localizedDateOptions),
-        borrowTimestamp: borrowDate.getTime(),
-        timeLeftPercent,
-        daysLeft,
-        readingProgress: Math.floor(Math.random() * 60) + 20
-      };
-    });
-    return withDates.sort((a, b) =>
-      sortOrder === 'newest' ? b.borrowTimestamp - a.borrowTimestamp : a.borrowTimestamp - b.borrowTimestamp
-    );
+    return MOCK_BOOKS.filter(b => user.borrowedBooks.includes(b.id))
+      .map(book => {
+        const borrow  = new Date(2024, 3, parseInt(book.id) * 5);
+        const ret     = new Date(borrow.getTime() + 14 * 86400000);
+        const now     = new Date(2024, 3, 22);
+        const daysLeft = Math.ceil((ret.getTime() - now.getTime()) / 86400000);
+        const locale  = ar ? 'ar-EG' : 'en-US';
+        const fmt: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
+        return {
+          ...book,
+          returnDate: ret.toLocaleDateString(locale, fmt),
+          borrowTs:   borrow.getTime(),
+          daysLeft,
+          progress:   ((parseInt(book.id) * 13) % 61) + 20,
+        };
+      })
+      .sort((a, b) => sortOrder === 'newest' ? b.borrowTs - a.borrowTs : a.borrowTs - b.borrowTs);
   }, [user.borrowedBooks, sortOrder, language]);
 
-  const earnedBadges = getEarnedBadges(user);
-
-  const journeyStats = useMemo(() => {
-    const totalHours = borrowedBooks.reduce((sum, b) => sum + Math.round((b.readingProgress / 100) * 6), 0);
-    const streak = 7 + Math.floor(user.points / 200);
-    const semesterGoal = 10;
-    return {
-      totalBooks: user.borrowedBooks.length + 3,
-      hours: totalHours + 12,
-      streak,
-      semesterGoal,
-      earnedCount: earnedBadges.length,
-    };
-  }, [borrowedBooks, user.points, user.borrowedBooks.length, earnedBadges.length]);
-
-  const categoryStats = useMemo(() => {
-    const counts: Record<string, number> = {};
-    borrowedBooks.forEach(b => {
-      const localizedCat = categoryTranslationMap[b.category] || b.category;
-      counts[localizedCat] = (counts[localizedCat] || 0) + 1;
-    });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [borrowedBooks]);
+  const stats = {
+    books:    user.borrowedBooks.length,
+    hours:    borrowedBooks.reduce((s, b) => s + Math.round((b.progress / 100) * 6), 0),
+    streak:   7 + Math.floor(xp / 200),
+    badges:   earnedBadges.length,
+  };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10 animate-in fade-in duration-700 pb-20">
-      {/* Profile Cover Header */}
-      <section className="relative h-[300px] rounded-[3rem] overflow-hidden shadow-2xl group">
-        <div className="absolute inset-0 bg-primary">
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
-          <div className="absolute inset-0 bg-gradient-to-t from-primary via-primary/50 to-transparent"></div>
-        </div>
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.1, 0.2, 0.1] }}
-          transition={{ duration: 20, repeat: Infinity }}
-          className={cn("absolute -top-20 w-96 h-96 bg-accent dark:bg-accent/40 rounded-full blur-[100px]", dir === 'rtl' ? '-right-20' : '-left-20')}
-        />
-        <div className={cn("absolute inset-0 flex flex-col md:flex-row items-end gap-8 p-10 md:p-14", dir === 'rtl' ? 'text-right' : 'text-left')}>
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-32 h-32 md:w-40 md:h-40 bg-white dark:bg-slate-900 rounded-[2.5rem] flex items-center justify-center border-8 border-white/20 dark:border-slate-800/20 shadow-2xl relative shrink-0"
-          >
-            <span className="text-5xl md:text-6xl font-black text-primary dark:text-white uppercase">{user.name.charAt(0)}</span>
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className={cn("absolute -bottom-2 w-10 h-10 bg-emerald-500 border-4 border-white dark:border-slate-900 rounded-full flex items-center justify-center", dir === 'rtl' ? '-right-2' : '-left-2')}
-            >
-              <Zap className="w-5 h-5 text-white fill-white" />
-            </motion.div>
-          </motion.div>
+    <div dir={dir} className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-5xl mx-auto pb-20">
 
-          <div className="flex-1 space-y-3 mb-4 text-white">
-            <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
-              <div className="flex items-center gap-3 mb-1 flex-wrap">
-                <h2 className="text-4xl md:text-5xl font-black tracking-tight">{user.name}</h2>
-                <div className="bg-accent text-primary px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-xl">
-                  {t('level')} {getUserLevel(user.points)}
+      {/* ── Hero ──────────────────────────────────────────────────────────────── */}
+      <div className="relative overflow-hidden rounded-[2rem] bg-primary p-5 sm:p-8 md:p-10">
+        {/* decorations */}
+        <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-accent/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-12 -left-12 w-48 h-48 rounded-full bg-white/5 blur-2xl pointer-events-none" />
+
+        <div className="relative flex flex-col md:flex-row items-start md:items-end gap-8">
+          {/* avatar + name */}
+          <div className="flex items-center gap-5">
+            <div className="w-16 h-16 rounded-2xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
+              <span className="text-2xl font-black text-white uppercase">{displayName(user, language).charAt(0)}</span>
+            </div>
+            <div>
+              <div className={cn('flex items-center gap-2 flex-wrap', ar ? 'flex-row-reverse' : '')}>
+                <h1 className="text-2xl font-black text-white">{displayName(user, language)}</h1>
+              </div>
+              {/* The joining date used to be printed here as a fixed string. No
+                  account in the application carries one, so it was the same
+                  sentence for every reader whatever their account. */}
+              <p className="text-white/50 text-xs font-bold mt-1">{user.email}</p>
+            </div>
+          </div>
+
+          {/* Stats: two across on a phone. As a wrapping row each pill took a
+              line of its own, so four numbers filled the screen and pushed the
+              points bar out of sight. */}
+          <div className="w-full grid grid-cols-2 gap-2.5 sm:flex sm:flex-wrap sm:gap-3 md:ms-auto md:w-auto">
+            {[
+              { icon: BookMarked, label: t('journeyTotalBooks'),        value: stats.books   },
+              { icon: Timer,      label: t('journeyHours'),             value: stats.hours   },
+              { icon: Flame,      label: t('journeyStreak'),            value: stats.streak  },
+              { icon: Trophy,     label: t('journeyAchievementsCount'), value: stats.badges  },
+            ].map(({ icon: Icon, label, value }) => (
+              <div key={label} className="bg-white/8 border border-white/10 rounded-2xl px-3.5 sm:px-5 py-3 flex items-center gap-2.5 sm:gap-3 min-w-0 sm:shrink-0">
+                <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
+                  <Icon className="w-4 h-4 text-white/70" />
+                </div>
+                <div className="min-w-0">
+                  {/* Wraps rather than truncates: at two across, "Books in
+                      journey" was cut to "Books in the…". */}
+                  <div className="text-[9px] font-black text-white/50 uppercase tracking-widest leading-tight">{label}</div>
+                  <div className="text-lg font-black text-white leading-none mt-0.5">{value}</div>
                 </div>
               </div>
-              <p className="text-white/60 flex items-center gap-2 font-bold text-sm">
-                <Calendar className="w-4 h-4 text-accent" />
-                {t('activeMemberSince', { date: language === 'ar' ? 'سبتمبر ٢٠٢٤' : 'September 2024' })}
-              </p>
-            </motion.div>
-          </div>
-
-          <div className="hidden lg:flex gap-4 mb-4">
-            {earnedBadges.slice(0, 3).map((badge, i) => {
-              const def = badgeTranslationMap[badge];
-              return (
-                <motion.div
-                  initial={{ x: 20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 + i * 0.1 }}
-                  key={badge}
-                  className="bg-white/10 backdrop-blur-md border border-white/20 px-5 py-2 rounded-2xl flex items-center gap-3"
-                >
-                  <Award className="w-5 h-5 text-accent" />
-                  <span className="text-xs font-black text-white">{def?.title || badge}</span>
-                </motion.div>
-              );
-            })}
+            ))}
           </div>
         </div>
-      </section>
 
-      {/* Journey Stats (3 + achievements count) */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { icon: BookMarked, label: t('journeyTotalBooks'),       value: journeyStats.totalBooks,  color: 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-accent' },
-          { icon: Timer,      label: t('journeyHours'),            value: journeyStats.hours,        color: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400' },
-          { icon: Flame,      label: t('journeyStreak'),           value: journeyStats.streak,       color: 'bg-orange-500/10 text-orange-500 dark:bg-orange-500/20 dark:text-orange-400' },
-          { icon: Trophy,     label: t('journeyAchievementsCount'), value: journeyStats.earnedCount,  color: 'bg-amber-500/10 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400' },
-        ].map(({ icon: Icon, label, value, color }, idx) => (
-          <motion.div
-            key={label}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.05 }}
-            className="glass-panel p-6 bg-white/60 dark:bg-slate-900/60 border-white/60 dark:border-white/5 flex flex-col items-center gap-3 text-center"
-          >
-            <div className={cn('w-12 h-12 rounded-2xl flex items-center justify-center', color)}>
-              <Icon className="w-5 h-5" />
-            </div>
-            <div className="text-3xl font-black text-primary dark:text-white">{value}</div>
-            <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest leading-tight">{label}</div>
-          </motion.div>
-        ))}
-      </section>
+        {/* XP progress bar */}
+        <div className="relative mt-8 space-y-2">
+          <div className={cn('flex items-center justify-between text-[10px] font-black text-white/50 uppercase tracking-widest', ar ? 'flex-row-reverse' : '')}>
+            <span>{xp} XP</span>
+            <span>{xpToNext} XP {ar ? 'للنقطة التالية' : 'to go'}</span>
+          </div>
+          <div className="h-2 rounded-full bg-white/10 border border-white/5 overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: `${xpInLevel}%` }}
+              transition={{ duration: 1.4, ease: 'easeOut' }}
+              className="h-full bg-accent rounded-full shadow-[0_0_12px_rgba(217,179,16,0.5)]"
+            />
+          </div>
+        </div>
+      </div>
 
-      {/* Semester Goal */}
-      <section className="glass-panel p-7 bg-white/60 dark:bg-slate-900/60 border-white/60 dark:border-white/5">
-        <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-accent/20 rounded-xl flex items-center justify-center">
-              <Target className="w-5 h-5 text-accent" />
+      {/* ── Semester goal ─────────────────────────────────────────────────────── */}
+      <div className="official-card p-5 sm:p-6 bg-white dark:bg-slate-900 space-y-4">
+        <div className={cn('flex items-center justify-between gap-4 flex-wrap', ar ? 'flex-row-reverse' : '')}>
+          <div className={cn('flex items-center gap-3', ar ? 'flex-row-reverse' : '')}>
+            <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center">
+              <Target className="w-4.5 h-4.5 text-accent" />
             </div>
-            <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
+            <div>
               <div className="text-sm font-black text-primary dark:text-white">{t('readingGoalLabel')}</div>
-              <div className="text-[10px] font-bold text-slate-400 dark:text-slate-500">{t('readingGoalProgress', { goal: journeyStats.semesterGoal })}</div>
+              <div className="text-[11px] text-slate-400 font-bold">{t('readingGoalProgress', { goal: 10 })}</div>
             </div>
           </div>
-          <div className="text-2xl font-black text-primary dark:text-white">
-            {journeyStats.totalBooks}<span className="text-slate-300 dark:text-slate-600 font-bold text-base">/{journeyStats.semesterGoal}</span>
-          </div>
+          <span className="text-xl font-black text-primary dark:text-white">
+            {stats.books}<span className="text-slate-300 dark:text-slate-600 text-sm font-bold">/10</span>
+          </span>
         </div>
-        <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-100 dark:border-white/5">
+        <div className="h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden p-0.5 border border-slate-100 dark:border-white/5">
           <motion.div
             initial={{ width: 0 }}
-            animate={{ width: `${Math.min(100, (journeyStats.totalBooks / journeyStats.semesterGoal) * 100)}%` }}
+            animate={{ width: `${Math.min(100, (stats.books / 10) * 100)}%` }}
             transition={{ duration: 1.2, ease: 'easeOut' }}
-            className="h-full bg-gradient-to-r from-primary to-accent dark:from-accent dark:to-secondary rounded-full"
+            className="h-full bg-gradient-to-r from-primary to-accent dark:from-accent dark:to-accent/70 rounded-full"
           />
         </div>
-      </section>
+      </div>
 
-      {/* Main Tab Switcher */}
-      <div className="flex bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-1.5 rounded-[1.8rem] border border-white/40 dark:border-white/10 shadow-xl w-full">
+      {/* ── Tab switcher ──────────────────────────────────────────────────────── */}
+      <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl">
         {(['books', 'achievements'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
             className={cn(
-              'flex-1 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2',
+              'flex-1 py-3 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2',
               activeTab === tab
-                ? 'bg-primary dark:bg-slate-700 text-white shadow-lg'
+                ? 'bg-white dark:bg-slate-900 text-primary dark:text-white shadow-sm'
                 : 'text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-accent'
             )}
           >
-            {tab === 'books' ? <BookOpen className="w-4 h-4" /> : <Award className="w-4 h-4" />}
+            {tab === 'books' ? <BookOpen className="w-3.5 h-3.5" /> : <Award className="w-3.5 h-3.5" />}
             {tab === 'books' ? t('booksTab') : t('achievementsTab')}
           </button>
         ))}
       </div>
 
       <AnimatePresence mode="wait">
-        {activeTab === 'books' ? (
-          <motion.div key="books" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-10">
-            {/* Stats Dashboard */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 glass-panel p-8 bg-white/40 dark:bg-slate-900/40 border-white/60 dark:border-white/5">
-                <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-primary dark:bg-accent rounded-2xl flex items-center justify-center text-white dark:text-primary shadow-xl shadow-primary/20 dark:shadow-accent/20">
-                      <Activity className="w-6 h-6" />
-                    </div>
-                    <div className={cn(dir === 'rtl' ? 'text-right' : 'text-left')}>
-                      <h3 className="text-lg font-black text-primary dark:text-white">{t('weeklyReadingAnalysis')}</h3>
-                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500">{t('dailyCognitiveProgress')}</p>
-                    </div>
-                  </div>
-                  <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-                    <button onClick={() => setActiveStatTab('weekly')} className={cn("px-4 py-2 rounded-lg text-[10px] font-black transition-all", activeStatTab === 'weekly' ? "bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>{t('weekly')}</button>
-                    <button onClick={() => setActiveStatTab('categories')} className={cn("px-4 py-2 rounded-lg text-[10px] font-black transition-all", activeStatTab === 'categories' ? "bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm" : "text-slate-400 dark:text-slate-500")}>{t('specialties')}</button>
-                  </div>
-                </div>
-                <div className="h-[250px] w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    {activeStatTab === 'weekly' ? (
-                      <AreaChart data={READING_ACTIVITY} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                        <defs>
-                          <linearGradient id="colorPages" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#004C6D" stopOpacity={0.1} />
-                            <stop offset="95%" stopColor="#004C6D" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <Tooltip contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', fontFamily: 'inherit', backgroundColor: 'var(--tooltip-bg)', color: 'var(--tooltip-text)' }} itemStyle={{ fontWeight: 'bold' }} labelStyle={{ fontWeight: '900' }} />
-                        <XAxis dataKey="day" hide />
-                        <Area type="monotone" dataKey="pages" stroke="var(--chart-line)" strokeWidth={4} fillOpacity={1} fill="url(#colorPages)" animationDuration={2000} />
-                      </AreaChart>
-                    ) : (
-                      <BarChart data={categoryStats} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--grid-color)" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#64748B' }} />
-                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)', backgroundColor: 'var(--tooltip-bg)' }} />
-                        <Bar dataKey="value" radius={[10, 10, 0, 0]}>
-                          {categoryStats.map((_, index) => (
-                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? 'var(--chart-primary)' : 'var(--chart-secondary)'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    )}
-                  </ResponsiveContainer>
-                </div>
-              </div>
 
-              {/* XP Card */}
-              <div className="glass-panel p-8 bg-primary shadow-2xl relative overflow-hidden flex flex-col justify-between group">
-                <div className={cn("absolute top-0 w-32 h-32 bg-accent/20 rounded-full blur-3xl -translate-y-1/2", dir === 'rtl' ? 'right-0 translate-x-1/2' : 'left-0 -translate-x-1/2')}></div>
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-white font-black uppercase tracking-widest text-[10px] opacity-70">{t('experiencePointsTitle')}</h4>
-                    <TrendingUp className="text-accent w-5 h-5 group-hover:scale-125 transition-transform" />
-                  </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-6xl font-black text-white">{user.points}</span>
-                    <span className="text-white/40 font-black text-sm uppercase">XP</span>
-                  </div>
-                </div>
-                <div className="relative z-10 space-y-4 pt-8">
-                  <div className="flex items-end justify-between text-white">
-                    <div className="space-y-1">
-                      <div className="text-[10px] font-black opacity-50 uppercase tracking-widest">{t('currentRank')}</div>
-                      <div className="text-lg font-black">{t('eliteReader')}</div>
-                    </div>
-                    <div className="text-[10px] font-black bg-white/10 px-3 py-1 rounded-lg border border-white/5 uppercase tracking-widest">
-                      {t('pointsToNextRank', { points: 500 - (user.points % 500) })}
-                    </div>
-                  </div>
-                  <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden border border-white/5 p-0.5">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${(user.points % 500) / 5}%` }}
-                      className="h-full bg-accent shadow-[0_0_15px_rgba(217,179,16,0.5)] rounded-full"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 pt-8 border-t border-white/10 mt-8 overflow-x-auto no-scrollbar pb-1">
-                  {[t('daysAgo', { count: 7 }) + ' 🔥', t('physics') + ' 📚', t('availableNow') + ' 💎'].map(b => (
-                    <span key={b} className="text-[9px] font-black text-white/60 bg-white/5 px-3 py-2 rounded-xl whitespace-nowrap border border-white/5">{b}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
+        {/* ══ BOOKS TAB ══════════════════════════════════════════════════════ */}
+        {activeTab === 'books' && (
+          <motion.div key="books" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
 
-            {/* Borrowed Books */}
-            <section className="space-y-8">
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
-                <div className={cn("space-y-2", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                  <h3 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('currentlyBorrowedSection')}</h3>
-                  <p className="text-sm font-bold text-slate-400 dark:text-slate-500">{t('myBooksSubtitle')}</p>
+            {/* The points card that used to open this tab repeated the hero:
+                the same number, the same bar, the same caption, one screen
+                below it — and under them three fixed chips ("7 days ago",
+                "Physics", "Active") that were the same for every account. */}
+
+            {/* ── Borrowed books ─────────────────────────────────────────────── */}
+            <section className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
+              <div className={cn('flex items-center justify-between gap-4 flex-wrap', ar ? 'flex-row-reverse' : '')}>
+                <div className={ar ? 'text-right' : ''}>
+                  <h4 className="text-xl font-black text-primary dark:text-white">{t('currentlyBorrowedSection')}</h4>
+                  <div className="w-10 h-[3px] bg-accent rounded-full mt-2 mb-1" />
+                  <p className="text-[11px] text-slate-400 font-bold">{t('myBooksSubtitle')}</p>
                 </div>
-                <div className="flex bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-1.5 rounded-[1.8rem] border border-white/40 dark:border-white/10 shadow-xl self-start">
-                  <button onClick={() => setSortOrder('newest')} className={cn("px-8 py-3 rounded-2xl text-[10px] font-black transition-all flex items-center gap-2", sortOrder === 'newest' ? "bg-primary dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-accent")}>
-                    <ArrowDown className="w-3.5 h-3.5" />
-                    {t('newestFirst')}
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0">
+                  <button onClick={() => setSortOrder('newest')} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all', sortOrder === 'newest' ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm' : 'text-slate-400')}>
+                    <ArrowDown className="w-3 h-3" />{t('newestFirst')}
                   </button>
-                  <button onClick={() => setSortOrder('oldest')} className={cn("px-8 py-3 rounded-2xl text-[10px] font-black transition-all flex items-center gap-2", sortOrder === 'oldest' ? "bg-primary dark:bg-slate-700 text-white shadow-lg" : "text-slate-400 dark:text-slate-500 hover:text-primary dark:hover:text-accent")}>
-                    <ArrowUp className="w-3.5 h-3.5" />
-                    {t('oldestFirst')}
+                  <button onClick={() => setSortOrder('oldest')} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black transition-all', sortOrder === 'oldest' ? 'bg-white dark:bg-slate-700 text-primary dark:text-white shadow-sm' : 'text-slate-400')}>
+                    <ArrowUp className="w-3 h-3" />{t('oldestFirst')}
                   </button>
                 </div>
               </div>
 
               {borrowedBooks.length > 0 ? (
-                <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-                  {borrowedBooks.map(book => (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left rtl:text-right">
+                  {borrowedBooks.map((book, i) => (
                     <motion.div
                       key={book.id}
-                      initial={{ opacity: 0, y: 30 }}
-                      whileInView={{ opacity: 1, y: 0 }}
-                      viewport={{ once: true }}
-                      transition={{ duration: 0.5 }}
-                      className="group relative"
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.06 }}
+                      className="official-card p-5 bg-white dark:bg-slate-900 hover:border-accent dark:hover:border-accent transition-all space-y-4"
                     >
-                      <div className="glass-panel p-6 bg-white/70 dark:bg-slate-900/70 border-white dark:border-white/5 relative z-10 shadow-[0_30px_60px_rgba(0,0,0,0.06)] dark:shadow-none hover:shadow-[0_50px_100px_rgba(0,0,0,0.12)] transition-all duration-500 rounded-[3rem] overflow-hidden flex flex-col md:flex-row gap-10 group/card">
-                        <div className={cn("absolute top-0 w-32 h-32 bg-accent/5 dark:bg-accent/10 rounded-full blur-3xl -mt-16 group-hover/card:bg-accent/10 dark:group-hover/card:bg-accent/20 transition-colors", dir === 'rtl' ? 'right-0 -mr-16' : 'left-0 -ml-16')}></div>
-                        <div className="w-full md:w-52 h-[340px] md:h-auto rounded-[2.5rem] overflow-hidden shadow-2xl relative shrink-0">
-                          <BookCover book={book} className="w-full h-full absolute inset-0" imgClassName="transition-transform duration-1000 group-hover/card:scale-110" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-primary/90 dark:from-slate-950/90 via-transparent to-transparent opacity-40 group-hover/card:opacity-20 transition-opacity"></div>
-                          <div className={cn("absolute bottom-6 left-6 right-6 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md rounded-2xl p-4 border border-white/20 dark:border-white/10", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                            <div className="text-[9px] font-black text-white/60 dark:text-white/40 uppercase tracking-widest mb-1.5">{t('physicalLocation')}</div>
-                            <div className="text-sm font-black text-white flex items-center gap-3">
-                              <MapPin className="w-4 h-4 text-accent" />
-                              {t('shelfShort')} {book.shelf}
-                            </div>
-                          </div>
+                      {/* Book header */}
+                      <div className={cn('flex gap-4', ar ? 'flex-row-reverse' : '')}>
+                        <BookCover book={book} className="w-14 h-[4.5rem] rounded-xl shrink-0 shadow-sm" imgClassName="object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[9px] font-black text-accent uppercase tracking-widest">
+                            {catLabel[book.category] || book.category}
+                          </span>
+                          <h5 className="text-sm font-black text-primary dark:text-white leading-tight line-clamp-2 mt-0.5">{bookTitle(book, language)}</h5>
+                          <p className={cn('text-[10px] text-slate-400 font-bold flex items-center gap-1 mt-1', ar ? 'flex-row-reverse' : '')}>
+                            <UserIcon className="w-3 h-3" />{bookAuthor(book, language)}
+                          </p>
                         </div>
-                        <div className={cn("flex-1 py-2 flex flex-col justify-between", dir === 'rtl' ? 'text-right' : 'text-left')}>
-                          <div className="space-y-6">
-                            <div className="flex justify-between items-start gap-4">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-3 mb-4">
-                                  <span className="text-[10px] font-black text-secondary dark:text-secondary px-4 py-1.5 bg-secondary/5 dark:bg-secondary/10 rounded-xl uppercase tracking-widest">
-                                    {categoryTranslationMap[book.category] || book.category}
-                                  </span>
-                                  <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
-                                </div>
-                                <h4 className="text-2xl font-black text-primary dark:text-white leading-tight group-hover/card:text-secondary dark:group-hover/card:text-accent transition-colors line-clamp-2">{book.title}</h4>
-                                <p className="text-xs text-slate-400 dark:text-slate-500 font-bold mt-3 uppercase tracking-[0.15em] flex items-center gap-2">
-                                  <UserIcon className="w-4 h-4" />
-                                  {book.author}
-                                </p>
-                              </div>
-                              <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 px-5 py-4 rounded-[1.8rem] text-center shadow-sm shrink-0">
-                                <div className="text-[9px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest mb-1.5">{t('daysShort')}</div>
-                                <div className={cn("text-xl font-black", book.daysLeft <= 3 ? "text-red-500 animate-pulse" : "text-primary dark:text-white")}>{book.daysLeft}</div>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="bg-slate-50/80 dark:bg-slate-800/50 p-5 rounded-[1.8rem] border border-white dark:border-white/5 flex flex-col justify-center gap-1.5">
-                                <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('dueAt')}</div>
-                                <div className="text-xs font-black text-primary dark:text-white truncate">{book.returnDate}</div>
-                              </div>
-                              <div className="bg-slate-50/80 dark:bg-slate-800/50 p-5 rounded-[1.8rem] border border-white dark:border-white/5 flex flex-col justify-center gap-1.5">
-                                <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('lastRead')}</div>
-                                <div className="text-xs font-black text-primary dark:text-white">{t('daysAgo', { count: 2 })}</div>
-                              </div>
-                            </div>
-                            <div className="space-y-4">
-                              <div className="flex items-center justify-between px-1">
-                                <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{t('bookAchievement')}</span>
-                                <span className="text-xs font-black text-primary dark:text-white">{book.readingProgress}%</span>
-                              </div>
-                              <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-100 dark:border-white/5">
-                                <motion.div
-                                  initial={{ width: 0 }}
-                                  whileInView={{ width: `${book.readingProgress}%` }}
-                                  transition={{ duration: 1, ease: 'easeOut' }}
-                                  className="h-full bg-primary dark:bg-accent rounded-full shadow-[0_0_10px_rgba(11,60,93,0.3)] dark:shadow-[0_0_10px_rgba(217,179,16,0.3)]"
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex gap-4 mt-10">
-                            <button onClick={() => navigate(`/book/${book.id}`)} className="flex-1 py-5 bg-primary dark:bg-slate-800 text-white rounded-[1.8rem] text-[10px] font-black uppercase tracking-[0.2em] hover:bg-secondary dark:hover:bg-slate-700 transition-all shadow-xl shadow-primary/10 active:scale-95 flex items-center justify-center">
-                              {t('openDigitalReference')}
-                            </button>
-                            <button onClick={() => navigate('/map', { state: { bookId: book.id } })} className="px-8 py-5 bg-white dark:bg-slate-900 text-primary dark:text-accent border-2 border-slate-100 dark:border-white/5 rounded-[1.8rem] hover:border-accent hover:text-accent transition-all active:scale-95 group/btn flex items-center justify-center shrink-0">
-                              <Navigation className={cn("w-6 h-6 group-hover/btn:rotate-12 transition-transform", dir === 'ltr' ? '' : 'rotate-180')} />
-                            </button>
-                          </div>
+                        <div className={cn('bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 px-3 py-2 rounded-xl text-center shrink-0', book.daysLeft <= 3 ? 'border-rose-200 dark:border-rose-500/20' : '')}>
+                          <div className="text-[8px] font-black text-slate-400 uppercase">{t('daysShort')}</div>
+                          <div className={cn('text-lg font-black', book.daysLeft <= 3 ? 'text-rose-500' : 'text-primary dark:text-white')}>{book.daysLeft}</div>
                         </div>
                       </div>
-                      <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[80%] h-12 bg-primary/20 dark:bg-accent/10 blur-[50px] -z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+
+                      {/* Progress */}
+                      <div className="space-y-1.5">
+                        <div className={cn('flex items-center justify-between text-[9px] font-black', ar ? 'flex-row-reverse' : '')}>
+                          <span className="text-slate-400 uppercase tracking-widest">{t('bookAchievement')}</span>
+                          <span className="text-primary dark:text-white">{book.progress}%</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${book.progress}%` }}
+                            transition={{ duration: 0.8, ease: 'easeOut', delay: i * 0.05 }}
+                            className="h-full bg-primary dark:bg-accent rounded-full"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Footer */}
+                      <div className={cn('flex items-center justify-between pt-3 border-t border-slate-100 dark:border-white/5', ar ? 'flex-row-reverse' : '')}>
+                        <span className={cn('flex items-center gap-1.5 text-[10px] text-slate-400 font-bold', ar ? 'flex-row-reverse' : '')}>
+                          <Clock className="w-3.5 h-3.5" />{book.returnDate}
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => navigate(`/book/${book.id}`)}
+                            className={cn('flex items-center gap-1 text-[10px] font-black text-primary dark:text-accent uppercase tracking-widest hover:opacity-70 transition-opacity', ar ? 'flex-row-reverse' : '')}
+                          >
+                            {t('openDigitalReference')}
+                            <ChevronRight className={cn('w-3.5 h-3.5', ar ? 'rotate-180' : '')} />
+                          </button>
+                          <button
+                            onClick={() => navigate('/map', { state: { bookId: book.id } })}
+                            className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/8 flex items-center justify-center text-slate-400 hover:border-accent hover:text-primary dark:hover:text-accent transition-colors"
+                          >
+                            <Navigation className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="glass-panel p-24 text-center space-y-10 bg-white/20 border-dashed border-2 relative overflow-hidden rounded-[3rem]">
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-accent/5 rounded-full blur-[100px] pointer-events-none"></div>
-                  <div className="w-28 h-28 bg-white dark:bg-slate-900 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl border border-gray-100 dark:border-white/5 relative z-10 scale-110">
-                    <BookOpen className="w-12 h-12 text-slate-200 dark:text-slate-700" />
+                <div className="border border-dashed border-slate-200 dark:border-white/8 rounded-2xl p-12 text-center space-y-4">
+                  <BookOpen className="w-10 h-10 text-slate-200 dark:text-slate-700 mx-auto" />
+                  <div className="space-y-1">
+                    <div className="text-sm font-black text-primary dark:text-white">{t('newBeginningAwaits')}</div>
+                    <div className="text-xs text-slate-400 font-bold">{t('noBooksBorrowedMessage')}</div>
                   </div>
-                  <div className="space-y-4 relative z-10">
-                    <h4 className="text-3xl font-black text-primary dark:text-white leading-tight">{t('newBeginningAwaits')}</h4>
-                    <p className="text-slate-400 dark:text-slate-500 font-bold max-w-md mx-auto text-lg leading-relaxed">{t('noBooksBorrowedMessage')}</p>
-                  </div>
-                  <button onClick={() => navigate('/')} className="px-12 py-5 bg-primary dark:bg-accent text-white dark:text-primary rounded-[2rem] font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all hover:bg-secondary dark:hover:bg-accent/80 relative z-10">
+                  <button onClick={() => navigate('/')} className="px-6 py-2.5 bg-primary dark:bg-accent text-white dark:text-primary rounded-xl text-xs font-black shadow-sm hover:opacity-90 transition-opacity">
                     {t('discoverSmartLibrary')}
                   </button>
                 </div>
               )}
             </section>
           </motion.div>
-        ) : (
-          <motion.div key="achievements" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="space-y-10">
-            {/* Achievements Header */}
-            <div className={cn("space-y-2", dir === 'rtl' ? 'text-right' : 'text-left')}>
-              <h3 className="text-4xl font-black text-primary dark:text-white tracking-tight">{t('journeyAchievementsTitle')}</h3>
-              <p className="text-sm font-bold text-slate-400 dark:text-slate-500">{t('journeyAchievementsSubtitle')}</p>
-            </div>
+        )}
 
-            {/* Earned Badges */}
-            <section className="space-y-6">
-              <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                <h4 className="text-lg font-black text-primary dark:text-white uppercase tracking-widest">{t('badgesEarnedLabel')}</h4>
-                <span className="text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1 rounded-xl">{earnedBadges.length}</span>
+        {/* ══ ACHIEVEMENTS TAB ═══════════════════════════════════════════════ */}
+        {activeTab === 'achievements' && (
+          <motion.div key="ach" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-8">
+
+            {/* Badges cabinet — same component as Dashboard */}
+            <section className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
+              <div className="text-center space-y-2">
+                <h4 className="text-xl font-black text-primary dark:text-white">{t('badgesEarnedLabel')}</h4>
+                <div className="w-10 h-[3px] bg-accent rounded-full mx-auto" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {earnedBadges.map((badge, i) => {
-                  const def = badgeTranslationMap[badge];
-                  if (!def) return null;
-                  const Icon = def.icon;
-                  return (
-                    <motion.div
-                      key={badge}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: i * 0.08 }}
-                      className={cn(
-                        'glass-panel p-6 border rounded-[2rem] flex gap-5 items-start relative overflow-hidden',
-                        BADGE_COLOR_MAP[def.color]
-                      )}
-                    >
-                      <div className={cn('w-14 h-14 rounded-2xl flex items-center justify-center shrink-0', BADGE_ICON_COLOR[def.color])}>
-                        <Icon className="w-7 h-7" />
-                      </div>
-                      <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
-                        <div className="text-base font-black text-primary dark:text-white mb-1">{def.title}</div>
-                        <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 leading-relaxed">{def.desc}</div>
-                      </div>
-                      <motion.div
-                        animate={{ rotate: [0, 10, -10, 0] }}
-                        transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
-                        className="absolute top-4 right-4 opacity-20"
-                      >
-                        <Trophy className="w-8 h-8" />
-                      </motion.div>
-                    </motion.div>
-                  );
-                })}
-                {earnedBadges.length === 0 && (
-                  <div className="col-span-full glass-panel p-12 text-center space-y-4 bg-white/20 border-dashed border-2 rounded-[2rem]">
-                    <Award className="w-12 h-12 text-slate-200 dark:text-slate-700 mx-auto" />
-                    <p className="text-slate-400 dark:text-slate-500 font-bold">{t('startReadingToCompete')}</p>
-                  </div>
-                )}
-              </div>
+              <BadgesCabinet user={user} />
             </section>
 
-            {/* Locked Badges */}
-            <section className="space-y-6">
-              <div className="flex items-center gap-3">
-                <Lock className="w-5 h-5 text-slate-400" />
-                <h4 className="text-lg font-black text-primary dark:text-white uppercase tracking-widest">{t('badgesLockedLabel')}</h4>
-                <span className="text-[10px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 px-3 py-1 rounded-xl">{lockedBadges.length}</span>
+            {/* How to earn XP */}
+            <section className="official-card p-5 sm:p-8 bg-white dark:bg-slate-900 space-y-6">
+              <div className="text-center space-y-2">
+                <h4 className="text-xl font-black text-primary dark:text-white">
+                  {ar ? 'كيف تكسب نقاط XP؟' : 'How to Earn XP'}
+                </h4>
+                <div className="w-10 h-[3px] bg-accent rounded-full mx-auto" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {lockedBadges.map((badge, i) => {
-                  const Icon = badge.icon;
-                  return (
-                    <motion.div
-                      key={badge.key}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.2 + i * 0.08 }}
-                      className="glass-panel p-6 border border-slate-100 dark:border-white/5 rounded-[2rem] flex gap-5 items-start relative overflow-hidden opacity-60 grayscale"
-                    >
-                      <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center shrink-0 text-slate-400 dark:text-slate-600">
-                        <Icon className="w-7 h-7" />
-                      </div>
-                      <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
-                        <div className="text-base font-black text-slate-400 dark:text-slate-500 mb-1">{badge.title}</div>
-                        <div className="text-[11px] font-bold text-slate-400 dark:text-slate-600 leading-relaxed">{badge.desc}</div>
-                      </div>
-                      <div className="absolute top-4 right-4">
-                        <Lock className="w-5 h-5 text-slate-300 dark:text-slate-700" />
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* XP Progress in achievements tab */}
-            <div className="glass-panel p-8 bg-primary shadow-2xl relative overflow-hidden flex flex-col gap-6 group">
-              <div className={cn("absolute top-0 w-48 h-48 bg-accent/20 rounded-full blur-3xl -translate-y-1/2", dir === 'rtl' ? 'right-0 translate-x-1/2' : 'left-0 -translate-x-1/2')}></div>
-              <div className="relative z-10 flex items-center justify-between flex-wrap gap-4">
-                <div>
-                  <div className="text-[10px] font-black text-white/50 uppercase tracking-widest mb-1">{t('experiencePointsTitle')}</div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-black text-white">{user.points}</span>
-                    <span className="text-white/40 font-black text-sm uppercase">XP</span>
-                  </div>
-                </div>
-                <div className={cn("text-right", dir === 'ltr' ? 'text-left' : '')}>
-                  <div className="text-[10px] font-black text-white/50 uppercase tracking-widest mb-1">{t('currentRank')}</div>
-                  <div className="text-xl font-black text-white">{t('eliteReader')}</div>
-                </div>
-              </div>
-              <div className="relative z-10 space-y-2">
-                <div className="flex justify-between text-[10px] font-black text-white/50 uppercase tracking-widest">
-                  <span>{t('level')} {getUserLevel(user.points)}</span>
-                  <span>{t('pointsToNextRank', { points: 500 - (user.points % 500) })}</span>
-                </div>
-                <div className="w-full h-4 bg-white/10 rounded-full overflow-hidden border border-white/5 p-0.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  { icon: '🗺️', ar: 'فتح خريطة المكتبة',  en: 'Open library map',    pts: 20,  note: ar ? 'مرة واحدة'         : 'once'          },
+                  { icon: '📍', ar: 'زيارة رف أو قسم', en: 'Visit a shelf/section', pts: 15,  note: ar ? 'لكل رف'            : 'per shelf'     },
+                  { icon: '🔑', ar: 'تسجيل الدخول',    en: 'Login session',          pts: 10,  note: ar ? 'بحد أقصى ٥ مرات'  : 'max 5 times'   },
+                  { icon: '🔍', ar: 'بحث ذكي',          en: 'Smart search',           pts: 10,  note: ar ? 'بحد أقصى ٥ بحثات' : 'max 5 searches' },
+                  { icon: '🎮', ar: 'تحدي الواقع المعزز', en: 'AR challenge', pts: '50 / 75 / 100', note: ar ? 'لكل مستوى تجتازه' : 'per level passed' },
+                ].map((item, i) => (
                   <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(user.points % 500) / 5}%` }}
-                    transition={{ duration: 1.2, ease: 'easeOut' }}
-                    className="h-full bg-accent shadow-[0_0_20px_rgba(217,179,16,0.6)] rounded-full"
-                  />
-                </div>
+                    key={i}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className={cn('official-card p-4 bg-white dark:bg-slate-900 flex items-center gap-3', ar ? 'flex-row-reverse' : '')}
+                  >
+                    <span className="text-xl shrink-0">{item.icon}</span>
+                    <div className={cn('flex-1 min-w-0', ar ? 'text-right' : '')}>
+                      <div className="text-[11px] font-black text-primary dark:text-white">{ar ? item.ar : item.en}</div>
+                      <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                        <span dir="ltr" className="text-[10px] font-black text-accent">+{item.pts} XP</span>
+                        {'note' in item && <span className="text-[9px] font-bold text-slate-400">{(item as { note: string }).note}</span>}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
               </div>
-            </div>
+            </section>
+
           </motion.div>
         )}
       </AnimatePresence>

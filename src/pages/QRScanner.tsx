@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
 import { X, QrCode, MapPin, BookOpen, RefreshCw, Loader2 } from 'lucide-react';
-import { MOCK_BOOKS } from '../data/mockData';
+import { MOCK_BOOKS, SHELF_IDS } from '../data/mockData';
 import { cn } from '../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
@@ -11,9 +11,49 @@ import { BookCover } from '../components/BookCover';
 const SHELF_PREFIX  = 'ARLIBRARY:SHELF:';
 const BOOK_PREFIX   = 'ARLIBRARY:BOOK:';
 const BOOK_URL_RE   = /\/book\/([^/?#]+)/;
-const VALID_SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
+// Must match the codes the admin panel prints. This copy stopped at D-2,
+// so a genuine ARLIBRARY:SHELF:B-3 sticker scanned as nothing at all.
+const VALID_SHELVES: readonly string[] = SHELF_IDS;
 
 type Phase = 'loading' | 'scanning' | 'shelf' | 'error';
+
+/**
+ * Why the camera did not start. The page used to show one message for every
+ * cause — and, worse, could sit on the spinner for ever: if the browser's
+ * permission prompt is never answered, getUserMedia simply never settles, so
+ * nothing moved the page off "Starting camera…".
+ */
+type CameraFault = 'denied' | 'none' | 'busy' | 'insecure' | 'timeout' | 'unknown';
+
+/** How long to wait for the camera before assuming the prompt went unanswered. */
+const CAMERA_TIMEOUT_MS = 15_000;
+
+/**
+ * Reject if `work` has not settled within the deadline.
+ *
+ * Every step here can hang, not just the last one: getCameras() asks for
+ * permission too, so an unanswered prompt stalls before the scanner even
+ * starts. Each awaited step gets the deadline, not only the final one.
+ */
+function withDeadline<T>(work: Promise<T>, ms = CAMERA_TIMEOUT_MS): Promise<T> {
+  return Promise.race([
+    work,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new DOMException('timeout', 'TimeoutError')), ms)),
+  ]);
+}
+
+/** Map a getUserMedia rejection to the thing the reader has to do about it. */
+function classifyCameraError(err: unknown): CameraFault {
+  const name = (err as DOMException | undefined)?.name ?? '';
+  const text = String((err as Error | undefined)?.message ?? err ?? '');
+  if (name === 'TimeoutError') return 'timeout';
+  if (name === 'NotAllowedError' || name === 'SecurityError' || /permission|denied/i.test(text)) return 'denied';
+  if (name === 'NotFoundError' || name === 'OverconstrainedError' || name === 'DevicesNotFoundError'
+      || /not ?found|no camera/i.test(text)) return 'none';
+  if (name === 'NotReadableError' || name === 'TrackStartError' || /in use|busy/i.test(text)) return 'busy';
+  return 'unknown';
+}
 
 export function QRScanner() {
   const navigate = useNavigate();
@@ -22,6 +62,7 @@ export function QRScanner() {
   const activeRef  = useRef(true);
   const [phase, setPhase] = useState<Phase>('loading');
   const [detectedShelf, setDetectedShelf] = useState<string | null>(null);
+  const [fault, setFault] = useState<CameraFault>('unknown');
 
   const shelfBooks = detectedShelf
     ? MOCK_BOOKS.filter(b => b.shelf === detectedShelf).slice(0, 4)
@@ -60,6 +101,14 @@ export function QRScanner() {
     setPhase('loading');
     setDetectedShelf(null);
 
+    // A camera needs a secure context. On plain http, navigator.mediaDevices
+    // is undefined and every call below would throw something unhelpful.
+    if (!window.isSecureContext || !navigator.mediaDevices?.getUserMedia) {
+      setFault('insecure');
+      setPhase('error');
+      return;
+    }
+
     const el = document.getElementById('qr-reader');
     if (el) el.innerHTML = '';
 
@@ -77,7 +126,10 @@ export function QRScanner() {
     try {
       // Enumerate cameras with device IDs — more reliable than facingMode on
       // Android where exact facingMode constraints sometimes return black frames.
-      const cameras = await Html5Qrcode.getCameras().catch(() => []);
+      const cameras = await withDeadline(Html5Qrcode.getCameras()).catch(err => {
+        if ((err as DOMException)?.name === 'TimeoutError') throw err;
+        return [] as { id: string; label: string }[];
+      });
 
       let cameraId: string | undefined;
       if (cameras.length === 1) {
@@ -95,10 +147,12 @@ export function QRScanner() {
         : scanner.start({ facingMode: { exact: 'environment' } }, cfg, onScan, onErr)
             .catch(() => scanner.start({ facingMode: 'environment' }, cfg, onScan, onErr));
 
-      await start;
+      await withDeadline(start);
       if (activeRef.current) setPhase('scanning');
-    } catch {
-      if (activeRef.current) setPhase('error');
+    } catch (err) {
+      if (!activeRef.current) return;
+      setFault(classifyCameraError(err));
+      setPhase('error');
     }
   };
 
@@ -200,13 +254,31 @@ export function QRScanner() {
             </div>
             <div>
               <p className="text-white font-bold text-base mb-2">
-                {t('لا يمكن الوصول إلى الكاميرا', 'Camera unavailable')}
+                {fault === 'none'
+                  ? t('لا توجد كاميرا في هذا الجهاز', 'No camera on this device')
+                  : fault === 'busy'
+                  ? t('الكاميرا مشغولة بتطبيق آخر', 'The camera is in use by another app')
+                  : fault === 'insecure'
+                  ? t('الكاميرا تتطلب اتصالاً آمناً', 'The camera needs a secure connection')
+                  : fault === 'timeout'
+                  ? t('لم يصل إذن الكاميرا', 'No answer to the camera prompt')
+                  : t('لا يمكن الوصول إلى الكاميرا', 'Camera unavailable')}
               </p>
               <p className="text-white/50 text-xs leading-relaxed">
-                {t(
-                  'تأكد من أنك منحت إذن الكاميرا لهذا المتصفح في إعدادات هاتفك',
-                  'Make sure camera permission is granted to this browser in your phone settings'
-                )}
+                {fault === 'none'
+                  ? t('افتح هذه الصفحة على هاتف فيه كاميرا خلفية.',
+                      'Open this page on a phone with a rear camera.')
+                  : fault === 'busy'
+                  ? t('أغلق التطبيقات أو التبويبات الأخرى التي تستعمل الكاميرا ثم أعد المحاولة.',
+                      'Close other apps or tabs using the camera, then try again.')
+                  : fault === 'insecure'
+                  ? t('افتح الموقع عبر https، فالمتصفح لا يمنح الكاميرا لاتصال غير آمن.',
+                      'Open the site over https — browsers do not grant camera access otherwise.')
+                  : fault === 'timeout'
+                  ? t('يظهر طلب الإذن بجانب شريط العنوان. اسمح بالوصول إلى الكاميرا ثم أعد المحاولة.',
+                      'The permission prompt appears next to the address bar. Allow camera access, then try again.')
+                  : t('امنح إذن الكاميرا لهذا المتصفح من إعدادات الموقع، ثم أعد المحاولة.',
+                      'Grant camera permission to this browser in the site settings, then try again.')}
               </p>
             </div>
             <div className="flex flex-col gap-2 w-full max-w-xs">
@@ -272,7 +344,10 @@ export function QRScanner() {
 
             <div className="flex flex-col gap-2">
               <button
-                onClick={() => navigate('/shelf-ar', { state: { shelfId: detectedShelf } })}
+                // '/shelf-ar' was never a route — the catch-all silently redirected the
+                // main action of the whole scan flow to the home page. The page is
+                // registered at '/shelf-scan'.
+                onClick={() => navigate('/shelf-scan', { state: { shelfId: detectedShelf } })}
                 className="w-full py-4 bg-accent text-primary rounded-2xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-accent/25 active:scale-95 transition-all"
               >
                 <BookOpen className="w-4 h-4" />

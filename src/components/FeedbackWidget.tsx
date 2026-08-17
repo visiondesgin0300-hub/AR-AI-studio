@@ -37,6 +37,27 @@ export function FeedbackWidget({ onClose }: FeedbackWidgetProps) {
 
   const handleSubmit = () => {
     if (mood === null) return;
+
+    // Read user name from localStorage — fire-and-forget, errors silently ignored
+    let userName = 'مستخدم';
+    try {
+      const stored = localStorage.getItem('library_user');
+      if (stored) userName = JSON.parse(stored).name || userName;
+    } catch {}
+
+    const moodData = MOODS[mood];
+    fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mood: moodData.emoji,
+        moodLabel: moodData.labelAr,
+        categories: selected.map(i => CATEGORIES_AR[i]),
+        text: text.trim(),
+        user: userName,
+      }),
+    }).catch(() => {});
+
     const burst = Array.from({ length: 8 }, (_, i) => ({
       id: i,
       emoji: PARTICLES[Math.floor(Math.random() * PARTICLES.length)],

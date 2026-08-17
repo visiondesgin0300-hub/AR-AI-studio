@@ -4,12 +4,13 @@ import {
   BarChart3, Bell, TrendingUp, Search,
   QrCode, Building2, MapPin,
   Printer, Monitor, VolumeX, User as UserIcon,
+  CheckCircle2, Clock, MessageSquareReply, MessageSquare, ChevronDown, ChevronUp, Mail,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { BookCover } from '../components/BookCover';
-import { MOCK_BOOKS, MOCK_USERS } from '../data/mockData';
+import { MOCK_BOOKS, MOCK_USERS, SHELF_IDS } from '../data/mockData';
 import { motion, AnimatePresence } from 'motion/react';
-import { cn } from '../lib/utils';
+import { cn, displayName, bookTitle, bookAuthor } from '../lib/utils';
 import { User, Book } from '../types';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Cell, LabelList, PieChart, Pie } from 'recharts';
 import { useLanguage } from '../hooks/useLanguage';
@@ -28,7 +29,11 @@ interface Facility {
 
 type AdminTab = 'users' | 'books' | 'facilities' | 'qr' | 'stats' | 'logs' | 'feedback';
 
-const SHELVES = ['A-1', 'A-2', 'B-1', 'B-2', 'C-1', 'C-2', 'D-1', 'D-2'];
+// Every shelf that exists on the library map and in the catalogue. This list
+// was missing B-3/B-4/E-1/E-2, which meant those shelves got no printable AR
+// code and — worse — the edit form's <select> had no matching <option>, so it
+// fell back to A-1 and silently moved the book off its real shelf on save.
+const SHELVES: readonly string[] = SHELF_IDS;
 
 const FACILITY_ICONS: Record<string, React.ComponentType<any>> = {
   Users, Monitor, VolumeX, Printer, MapPin, BookOpen, Building2,
@@ -41,6 +46,12 @@ const INITIAL_FACILITIES: Facility[] = [
   { id: 'f4', name: 'خدمات الطباعة', nameEn: 'Printing Services', desc: 'طباعة ومسح وتصوير', location: 'القسم C-1', cellId: 'C-1', status: 'available', iconName: 'Printer' },
 ];
 
+// Guards against the same silent-reassignment bug returning if a record ever
+// carries a shelf this list doesn't know about: keep the record's own value
+// selectable rather than letting the <select> fall through to the first option.
+const shelfOptions = (current?: string): readonly string[] =>
+  current && !SHELVES.includes(current) ? [current, ...SHELVES] : SHELVES;
+
 const INPUT_CLS = (dir: string) =>
   cn('w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-white/10 p-4 rounded-2xl text-sm font-bold outline-none focus:border-accent/40 dark:focus:border-accent/40 transition-all text-primary dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700',
     dir === 'rtl' ? 'text-right' : 'text-left');
@@ -52,7 +63,13 @@ export function AdminDashboard() {
   const navigate = useNavigate();
   const ar = language === 'ar';
 
-  const [activeTab, setActiveTab] = useState<AdminTab>('users');
+  // ?tab=feedback lets another page link straight to a tab — the help centre
+  // sends admins here to read the messages students send.
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    const wanted = new URLSearchParams(window.location.search).get('tab');
+    const valid: AdminTab[] = ['users', 'books', 'facilities', 'qr', 'stats', 'logs', 'feedback'];
+    return valid.includes(wanted as AdminTab) ? (wanted as AdminTab) : 'users';
+  });
   const [users, setUsers] = useState<User[]>(MOCK_USERS);
   const [books, setBooks] = useState<Book[]>(MOCK_BOOKS);
   const [facilities, setFacilities] = useState<Facility[]>(INITIAL_FACILITIES);
@@ -61,6 +78,44 @@ export function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [bookFilter, setBookFilter] = useState('all');
   const [qrSection, setQrSection] = useState<'shelves' | 'books' | 'facilities'>('shelves');
+  // Two different things arrive in this tab: a request is a question waiting
+  // for a reply, a rating is an opinion to read. They were listed together, so
+  // a support ticket sat in the same queue as "the AR navigation is great".
+  const [inboxView, setInboxView] = useState<'requests' | 'ratings'>('requests');
+  const [realFeedback, setRealFeedback] = useState<any[]>([]);
+  const [newFeedbackCount, setNewFeedbackCount] = useState(0);
+  const [feedbackStatuses, setFeedbackStatuses] = useState<Record<string, 'pending' | 'reviewing' | 'resolved'>>(() => {
+    try { return JSON.parse(localStorage.getItem('admin_feedback_statuses') || '{}'); } catch { return {}; }
+  });
+  const [expandedReply, setExpandedReply] = useState<string | null>(null);
+  // Notes used to live in component state only, so anything typed here was
+  // lost the moment the admin switched tabs. Persist alongside the statuses.
+  const [replyText, setReplyText] = useState<Record<string, string>>(() => {
+    try { return JSON.parse(localStorage.getItem('admin_feedback_notes') || '{}'); } catch { return {}; }
+  });
+
+  // Reading other users' feedback now needs the admin session token issued at
+  // login; the endpoint rejects anyone else with 403.
+  const [feedbackDenied, setFeedbackDenied] = useState(false);
+  useEffect(() => {
+    const token = (() => {
+      try { return sessionStorage.getItem('library_token') || ''; } catch { return ''; }
+    })();
+    fetch('/api/feedback', {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => {
+        if (r.status === 403) { setFeedbackDenied(true); return null; }
+        return r.json();
+      })
+      .then(data => {
+        if (data && Array.isArray(data.entries)) {
+          setRealFeedback(data.entries);
+          setNewFeedbackCount(data.count || 0);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const WEEKLY_DATA = useMemo(() => [
     { day: t('saturday'), value: 400 }, { day: t('sunday'), value: 300 },
@@ -88,11 +143,29 @@ export function AdminDashboard() {
   const filteredFacilities = facilities.filter(f =>
     f.name.includes(searchQuery) || f.nameEn.toLowerCase().includes(searchQuery.toLowerCase()));
 
+  // System usage: the share of accounts that have actually used the library —
+  // a current loan or a past one. Counted from the accounts themselves rather
+  // than stated as a figure, so it moves as the accounts do.
+  const activeUsers = users.filter(u => u.borrowedBooks.length > 0 || u.totalReadCount > 0).length;
+  const usageRate = users.length ? Math.round((activeUsers / users.length) * 100) : 0;
+
   const stats = [
     { label: t('totalUsersCount'), value: users.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50 dark:bg-blue-900/20' },
     { label: t('totalBooksCount'), value: books.length, icon: BookOpen, color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-900/20' },
     { label: ar ? 'المرافق' : 'Facilities', value: facilities.length, icon: Building2, color: 'text-emerald-600', bg: 'bg-emerald-50 dark:bg-emerald-900/20' },
-    { label: t('sentNotificationsCount'), value: '٤٨', icon: Bell, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+    { label: t('sentNotificationsCount'), value: 48, icon: Bell, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+    {
+      label: ar ? 'نسبة استخدام النظام' : 'System Usage',
+      value: `${usageRate}%`,
+      icon: Activity,
+      color: 'text-rose-600',
+      bg: 'bg-rose-50 dark:bg-rose-900/20',
+      // A bare percentage hides its own basis, so the card carries the ratio.
+      detail: ar
+        ? `${activeUsers} من ${users.length} حساباً لديه نشاط`
+        : `${activeUsers} of ${users.length} accounts have activity`,
+      bar: usageRate,
+    },
   ];
 
   const logs = [
@@ -109,27 +182,85 @@ export function AdminDashboard() {
     { name: ar ? 'الطباعة' : 'Printing', value: 60 },
   ], [ar]);
 
-  const MOOD_DATA = [
-    { name: '😍', value: 32, label: ar ? 'رائع' : 'Amazing', fill: '#f43f5e' },
-    { name: '🤩', value: 28, label: ar ? 'ممتاز' : 'Excellent', fill: '#f97316' },
-    { name: '😊', value: 25, label: ar ? 'جيد' : 'Good', fill: '#10b981' },
-    { name: '😐', value: 10, label: ar ? 'مقبول' : 'Okay', fill: '#64748b' },
-    { name: '😕', value: 5, label: ar ? 'يحتاج تحسين' : 'Needs work', fill: '#004C6D' },
+  // The five moods a rating can carry — the axis of the distribution below.
+  // These used to ship fixed percentages (32/28/25/10/5) that never moved no
+  // matter what users actually submitted; the shares are now counted from the
+  // entries in the list.
+  const MOOD_SCALE = [
+    { name: '😍', label: ar ? 'رائع' : 'Amazing', fill: '#f43f5e' },
+    { name: '🤩', label: ar ? 'ممتاز' : 'Excellent', fill: '#f97316' },
+    { name: '😊', label: ar ? 'جيد' : 'Good', fill: '#10b981' },
+    { name: '😐', label: ar ? 'مقبول' : 'Okay', fill: '#64748b' },
+    { name: '😕', label: ar ? 'يحتاج تحسين' : 'Needs work', fill: '#004C6D' },
   ];
 
-  const feedbackEntries = ar ? [
-    { id: 1, mood: '😍', moodLabel: 'رائع', moodColor: 'bg-rose-100 dark:bg-rose-950/40 text-rose-700', categories: ['تجربة AR'], text: 'التنقل بواسطة AR رائع جداً، أشعر وكأنني في مكتبة المستقبل!', time: 'منذ ١٠ دقائق', user: 'فاطمة المعمري' },
-    { id: 2, mood: '😊', moodLabel: 'جيد', moodColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700', categories: ['البحث', 'الواجهة'], text: 'البحث يعمل بشكل جيد لكن يمكن تحسين سرعته.', time: 'منذ ساعة', user: 'محمد علي' },
-    { id: 3, mood: '🤩', moodLabel: 'ممتاز', moodColor: 'bg-orange-100 dark:bg-orange-950/40 text-orange-700', categories: ['الخريطة'], text: 'الخريطة ثنائية الأبعاد مفيدة جداً في إيجاد الكتب.', time: 'منذ ٣ ساعات', user: 'سارة أحمد' },
-    { id: 4, mood: '😐', moodLabel: 'مقبول', moodColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600', categories: ['اقتراح'], text: 'أقترح إضافة المزيد من تصنيفات الكتب.', time: 'منذ يوم', user: 'عمر خالد' },
-    { id: 5, mood: '😕', moodLabel: 'يحتاج تحسين', moodColor: 'bg-primary/10 text-primary', categories: ['البحث'], text: 'أحياناً تظهر نتائج بحث غير دقيقة.', time: 'منذ يومين', user: 'نورة سالم' },
+  const MOOD_COLOR_MAP: Record<string, string> = {
+    '😍': 'bg-rose-100 dark:bg-rose-950/40 text-rose-700',
+    '🤩': 'bg-orange-100 dark:bg-orange-950/40 text-orange-700',
+    '😊': 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700',
+    '😐': 'bg-slate-100 dark:bg-slate-800 text-slate-600',
+    '😕': 'bg-primary/10 text-primary',
+  };
+
+  const mockFeedbackEntries = ar ? [
+    { id: 'm1', mood: '😍', moodLabel: 'رائع', moodColor: MOOD_COLOR_MAP['😍'], categories: ['تجربة AR'], text: 'التنقل بواسطة AR رائع جداً، أشعر وكأنني في مكتبة المستقبل!', time: 'منذ يوم', user: 'فاطمة المعمري', isDemo: true },
+    { id: 'm2', mood: '😊', moodLabel: 'جيد', moodColor: MOOD_COLOR_MAP['😊'], categories: ['البحث', 'الواجهة'], text: 'البحث يعمل بشكل جيد لكن يمكن تحسين سرعته.', time: 'منذ يومين', user: 'محمد علي', isDemo: true },
+    { id: 'm3', mood: '🤩', moodLabel: 'ممتاز', moodColor: MOOD_COLOR_MAP['🤩'], categories: ['الخريطة'], text: 'الخريطة ثنائية الأبعاد مفيدة جداً في إيجاد الكتب.', time: 'منذ ٣ أيام', user: 'سارة أحمد', isDemo: true },
   ] : [
-    { id: 1, mood: '😍', moodLabel: 'Amazing', moodColor: 'bg-rose-100 dark:bg-rose-950/40 text-rose-700', categories: ['AR Experience'], text: 'The AR navigation is incredible, feels like the library of the future!', time: '10 mins ago', user: 'Fatima Al-Maamari' },
-    { id: 2, mood: '😊', moodLabel: 'Good', moodColor: 'bg-emerald-100 dark:bg-emerald-950/40 text-emerald-700', categories: ['Search', 'UI/Design'], text: 'Search works well but could be faster.', time: '1 hour ago', user: 'Mohamed Ali' },
-    { id: 3, mood: '🤩', moodLabel: 'Excellent', moodColor: 'bg-orange-100 dark:bg-orange-950/40 text-orange-700', categories: ['Map'], text: 'The 2D map is super helpful for finding books.', time: '3 hours ago', user: 'Sara Ahmed' },
-    { id: 4, mood: '😐', moodLabel: 'Okay', moodColor: 'bg-slate-100 dark:bg-slate-800 text-slate-600', categories: ['Suggestion'], text: 'Would love more book categories to choose from.', time: '1 day ago', user: 'Omar Khalid' },
-    { id: 5, mood: '😕', moodLabel: 'Needs work', moodColor: 'bg-primary/10 text-primary', categories: ['Search'], text: 'Sometimes search returns irrelevant results.', time: '2 days ago', user: 'Noura Salem' },
+    { id: 'm1', mood: '😍', moodLabel: 'Amazing', moodColor: MOOD_COLOR_MAP['😍'], categories: ['AR Experience'], text: 'The AR navigation is incredible, feels like the library of the future!', time: '1 day ago', user: 'Fatima Al-Maamari', isDemo: true },
+    { id: 'm2', mood: '😊', moodLabel: 'Good', moodColor: MOOD_COLOR_MAP['😊'], categories: ['Search', 'UI/Design'], text: 'Search works well but could be faster.', time: '2 days ago', user: 'Mohamed Ali', isDemo: true },
+    { id: 'm3', mood: '🤩', moodLabel: 'Excellent', moodColor: MOOD_COLOR_MAP['🤩'], categories: ['Map'], text: 'The 2D map is super helpful for finding books.', time: '3 days ago', user: 'Sara Ahmed', isDemo: true },
   ];
+
+  const feedbackEntries = [
+    ...realFeedback.map(e => ({
+      id: e.id,
+      // Help-centre inquiries carry no mood. They used to be pushed through
+      // the mood slot anyway, so a support ticket appeared in the row of
+      // satisfaction faces as if the sender had rated the library "✉️".
+      isInquiry: e.kind === 'inquiry',
+      mood: e.mood,
+      moodLabel: e.moodLabel,
+      moodColor: MOOD_COLOR_MAP[e.mood] || 'bg-slate-100 dark:bg-slate-800 text-slate-600',
+      categories: e.categories,
+      text: e.text,
+      email: e.email || '',
+      // ar-EG, not ar-SA: ar-SA resolves to the Umm al-Qura calendar in the
+      // browser, so these stamps read as Hijri while every other date in the
+      // app (due dates, loan history) is Gregorian.
+      time: new Date(e.time).toLocaleString(ar ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' }),
+      user: e.user,
+      isDemo: false,
+    })),
+    ...mockFeedbackEntries.map(m => ({ ...m, isInquiry: false, email: '' })),
+  ];
+
+  const visibleEntries = feedbackEntries.filter(e => (inboxView === 'requests' ? e.isInquiry : !e.isInquiry));
+  const inquiryCount = feedbackEntries.filter(e => e.isInquiry).length;
+  const ratingCount = feedbackEntries.length - inquiryCount;
+
+  // Counted from the ratings actually in the list. Percentages of a handful of
+  // entries overstate their own precision, so the card leads with the count
+  // and shows the share underneath.
+  const moodDistribution = MOOD_SCALE.map(m => {
+    const count = feedbackEntries.filter(e => !e.isInquiry && e.mood === m.name).length;
+    return { ...m, count, pct: ratingCount > 0 ? Math.round((count / ratingCount) * 100) : 0 };
+  });
+
+  // Arabic counts take four forms (1 / 2 / 3–10 / 11+); English just needs
+  // the -s. Enough to keep "1 inquiries" and "3 تقييم" off the screen.
+  const countLabel = (n: number, forms: { one: string; two: string; few: string; many: string }): string => {
+    if (!ar) return `${n} ${n === 1 ? forms.one : forms.many}`;
+    if (n === 1) return forms.one;
+    if (n === 2) return forms.two;
+    return `${n} ${n % 100 >= 3 && n % 100 <= 10 ? forms.few : forms.many}`;
+  };
+  const ratingsLabel = ar
+    ? countLabel(ratingCount, { one: 'تقييم واحد', two: 'تقييمان', few: 'تقييمات', many: 'تقييماً' })
+    : countLabel(ratingCount, { one: 'rating', two: '', few: '', many: 'ratings' });
+  const inquiriesLabel = ar
+    ? countLabel(inquiryCount, { one: 'استفسار واحد', two: 'استفساران', few: 'استفسارات', many: 'استفساراً' })
+    : countLabel(inquiryCount, { one: 'inquiry', two: '', few: '', many: 'inquiries' });
 
   const openModal = (type: 'user' | 'book' | 'facility', data: any = {}) => {
     setEditingItem({ type, data });
@@ -138,6 +269,14 @@ export function AdminDashboard() {
 
   const handleDeleteUser = (id: string) => {
     if (confirm(t('confirmDeleteUser'))) setUsers(u => u.filter(x => x.id !== id));
+  };
+
+  const setFeedbackStatus = (id: string, status: 'pending' | 'reviewing' | 'resolved') => {
+    setFeedbackStatuses(prev => {
+      const next = { ...prev, [id]: status };
+      localStorage.setItem('admin_feedback_statuses', JSON.stringify(next));
+      return next;
+    });
   };
   const handleDeleteBook = (id: string) => {
     if (confirm(t('confirmDeleteBook'))) setBooks(b => b.filter(x => x.id !== id));
@@ -197,6 +336,42 @@ export function AdminDashboard() {
     window.print();
   };
 
+  // The export control used to be inert. It now downloads whichever table the
+  // admin is actually looking at, as CSV. The BOM keeps Excel from mangling
+  // the Arabic columns.
+
+  /**
+   * Download the tab's own table as CSV.
+   *
+   * Each tab passes the columns it actually shows, so the file matches what is
+   * on screen — including the current search filter — rather than one shape of
+   * export guessed from whichever tab happens to be open.
+   */
+  const exportCsv = (name: string, rows: (string | number)[][]) => {
+    const csv = rows
+      .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+    // The BOM is what makes Excel read the Arabic columns as UTF-8.
+    const url = URL.createObjectURL(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `arlibrary-${name}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  /** The compact export control that sits in each tab's toolbar. */
+  const ExportButton = ({ name, rows }: { name: string; rows: (string | number)[][] }) => (
+    <button
+      onClick={() => exportCsv(name, rows)}
+      title={ar ? 'تصدير CSV' : 'Export CSV'}
+      className="flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-3.5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all shadow-sm shrink-0 whitespace-nowrap"
+    >
+      <Download className="w-4 h-4" />
+      <span className="hidden sm:inline">{ar ? 'تصدير' : 'Export'}</span>
+    </button>
+  );
+
   const tabs = [
     { id: 'users', label: t('usersTab'), icon: Users },
     { id: 'books', label: t('libraryTab'), icon: BookOpen },
@@ -204,7 +379,7 @@ export function AdminDashboard() {
     { id: 'qr', label: ar ? 'رموز AR' : 'AR Codes', icon: QrCode },
     { id: 'stats', label: t('statsTab'), icon: BarChart3 },
     { id: 'logs', label: t('logsTab'), icon: Activity },
-    { id: 'feedback', label: ar ? 'آراء المستخدمين' : 'Feedback', icon: TrendingUp },
+    { id: 'feedback', label: ar ? 'طلبات المستخدمين' : 'User Requests', icon: TrendingUp, count: newFeedbackCount },
   ];
 
   const statusBadge = (status: string) => {
@@ -235,36 +410,45 @@ export function AdminDashboard() {
       {/* Header */}
       <div className={cn('flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-slate-200 dark:border-white/10 pb-8', dir === 'rtl' ? 'md:flex-row-reverse' : '')}>
         <div className="space-y-1">
-          <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-            <h2 className="text-3xl font-black text-primary dark:text-white tracking-tight">{t('systemManagement')}</h2>
+          {/* flex-wrap, because the chip never breaks: on a phone the heading
+              takes two lines and the chip ran off the right edge of the screen. */}
+          <div className={cn('flex flex-wrap items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+            <h2 className="text-2xl sm:text-3xl font-black text-primary dark:text-white tracking-tight">{t('systemManagement')}</h2>
             <div className="bg-primary/5 dark:bg-accent/10 text-primary dark:text-accent px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-primary/10 dark:border-accent/20 whitespace-nowrap">{t('centralControlPanel')}</div>
           </div>
           <p className="text-slate-400 dark:text-slate-500 font-bold text-sm">{t('fullControlDesc')}</p>
         </div>
-        <div className={cn('flex items-center gap-3 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-          <button onClick={() => navigate('/qr-print')} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
-            <QrCode className="w-4 h-4 text-accent" />{ar ? 'طباعة رموز AR' : 'Print AR Codes'}
-          </button>
-          <button className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-400 px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm whitespace-nowrap">
-            <Download className="w-4 h-4" />{t('exportReports')}
-          </button>
-          <button onClick={() => openModal('book')} className="bg-primary dark:bg-accent text-white dark:text-primary px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all flex items-center gap-2 shadow-xl shadow-primary/20 dark:shadow-accent/20 whitespace-nowrap">
-            <PlusCircle className="w-4 h-4 text-accent dark:text-primary" />{t('addNewResource')}
-          </button>
-        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Two across on a phone. At one column each card ran the height of half
+          the screen to show a single number, so the five of them buried the
+          management tabs under four screenfuls of scrolling. */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-6">
         {stats.map((s, i) => (
           <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-            className={cn('official-card p-8 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5', dir === 'rtl' ? 'text-right' : 'text-left')}>
-            <div className={cn('flex items-start justify-between mb-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-              <div className={cn('p-4 rounded-2xl shadow-inner', s.bg)}><s.icon className={cn('w-6 h-6', s.color)} /></div>
-              <div className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">{t('updatedNow')}</div>
+            className={cn('official-card p-4 sm:p-8 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-2xl shadow-black/5', dir === 'rtl' ? 'text-right' : 'text-left')}>
+            <div className={cn('flex items-start justify-between mb-3 sm:mb-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+              <div className={cn('p-2.5 sm:p-4 rounded-2xl shadow-inner', s.bg)}><s.icon className={cn('w-5 h-5 sm:w-6 sm:h-6', s.color)} /></div>
+              <div className="hidden sm:block text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">{t('updatedNow')}</div>
             </div>
-            <div className="text-4xl font-black text-primary dark:text-white tracking-tighter font-mono">{s.value}</div>
+            <div className="text-3xl sm:text-4xl font-black text-primary dark:text-white tracking-tighter font-mono" dir="ltr">{s.value}</div>
             <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] mt-1">{s.label}</div>
+            {'bar' in s && (
+              <div className="mt-3 space-y-1.5">
+                <div className="h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(s as { bar: number }).bar}%` }}
+                    transition={{ duration: 1, ease: 'easeOut', delay: 0.3 }}
+                    className="h-full rounded-full bg-rose-500"
+                  />
+                </div>
+                <div className="text-[9px] font-bold text-slate-400 dark:text-slate-500 leading-snug">
+                  {(s as { detail: string }).detail}
+                </div>
+              </div>
+            )}
           </motion.div>
         ))}
       </div>
@@ -272,11 +456,16 @@ export function AdminDashboard() {
       {/* Tab bar */}
       <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 p-2 rounded-[2rem] w-fit mx-auto lg:mx-0 shadow-inner flex-wrap justify-center">
         {tabs.map(tab => (
-          <button key={tab.id} onClick={() => { setActiveTab(tab.id as AdminTab); setSearchQuery(''); }}
-            className={cn('flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap',
+          <button key={tab.id} onClick={() => { setActiveTab(tab.id as AdminTab); setSearchQuery(''); if (tab.id === 'feedback') setNewFeedbackCount(0); }}
+            className={cn('relative flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap',
               activeTab === tab.id ? 'bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-xl shadow-black/5' : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300')}>
             <tab.icon className={cn('w-4 h-4', activeTab === tab.id ? 'text-accent' : 'text-slate-400')} />
             <span>{tab.label}</span>
+            {(tab as any).count > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-rose-500 text-white text-[9px] font-black rounded-full flex items-center justify-center px-1 shadow-lg animate-pulse">
+                {(tab as any).count > 99 ? '99+' : (tab as any).count}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -297,6 +486,13 @@ export function AdminDashboard() {
                       <input type="text" placeholder={t('searchUserPlaceholder')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                         className={cn('py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/10 outline-none w-56 text-slate-900 dark:text-slate-100 placeholder:text-slate-400/50', dir === 'rtl' ? 'pr-10 pl-4' : 'pl-10 pr-4')} />
                     </div>
+                    <ExportButton
+                      name="users"
+                      rows={[
+                        [ar ? 'الاسم' : 'Name', ar ? 'البريد الإلكتروني' : 'Email', ar ? 'الدور' : 'Role', ar ? 'الاستعارات' : 'Borrowed'],
+                        ...filteredUsers.map(u => [displayName(u, language), u.email, u.role, u.borrowedBooks.length]),
+                      ]}
+                    />
                     <button onClick={() => openModal('user')} className="bg-primary dark:bg-accent text-white dark:text-primary p-2.5 rounded-xl shadow-lg hover:scale-105 transition-all shrink-0">
                       <PlusCircle className="w-5 h-5" />
                     </button>
@@ -317,9 +513,9 @@ export function AdminDashboard() {
                           <tr key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                             <td className="px-6 py-4">
                               <div className={cn('flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                                <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-primary dark:text-accent shadow-sm shrink-0">{user.name[0]}</div>
+                                <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-primary dark:text-accent shadow-sm shrink-0">{displayName(user, language)[0]}</div>
                                 <div>
-                                  <div className="text-xs font-black text-primary dark:text-white">{user.name}</div>
+                                  <div className="text-xs font-black text-primary dark:text-white">{displayName(user, language)}</div>
                                   <div className="text-[10px] text-slate-400 font-bold">{user.email}</div>
                                 </div>
                               </div>
@@ -365,6 +561,13 @@ export function AdminDashboard() {
                       <input type="text" placeholder={t('searchPlaceholderAdmin')} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                         className={cn('py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/10 outline-none w-48 text-slate-900 dark:text-slate-100', dir === 'rtl' ? 'pr-10 pl-4' : 'pl-10 pr-4')} />
                     </div>
+                    <ExportButton
+                      name="resources"
+                      rows={[
+                        [ar ? 'العنوان' : 'Title', ar ? 'المؤلف' : 'Author', ar ? 'التصنيف' : 'Category', ar ? 'الرف' : 'Shelf', ar ? 'الحالة' : 'Status'],
+                        ...filteredBooks.map(b => [bookTitle(b, language), bookAuthor(b, language), b.category || '', b.shelf || '', b.status || 'available']),
+                      ]}
+                    />
                     <button onClick={() => openModal('book')} className="bg-primary dark:bg-accent text-white dark:text-primary p-2.5 rounded-xl shadow-lg hover:scale-105 transition-all shrink-0">
                       <PlusCircle className="w-5 h-5" />
                     </button>
@@ -389,8 +592,8 @@ export function AdminDashboard() {
                               <div className={cn('flex items-center gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
                                 <BookCover book={book} className="w-10 h-14 rounded-xl shadow-md border-2 border-slate-100 dark:border-white/5 shrink-0 overflow-hidden" />
                                 <div>
-                                  <div className="text-xs font-black text-primary dark:text-white truncate max-w-[180px]">{book.title}</div>
-                                  <div className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest">{book.author}</div>
+                                  <div className="text-xs font-black text-primary dark:text-white truncate max-w-[180px]">{bookTitle(book, language)}</div>
+                                  <div className="text-[10px] text-slate-400 font-bold mt-0.5 uppercase tracking-widest">{bookAuthor(book, language)}</div>
                                 </div>
                               </div>
                             </td>
@@ -431,6 +634,13 @@ export function AdminDashboard() {
                       <input type="text" placeholder={ar ? 'بحث...' : 'Search...'} value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
                         className={cn('py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold border border-slate-200 dark:border-white/10 outline-none w-48 text-slate-900 dark:text-slate-100', dir === 'rtl' ? 'pr-10 pl-4' : 'pl-10 pr-4')} />
                     </div>
+                    <ExportButton
+                      name="facilities"
+                      rows={[
+                        [ar ? 'المرفق' : 'Facility', ar ? 'الاسم (EN)' : 'Name (EN)', ar ? 'الموقع' : 'Location', ar ? 'الحالة' : 'Status'],
+                        ...filteredFacilities.map(f => [f.name, f.nameEn, f.cellId, f.status]),
+                      ]}
+                    />
                     <button onClick={() => openModal('facility')} className="bg-primary dark:bg-accent text-white dark:text-primary p-2.5 rounded-xl shadow-lg hover:scale-105 transition-all shrink-0">
                       <PlusCircle className="w-5 h-5" />
                     </button>
@@ -496,9 +706,24 @@ export function AdminDashboard() {
               <motion.div key="qr" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
                 <div className={cn('flex flex-col sm:flex-row items-center justify-between gap-4', dir === 'rtl' ? 'sm:flex-row-reverse' : '')}>
                   <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'رموز AR التلقائية' : 'Auto-Generated AR Codes'}</h3>
-                  <button onClick={handlePrintQR} className="flex items-center gap-2 bg-primary dark:bg-accent text-white dark:text-primary px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-primary/20">
-                    <Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}
-                  </button>
+                  <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                    <ExportButton
+                      name={`qr-${qrSection}`}
+                      rows={
+                        qrSection === 'shelves'
+                          ? [[ar ? 'الرف' : 'Shelf', ar ? 'رمز AR' : 'AR code'],
+                             ...SHELVES.map(id => [id, `ARLIBRARY:SHELF:${id}`])]
+                          : qrSection === 'books'
+                          ? [[ar ? 'العنوان' : 'Title', ar ? 'الرف' : 'Shelf', ar ? 'رمز AR' : 'AR code'],
+                             ...books.map(bk => [bookTitle(bk, language), bk.shelf || '', `ARLIBRARY:BOOK:${bk.id}`])]
+                          : [[ar ? 'المرفق' : 'Facility', ar ? 'الموقع' : 'Location', ar ? 'رمز AR' : 'AR code'],
+                             ...facilities.map(f => [f.name, f.cellId, `ARLIBRARY:FACILITY:${f.cellId}`])]
+                      }
+                    />
+                    <button onClick={handlePrintQR} className="flex items-center gap-2 bg-primary dark:bg-accent text-white dark:text-primary px-5 py-2.5 rounded-2xl text-xs font-black uppercase tracking-widest hover:brightness-110 transition-all shadow-xl shadow-primary/20">
+                      <Printer className="w-4 h-4" />{ar ? 'طباعة' : 'Print'}
+                    </button>
+                  </div>
                 </div>
 
                 {/* Section switcher */}
@@ -535,7 +760,7 @@ export function AdminDashboard() {
                         <div key={book.id} className="official-card p-4 flex flex-col items-center gap-3 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-lg hover:shadow-xl transition-shadow">
                           <QRCodeSVG value={`ARLIBRARY:BOOK:${book.id}`} size={100} level="M" fgColor="#004C6D" />
                           <div className="text-center w-full">
-                            <div className="text-[10px] font-black text-primary dark:text-white truncate w-full">{book.title}</div>
+                            <div className="text-[10px] font-black text-primary dark:text-white truncate w-full">{bookTitle(book, language)}</div>
                             <div className="text-[8px] font-mono text-slate-400 mt-0.5">BOOK:{book.id} · {book.shelf}</div>
                           </div>
                         </div>
@@ -571,7 +796,16 @@ export function AdminDashboard() {
             {/* ── LOGS ── */}
             {activeTab === 'logs' && (
               <motion.div key="logs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6">
-                <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{t('digitalActivityLogs')}</h3>
+                <div className={cn('flex items-center justify-between gap-4 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                  <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{t('digitalActivityLogs')}</h3>
+                  <ExportButton
+                    name="logs"
+                    rows={[
+                      [ar ? 'المستخدم' : 'User', ar ? 'الإجراء' : 'Action', ar ? 'الهدف' : 'Target', ar ? 'الوقت' : 'Time'],
+                      ...logs.map(l => [l.user, l.action, l.target, l.time]),
+                    ]}
+                  />
+                </div>
                 <div className="space-y-4">
                   {logs.map(log => (
                     <div key={log.id} className={cn('official-card p-6 flex items-center gap-6 border-slate-100 dark:border-white/5 bg-white dark:bg-slate-900 shadow-xl shadow-black/5', dir === 'rtl' ? 'flex-row-reverse text-right' : 'text-left')}>
@@ -603,12 +837,12 @@ export function AdminDashboard() {
                   <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={WEEKLY_DATA} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                        <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#004C6D" stopOpacity={0.1} /><stop offset="95%" stopColor="#004C6D" stopOpacity={0} /></linearGradient></defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} dy={10} />
+                        <defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--chart-line)" stopOpacity={0.15} /><stop offset="95%" stopColor="var(--chart-line)" stopOpacity={0} /></linearGradient></defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--grid-color)" />
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} dy={10} />
                         <YAxis hide />
-                        <Tooltip contentStyle={{ backgroundColor: '#004C6D', border: 'none', borderRadius: '12px', padding: '12px', color: '#fff', fontWeight: 900, fontSize: '12px' }} itemStyle={{ color: '#fff' }} />
-                        <Area type="monotone" dataKey="value" stroke="#004C6D" strokeWidth={3} fillOpacity={1} fill="url(#areaFill)" />
+                        <Tooltip contentStyle={{ backgroundColor: 'var(--tooltip-bg)', border: 'none', borderRadius: '12px', padding: '12px', color: 'var(--tooltip-text)', fontWeight: 900, fontSize: '12px' }} itemStyle={{ color: 'var(--tooltip-text)' }} />
+                        <Area type="monotone" dataKey="value" stroke="var(--chart-line)" strokeWidth={3} fillOpacity={1} fill="url(#areaFill)" />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -619,11 +853,11 @@ export function AdminDashboard() {
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={CATEGORY_DATA} layout="vertical" margin={{ left: -30, right: 40 }}>
                         <XAxis type="number" hide domain={[0, 100]} />
-                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900, fill: '#64748b' }} width={120} />
-                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none' }} formatter={(v: number) => [`${v}%`, '']} />
+                        <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 900, fill: '#94a3b8' }} width={120} />
+                        <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '12px', border: 'none', backgroundColor: 'var(--tooltip-bg)', color: 'var(--tooltip-text)' }} itemStyle={{ color: 'var(--tooltip-text)' }} formatter={(v: number) => [`${v}%`, '']} />
                         <Bar dataKey="value" radius={[0, 8, 8, 0]} barSize={20}>
                           {CATEGORY_DATA.map((_, i) => <Cell key={i} fill={['#004C6D', '#10b981', '#f59e0b', '#94a3b8'][i % 4]} />)}
-                          <LabelList dataKey="value" position="right" formatter={(v: number) => `${v}%`} style={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} />
+                          <LabelList dataKey="value" position="right" formatter={(v: number) => `${v}%`} style={{ fontSize: 10, fontWeight: 900, fill: '#94a3b8' }} />
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
@@ -652,50 +886,265 @@ export function AdminDashboard() {
               </motion.div>
             )}
 
-            {/* ── FEEDBACK RESULTS ── */}
+            {/* ── MY REQUESTS (FEEDBACK) ── */}
             {activeTab === 'feedback' && (
               <motion.div key="feedback" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-8">
-                <div className={cn('flex items-center justify-between', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                  <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">{ar ? 'آراء المستخدمين المُستلمة' : 'Received User Feedback'}</h3>
-                  <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{feedbackEntries.length} {ar ? 'رأي' : 'entries'}</div>
+                <div className={cn('flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3', dir === 'rtl' ? 'sm:flex-row-reverse' : '')}>
+                  <div className="space-y-1">
+                    <h3 className="text-xl font-black text-primary dark:text-white tracking-tight">
+                      {inboxView === 'requests'
+                        ? (ar ? 'طلبات المستخدمين' : 'User Requests')
+                        : (ar ? 'تقييمات المستخدمين' : 'User Feedback')}
+                    </h3>
+                    <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500">
+                      {inboxView === 'requests'
+                        ? (ar ? 'استفسارات مُرسَلة من مركز المساعدة وتنتظر رداً' : 'Inquiries sent from the help centre, awaiting a reply')
+                        : (ar ? 'آراء وتقييمات مُرسَلة من نافذة الملاحظات' : 'Opinions and ratings sent from the feedback widget')}
+                    </p>
+                    {feedbackDenied && (
+                      <p className="text-[11px] font-bold text-amber-600 dark:text-amber-400" role="alert">
+                        {ar
+                          ? 'جلسة الإدارة منتهية — سجّل الدخول مجدداً لعرض الرسائل الواردة. المعروض أدناه بيانات تجريبية فقط.'
+                          : 'Admin session expired — sign in again to load incoming messages. Only demo entries are shown below.'}
+                      </p>
+                    )}
+                  </div>
+                  <div className={cn('flex items-center gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                    {realFeedback.length > 0 && (
+                      <span className="flex items-center gap-1.5 text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                        {realFeedback.length} {ar ? 'جديد' : 'live'}
+                      </span>
+                    )}
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">{visibleEntries.length} {ar ? 'إجمالي' : 'total'}</span>
+                    <ExportButton
+                      name={inboxView === 'requests' ? 'user-requests' : 'user-feedback'}
+                      rows={
+                        inboxView === 'requests'
+                          ? [[ar ? 'المرسل' : 'From', ar ? 'البريد' : 'Email', ar ? 'الاستفسار' : 'Inquiry', ar ? 'الوقت' : 'Time'],
+                             ...visibleEntries.map(e => [e.user, e.email, e.text, e.time])]
+                          : [[ar ? 'المرسل' : 'From', ar ? 'التقييم' : 'Rating', ar ? 'المحاور' : 'Topics', ar ? 'الملاحظة' : 'Comment', ar ? 'الوقت' : 'Time'],
+                             ...visibleEntries.map(e => [e.user, e.moodLabel, (e.categories || []).join(' / '), e.text, e.time])]
+                      }
+                    />
+                  </div>
                 </div>
 
-                {/* Mood summary */}
+                {/* The split itself. Same control the AR-codes tab uses. */}
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 p-1.5 rounded-2xl w-fit shadow-inner">
+                  {([
+                    ['requests', ar ? 'الطلبات' : 'Requests', inquiryCount],
+                    ['ratings',  ar ? 'التقييمات' : 'Feedback', ratingCount],
+                  ] as const).map(([id, label, count]) => (
+                    <button
+                      key={id}
+                      onClick={() => setInboxView(id)}
+                      className={cn(
+                        'flex items-center gap-2 px-5 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap',
+                        inboxView === id ? 'bg-white dark:bg-slate-800 text-primary dark:text-accent shadow-md' : 'text-slate-400 hover:text-slate-600',
+                      )}
+                    >
+                      {id === 'requests' ? <Mail className="w-4 h-4" /> : <MessageSquare className="w-4 h-4" />}
+                      {label}
+                      <span className={cn(
+                        'min-w-[20px] px-1.5 py-0.5 rounded-lg text-[9px] tabular-nums',
+                        inboxView === id ? 'bg-primary/10 dark:bg-accent/15' : 'bg-slate-200/70 dark:bg-slate-800',
+                      )}>{count}</span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Mood summary — ratings only. Inquiries carry no mood, so
+                    folding them into these percentages would misreport them. */}
+                {inboxView === 'ratings' && (
+                <div className="space-y-3">
+                  <div className={cn('flex items-baseline gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                    <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      {ar ? 'توزيع التقييمات' : 'Rating distribution'}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-300 dark:text-slate-600">
+                      {ratingsLabel} · {inquiriesLabel}
+                    </span>
+                  </div>
                 <div className="grid grid-cols-5 gap-3">
-                  {MOOD_DATA.map((m, i) => (
-                    <div key={i} className="official-card p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-lg text-center">
+                  {moodDistribution.map((m, i) => (
+                    <div key={m.name} className={cn('official-card p-4 flex flex-col items-center gap-2 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-lg text-center transition-opacity', m.count === 0 && 'opacity-50')}>
                       <span className="text-2xl">{m.name}</span>
-                      <div className="text-lg font-black text-primary dark:text-white">{m.value}%</div>
+                      <div className="text-lg font-black text-primary dark:text-white tabular-nums">{m.count}</div>
+                      <div className="text-[9px] font-black text-slate-400 tabular-nums">{m.pct}%</div>
                       <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-tight">{m.label}</div>
                       <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                        <motion.div initial={{ width: 0 }} animate={{ width: `${m.value}%` }} transition={{ duration: 1, delay: i * 0.1 }} className="h-full rounded-full" style={{ backgroundColor: m.fill }} />
+                        <motion.div initial={{ width: 0 }} animate={{ width: `${m.pct}%` }} transition={{ duration: 1, delay: i * 0.1 }} className="h-full rounded-full" style={{ backgroundColor: m.fill }} />
                       </div>
                     </div>
                   ))}
                 </div>
+                </div>
+                )}
 
-                {/* Feedback entries */}
+                {/* Entries for the active view */}
                 <div className="space-y-4">
-                  {feedbackEntries.map(entry => (
-                    <div key={entry.id} className={cn('official-card p-6 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-xl shadow-black/5 space-y-3', dir === 'rtl' ? 'text-right' : 'text-left')}>
+                  {visibleEntries.length === 0 && (
+                    <div className="official-card p-10 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 text-center space-y-3">
+                      <div className="w-12 h-12 mx-auto rounded-2xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 dark:text-slate-600">
+                        {inboxView === 'requests' ? <Mail className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
+                      </div>
+                      <p className="text-xs font-bold text-slate-400 dark:text-slate-500">
+                        {inboxView === 'requests'
+                          ? (ar ? 'لا توجد استفسارات واردة' : 'No inquiries received')
+                          : (ar ? 'لا توجد تقييمات بعد' : 'No ratings yet')}
+                      </p>
+                    </div>
+                  )}
+                  {visibleEntries.map(entry => {
+                    const status = feedbackStatuses[entry.id] || 'pending';
+                    const isResolved = status === 'resolved';
+                    const isReviewing = status === 'reviewing';
+                    const replyOpen = expandedReply === entry.id;
+                    return (
+                    <motion.div
+                      key={entry.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={cn(
+                        'official-card p-6 bg-white dark:bg-slate-900 shadow-xl shadow-black/5 space-y-3 relative overflow-hidden transition-opacity',
+                        isResolved ? 'opacity-50' : (entry as any).isDemo ? 'opacity-70' : '',
+                        isResolved
+                          ? 'border-slate-200 dark:border-white/5'
+                          : isReviewing
+                          ? 'border-amber-200 dark:border-amber-800/50'
+                          : (entry as any).isDemo
+                          ? 'border-slate-100 dark:border-white/5'
+                          : 'border-emerald-200 dark:border-emerald-800/50',
+                        dir === 'rtl' ? 'text-right' : 'text-left'
+                      )}
+                    >
+                      {/* Status badge */}
+                      <div className={cn('absolute top-4 flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-lg border', dir === 'rtl' ? 'left-4' : 'right-4',
+                        isResolved
+                          ? 'text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-white/10'
+                          : isReviewing
+                          ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-200 dark:border-amber-800/50'
+                          : 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-200 dark:border-emerald-800/50'
+                      )}>
+                        {isResolved
+                          ? <><CheckCircle2 className="w-2.5 h-2.5" />{ar ? 'تم الحل' : 'Resolved'}</>
+                          : isReviewing
+                          ? <><Clock className="w-2.5 h-2.5 animate-pulse" />{ar ? 'قيد المراجعة' : 'Reviewing'}</>
+                          : <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />{ar ? 'جديد' : 'Pending'}</>
+                        }
+                      </div>
+
                       <div className={cn('flex items-center justify-between gap-4', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                        <div className={cn('flex items-center gap-3', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                          <span className="text-2xl">{entry.mood}</span>
-                          <div>
-                            <div className="text-xs font-black text-primary dark:text-white">{entry.user}</div>
-                            <span className={cn('text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg', entry.moodColor)}>{entry.moodLabel}</span>
+                        <div className={cn('flex items-center gap-3 min-w-0', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                          {entry.isInquiry ? (
+                            <div className="w-9 h-9 shrink-0 rounded-xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
+                              <Mail className="w-4 h-4" />
+                            </div>
+                          ) : (
+                            <span className="text-2xl">{entry.mood}</span>
+                          )}
+                          <div className="min-w-0">
+                            <div className="text-xs font-black text-primary dark:text-white truncate">{entry.user}</div>
+                            {entry.isInquiry ? (
+                              <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg bg-primary/10 dark:bg-accent/10 text-primary dark:text-accent">
+                                {ar ? 'استفسار دعم' : 'Support inquiry'}
+                              </span>
+                            ) : (
+                              <span className={cn('text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-lg', entry.moodColor)}>{entry.moodLabel}</span>
+                            )}
                           </div>
                         </div>
                         <div className="text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-tighter shrink-0">{entry.time}</div>
                       </div>
+
+                      {/* An inquiry expects a reply, so surface a usable address. */}
+                      {entry.isInquiry && entry.email && (
+                        <a
+                          href={`mailto:${entry.email}`}
+                          dir="ltr"
+                          className={cn('inline-flex items-center gap-1.5 text-[11px] font-black text-primary dark:text-accent hover:underline', dir === 'rtl' ? 'flex-row-reverse' : '')}
+                        >
+                          <Mail className="w-3 h-3 shrink-0" />
+                          {entry.email}
+                        </a>
+                      )}
+
                       {entry.text && <p className="text-sm text-slate-600 dark:text-slate-300 font-medium leading-relaxed">{entry.text}</p>}
+
                       <div className={cn('flex flex-wrap gap-2', dir === 'rtl' ? 'flex-row-reverse' : '')}>
-                        {entry.categories.map((cat, ci) => (
+                        {entry.categories.map((cat: string, ci: number) => (
                           <span key={ci} className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/10">{cat}</span>
                         ))}
                       </div>
-                    </div>
-                  ))}
+
+                      {/* Admin reply panel */}
+                      <AnimatePresence>
+                        {replyOpen && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="pt-2 space-y-2">
+                              <textarea
+                                rows={2}
+                                value={replyText[entry.id] || ''}
+                                onChange={e => setReplyText(prev => {
+                                  const next = { ...prev, [entry.id]: e.target.value };
+                                  try { localStorage.setItem('admin_feedback_notes', JSON.stringify(next)); } catch {}
+                                  return next;
+                                })}
+                                placeholder={ar ? 'اكتب ردًا داخليًا للمراجعة...' : 'Write an internal note...'}
+                                className={cn('w-full text-xs font-medium rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-slate-950 text-primary dark:text-white p-3 focus:outline-none focus:ring-2 focus:ring-accent resize-none', dir === 'rtl' ? 'text-right' : 'text-left')}
+                              />
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+
+                      {/* Action buttons */}
+                      {!isResolved && (
+                        <div className={cn('flex items-center gap-2 pt-1 flex-wrap', dir === 'rtl' ? 'flex-row-reverse' : '')}>
+                          {!isReviewing && (
+                            <button
+                              onClick={() => setFeedbackStatus(entry.id, 'reviewing')}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50 hover:bg-amber-100 dark:hover:bg-amber-900/40 transition-all"
+                            >
+                              <Clock className="w-3 h-3" />
+                              {ar ? 'قيد المراجعة' : 'Mark Reviewing'}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => { setExpandedReply(replyOpen ? null : entry.id); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-white/10 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                          >
+                            <MessageSquareReply className="w-3 h-3" />
+                            {ar ? 'ملاحظة' : 'Note'}
+                            {(replyText[entry.id] || '').trim() && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}
+                            {replyOpen ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
+                          </button>
+                          <button
+                            onClick={() => { setFeedbackStatus(entry.id, 'resolved'); setExpandedReply(null); }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-all"
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                            {ar ? 'تم الحل' : 'Resolve'}
+                          </button>
+                        </div>
+                      )}
+                      {isResolved && (
+                        <button
+                          onClick={() => setFeedbackStatus(entry.id, 'pending')}
+                          className="text-[9px] font-black text-slate-400 hover:text-primary dark:hover:text-white uppercase tracking-widest transition-colors"
+                        >
+                          {ar ? '↩ إعادة فتح' : '↩ Reopen'}
+                        </button>
+                      )}
+                    </motion.div>
+                    );
+                  })}
                 </div>
               </motion.div>
             )}
@@ -765,7 +1214,7 @@ export function AdminDashboard() {
                       <div className="space-y-2">
                         <label className={LABEL_CLS}>{ar ? 'الرف' : 'Shelf'}</label>
                         <select name="shelf" defaultValue={editingItem.data.shelf || 'A-1'} className={INPUT_CLS(dir)}>
-                          {SHELVES.map(s => <option key={s} value={s}>{s}</option>)}
+                          {shelfOptions(editingItem.data.shelf).map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                     </div>
@@ -846,7 +1295,7 @@ export function AdminDashboard() {
                       <div className="space-y-2">
                         <label className={LABEL_CLS}>{ar ? 'خلية الخريطة' : 'Map Cell'}</label>
                         <select name="cellId" defaultValue={editingItem.data.cellId || 'A-1'} className={INPUT_CLS(dir)}>
-                          {SHELVES.map(s => <option key={s} value={s}>{s}</option>)}
+                          {shelfOptions(editingItem.data.cellId).map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                       <div className="space-y-2">

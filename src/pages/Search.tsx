@@ -1,17 +1,20 @@
-import React, { useState, useMemo } from 'react';
-import { Search as SearchIcon, MapPin, Tag, Compass, HelpCircle } from 'lucide-react';
+import React, { useState, useMemo, useRef } from 'react';
+import { Search as SearchIcon, MapPin, Compass, HelpCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MOCK_BOOKS } from '../data/mockData';
-import { Book } from '../types';
-import { cn } from '../lib/utils';
+import { cn, incrementSearchCount, bookTitle, bookAuthor, bookCategory } from '../lib/utils';
+import { useAchievements } from '../hooks/useAchievements';
 import { useNavigate } from 'react-router-dom';
 import { BookCover } from '../components/BookCover';
 
 export function Search() {
   const { t, dir, language } = useLanguage();
   const navigate = useNavigate();
+  const { completed } = useAchievements();
   
+  const searchTracked = useRef(false);
+
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -21,15 +24,6 @@ export function Search() {
     return ['all', ...Array.from(new Set(MOCK_BOOKS.map(b => b.category)))];
   }, []);
 
-  const categoryTranslationMap: Record<string, string> = {
-    'all': language === 'ar' ? 'الكل' : 'All',
-    'فيزياء': language === 'ar' ? 'فيزياء' : 'Physics',
-    'هندسة': language === 'ar' ? 'هندسة' : 'Engineering',
-    'عام': language === 'ar' ? 'عام' : 'General',
-    'علم نفس': language === 'ar' ? 'علم نفس' : 'Psychology',
-    'طب': language === 'ar' ? 'طب' : 'Medicine',
-    'أدب': language === 'ar' ? 'أدب' : 'Literature'
-  };
 
   // Live filter mock books
   const filteredBooks = useMemo(() => {
@@ -53,16 +47,23 @@ export function Search() {
     });
   }, [query, selectedCategory, selectedStatus]);
 
-  // Suggested search prompts
+  // Suggested search prompts. The query has to follow the active language too,
+  // not just the chip label — otherwise an English user taps an English chip
+  // and lands Arabic text in their search box that they can't easily edit.
+  // (Shelf codes like A-1 are language-neutral, so they stay the same.)
   const searchPrompts = [
-    { text: language === 'ar' ? 'قوانين الحركة والجاذبية' : 'Laws of motion and gravity', q: 'فيزياء' },
-    { text: language === 'ar' ? 'الذكاء الاصطناعي وتطبيقاته' : 'AI applications', q: 'الذكاء الاصطناعي' },
-    { text: language === 'ar' ? 'تصميم المنشآت الهندسية' : 'Engineering design', q: 'هندسة' },
+    { text: language === 'ar' ? 'قوانين الحركة والجاذبية' : 'Laws of motion and gravity', q: language === 'ar' ? 'فيزياء' : 'physics' },
+    { text: language === 'ar' ? 'الذكاء الاصطناعي وتطبيقاته' : 'AI applications', q: language === 'ar' ? 'الذكاء الاصطناعي' : 'intelligence' },
+    { text: language === 'ar' ? 'تصميم المنشآت الهندسية' : 'Engineering design', q: language === 'ar' ? 'هندسة' : 'engineering' },
     { text: language === 'ar' ? 'البحث عن الرف A-1' : 'Search Shelf A-1', q: 'A-1' }
   ];
 
   const handleApplyPrompt = (q: string) => {
     setQuery(q);
+    if (!searchTracked.current && q.trim().length >= 2) {
+      searchTracked.current = true;
+      incrementSearchCount();
+    }
   };
 
   return (
@@ -96,7 +97,14 @@ export function Search() {
               type="text"
               placeholder={t('searchPlaceholderSearch')}
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setQuery(val);
+                if (!searchTracked.current && val.trim().length >= 2) {
+                  searchTracked.current = true;
+                  incrementSearchCount();
+                }
+              }}
               className={cn(
                 "w-full py-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 text-primary dark:text-white rounded-3xl text-base font-bold transition-all shadow-inner focus:outline-none focus:ring-2 focus:ring-accent",
                 dir === 'rtl' ? 'pr-16 pl-6 text-right' : 'pl-16 pr-6 text-left'
@@ -105,7 +113,7 @@ export function Search() {
             {query && (
               <button
                 onClick={() => setQuery('')}
-                className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary p-2 bg-slate-100 dark:bg-slate-850 rounded-full text-xs font-black z-20 transition-all", dir === 'rtl' ? 'left-6' : 'right-6')}
+                className={cn("absolute top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary w-10 h-10 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-full text-sm font-black z-20 transition-all", dir === 'rtl' ? 'left-6' : 'right-6')}
               >
                 ✕
               </button>
@@ -122,7 +130,7 @@ export function Search() {
               <button
                 key={idx}
                 onClick={() => handleApplyPrompt(prompt.q)}
-                className="px-3.5 py-1.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-[#004C6D]/5 hover:text-primary dark:hover:bg-[#D7C826]/10 dark:hover:text-accent border border-slate-200/65 dark:border-white/5 text-xs text-slate-600 dark:text-slate-300 transition-all font-semibold active:scale-95 shadow-sm cursor-pointer"
+                className="px-3.5 py-3 rounded-xl bg-white dark:bg-slate-900 hover:bg-[#004C6D]/5 hover:text-primary dark:hover:bg-[#D7C826]/10 dark:hover:text-accent border border-slate-200/65 dark:border-white/5 text-xs text-slate-600 dark:text-slate-300 transition-all font-semibold active:scale-95 shadow-sm cursor-pointer"
               >
                 {prompt.text}
               </button>
@@ -144,13 +152,13 @@ export function Search() {
                       key={cat}
                       onClick={() => setSelectedCategory(cat)}
                       className={cn(
-                        "px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95",
+                        "px-4 py-3 rounded-xl text-xs font-bold transition-all border cursor-pointer active:scale-95",
                         selectedCategory === cat
                           ? "bg-primary text-white border-primary dark:bg-accent dark:text-primary dark:border-accent"
                           : "bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5 hover:border-slate-300"
                       )}
                     >
-                      {categoryTranslationMap[cat] || cat}
+                      {bookCategory(cat, language)}
                     </button>
                   ))}
                 </div>
@@ -167,7 +175,7 @@ export function Search() {
                       key={status}
                       onClick={() => setSelectedStatus(status)}
                       className={cn(
-                        "px-3 py-2 rounded-xl text-xs font-bold transition-all border flex-1 cursor-pointer",
+                        "px-3 py-3 rounded-xl text-xs font-bold transition-all border flex-1 cursor-pointer",
                         selectedStatus === status
                           ? "bg-primary text-white border-primary dark:bg-accent dark:text-primary dark:border-accent"
                           : "bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-white/5"
@@ -207,7 +215,20 @@ export function Search() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.35, delay: index * 0.04 }}
-                      onClick={() => navigate(`/book/${book.id}`)}
+                      onClick={() => {
+                        // Finding a book through the catalogue is the first
+                        // task; the details name the book so the pop-up says
+                        // what was found, not just that something was.
+                        completed('find-book', [
+                          { icon: '📚', text: bookTitle(book, language) },
+                          ...(book.section && book.shelf
+                            ? [{ icon: '📍', text: language === 'ar'
+                                ? `قسم ${book.section} · رف ${book.shelf}`
+                                : `Section ${book.section} · Shelf ${book.shelf}` }]
+                            : []),
+                        ]);
+                        navigate(`/book/${book.id}`);
+                      }}
                       className="group p-5 bg-white dark:bg-slate-900 border border-slate-200/50 dark:border-white/5 rounded-3xl hover:border-accent dark:hover:border-accent shadow-sm hover:shadow-xl transition-all duration-300 flex gap-4 cursor-pointer relative overflow-hidden"
                     >
                       {/* Interactive background ripple hover accent */}
@@ -222,24 +243,33 @@ export function Search() {
                       <div className="flex-1 flex flex-col justify-between min-w-0">
                         <div className="space-y-1">
                           <span className="text-[10px] font-black text-accent tracking-wider uppercase block">
-                            {categoryTranslationMap[book.category] || book.category}
+                            {bookCategory(book.category, language)}
                           </span>
-                          <h4 className="text-sm font-black text-primary dark:text-white leading-tight limit-lines-2 group-hover:text-[#004C6D] dark:group-hover:text-accent transition-colors">
-                            {book.title}
+                          {/* Latin script reads smaller than Arabic at the same
+                              px size, so the English title takes a step up to
+                              carry the same weight on the card. */}
+                          <h4 className={cn(
+                            'font-black text-primary dark:text-white leading-tight line-clamp-2 group-hover:text-[#004C6D] dark:group-hover:text-accent transition-colors',
+                            language === 'en' ? 'text-base sm:text-lg' : 'text-sm',
+                          )}>
+                            {bookTitle(book, language)}
                           </h4>
-                          <span className="text-xs text-slate-400 font-bold block truncate">
-                            {book.author}
+                          <span className={cn(
+                            'text-slate-400 font-bold block truncate',
+                            language === 'en' ? 'text-sm' : 'text-xs',
+                          )}>
+                            {bookAuthor(book, language)}
                           </span>
                         </div>
 
                         <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-white/5 mt-2">
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-550 dark:text-slate-400 font-bold">
+                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 font-bold">
                             <MapPin className="w-3.5 h-3.5 text-primary/60 dark:text-accent" />
                             <span>{book.shelf}</span>
                           </div>
 
                           <span className={cn(
-                            "text-[9px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider",
+                            "text-[10px] font-black px-2 py-0.5 rounded-lg border uppercase tracking-wider",
                             book.status === 'available'
                               ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/20 dark:text-emerald-400 dark:border-emerald-900/45"
                               : "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/20 dark:text-amber-400 dark:border-amber-900/45"
@@ -255,12 +285,31 @@ export function Search() {
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="p-12 text-center bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200/50 dark:border-white/5 space-y-3"
+                  className="p-6 sm:p-12 text-center bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200/50 dark:border-white/5 space-y-3"
                 >
-                  <HelpCircle className="w-12 h-12 text-slate-350 dark:text-slate-600 mx-auto animate-bounce" />
+                  {/*
+                    This branch only ever renders when a query or a filter has
+                    excluded everything — with nothing typed and both filters on
+                    "all" the catalogue always matches. It used to show only the
+                    search hint, so someone who narrowed to Engineering +
+                    Borrowed (0 books) was told how to search rather than that
+                    nothing matched, with no sign a filter was hiding the
+                    results. noResultsFound/noResultsFor already existed in the
+                    translations and were never wired up.
+                  */}
+                  <HelpCircle className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto animate-bounce" />
+                  <p className="text-primary dark:text-white font-black text-base">
+                    {query.trim() ? `${t('noResultsFor')} "${query.trim()}"` : t('noResultsFound')}
+                  </p>
                   <p className="text-slate-400 dark:text-slate-500 font-bold max-w-sm mx-auto text-sm leading-relaxed">
                     {t('searchHintText')}
                   </p>
+                  <button
+                    onClick={() => { setQuery(''); setSelectedCategory('all'); setSelectedStatus('all'); }}
+                    className="mt-1 px-5 py-3 rounded-xl bg-primary dark:bg-accent text-white dark:text-primary text-[11px] font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all"
+                  >
+                    {language === 'ar' ? 'إعادة تعيين البحث' : 'Reset search'}
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>
