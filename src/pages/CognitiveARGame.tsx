@@ -549,9 +549,14 @@ export function CognitiveARGame() {
                         ? <Lock className="w-6 h-6 text-slate-300 dark:text-slate-600" />
                         : <Icon className={cn('w-7 h-7', lvl.color)} />}
                     </div>
-                    <span className={cn('text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest', isEarned ? cn(lvl.bg, lvl.color) : 'bg-slate-100 dark:bg-slate-800 text-slate-400')}>
-                      {isEarned ? (ar ? '✓ مكتسب' : '✓ Earned') : `+${lvl.xp} XP`}
-                    </span>
+                    {/* Only the earned mark. The round used to advertise its
+                        points here before it was played, which put the reward
+                        in front of the reason for playing. */}
+                    {isEarned && (
+                      <span className={cn('text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest', lvl.bg, lvl.color)}>
+                        {ar ? '✓ مكتسب' : '✓ Earned'}
+                      </span>
+                    )}
                   </div>
 
                   <div>
