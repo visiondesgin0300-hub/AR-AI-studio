@@ -603,14 +603,13 @@ export function LibraryMap() {
                                   className="flex items-center gap-3"
                                 >
                                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 shrink-0" />
-                                  <div>
-                                    <p className="text-emerald-400 font-black text-base">
-                                      {t('reachedDestination')}
-                                    </p>
-                                    <p className="text-emerald-400/70 text-xs font-bold mt-0.5">
-                                      {destinationShelfId} · {destinationSectionName}
-                                    </p>
-                                  </div>
+                                  {/* The arrival says one thing. The shelf code
+                                      and section name used to be repeated
+                                      underneath, which is what the reader is
+                                      standing in front of by then. */}
+                                  <p className="text-emerald-400 font-black text-base">
+                                    {t('reachedDestination')}
+                                  </p>
                                 </motion.div>
                               ) : destinationShelfId ? (
                                 <motion.div

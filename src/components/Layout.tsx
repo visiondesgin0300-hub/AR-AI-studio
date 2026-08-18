@@ -21,13 +21,16 @@ interface LayoutProps {
 export function Layout({ children, user, onLogout }: LayoutProps) {
   const xp = useXP();
   const location = useLocation();
-  // Both maps are shown edge to edge on phones and tablets, so the floating
-  // bar and the header are taken away rather than left over the scene. Each
-  // page puts its own way back and language control in their place, since the
-  // bar is the only navigation a phone otherwise has. The `roomy` variant
-  // decides where "edge to edge" stops, and both pages key off the same
-  // variant so they cannot drift apart from the shell.
+  // Both maps are shown edge to edge on phones and tablets, so the header is
+  // taken away rather than left over the scene; each page puts its own way
+  // back and language control in its place. The `roomy` variant decides where
+  // "edge to edge" stops, and both pages key off the same variant so they
+  // cannot drift apart from the shell.
   const immersive = location.pathname === '/map' || location.pathname === '/facilities';
+  // The floating bar is hidden on the shelf map alone. That scene carries its
+  // own controls along the bottom — the wayfinding chips and the destination
+  // panel — and the bar was drawn straight on top of them.
+  const barHidden = location.pathname === '/map';
   const navigate = useNavigate();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications(user);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -544,7 +547,11 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
           "flex-1 overflow-y-auto px-8 bg-bg-light dark:bg-bg-dark transition-colors duration-300",
           // The padding exists to clear the bars above and below; with both
           // gone on a phone, the map may have that space too.
-          immersive ? "pt-3 roomy:pt-10 pb-6 roomy:pb-28" : "pt-10 pb-40 lg:pb-28",
+          // Room under the content for whatever floats over it: the bar where
+          // it is shown, nothing where it is not.
+          immersive
+            ? cn('pt-3 roomy:pt-10 roomy:pb-28', barHidden ? 'pb-6' : 'pb-32')
+            : "pt-10 pb-40 lg:pb-28",
           // Modest extra clearance on whichever side the floating AR button
           // sits on; the button itself now collapses to an icon-only circle
           // at rest on desktop (see the button's own comment), so this only
@@ -571,7 +578,10 @@ export function Layout({ children, user, onLogout }: LayoutProps) {
             to shrink (min-w-0) let the labels wrap instead of overflow. */}
         <nav className={cn(
           "lg:hidden fixed bottom-5 left-5 right-5 z-50 rounded-[2rem] flex justify-between items-start px-1 py-3.5 bg-white/85 dark:bg-slate-950/80 backdrop-blur-3xl border border-white/45 dark:border-white/5 shadow-[0_15px_35px_rgba(0,0,0,0.18)]",
-          (fieldFocused || immersive) && "hidden"
+          // The bar stays on every other page, the facilities map included: it
+          // is the only navigation a phone has, and taking it away left the
+          // reader with whatever way back that page happened to provide.
+          (fieldFocused || barHidden) && "hidden"
         )}>
           {navItems.map((item) => {
             const isActive = item.path.includes('?')

@@ -12,8 +12,8 @@ const slides = [
   {
     icon: Search,
     color: 'bg-primary',
-    titleAr: 'البحث الذكي',
-    titleEn: 'Smart Search',
+    titleAr: 'بحث المصادر',
+    titleEn: 'Resources Search',
     descAr: 'ابحث عن أي كتاب بالعنوان أو المؤلف أو الرقم التصنيفي — وجد المكان الدقيق له على الفور.',
     descEn: 'Find any book by title, author, or call number — and locate it instantly on the shelf.',
   },
