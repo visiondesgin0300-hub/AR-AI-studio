@@ -185,8 +185,6 @@ export function CognitiveARGame() {
   const [countdownDone, setCountdownDone] = useState(false);
 
   const pending = useRef<RoundQuestion[] | null>(null);
-
-  const totalXP = completed.reduce((s, id) => s + (LEVELS.find(l => l.id === id)?.xp ?? 0), 0);
   const current = round?.questions[round.index] ?? null;
   const revealed = round?.outcome !== null && round?.outcome !== undefined;
   const passMark = activeLevel ? passMarkFor(activeLevel.questionCount) : 0;
@@ -323,13 +321,13 @@ export function CognitiveARGame() {
           >
             <Info className="w-4 h-4 text-slate-500 dark:text-slate-400" />
             <span className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest">
-              {ar ? 'معلومات' : 'Info'}
+              {ar ? 'كيف تُلعب؟' : 'How to play'}
             </span>
           </motion.button>
-          <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/20">
-            <Zap className="w-4 h-4 text-amber-500" />
-            <span className="text-sm font-black text-amber-600 dark:text-amber-400">{totalXP} XP</span>
-          </div>
+          {/* The points chip that sat here showed the game's own XP while the
+              application header, two centimetres above it, showed the account
+              total — two different numbers under the same name. The header
+              keeps the score; this screen is about the rounds. */}
         </div>
       </div>
 
@@ -393,32 +391,48 @@ export function CognitiveARGame() {
                   {/* How it works */}
                   <div className="space-y-3">
                     <h4 className={cn('text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest', ar ? 'text-right' : 'text-left')}>
-                      {ar ? 'كيف تعمل اللعبة؟' : 'How does it work?'}
+                      {ar ? 'قواعد الجولة' : 'The rules of a round'}
                     </h4>
                     {[
                       {
                         icon: Brain,
                         color: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
-                        titleAr: 'أسئلة من الواقع البحثي',
-                        titleEn: 'Questions from real research',
-                        descAr: 'مواقف يواجهها الباحث فعلاً: عنوان مبالغ، ورقة preprint، مرجع ولّده ذكاء اصطناعي.',
-                        descEn: 'Situations researchers actually meet: an inflated headline, a preprint, an AI-invented reference.',
+                        titleAr: 'خمسة أسئلة، واحداً تلو الآخر',
+                        titleEn: 'Five questions, one at a time',
+                        descAr: 'ثلاثة خيارات لكل سؤال، من مواقف يواجهها الباحث فعلاً: عنوان مبالغ، ورقة preprint، مرجع ولّده ذكاء اصطناعي.',
+                        descEn: 'Three options each, taken from situations researchers actually meet: an inflated headline, a preprint, an AI-invented reference.',
                       },
                       {
                         icon: Timer,
                         color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-                        titleAr: 'وقت محدود لكل سؤال',
-                        titleEn: 'A clock on each question',
-                        descAr: 'لكل سؤال ثوانٍ معدودة تقصر كلما صعد المستوى. الخطأ أو التأخر يكلّف نجمة.',
-                        descEn: 'Each question has seconds that shrink as levels rise. A miss or a timeout costs a star.',
+                        titleAr: 'مؤقّت وثلاث نجوم',
+                        titleEn: 'A clock, and three stars',
+                        descAr: 'لكل سؤال ٢٥ ثانية في الجولة الأولى وتقلّ بعدها. الخطأ أو انتهاء الوقت يكلّفك نجمة، وبنفاد النجوم الثلاث تنتهي الجولة.',
+                        descEn: 'Twenty-five seconds a question in the first round, fewer after that. A wrong answer or a timeout costs a star; when all three are gone the round ends.',
                       },
                       {
                         icon: Target,
                         color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+                        titleAr: 'أربع إجابات صحيحة من خمس تكسب الوسام',
+                        titleEn: 'Four right out of five earns the badge',
+                        descAr: 'ثلثا الأسئلة هو حدّ النجاح. وإن لم تنجح فالجولة تُعاد بلا حدّ.',
+                        descEn: 'Two thirds is the pass mark. If you do not reach it, the round can be replayed as often as you like.',
+                      },
+                      {
+                        icon: Lightbulb,
+                        color: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
                         titleAr: 'الشرح بعد كل إجابة',
-                        titleEn: 'The reason, every time',
+                        titleEn: 'The reason after every answer',
                         descAr: 'يظهر سبب صحّة الإجابة سواء أصبت أم أخطأت — الشرح هو الفائدة، لا النتيجة.',
                         descEn: 'The reason appears whether you were right or wrong — the explanation is the point, not the score.',
+                      },
+                      {
+                        icon: Compass,
+                        color: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
+                        titleAr: 'الجولة تُفتح بما تفعله في المكتبة',
+                        titleEn: 'A round opens with what you do in the library',
+                        descAr: 'لا بإنهاء الجولة السابقة، بل بأداء نشاطها: افتح التطبيق، ابحث في المصادر، استكشف المرافق. البطاقة تخبرك بما بقي.',
+                        descEn: 'Not by finishing the previous round, but by doing its activity: open the application, search the resources, explore the facilities. Each card names what is still outstanding.',
                       },
                     ].map((step, i) => (
                       <div key={i} className={cn('flex items-start gap-3', ar ? 'flex-row-reverse' : '')}>
@@ -440,18 +454,19 @@ export function CognitiveARGame() {
                   {/* Rewards */}
                   <div className="space-y-3">
                     <h4 className={cn('text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest', ar ? 'text-right' : 'text-left')}>
-                      {ar ? 'المكافآت' : 'Rewards'}
+                      {ar ? 'ما تكسبه' : 'What you earn'}
                     </h4>
                     <div className="grid grid-cols-3 gap-3">
                       {[
-                        { icon: Compass, label: ar ? 'وسام مستكشف' : 'Explorer Badge',     xp: `+${GAME_LEVEL_XP.explorer} XP`,      color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
-                        { icon: Search,  label: ar ? 'وسام باحث'    : 'Researcher Badge',   xp: `+${GAME_LEVEL_XP.researcher} XP`,    color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
-                        { icon: Crown,   label: ar ? 'وسام متميز'   : 'Distinguished Badge', xp: `+${GAME_LEVEL_XP.distinguished} XP`, color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' },
+                        { icon: Compass, label: ar ? 'وسام مستكشف' : 'Explorer Badge',     hintAr: 'الحكم على مصدر', hintEn: 'Judging a source',   color: 'text-blue-500',    bg: 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800/50' },
+                        { icon: Search,  label: ar ? 'وسام باحث'    : 'Researcher Badge',   hintAr: 'بناء بحث وتوثيقه', hintEn: 'Building and citing a search', color: 'text-emerald-500', bg: 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/50' },
+                        { icon: Crown,   label: ar ? 'وسام متميز'   : 'Distinguished Badge', hintAr: 'قراءة الأدلة', hintEn: 'Reading the evidence', color: 'text-amber-500',   bg: 'bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800/50' },
                       ].map((r, i) => (
                         <div key={i} className={cn('rounded-2xl border p-3 flex flex-col items-center gap-2 text-center', r.bg)}>
                           <r.icon className={cn('w-5 h-5', r.color)} />
                           <span className="text-[10px] font-black text-primary dark:text-white leading-tight">{r.label}</span>
-                          <span className={cn('text-[10px] font-black px-2 py-0.5 rounded-lg bg-white/60 dark:bg-white/5', r.color)}>{r.xp}</span>
+                          {/* What the badge is for, not what it pays. */}
+                          <span className="text-[9px] font-bold text-slate-500 dark:text-slate-400 leading-snug">{ar ? r.hintAr : r.hintEn}</span>
                         </div>
                       ))}
                     </div>
