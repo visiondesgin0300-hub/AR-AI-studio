@@ -66,6 +66,23 @@ export const translations = {
     faqGroupRooms: 'هل يمكنني حجز قاعات الدراسة الجماعية مسبقاً؟',
     faqGroupRoomsAnswer: 'حجز قاعات الدراسة الجماعية مسبقاً ميزة قادمة ضمن تحديثات مرافق المكتبة، ترقّب توفرها قريباً.',
 
+    // What it costs — the design principle derived from price value asks the
+    // application to state what its features consume, not only that it is free.
+    costTitle: 'ماذا يكلّفك هذا التطبيق؟',
+    costIntro: 'التطبيق مجاني لكل طالب وموظف في الجامعة، ولا يطلب اشتراكاً ولا بطاقة دفع. لكن المجانية ليست كل الكلفة، فهذه هي الموارد التي تستهلكها الخصائص فعلاً.',
+    costFree: 'بلا مقابل مادي',
+    costFreeValue: 'مجاني بالكامل. لا اشتراك، ولا شراء داخل التطبيق، ولا إعلانات.',
+    costBattery: 'البطارية',
+    costBatteryValue: 'الكاميرا والتوجيه بالواقع المعزز هما أكثر ما يستهلك البطارية. جلسة إرشاد كاملة إلى رفّ تستغرق دقيقتين إلى أربع. أما البحث وقراءة السجلات فاستهلاكها كاستهلاك أي تطبيق نصّي.',
+    costData: 'بيانات الإنترنت',
+    costDataValue: 'البحث والمساعد الذكي يحتاجان اتصالاً. خريطة الطابق ومسار المشي يعملان داخل الجهاز بعد تحميل الخريطة أول مرة، فالمشي بين الرفوف لا يستهلك بيانات.',
+    costTime: 'وقت التعلّم',
+    costTimeValue: 'الشاشة الأولى تكفي للبدء، ولا يوجد تسجيل حساب. أول رحلة كاملة — بحث، ثم مسار، ثم رفّ، ثم اقتباس — تستغرق نحو عشر دقائق.',
+    costCamera: 'إذن الكاميرا',
+    costCameraValue: 'يُطلب عند أول مسح فقط، ويمكنك رفضه واستخدام بقية التطبيق. الصور تُعالَج ولا تُحفظ ولا تُرسل إلى أي جهة.',
+    faqCost: 'هل التطبيق مجاني، وماذا يستهلك من جهازي؟',
+    faqCostAnswer: 'التطبيق مجاني بالكامل بلا اشتراك ولا إعلانات. أكثر ما يستهلك البطارية هو التوجيه بالواقع المعزز، وجلسة الإرشاد إلى رفّ تستغرق دقيقتين إلى أربع. البحث والمساعد يحتاجان إنترنت، أما خريطة الطابق والمسار فيعملان داخل الجهاز. راجع قسم "ماذا يكلّفك هذا التطبيق؟" في الأعلى للتفصيل.',
+
     // Header
     notifications: 'التنبيهات',
     new: 'جديد',
@@ -703,6 +720,23 @@ export const translations = {
     faqFacilitiesAnswer: 'From the library map, tap the "Library Facilities" card to view available facilities. This feature is under active development and will be fully available soon.',
     faqGroupRooms: 'Can I reserve group study rooms in advance?',
     faqGroupRoomsAnswer: 'Advance booking for group study rooms is a coming feature as part of the library facilities updates — stay tuned.',
+
+    // What it costs — the design principle derived from price value asks the
+    // application to state what its features consume, not only that it is free.
+    costTitle: 'What this application costs you',
+    costIntro: 'The application is free to every student and member of staff at the university, and asks for no subscription and no payment card. But being free of charge is not the whole cost, so these are the resources the features actually consume.',
+    costFree: 'Money',
+    costFreeValue: 'Nothing. No subscription, no purchase inside the application, no advertising.',
+    costBattery: 'Battery',
+    costBatteryValue: 'The camera and the augmented reality guidance draw the most. A full guided walk to a shelf takes two to four minutes. Search and reading records cost no more than any other application that shows text.',
+    costData: 'Mobile data',
+    costDataValue: 'Search and the assistant need a connection. The floor map and the walking route run on the device once the map has loaded, so walking between the ranges uses no data.',
+    costTime: 'Time to learn',
+    costTimeValue: 'The first screen is enough to begin, and there is no account to create. A first complete journey — search, route, shelf, citation — takes about ten minutes.',
+    costCamera: 'Camera permission',
+    costCameraValue: 'Asked for once, at the first scan, and you can refuse it and still use the rest. Frames are processed, never stored, and never sent anywhere.',
+    faqCost: 'Is the application free, and what does it consume on my phone?',
+    faqCostAnswer: 'It is free, with no subscription and no advertising. The augmented reality guidance draws the most battery; a guided walk to a shelf takes two to four minutes. Search and the assistant need a connection, while the floor map and the route run on the device. The section "What this application costs you" above gives the detail.',
 
     // Header
     notifications: 'Notifications',

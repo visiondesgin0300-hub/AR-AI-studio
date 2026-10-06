@@ -15,6 +15,11 @@ import {
   Inbox,
   ShieldCheck,
   ArrowLeft,
+  BatteryMedium,
+  Wifi,
+  Clock,
+  Camera,
+  Wallet,
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { cn } from '../lib/utils';
@@ -34,6 +39,23 @@ const FAQ_ITEMS: FaqItem[] = [
   { icon: BookOpen, qKey: 'faqBorrowLimit', aKey: 'faqBorrowLimitAnswer' },
   { icon: HelpCircle, qKey: 'faqFacilities', aKey: 'faqFacilitiesAnswer' },
   { icon: HelpCircle, qKey: 'faqGroupRooms', aKey: 'faqGroupRoomsAnswer' },
+  { icon: Wallet, qKey: 'faqCost', aKey: 'faqCostAnswer' },
+];
+
+/**
+ * What the application consumes, stated rather than left to be discovered.
+ *
+ * The design principle derived from price value asks for this: the cost a
+ * student weighs is not a monetary one, so saying only that the application is
+ * free answers a question nobody asked. Battery, data, time and the camera
+ * permission are what they actually spend, and each row says how much.
+ */
+const COST_ROWS = [
+  { icon: Wallet, labelKey: 'costFree', valueKey: 'costFreeValue' },
+  { icon: BatteryMedium, labelKey: 'costBattery', valueKey: 'costBatteryValue' },
+  { icon: Wifi, labelKey: 'costData', valueKey: 'costDataValue' },
+  { icon: Clock, labelKey: 'costTime', valueKey: 'costTimeValue' },
+  { icon: Camera, labelKey: 'costCamera', valueKey: 'costCameraValue' },
 ];
 
 interface HelpCenterProps {
@@ -209,6 +231,39 @@ export function HelpCenter({ user }: HelpCenterProps) {
               </div>
             )}
           </div>
+
+          {/* What it costs */}
+          <section className="space-y-4">
+            <div className="space-y-2">
+              <h3 className="text-lg font-black text-primary dark:text-white tracking-tight">{t('costTitle')}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-semibold leading-relaxed max-w-2xl">
+                {t('costIntro')}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {COST_ROWS.map((row) => {
+                const Icon = row.icon;
+                return (
+                  <div
+                    key={row.labelKey}
+                    className="official-card p-5 bg-white dark:bg-slate-900 border-slate-100 dark:border-white/5 shadow-sm flex gap-4"
+                  >
+                    <div className="w-10 h-10 shrink-0 rounded-xl bg-primary/10 dark:bg-accent/10 flex items-center justify-center text-primary dark:text-accent">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        {t(row.labelKey)}
+                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300 font-semibold leading-relaxed">
+                        {t(row.valueKey)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         </div>
       )}
 
