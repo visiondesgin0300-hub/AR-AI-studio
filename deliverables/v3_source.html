@@ -279,11 +279,11 @@ window.render=function(t){
     // Both sponsor logos side by side — full, no white bg
     const fl=1+.022*(t-22);const bob=Math.sin(t*1.4)*8;
     ui.save();ui.globalAlpha=1-P(t,26.1,.5);
-    // البستان (left) — green leaf: fit to ~440px height
-    const bh=440*fl,bw2=imgs.bus.width*bh/imgs.bus.height;
+    // البستان (left) — green leaf: fit to ~280px height
+    const bh=190*fl,bw2=imgs.bus.width*bh/imgs.bus.height;
     holo(ui,imgs.bus,530,560+bob,bw2,bh,22.4,t,.03,true,0,false);
-    // الحمراء (right) — circular: 440px square
-    holo(ui,imgs.ham,1390,560-bob,440*fl,440*fl,22.75,t,-.03,true,0,false);
+    // الحمراء (right) — circular: 190px square
+    holo(ui,imgs.ham,1390,560-bob,190*fl,190*fl,22.75,t,-.03,true,0,false);
     ui.restore();
   }
   // ---------- S7 OUTRO (خاتمة) 26.6-30 ----------
