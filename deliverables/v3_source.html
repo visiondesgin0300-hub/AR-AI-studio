@@ -187,34 +187,34 @@ window.render=function(t){
   const g=sc;g.setTransform(1,0,0,1,0,0);g.globalAlpha=1;g.globalCompositeOperation='source-over';
   g.fillStyle='#000';g.fillRect(0,0,W,H);ui.setTransform(1,0,0,1,0,0);ui.clearRect(0,0,W,H);
   const [sx,sy]=shake(t);g.translate(sx,sy);ui.translate(sx,sy);
-  // ---------- S1 BOOT 0-4.5 ----------
+  // ---------- S1 INTRO (مقدمة) 0-4.5 ----------
   if(t<4.6){
-    const zoom=1+.08*E(P(t,0,4.5));g.save();g.translate(CX,CY);g.scale(zoom,zoom);g.translate(-CX,-CY);
-    const k=EIO(P(t,.4,3.2));const [hx,hy]=pathPoint(k);
-    // board revealed by light
-    g.lineWidth=2;
-    for(const seg of board){for(let i=1;i<seg.length;i++){const mx=(seg[i][0]+seg[i-1][0])/2,my=(seg[i][1]+seg[i-1][1])/2;const d=Math.hypot(mx-hx,my-hy);
-      const a=cl(1-d/520)*.55*cl(t/0.6)+.03;g.strokeStyle=`rgba(0,185,170,${a})`;g.beginPath();g.moveTo(seg[i-1][0],seg[i-1][1]);g.lineTo(seg[i][0],seg[i][1]);g.stroke();}
-      const e=seg[seg.length-1];const d=Math.hypot(e[0]-hx,e[1]-hy);g.fillStyle=`rgba(80,225,205,${cl(1-d/480)*.8})`;g.beginPath();g.arc(e[0],e[1],5,0,7);g.fill();}
-    // trace
+    // deep space fade-in
+    space(g,t,E(P(t,0,.9)));
+    // star burst / particle ring expanding from center
     g.save();g.globalCompositeOperation='lighter';
-    g.strokeStyle='rgba(60,225,200,.9)';g.lineWidth=4;g.beginPath();g.moveTo(path[0][0],path[0][1]);
-    const steps=80;for(let s=1;s<=steps;s++){const p=pathPoint(k*s/steps);g.lineTo(p[0],p[1])}g.stroke();
-    g.strokeStyle='rgba(30,190,175,.25)';g.lineWidth=16;g.stroke();
-    // spark head
-    if(t>.4){const rg=g.createRadialGradient(hx,hy,0,hx,hy,120);rg.addColorStop(0,'rgba(255,255,255,1)');rg.addColorStop(.15,'rgba(120,240,220,.8)');rg.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=rg;g.fillRect(hx-120,hy-120,240,240);
-      for(let i=0;i<14;i++){const an=R(i+Math.floor(t*40))*7,l=20+R(i*3+Math.floor(t*40))*70;g.strokeStyle='rgba(180,250,235,.8)';g.lineWidth=1.5;g.beginPath();g.moveTo(hx,hy);g.lineTo(hx+Math.cos(an)*l,hy+Math.sin(an)*l);g.stroke()}}
+    for(let i=0;i<180;i++){const an=R(i+5)*Math.PI*2;const r=120+R(i+70)*900*E(P(t,.1,1.8));const spd=.4+R(i+90)*.6;const a=cl(.6-r/1600)*cl(P(t,.1,.4)*(1-P(t,3.9,.5)));
+      g.strokeStyle=`rgba(${R(i+5)>.55?'60,220,200':'0,170,160'},${a*spd})`;g.lineWidth=1.4;g.beginPath();g.moveTo(CX+Math.cos(an)*r,CY+Math.sin(an)*r);g.lineTo(CX+Math.cos(an)*(r+90*spd),CY+Math.sin(an)*(r+90*spd));g.stroke();}
     g.restore();
-    // core at center when arrived
-    const ck=P(t,3.5,.9);if(ck>0){g.save();g.globalCompositeOperation='lighter';g.strokeStyle=`rgba(60,225,200,${ck})`;g.lineWidth=4;hexPath(g,CX,CY,40+200*E(ck),t*.8);g.stroke();hexPath(g,CX,CY,20+120*E(ck),-t);g.stroke();g.restore();}
-    g.restore();
-    // HUD text
-    const pct=Math.floor(100*EIO(P(t,.4,3.6)));
-    txt(g,'SYSTEM BOOT  //  TECH FLASHES IV',CX,820,30,'700o','rgba(120,235,215,1)',cl(P(t,.6,.4))*(1-P(t,4.2,.3)),8);
-    txt(g,`${pct}%`,CX,872,26,'700o','rgba(200,250,235,1)',cl(P(t,.6,.4))*(1-P(t,4.2,.3)),4);
-    g.fillStyle=`rgba(40,200,185,${cl(P(t,.6,.4))*(1-P(t,4.2,.3))})`;g.fillRect(CX-300,900,600*pct/100,3);g.fillStyle='rgba(40,200,185,.15)';g.fillRect(CX-300,900,600,3);
-    txt(g,'…جارٍ تحميل المستقبل',CX,255,52,'700','rgba(210,250,235,1)',W1(t,1.2,.6,4.0,.4),0,20);
-    // lightning strike
+    // TF logo scale-in from center
+    const lk=E(P(t,.3,1.1));
+    if(lk>0){g.save();g.globalAlpha=lk*(1-P(t,3.9,.5));const lh=340;const lw=imgs.tfk.width*lh/imgs.tfk.height;const sc2=.35+.65*E(P(t,.3,.9));g.translate(CX,CY-105);g.scale(sc2,sc2);g.drawImage(imgs.tfk,-lw/2,-lh/2,lw,lh);g.restore();}
+    flare(g,CX,CY,lk*(1-P(t,3.9,.5))*.65,.55);
+    // animated hex rings
+    const hk=W1(t,.5,.5,3.9,.4);if(hk>0){g.save();g.globalCompositeOperation='lighter';
+      for(const [r,c,w] of [[300,'20,185,170',3],[420,'0,210,190',2],[560,'40,200,185',1.5]]){g.strokeStyle=`rgba(${c},${hk*.55})`;g.lineWidth=w;hexPath(g,CX,CY,r,t*.28);g.stroke();}g.restore();}
+    // main title Arabic
+    const ta=W1(t,1.0,.7,3.9,.4);
+    txt(g,'الملتقى التقني الرابع',CX,CY+150,80,'900','#fff',ta,0,24,35);
+    // English subtitle
+    txt(g,'TECH FLASHES  IV',CX,CY+240,40,'700o','rgba(110,240,215,1)',W1(t,1.5,.6,3.9,.4),26);
+    // tagline
+    txt(g,'ومضات تقنية ٤',CX,CY+310,44,'700','rgba(195,245,230,.85)',W1(t,1.9,.6,3.9,.4),0,16);
+    // bottom scan line
+    const pa=W1(t,.8,.4,3.9,.4);
+    g.save();g.globalCompositeOperation='lighter';g.strokeStyle=`rgba(40,200,185,${pa*.4})`;g.lineWidth=1.5;g.beginPath();g.moveTo(0,H-80);g.lineTo(W,H-80);g.stroke();g.restore();
+    txt(g,'مدرسة أبي سعيد الكدمي (٩-١٢)',CX,H-50,28,'700','rgba(140,230,215,.9)',pa,0,10);
+    // lightning strike into tunnel
     if(t>4.05){const pts=boltPts(CX+180,120,CX,CY,420,Math.floor(t*20));drawBolt(g,pts,1-P(t,4.45,.15),1.3);
       const pts2=boltPts(CX-360,140,CX,CY,300,Math.floor(t*20)+99);drawBolt(g,pts2,(t>4.2?1:0)*(1-P(t,4.45,.15)),.8);}
   }
@@ -247,38 +247,66 @@ window.render=function(t){
   }
   // ---------- S6 SPONSORS 22-26.6 ----------
   if(t>=22&&t<26.7){
-    space(g,t,.8);floor(g,t,720,.9,.3);
+    space(g,t,.85);floor(g,t,700,.95,.3);
     const a=W1(t,22.1,.5,26.2,.4);
-    txt(g,'شركاء النجاح',CX,250,100,'900','#fff',a,0,26);
-    txt(g,'OFFICIAL SPONSORS',CX,330,28,'700o','rgba(110,235,215,1)',a,14);
-    // light beams (2 beams for 2 sponsors)
+    // decorative horizontal lines around title
     g.save();g.globalCompositeOperation='lighter';
-    for(const [x,t0] of [[620,22.5],[1300,22.8]]){const k=E(P(t,t0,.5))*(1-P(t,26.2,.4));const gr=g.createLinearGradient(0,980,0,380);gr.addColorStop(0,`rgba(40,200,185,${.55*k})`);gr.addColorStop(1,'rgba(40,200,185,0)');
-      g.fillStyle=gr;g.beginPath();g.moveTo(x-90,960);g.lineTo(x+90,960);g.lineTo(x+330,380);g.lineTo(x-330,380);g.closePath();g.fill();
-      g.fillStyle=`rgba(160,250,230,${.9*k})`;g.beginPath();g.ellipse(x,962,140,14,0,0,7);g.fill();}
+    const la=a*.6;g.strokeStyle=`rgba(40,200,185,${la})`;g.lineWidth=1.5;
+    g.beginPath();g.moveTo(CX-680,268);g.lineTo(CX-200,268);g.stroke();
+    g.beginPath();g.moveTo(CX+200,268);g.lineTo(CX+680,268);g.stroke();
+    // small diamond connectors
+    g.fillStyle=`rgba(80,230,210,${la})`;
+    for(const [dx,dy] of [[-200,268],[200,268]]){g.save();g.translate(CX+dx,dy);g.rotate(Math.PI/4);g.fillRect(-6,-6,12,12);g.restore();}
     g.restore();
-    txt(g,'شكراً لدعمكم وشراكتكم',CX,880,46,'700','rgba(195,245,230,1)',W1(t,23.6,.6,26.2,.4),0,14);
-    // sponsor cards on UI layer (transparent bg)
-    const fl=1+.02*(t-22);const bob=Math.sin(t*1.6)*8;
-    ui.save();ui.globalAlpha=1-P(t,26.2,.4);
-    const bw=480,bh=bw*imgs.bus.height/imgs.bus.width;
-    holo(ui,imgs.bus,620,580+bob,bw*fl,bh*fl,22.5,t,.035,true,0,false);
-    holo(ui,imgs.ham,1300,580-bob,430*fl,430*fl,22.8,t,-.035,true,0,false);
+    txt(g,'شركاء النجاح',CX,235,96,'900','#fff',a,0,26);
+    txt(g,'OFFICIAL SPONSORS',CX,310,27,'700o','rgba(110,235,215,1)',a,16);
+    // dramatic light beams
+    g.save();g.globalCompositeOperation='lighter';
+    for(const [x,t0,col] of [[580,22.4,'40,200,185'],[1340,22.75,'30,185,175']]){
+      const k=E(P(t,t0,.55))*(1-P(t,26.1,.5));
+      const gr=g.createLinearGradient(0,990,0,350);gr.addColorStop(0,`rgba(${col},${.7*k})`);gr.addColorStop(.6,`rgba(${col},${.2*k})`);gr.addColorStop(1,'rgba(0,0,0,0)');
+      g.fillStyle=gr;g.beginPath();g.moveTo(x-70,990);g.lineTo(x+70,990);g.lineTo(x+360,350);g.lineTo(x-360,350);g.closePath();g.fill();
+      // glow ellipse at base
+      g.fillStyle=`rgba(170,255,235,${.95*k})`;g.beginPath();g.ellipse(x,992,160,12,0,0,7);g.fill();
+      // top sparkle
+      const spk=Math.sin(t*2.5+x*.01)*k*.5+k*.5;g.fillStyle=`rgba(220,255,245,${spk*.4})`;g.beginPath();g.ellipse(x,352,180,18,0,0,7);g.fill();}
+    g.restore();
+    // bottom thank-you text with glow
+    txt(g,'شكراً لدعمكم وشراكتكم',CX,900,48,'700','rgba(200,250,235,1)',W1(t,23.8,.6,26.1,.4),0,16,20);
+    txt(g,'THANK YOU FOR YOUR PARTNERSHIP',CX,955,22,'700o','rgba(100,225,205,.8)',W1(t,24.1,.5,26.1,.4),12);
+    // sponsor logos on UI layer (transparent bg, no white card)
+    const fl=1+.025*(t-22);const bob=Math.sin(t*1.4)*10;
+    ui.save();ui.globalAlpha=1-P(t,26.1,.5);
+    const bw=500,bh=bw*imgs.bus.height/imgs.bus.width;
+    holo(ui,imgs.bus,580,565+bob,bw*fl,bh*fl,22.4,t,.03,true,0,false);
+    holo(ui,imgs.ham,1340,565-bob,450*fl,450*fl,22.75,t,-.03,true,0,false);
     ui.restore();
   }
-  // ---------- S7 FINAL 26.6-30 ----------
+  // ---------- S7 OUTRO (خاتمة) 26.6-30 ----------
   if(t>=26.6){
-    space(g,t,.5*(1-P(t,29.0,.3)));
+    space(g,t,.55*(1-P(t,29.0,.3)));
     const lk=E(P(t,26.7,.6));
-    flare(g,CX,CY,lk*(1-P(t,29,.3)),.3+.9*lk);
-    // reveal text via expanding mask
+    flare(g,CX,CY,lk*(1-P(t,29,.3)),.35+.9*lk);
+    // pulsing hex rings around center
+    const hpa=W1(t,26.8,.5,29.0,.3);if(hpa>0){g.save();g.globalCompositeOperation='lighter';
+      for(const [r,c,w] of [[260,'20,185,170',2.5],[390,'0,210,190',1.8],[530,'40,200,185',1.2]]){const pulse=1+.06*Math.sin(t*2.2+r*.01);g.strokeStyle=`rgba(${c},${hpa*.45})`;g.lineWidth=w;hexPath(g,CX,CY,r*pulse,t*.18);g.stroke();}g.restore();}
+    // "قريباً" reveal via expanding mask
     const rv=E(P(t,26.9,.8));
-    g.save();g.beginPath();g.rect(0,CY-rv*260,W,rv*520);g.clip();
-    const s=1+.03*(t-26.6);g.translate(CX,CY-40);g.scale(s,s);txt(g,'قريباً',0,0,250,'900','#fff',1-P(t,29.0,.25),0,34);g.restore();
-    txt(g,'STAY TUNED',CX,CY+130,46,'700o','rgba(120,240,220,1)',W1(t,27.5,.6,29.0,.25),30-14*E(P(t,27.5,1.2)));
-    // school logo as organizer
-    const sa=W1(t,27.6,.5,29.0,.25);if(sa>0){g.save();g.globalAlpha=sa;const sh2=120,sw2=imgs.sch.width*sh2/imgs.sch.height;g.drawImage(imgs.sch,CX-sw2/2,CY+175,sw2,sh2);g.restore();}
-    txt(g,'الملتقى التقني الرابع  •  تنظيم مدرسة أبي سعيد الكدمي (٩-١٢)',CX,CY+325,32,'700','rgba(175,240,225,1)',W1(t,27.8,.6,29.0,.25),0,10);
+    g.save();g.beginPath();g.rect(0,CY-rv*280,W,rv*560);g.clip();
+    const s=1+.03*(t-26.6);g.translate(CX,CY-55);g.scale(s,s);
+    txt(g,'قريباً',0,0,250,'900','#fff',1-P(t,29.0,.25),0,34);g.restore();
+    txt(g,'STAY  TUNED',CX,CY+115,46,'700o','rgba(120,240,220,1)',W1(t,27.5,.6,29.0,.25),32-16*E(P(t,27.5,1.2)));
+    // TF logo (no school logo)
+    const sa=W1(t,27.6,.55,29.0,.25);
+    if(sa>0){g.save();g.globalAlpha=sa;const sh2=130,sw2=imgs.tfk.width*sh2/imgs.tfk.height;g.drawImage(imgs.tfk,CX-sw2/2,CY+175,sw2,sh2);g.restore();}
+    // decorative separator line
+    const dl=W1(t,27.9,.5,29.0,.25);
+    g.save();g.globalCompositeOperation='lighter';g.strokeStyle=`rgba(40,200,185,${dl*.7})`;g.lineWidth=1.5;
+    g.beginPath();g.moveTo(CX-320,CY+320);g.lineTo(CX+320,CY+320);g.stroke();
+    g.fillStyle=`rgba(80,230,210,${dl*.8})`;g.save();g.translate(CX,CY+320);g.rotate(Math.PI/4);g.fillRect(-5,-5,10,10);g.restore();
+    g.restore();
+    // event name only (no school name)
+    txt(g,'الملتقى التقني الرابع  •  ومضات تقنية ٤',CX,CY+355,34,'700','rgba(175,240,225,1)',W1(t,27.9,.55,29.0,.25),0,12);
     if(t>28.85&&t<29.25){drawBolt(g,boltPts(CX-700,140,CX+650,920,500,Math.floor(t*30)),1,1.6)}
     if(t>29.2){g.fillStyle='#000';g.fillRect(-50,-50,W+100,H+100)}
   }
