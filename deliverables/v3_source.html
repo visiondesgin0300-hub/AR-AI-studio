@@ -260,26 +260,30 @@ window.render=function(t){
     g.restore();
     txt(g,'شركاء النجاح',CX,235,96,'900','#fff',a,0,26);
     txt(g,'OFFICIAL SPONSORS',CX,310,27,'700o','rgba(110,235,215,1)',a,16);
-    // dramatic light beams
+    // two light beams for two sponsors
     g.save();g.globalCompositeOperation='lighter';
-    for(const [x,t0,col] of [[580,22.4,'40,200,185'],[1340,22.75,'30,185,175']]){
+    for(const [x,t0,col] of [[530,22.4,'40,200,185'],[1390,22.75,'30,185,170']]){
       const k=E(P(t,t0,.55))*(1-P(t,26.1,.5));
       const gr=g.createLinearGradient(0,990,0,350);gr.addColorStop(0,`rgba(${col},${.7*k})`);gr.addColorStop(.6,`rgba(${col},${.2*k})`);gr.addColorStop(1,'rgba(0,0,0,0)');
       g.fillStyle=gr;g.beginPath();g.moveTo(x-70,990);g.lineTo(x+70,990);g.lineTo(x+360,350);g.lineTo(x-360,350);g.closePath();g.fill();
-      // glow ellipse at base
       g.fillStyle=`rgba(170,255,235,${.95*k})`;g.beginPath();g.ellipse(x,992,160,12,0,0,7);g.fill();
-      // top sparkle
       const spk=Math.sin(t*2.5+x*.01)*k*.5+k*.5;g.fillStyle=`rgba(220,255,245,${spk*.4})`;g.beginPath();g.ellipse(x,352,180,18,0,0,7);g.fill();}
+    // vertical divider line
+    const diva=W1(t,23.0,.5,26.1,.4);
+    g.strokeStyle=`rgba(40,200,185,${diva*.35})`;g.lineWidth=1.5;g.beginPath();g.moveTo(CX,375);g.lineTo(CX,750);g.stroke();
+    g.fillStyle=`rgba(80,220,200,${diva*.5})`;g.save();g.translate(CX,540);g.rotate(Math.PI/4);g.fillRect(-6,-6,12,12);g.restore();
     g.restore();
-    // bottom thank-you text with glow
+    // thank-you text
     txt(g,'شكراً لدعمكم وشراكتكم',CX,900,48,'700','rgba(200,250,235,1)',W1(t,23.8,.6,26.1,.4),0,16,20);
-    txt(g,'THANK YOU FOR YOUR PARTNERSHIP',CX,955,22,'700o','rgba(100,225,205,.8)',W1(t,24.1,.5,26.1,.4),12);
-    // sponsor logos on UI layer (transparent bg, no white card)
-    const fl=1+.025*(t-22);const bob=Math.sin(t*1.4)*10;
+    txt(g,'THANK YOU FOR YOUR PARTNERSHIP',CX,950,22,'700o','rgba(100,225,205,.8)',W1(t,24.1,.5,26.1,.4),12);
+    // Both sponsor logos side by side — full, no white bg
+    const fl=1+.022*(t-22);const bob=Math.sin(t*1.4)*8;
     ui.save();ui.globalAlpha=1-P(t,26.1,.5);
-    const bw=500,bh=bw*imgs.bus.height/imgs.bus.width;
-    holo(ui,imgs.bus,580,565+bob,bw*fl,bh*fl,22.4,t,.03,true,0,false);
-    holo(ui,imgs.ham,1340,565-bob,450*fl,450*fl,22.75,t,-.03,true,0,false);
+    // البستان (left) — green leaf: fit to ~440px height
+    const bh=440*fl,bw2=imgs.bus.width*bh/imgs.bus.height;
+    holo(ui,imgs.bus,530,560+bob,bw2,bh,22.4,t,.03,true,0,false);
+    // الحمراء (right) — circular: 440px square
+    holo(ui,imgs.ham,1390,560-bob,440*fl,440*fl,22.75,t,-.03,true,0,false);
     ui.restore();
   }
   // ---------- S7 OUTRO (خاتمة) 26.6-30 ----------
@@ -319,7 +323,7 @@ function W1(t,a,din,b,dout){return E(P(t,a,din))*(1-E(P(t,b,dout)))}
 
 window.init=async function(){
   await fonts();
-  await load('tfk','logos/tf_key_new.png');await load('bus','logos/bustan_new.png');await load('ham','logos/hamra_white.png');await load('sch','logos/school_new.png');
+  await load('tfk','logos/tf_key_new.png');await load('bus','logos/bustan2_new.png');await load('ham','logos/hamra2_new.png');await load('sch','logos/school_new.png');
   buildBoard();
   PC=[];for(let i=0;i<N;i++)PC.push([0,(R(i+1)-.5)*700,0,R(i+2)*7,300+R(i+3)*900]);
   T1=fit(sampleText(['قريباً'],380,0,4));
